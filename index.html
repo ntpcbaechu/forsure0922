@@ -3,76 +3,52 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>FORSURE🐶📸</title>
+  <title>FORSURE 代購專區</title>
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 15px; max-width: 800px; margin: 0 auto; background-color: #f4f6f8; color: #333; }
-    .card { background: #ffffff; padding: 20px; border-radius: 16px; box-shadow: 0 8px 20px rgba(0,0,0,0.06); }
-    h1 { font-size: 22px; margin-top: 0; margin-bottom: 20px; color: #222; text-align: center; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 0; background: #f5f7fa; color: #333; }
+    .container { max-width: 800px; margin: 20px auto; padding: 20px; background: #fff; border-radius: 16px; box-shadow: 0 4px 16px rgba(0,0,0,0.06); }
+    .header { text-align: center; margin-bottom: 20px; }
+    .header h1 { font-size: 24px; margin: 0 0 10px 0; color: #303133; }
     
-    .nav-tabs { display: flex; border-bottom: 2px solid #e4e7ed; margin-bottom: 15px; gap: 4px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
-    .nav-tabs::-webkit-scrollbar { display: none; }
-    .tab-btn { padding: 10px 14px; cursor: pointer; border: none; background: none; font-weight: 600; color: #909399; font-size: 14px; white-space: nowrap; flex-shrink: 0; }
-    .tab-btn.active { color: #409eff; border-bottom: 2px solid #409eff; }
+    /* 頁籤選單：自動換行 + 膠囊風格 */
+    .nav-tabs { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; border-bottom: 1px solid #e4e7ed; padding-bottom: 12px; margin-bottom: 20px; }
+    .nav-tab { padding: 8px 14px; font-size: 14px; font-weight: bold; color: #606266; background: #f4f4f5; border-radius: 20px; cursor: pointer; border: 1px solid transparent; transition: all 0.2s ease; text-align: center; }
+    .nav-tab:hover { color: #409eff; background: #ecf5ff; }
+    .nav-tab.active { color: #fff; background: #409eff; border-color: #409eff; box-shadow: 0 2px 6px rgba(64,158,255,0.3); }
 
-    /* 內嵌框架：高度自動自適應無雙重滾動條 */
-    iframe { width: 100%; height: 600px; border: none; border-radius: 8px; transition: height 0.2s ease; }
-
-    /* 底部置中白色隱形管理頁面連結 */
-    .secret-footer { text-align: center; margin-top: 25px; margin-bottom: 10px; }
-    .secret-admin-link { color: #ffffff; font-size: 10px; text-decoration: none; user-select: none; }
-    .secret-admin-link:hover { color: #dcdfe6; }
-
-    @media (max-width: 600px) {
-      body { padding: 10px; }
-      .card { padding: 15px; border-radius: 12px; }
-    }
+    iframe { width: 100%; border: none; min-height: 500px; }
   </style>
 </head>
 <body>
 
-  <div class="card">
-    <h1>FORSURE🐶📸</h1>
-
-    <div class="nav-tabs">
-      <button class="tab-btn active" onclick="loadTab('progress.html', 0)">🔥 開團與進度</button>
-      <button class="tab-btn" onclick="loadTab('order.html', 1)">📝 登記表單</button>
-      <button class="tab-btn" onclick="loadTab('payment.html', 2)">💰 匯款表單</button>
-      <button class="tab-btn" onclick="loadTab('records.html', 3)">🔍 查詢登記</button>
-      <button class="tab-btn" onclick="loadTab('credit.html', 4)">💳 抵用金查詢</button>
+  <div class="container">
+    <div class="header">
+      <h1>FORSURE🐶📸</h1>
     </div>
 
-    <iframe id="mainFrame" src="progress.html" onload="adjustFrameHeight()"></iframe>
-  </div>
+    <!-- 5 個頁籤按鈕自動換行 -->
+    <div class="nav-tabs">
+      <div class="nav-tab" onclick="switchTab('progress.html', this)">🔥 開團與進度</div>
+      <div class="nav-tab" onclick="switchTab('order.html', this)">📝 登記表單</div>
+      <div class="nav-tab" onclick="switchTab('payment.html', this)">💰 匯款表單</div>
+      <div class="nav-tab active" onclick="switchTab('records.html', this)">🔍 查詢登記與對帳</div>
+      <div class="nav-tab" onclick="switchTab('credit.html', this)">💳 抵用金查詢</div>
+    </div>
 
-  <div class="secret-footer">
-    <a href="admin.html" class="secret-admin-link">管理頁面</a>
+    <iframe id="mainFrame" src="records.html"></iframe>
   </div>
 
   <script>
-    function loadTab(page, idx) {
-      const frame = document.getElementById('mainFrame');
-      frame.src = page;
-      document.querySelectorAll('.tab-btn').forEach((btn, i) => {
-        btn.classList.toggle('active', i === idx);
-      });
+    function switchTab(page, el) {
+      document.getElementById('mainFrame').src = page;
+      document.querySelectorAll('.nav-tab').forEach(tab => tab.classList.remove('active'));
+      el.classList.add('active');
     }
 
-    function adjustFrameHeight() {
-      const frame = document.getElementById('mainFrame');
-      try {
-        if (frame.contentWindow.document.body) {
-          const h = frame.contentWindow.document.body.scrollHeight;
-          frame.style.height = (h + 30) + 'px';
-        }
-      } catch (e) {
-        frame.style.height = '650px';
-      }
-    }
-
-    // 當子頁面內容動態變動時自動重測高度
+    // 監聽來自 iframe 的動態高度調整
     window.addEventListener('message', function(e) {
       if (e.data && e.data.frameHeight) {
-        document.getElementById('mainFrame').style.height = (e.data.frameHeight + 30) + 'px';
+        document.getElementById('mainFrame').style.height = (e.data.frameHeight + 20) + 'px';
       }
     });
   </script>

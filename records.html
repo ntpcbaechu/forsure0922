@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>查詢登記紀錄</title>
+  <title>登記與對帳進度查詢</title>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 10px; margin: 0; background: #fff; color: #333; }
     .group-card { background: #fff; border: 1px solid #e4e7ed; border-radius: 12px; margin-bottom: 20px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.03); }
@@ -16,15 +16,18 @@
     tr:last-child td { border-bottom: none; }
 
     .status-tag { padding: 3px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; display: inline-block; }
-    .status-unpaid { background: #fef0f0; color: #f56c6c; } /* 待匯款改為紅色系 */
-    .status-pending { background: #fdf6ec; color: #e6a23c; } /* 待對帳橘黃色 */
-    .status-ok { background: #f0f9eb; color: #67c23a; }      /* 已對帳綠色 */
+    .status-registered { background: #f4f4f5; color: #909399; } /* 已登記 (待匯款) */
+    .status-pending { background: #fdf6ec; color: #e6a23c; }    /* 待對帳 */
+    .status-ok { background: #f0f9eb; color: #67c23a; }         /* 已對帳 */
+    .status-photo { background: #e8f4ff; color: #1890ff; }      /* 已發圖 */
     .status-err { background: #fef0f0; color: #f56c6c; border: 1px solid #f56c6c; }
   </style>
 </head>
 <body>
 
-  <h3 style="font-size: 16px; margin-top:0; margin-bottom: 15px;">公開登記紀錄</h3>
+  <h3 style="font-size: 17px; margin-top:0; margin-bottom: 8px;">📌 登記與對帳進度查詢</h3>
+  <p style="font-size: 12px; color: #909399; margin-top: 0; margin-bottom: 15px;">💡 已發圖之項目，雲端圖檔預計將於發圖後 7 天自動刪除，請務必及時下載備份。</p>
+  
   <div id="recordsContainer">載入紀錄中...</div>
 
   <script type="module">
@@ -47,21 +50,34 @@
     const memberOrder = ["方燦", "Lee Know", "彰彬", "鉉辰", "Han", "Felix", "昇玟", "I.N", "團體/全體"];
 
     let paymentsMap = {};
+    let photoProgressMap = {};
 
-    // 即時監聽匯款紀錄狀態
+    // 1. 監聽匯款紀錄
     onSnapshot(collection(db, "payments"), snap => {
       paymentsMap = {};
       snap.forEach(doc => {
         const p = doc.data();
         if (p.orderId) {
-          paymentsMap[p.orderId] = p.status || 'pending';
+          paymentsMap[p.orderId] = p;
         }
+      });
+      renderOrders();
+    });
+
+    // 2. 監聽發圖進度
+    onSnapshot(collection(db, "photo_progress"), snap => {
+      photoProgressMap = {};
+      snap.forEach(doc => {
+        const p = doc.data();
+        const key = `${p.event}__${p.member}`;
+        photoProgressMap[key] = p;
       });
       renderOrders();
     });
 
     let currentOrdersSnap = null;
 
+    // 3. 監聽登記紀錄
     onSnapshot(query(collection(db, "orders"), orderBy("createdAt", "asc")), (snapshot) => {
       currentOrdersSnap = snapshot;
       renderOrders();
@@ -84,7 +100,8 @@
       currentOrdersSnap.forEach(doc => {
         const data = doc.data();
         const orderId = doc.id;
-        const eventName = data.eventName || '未分類活動';
+        // 相容不同欄位名稱，避免出現未分類活動
+        const eventName = data.event || data.fullEvent || data.eventName || '未分類活動';
         const member = data.member || '未知成員';
         const groupKey = `${eventName}__${member}`;
 
@@ -97,7 +114,7 @@
           };
         }
 
-        groups[groupKey].items.push({ id: orderId, ...data });
+        groups[groupKey].items.push({ id: orderId, eventName, member, ...data });
         groups[groupKey].totalQty += (parseInt(data.qty) || 0);
       });
 
@@ -116,18 +133,45 @@
 
       sortedKeys.forEach(key => {
         const group = groups[key];
+        const photoProg = photoProgressMap[key];
         
         const card = document.createElement('div');
         card.className = 'group-card';
 
         let rowsHtml = '';
         group.items.forEach((item, index) => {
-          const timeStr = item.time || (item.createdAt ? new Date(item.createdAt.seconds * 1000).toLocaleString('zh-TW', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false }) : '');
+          const payData = paymentsMap[item.id];
           
-          let statusHtml = '<span class="status-tag status-unpaid">⏳ 待匯款</span>';
-          
-          if (item.hasPaid) {
-            const payStatus = paymentsMap[item.id] || 'pending';
+          // 計算最後更新時間或填單時間
+          let updateTimeStr = item.time || (item.createdAt ? new Date(item.createdAt.seconds * 1000).toLocaleString('zh-TW', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false }) : '');
+          if (payData && payData.createdAt) {
+            updateTimeStr = new Date(payData.createdAt.seconds * 1000).toLocaleString('zh-TW', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false });
+          }
+
+          // 帳號末 5 碼遮罩
+          let bankLast5 = '-';
+          if (payData && payData.bankLast5) {
+            bankLast5 = payData.bankLast5.substring(0, 2) + '***';
+          }
+
+          // 判定狀態
+          let statusHtml = '<span class="status-tag status-registered">📝 已登記</span>';
+          let deleteDateStr = '-';
+
+          const isPhotoSent = photoProg && photoProg.status === '已發圖';
+
+          if (isPhotoSent) {
+            statusHtml = '<span class="status-tag status-photo">✅ 已發圖</span>';
+            // 計算發圖日 + 7 天
+            if (photoProg.sentDate) {
+              const d = new Date(photoProg.sentDate);
+              d.setDate(d.getDate() + 7);
+              deleteDateStr = `🗓️ ${d.toISOString().split('T')[0]}`;
+            } else {
+              deleteDateStr = '🗓️ 發圖後+7天';
+            }
+          } else if (item.hasPaid) {
+            const payStatus = payData ? (payData.status || 'pending') : 'pending';
             if (payStatus === 'ok') {
               statusHtml = '<span class="status-tag status-ok">🟢 已對帳</span>';
             } else if (payStatus === 'error') {
@@ -139,11 +183,13 @@
 
           rowsHtml += `
             <tr>
-              <td style="width:30px; text-align:center; color:#909399;">${index + 1}</td>
-              <td style="color:#606266;">${timeStr}</td>
+              <td style="width:25px; text-align:center; color:#909399;">${index + 1}</td>
+              <td style="color:#606266;">${updateTimeStr}</td>
               <td><b>${item.user}</b></td>
               <td><b>${item.qty}</b> 張</td>
+              <td style="font-family:monospace; color:#606266;">${bankLast5}</td>
               <td>${statusHtml}</td>
+              <td style="color:#f56c6c; font-size:12px;">${deleteDateStr}</td>
             </tr>
           `;
         });
@@ -156,11 +202,13 @@
           <table>
             <thead>
               <tr>
-                <th style="width:30px; text-align:center;">#</th>
-                <th>填單時間</th>
+                <th style="width:25px; text-align:center;">#</th>
+                <th>填單 / 更新時間</th>
                 <th>社群名稱</th>
                 <th>張數</th>
+                <th>匯款帳號</th>
                 <th>對帳狀態</th>
+                <th>雲端圖檔預計刪除日</th>
               </tr>
             </thead>
             <tbody>
