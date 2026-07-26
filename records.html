@@ -3,46 +3,37 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>FORSURE🐶📸 - 管理者後台</title>
+  <title>FORSURE🐶📸 - 登記紀錄</title>
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 20px; max-width: 1000px; margin: 0 auto; background-color: #f4f6f8; color: #333; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 20px; max-width: 800px; margin: 0 auto; background-color: #f4f6f8; color: #333; }
     .card { background: #ffffff; padding: 24px; border-radius: 16px; box-shadow: 0 8px 20px rgba(0,0,0,0.06); }
     .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
-    h1 { font-size: 20px; margin: 0; color: #d9534f; }
-    .btn-group { display: flex; gap: 10px; }
+    h1 { font-size: 20px; margin: 0; color: #222; }
     .btn-back { background-color: #e4e7ed; color: #333; text-decoration: none; padding: 8px 14px; border-radius: 6px; font-weight: 600; font-size: 14px; }
-    button { padding: 8px 14px; border-radius: 6px; border: none; font-weight: 600; cursor: pointer; font-size: 14px; }
-    .btn-export { background-color: #67c23a; color: white; }
     table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-    th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e4e7ed; font-size: 13px; }
+    th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e4e7ed; font-size: 14px; }
     th { background-color: #f8f9fa; font-weight: 600; color: #555; }
     tr:hover { background-color: #f9fafc; }
     .empty-msg { text-align: center; padding: 40px; color: #909399; }
-    .note-tag { background-color: #fef0f0; color: #f56c6c; padding: 2px 6px; border-radius: 4px; }
   </style>
 </head>
 <body>
 
-  <div class="card" id="adminContent" style="display: none;">
+  <div class="card">
     <div class="header">
-      <h1>FORSURE🐶📸 管理者後台</h1>
-      <div class="btn-group">
-        <a href="index.html" class="btn-back">返回表單</a>
-        <button class="btn-export" id="exportBtn">匯出完整 CSV</button>
-      </div>
+      <h1>FORSURE🐶📸 登記紀錄</h1>
+      <a href="index.html" class="btn-back">返回表單</a>
     </div>
 
     <table id="recordTable">
       <thead>
         <tr>
           <th>#</th>
-          <th>時間</th>
+          <th>填單時間</th>
           <th>社群名稱</th>
-          <th>IG/Threads</th>
           <th>活動名稱</th>
           <th>成員</th>
           <th>張數</th>
-          <th>備註</th>
         </tr>
       </thead>
       <tbody id="tableBody"></tbody>
@@ -53,17 +44,6 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getFirestore, collection, query, orderBy, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-
-    // 管理員密碼驗證 (預設: emmanuel)
-    const ADMIN_PASSWORD = "emmanuel";
-    const pass = prompt("請輸入管理者密碼：");
-
-    if (pass !== ADMIN_PASSWORD) {
-      alert("密碼錯誤");
-      window.location.href = "index.html";
-    } else {
-      document.getElementById('adminContent').style.display = 'block';
-    }
 
     const firebaseConfig = {
       apiKey: "AIzaSyDF7QySG1Jj4gdZvXwMRaKjRmI-lFKpj7k",
@@ -78,14 +58,11 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    let currentRecords = [];
-
     const q = query(collection(db, "orders"), orderBy("createdAt", "desc"));
     onSnapshot(q, (snapshot) => {
       const tbody = document.getElementById('tableBody');
       const emptyMsg = document.getElementById('emptyMsg');
       tbody.innerHTML = '';
-      currentRecords = [];
 
       if (snapshot.empty) {
         emptyMsg.style.display = 'block';
@@ -101,18 +78,14 @@
         const date = data.createdAt ? new Date(data.createdAt.seconds * 1000) : new Date();
         const timeStr = `${date.getMonth()+1}/${date.getDate()} ${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}`;
 
-        currentRecords.push({ time: timeStr, ...data });
-
         const tr = document.createElement('tr');
         tr.innerHTML = `
           <td>${index++}</td>
           <td>${timeStr}</td>
           <td><b>${escapeHtml(data.user || '')}</b></td>
-          <td><span style="color:#409eff;">${escapeHtml(data.social || '未填')}</span></td>
           <td>${escapeHtml(data.event || '')}</td>
           <td>${escapeHtml(data.member || '')}</td>
           <td>${data.qty || 0}</td>
-          <td>${data.note ? `<span class="note-tag">${escapeHtml(data.note)}</span>` : '-'}</td>
         `;
         tbody.appendChild(tr);
       });
@@ -121,20 +94,6 @@
     function escapeHtml(text) {
       return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     }
-
-    document.getElementById('exportBtn').addEventListener('click', () => {
-      if (currentRecords.length === 0) { alert('無資料可匯出'); return; }
-      let csv = "\uFEFF填單時間,社群名稱,IG_Threads,活動名稱,成員,張數,備註\n";
-      currentRecords.forEach(r => {
-        csv += `"${r.time}","${r.user}","${r.social || ''}","${r.event}","${r.member}","${r.qty}","${r.note || ''}"\n`;
-      });
-      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `FORSURE_完整管理者紀錄_${new Date().toISOString().slice(0,10)}.csv`;
-      a.click();
-    });
   </script>
 
 </body>
