@@ -10,6 +10,7 @@
     h1 { font-size: 24px; margin-top: 0; margin-bottom: 24px; color: #222; text-align: center; }
     .form-group { margin-bottom: 20px; position: relative; }
     label { display: block; margin-bottom: 8px; font-weight: 600; font-size: 14px; color: #444; }
+    label::after { content: " *"; color: #f56c6c; } /* 必填標示 */
     input, select, button { width: 100%; padding: 12px 14px; border: 1px solid #dcdfe6; border-radius: 8px; box-sizing: border-box; font-size: 15px; background-color: #fff; transition: all 0.2s; }
     input:focus, select:focus { border-color: #409eff; outline: none; box-shadow: 0 0 0 3px rgba(64,158,255,0.1); }
     .other-input { margin-top: 10px; display: none; }
@@ -30,23 +31,26 @@
     <h1>FORSURE🐶📸</h1>
 
     <form id="orderForm">
+      <!-- 1. 社群名稱 -->
       <div class="form-group">
-        <label for="usernameInput">請選擇/輸入社群名稱：</label>
+        <label for="usernameInput">請選擇/輸入社群名稱</label>
         <input type="text" id="usernameInput" placeholder="點擊選擇或輸入搜尋暱稱..." autocomplete="off" required>
         <div id="userDropdown" class="custom-dropdown-list"></div>
         <input type="text" id="userOtherInput" class="other-input" placeholder="請輸入您的社群名稱...">
       </div>
 
+      <!-- 2. 活動名稱 -->
       <div class="form-group">
-        <label for="eventSelect">活動名稱：</label>
+        <label for="eventSelect">活動名稱</label>
         <select id="eventSelect" required>
           <option value="" disabled selected>請選擇活動名稱</option>
         </select>
         <input type="text" id="eventOtherInput" class="other-input" placeholder="請自行填入活動名稱...">
       </div>
 
+      <!-- 3. 成員 -->
       <div class="form-group">
-        <label for="memberSelect">成員：</label>
+        <label for="memberSelect">成員</label>
         <select id="memberSelect" required>
           <option value="" disabled selected>請選擇成員</option>
           <option value="方燦">方燦</option>
@@ -60,8 +64,9 @@
         </select>
       </div>
 
+      <!-- 4. 張數 -->
       <div class="form-group">
-        <label for="quantityInput">張數：</label>
+        <label for="quantityInput">張數</label>
         <input type="text" id="quantityInput" placeholder="請輸入數字(例:100)" required autocomplete="off">
         <div id="qtyError" class="error-msg">請輸入正確的純數字（大於 0 的正整數）！</div>
       </div>
@@ -153,40 +158,48 @@
       } else {
         eventOtherInput.style.display = 'none';
         eventOtherInput.required = false;
+        eventOtherInput.value = '';
       }
     });
 
     document.getElementById('orderForm').addEventListener('submit', async (e) => {
       e.preventDefault();
+
+      // 必填完整檢查
+      const userInput = usernameInput.value.trim();
+      const eventVal = eventSelect.value;
+      const memberVal = document.getElementById('memberSelect').value;
       const qtyVal = document.getElementById('quantityInput').value.trim();
-      if (!/^[1-9]\d*$/.test(qtyVal)) {
-        alert('請輸入正確的張數！');
-        return;
-      }
+
+      if (!userInput) { alert('請選擇或輸入社群名稱！'); return; }
+      if (userInput === '其他' && !userOtherInput.value.trim()) { alert('請填寫自訂的社群名稱！'); userOtherInput.focus(); return; }
+      if (!eventVal) { alert('請選擇活動名稱！'); return; }
+      if (eventVal === '其他' && !eventOtherInput.value.trim()) { alert('請填寫自訂的活動名稱！'); eventOtherInput.focus(); return; }
+      if (!memberVal) { alert('請選擇成員！'); return; }
+      if (!/^[1-9]\d*$/.test(qtyVal)) { alert('請輸入正確的張數（大於0的數字）！'); return; }
 
       const btn = document.getElementById('submitBtn');
       btn.disabled = true;
       btn.textContent = '送出中...';
 
-      const finalUser = usernameInput.value === '其他' ? userOtherInput.value.trim() : usernameInput.value;
-      const finalEvent = eventSelect.value === '其他' ? eventOtherInput.value.trim() : eventSelect.value;
-      const finalMember = document.getElementById('memberSelect').value;
+      const finalUser = userInput === '其他' ? userOtherInput.value.trim() : userInput;
+      const finalEvent = eventVal === '其他' ? eventOtherInput.value.trim() : eventVal;
 
       try {
         await addDoc(collection(db, "orders"), {
           user: finalUser,
           event: finalEvent,
-          member: finalMember,
+          member: memberVal,
           qty: parseInt(qtyVal),
           createdAt: serverTimestamp()
         });
 
-        alert(`登記成功！\n社群名稱：${finalUser}\n活動名稱：${finalEvent}\n成員：${finalMember}\n張數：${qtyVal}`);
+        alert(`登記成功！\n社群名稱：${finalUser}\n活動名稱：${finalEvent}\n成員：${memberVal}\n張數：${qtyVal}`);
         document.getElementById('orderForm').reset();
         userOtherInput.style.display = 'none';
         eventOtherInput.style.display = 'none';
       } catch (err) {
-        alert('提交失敗，請檢查網路或系統權限：' + err.message);
+        alert('提交失敗，請檢查 Firebase 規則是否設定正確：' + err.message);
       } finally {
         btn.disabled = false;
         btn.textContent = '送出';
