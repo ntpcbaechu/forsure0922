@@ -63,7 +63,7 @@
     const memberOrder = ["方燦", "Lee Know", "彰彬", "鉉辰", "Han", "Felix", "昇玟", "I.N", "團體/全體"];
 
     let paymentsMap = {};
-    let photoProgressMap = {};
+    let photoProgressList = [];
 
     onSnapshot(collection(db, "payments"), snap => {
       paymentsMap = {};
@@ -75,11 +75,9 @@
     });
 
     onSnapshot(collection(db, "photo_progress"), snap => {
-      photoProgressMap = {};
+      photoProgressList = [];
       snap.forEach(doc => {
-        const p = doc.data();
-        const key = `${p.event}__${p.member}`;
-        photoProgressMap[key] = p;
+        photoProgressList.push(doc.data());
       });
       renderOrders();
     });
@@ -90,6 +88,15 @@
       currentOrdersSnap = snapshot;
       renderOrders();
     });
+
+    // 支援包含與相容比對開團進度
+    function getPhotoProgress(eventName, member) {
+      return photoProgressList.find(p => {
+        const matchEvent = (p.eventName === eventName || p.event === eventName);
+        const matchMember = p.member && (p.member === member || p.member.startsWith(member) || member.startsWith(p.member));
+        return matchEvent && matchMember;
+      });
+    }
 
     function renderOrders() {
       if (!currentOrdersSnap) return;
@@ -109,7 +116,6 @@
         const data = doc.data();
         const orderId = doc.id;
         
-        // 多重欄位名稱相容
         const eventName = data.event || data.fullEvent || data.eventName || '未分類活動';
         const member = data.member || '未知成員';
         const groupKey = `${eventName}__${member}`;
@@ -135,7 +141,7 @@
 
       sortedKeys.forEach(key => {
         const group = groups[key];
-        const photoProg = photoProgressMap[key];
+        const photoProg = getPhotoProgress(group.eventName, group.member);
         
         const card = document.createElement('div');
         card.className = 'group-card';
@@ -156,9 +162,10 @@
             bankLast5 = payData.bankLast5.substring(0, 2) + '***';
           }
 
-          const photoStatus = photoProg ? photoProg.status : '';
+          const photoStatus = photoProg ? (photoProg.status || '') : '';
           const isPhotoSent = photoStatus === '已發圖';
-          const isWaitingForPhoto = photoStatus.includes('等圖') || photoStatus.includes('製作') || photoStatus.includes('催圖');
+          // 只要包含「分圖」、「等圖」、「製作」、「催圖」、「上傳」即變成待匯款
+          const isWaitingForPhoto = photoStatus.includes('分圖') || photoStatus.includes('等圖') || photoStatus.includes('製作') || photoStatus.includes('催圖') || photoStatus.includes('上傳');
 
           let statusHtml = '<span class="status-tag status-registered">📝 已登記</span>';
           let deleteDateStr = '-';
@@ -187,7 +194,6 @@
 
           const displayQty = item.qty !== undefined ? item.qty : (item.quantity !== undefined ? item.quantity : (item.count || 0));
 
-          // 電腦版表格行
           rowsHtml += `
             <tr>
               <td style="width:25px; text-align:center; color:#909399;">${index + 1}</td>
@@ -200,7 +206,6 @@
             </tr>
           `;
 
-          // 手機版卡片項
           mobileCardsHtml += `
             <div class="mobile-item">
               <div class="mobile-item-header">
