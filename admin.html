@@ -180,12 +180,12 @@
       <h3>發佈與更新發圖進度</h3>
       <input type="hidden" id="editProgId">
       <div class="input-group">
-        <select id="progEventSelect" style="min-width: 220px;">
-          <option value="" disabled selected>載入活動中...</option>
+        <select id="progEventSelect" style="min-width: 200px;">
+          <option value="" disabled selected>請選擇活動</option>
         </select>
         
         <select id="progMember" style="width: 120px;">
-          <option value="" disabled selected>選擇成員</option>
+          <option value="" disabled selected>請選擇成員</option>
           <option value="方燦">方燦</option>
           <option value="Lee Know">Lee Know</option>
           <option value="彰彬">彰彬</option>
@@ -197,12 +197,12 @@
           <option value="團體/全體">團體/全體</option>
         </select>
 
-        <!-- 代拍下拉選單（自動帶入 Admin-3 設定的代拍名稱） -->
         <select id="progSellerSelect" style="min-width: 130px;">
-          <option value="">預設/單一代拍</option>
+          <option value="" disabled selected>請選擇代拍</option>
         </select>
 
-        <select id="progStatus" style="width: 120px;">
+        <select id="progStatus" style="width: 130px;">
+          <option value="" disabled selected>請選擇進度</option>
           <option value="已預約">📅 已預約</option>
           <option value="等圖中">⏳ 等圖中</option>
           <option value="分圖中">📂 分圖中</option>
@@ -219,7 +219,8 @@
         <thead>
           <tr>
             <th>活動全名</th>
-            <th>成員 / 代拍真實名字</th>
+            <th>成員</th>
+            <th>代拍</th>
             <th>目前狀態</th>
             <th>操作</th>
           </tr>
@@ -248,7 +249,7 @@
     const auth = getAuth(app);
     const db = getFirestore(app);
 
-    let eventSellerMap = {}; // 紀錄各活動在 Admin-3 設定的代拍
+    let eventSellerMap = {};
 
     onAuthStateChanged(auth, (user) => {
       if (user) {
@@ -337,7 +338,7 @@
         });
       });
 
-      // 3. 活動單價與成本設定 (自動收集代拍名稱供 Admin-4 選用)
+      // 3. 活動單價與成本設定
       onSnapshot(collection(db, "event_settings"), snap => {
         const tb = document.getElementById('eventTable');
         const summaryBox = document.getElementById('eventSummaryBox');
@@ -360,7 +361,6 @@
           const actUPriceTxt = ev.actQty > 0 ? `$${(ev.cost / ev.actQty).toFixed(1)}/張` : '<span style="color:#909399;">待填寫</span>';
           const closedBadge = ev.isClosed ? '<span class="closed-tag">🚫 已關閉</span>' : '';
 
-          // 收集每個活動在 Admin-3 設定的所有代拍
           if (!eventSellerMap[ev.name]) eventSellerMap[ev.name] = [];
           if (ev.seller && !eventSellerMap[ev.name].includes(ev.seller)) {
             eventSellerMap[ev.name].push(ev.seller);
@@ -417,18 +417,18 @@
         }
       });
 
-      // 4. 發圖進度更新
+      // 4. 發圖進度更新 (成員與代拍欄位獨立開來)
       onSnapshot(collection(db, "photo_progress"), snap => {
         const tb = document.getElementById('progTable');
         tb.innerHTML = '';
         snap.forEach(d => {
           const item = d.data();
           const docId = d.id;
-          const sellerTxt = item.seller ? ` (${item.seller})` : '';
           tb.innerHTML += `
             <tr>
               <td><b>${item.eventName}</b></td>
-              <td>${item.member}${sellerTxt}</td>
+              <td>${item.member}</td>
+              <td>${item.seller || '無/預設'}</td>
               <td><b>${item.status || '等圖中'}</b></td>
               <td>
                 <button class="btn-edit" onclick="editProg('${docId}', '${item.eventName}', '${item.member}', '${item.seller||''}', '${item.status}')">編輯</button>
@@ -440,11 +440,10 @@
       });
     }
 
-    // 當 Admin-4 選擇活動時，自動將該活動在 Admin-3 設定的代拍帶入選單
     document.getElementById('progEventSelect').addEventListener('change', (e) => {
       const selectedEvent = e.target.value;
       const sellerSelect = document.getElementById('progSellerSelect');
-      sellerSelect.innerHTML = '<option value="">預設/單一代拍</option>';
+      sellerSelect.innerHTML = '<option value="" disabled selected>請選擇代拍</option>';
 
       const sellers = eventSellerMap[selectedEvent] || [];
       sellers.forEach(s => {
@@ -566,7 +565,6 @@
       }
     };
 
-    // Admin-4 發佈 / 儲存修改進度
     document.getElementById('saveProgBtn').onclick = async () => {
       const fullEventName = document.getElementById('progEventSelect').value;
       const member = document.getElementById('progMember').value;
@@ -576,6 +574,7 @@
 
       if (!fullEventName) return alert('請選擇活動！');
       if (!member) return alert('請選擇成員！');
+      if (!status) return alert('請選擇進度狀態！');
 
       const targetDocId = editId || `${fullEventName}_${member}_${seller || 'single'}`;
 
@@ -591,8 +590,8 @@
       document.getElementById('editProgId').value = '';
       document.getElementById('progEventSelect').value = '';
       document.getElementById('progMember').value = '';
-      document.getElementById('progSellerSelect').innerHTML = '<option value="">預設/單一代拍</option>';
-      document.getElementById('progStatus').value = '已預約';
+      document.getElementById('progSellerSelect').innerHTML = '<option value="" disabled selected>請選擇代拍</option>';
+      document.getElementById('progStatus').value = '';
       document.getElementById('saveProgBtn').textContent = '發佈進度';
       document.getElementById('cancelProgBtn').style.display = 'none';
     };
@@ -601,9 +600,8 @@
       document.getElementById('editProgId').value = docId;
       document.getElementById('progEventSelect').value = eventName;
       
-      // 觸發帶出該活動的代拍下拉選項
       const sellerSelect = document.getElementById('progSellerSelect');
-      sellerSelect.innerHTML = '<option value="">預設/單一代拍</option>';
+      sellerSelect.innerHTML = '<option value="" disabled>請選擇代拍</option>';
       const sellers = eventSellerMap[eventName] || [];
       sellers.forEach(s => {
         if (s) {
@@ -616,7 +614,7 @@
 
       document.getElementById('progMember').value = member;
       document.getElementById('progSellerSelect').value = seller || '';
-      document.getElementById('progStatus').value = status;
+      document.getElementById('progStatus').value = status || '';
       document.getElementById('saveProgBtn').textContent = '儲存修改';
       document.getElementById('cancelProgBtn').style.display = 'inline-block';
     };

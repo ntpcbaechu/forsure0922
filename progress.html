@@ -38,7 +38,6 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    // 依據 updatedAt (最後修改時間) 倒序排列，確保最新編輯的永遠在最上面
     onSnapshot(query(collection(db, "photo_progress"), orderBy("updatedAt", "desc")), (snapshot) => {
       const container = document.getElementById('progressList');
       container.innerHTML = '';
@@ -51,23 +50,30 @@
       let itemsList = [];
       snapshot.forEach(doc => { itemsList.push(doc.data()); });
 
-      // 自動對應與轉譯每個活動下的代拍為：代拍 1, 代拍 2...
+      // 計算各活動出現過的不同代拍數量
       const sellerMapping = {};
-
       itemsList.forEach(item => {
         const eventName = item.eventName;
         const realSeller = item.seller || 'default';
-
         if (!sellerMapping[eventName]) { sellerMapping[eventName] = []; }
         if (!sellerMapping[eventName].includes(realSeller)) {
           sellerMapping[eventName].push(realSeller);
         }
+      });
 
-        const sellerIndex = sellerMapping[eventName].indexOf(realSeller) + 1;
-        const anonLabel = sellerMapping[eventName].length > 1 || realSeller !== 'default' ? ` (代拍 ${sellerIndex})` : '';
+      // 渲染列表
+      itemsList.forEach(item => {
+        const eventName = item.eventName;
+        const realSeller = item.seller || 'default';
+        
+        // 只有當該活動有多於 1 個代拍時，才顯示 (代拍 1)、(代拍 2)；單一代拍則不顯示
+        let anonLabel = '';
+        if (sellerMapping[eventName] && sellerMapping[eventName].length > 1) {
+          const sellerIndex = sellerMapping[eventName].indexOf(realSeller) + 1;
+          anonLabel = ` (代拍 ${sellerIndex})`;
+        }
 
         const status = item.status || '等圖中';
-        
         let badgeClass = 'status-waiting';
         if (status === '已預約') badgeClass = 'status-reserved';
         else if (status === '分圖中') badgeClass = 'status-sorting';
