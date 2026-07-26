@@ -5,12 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>抵用金查詢</title>
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 5px; margin: 0; background: #fff; color: #333; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 10px; margin: 0; background: #fff; color: #333; min-height: 280px; }
     .form-group { margin-bottom: 18px; position: relative; }
     label { display: block; margin-bottom: 6px; font-weight: 600; font-size: 14px; color: #444; }
     input { width: 100%; padding: 12px; border: 1px solid #dcdfe6; border-radius: 8px; box-sizing: border-box; font-size: 15px; }
-    .custom-dropdown-list { position: absolute; top: 100%; left: 0; right: 0; max-height: 200px; overflow-y: auto; background-color: #ffffff; border: 1px solid #e4e7ed; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); z-index: 1000; display: none; margin-top: 4px; }
-    .dropdown-item { padding: 10px; cursor: pointer; font-size: 14px; border-bottom: 1px solid #f2f6fc; }
+    .custom-dropdown-list { position: absolute; top: 100%; left: 0; right: 0; max-height: 220px; overflow-y: auto; background-color: #ffffff; border: 1px solid #e4e7ed; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 1000; display: none; margin-top: 4px; }
+    .dropdown-item { padding: 12px; cursor: pointer; font-size: 14px; border-bottom: 1px solid #f2f6fc; }
     .dropdown-item:hover { background-color: #f5f7fa; color: #409eff; }
     .credit-card { text-align: center; background: #f0f9eb; border: 1px solid #e1f3d8; border-radius: 12px; padding: 25px; margin-top: 20px; display: none; }
     .credit-amount { font-size: 32px; font-weight: bold; color: #67c23a; margin-top: 10px; }
@@ -50,7 +50,6 @@
 
     let allUsers = [];
 
-    // 修改：改從 Firebase user_credits 資料庫抓取「唯有在後台新增過抵用金的名單」
     async function initData() {
       try {
         const snap = await getDocs(collection(db, "user_credits"));
@@ -97,12 +96,24 @@
         });
       }
 
-      input.onfocus = () => { dropdown.style.display = 'block'; render(allUsers); };
-      input.onblur = () => { setTimeout(() => dropdown.style.display = 'none', 200); };
+      input.onfocus = () => { 
+        dropdown.style.display = 'block'; 
+        render(allUsers); 
+        notifyHeightWithMenu();
+      };
+      
+      input.onblur = () => { 
+        setTimeout(() => { 
+          dropdown.style.display = 'none'; 
+          notifyHeight(); 
+        }, 200); 
+      };
+
       input.oninput = () => {
         const val = input.value.toLowerCase();
         render(allUsers.filter(u => u.toLowerCase().includes(val)));
         dropdown.style.display = 'block';
+        notifyHeightWithMenu();
       };
     }
 
@@ -118,12 +129,25 @@
       document.getElementById('targetUser').textContent = user;
       document.getElementById('targetCredit').textContent = `$${totalRemaining}`;
       document.getElementById('creditBox').style.display = 'block';
-      notifyHeight();
+      setTimeout(notifyHeight, 50);
     }
 
     function notifyHeight() {
-      window.parent.postMessage({ frameHeight: document.body.scrollHeight }, '*');
+      const h = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight, 280);
+      window.parent.postMessage({ frameHeight: h }, '*');
     }
+
+    function notifyHeightWithMenu() {
+      const dropdown = document.getElementById('userDropdown');
+      const dropdownHeight = dropdown ? dropdown.offsetHeight : 0;
+      const totalH = Math.max(document.body.scrollHeight + dropdownHeight + 20, 320);
+      window.parent.postMessage({ frameHeight: totalH }, '*');
+    }
+
+    const resizeObserver = new ResizeObserver(() => {
+      notifyHeight();
+    });
+    resizeObserver.observe(document.body);
 
     initData();
   </script>
