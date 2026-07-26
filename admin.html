@@ -30,6 +30,14 @@
     .input-group { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
     .btn-danger { background-color: #f56c6c; color: white; padding: 4px 8px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; }
     .btn-edit { background-color: #e6a23c; color: white; padding: 4px 8px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; margin-right: 4px; }
+
+    /* 表單專用兩排佈局樣式 */
+    .form-row-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 10px; }
+    .form-row-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 10px; }
+    
+    @media (max-width: 768px) {
+      .form-row-3, .form-row-4 { grid-template-columns: 1fr; }
+    }
   </style>
 </head>
 <body>
@@ -100,22 +108,29 @@
       </table>
     </div>
 
-    <!-- 3. 活動單價與成本設定 -->
+    <!-- 3. 活動單價與成本設定 (改為兩排結構、非強迫必填) -->
     <div class="tab-content">
       <h3>設定活動單價與利潤分析</h3>
       <form id="eventForm" style="background:#f8f9fa; padding:15px; border-radius:8px; margin-bottom:15px;">
         <input type="hidden" id="editEventId">
-        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap:10px;">
-          <div><label style="font-size:12px;">日期 (例: 260725)</label><input type="text" id="evDate" placeholder="YYMMDD" style="width:100%;"></div>
-          <div><label style="font-size:12px;">活動名稱 (例: RUN IT)</label><input type="text" id="evName" placeholder="活動名稱" required style="width:100%;"></div>
+        
+        <!-- 第一排 (3格) -->
+        <div class="form-row-3">
+          <div><label style="font-size:12px;">日期 (例: 260725)</label><input type="text" id="evDate" placeholder="260725" style="width:100%;"></div>
+          <div><label style="font-size:12px;">活動名稱 (例: RUN IT)</label><input type="text" id="evName" placeholder="RUN IT (Day1)" required style="width:100%;"></div>
           <div><label style="font-size:12px;">代拍 (例: 站姐A)</label><input type="text" id="evSeller" placeholder="代拍名稱/帳號" style="width:100%;"></div>
-          <div><label style="font-size:12px;">售出單價 ($)</label><input type="number" id="evPrice" placeholder="販售單價" required style="width:100%;"></div>
-          <div><label style="font-size:12px;">總購入價 ($)</label><input type="number" id="evCost" placeholder="總購入成本" required style="width:100%;"></div>
-          <div><label style="font-size:12px;">預計張數</label><input type="number" id="evEstQty" placeholder="預計張數" required style="width:100%;"></div>
-          <div><label style="font-size:12px;">實際收到張數</label><input type="number" id="evActQty" placeholder="實際收到張數" required style="width:100%;"></div>
         </div>
-        <button type="submit" id="saveEventBtn" style="margin-top:10px;">儲存活動設定</button>
-        <button type="button" id="cancelEditBtn" style="background:#909399; display:none; margin-top:10px;" onclick="resetEventForm()">取消編輯</button>
+
+        <!-- 第二排 (4格) -->
+        <div class="form-row-4">
+          <div><label style="font-size:12px;">售出單價 ($)</label><input type="number" id="evPrice" placeholder="販售單價" style="width:100%;"></div>
+          <div><label style="font-size:12px;">總購入價 ($)</label><input type="number" id="evCost" placeholder="總購入成本" style="width:100%;"></div>
+          <div><label style="font-size:12px;">預計張數</label><input type="number" id="evEstQty" placeholder="預計張數" style="width:100%;"></div>
+          <div><label style="font-size:12px;">實際收到張數</label><input type="number" id="evActQty" placeholder="收到後填寫" style="width:100%;"></div>
+        </div>
+
+        <button type="submit" id="saveEventBtn">儲存活動設定</button>
+        <button type="button" id="cancelEditBtn" style="background:#909399; display:none;" onclick="resetEventForm()">取消編輯</button>
       </form>
 
       <table>
@@ -134,7 +149,7 @@
       </table>
     </div>
 
-    <!-- 4. 發圖進度更新 (支援代拍 1, 代拍 2 選項) -->
+    <!-- 4. 發圖進度更新 -->
     <div class="tab-content">
       <h3>發佈與更新發圖進度</h3>
       <div class="input-group">
@@ -330,7 +345,7 @@
       });
     });
 
-    // --- 3. 活動單價與成本設定 ---
+    // --- 3. 活動單價與成本設定 (放寬必填與格式化運算) ---
     document.getElementById('eventForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const evDate = document.getElementById('evDate').value.trim();
@@ -345,7 +360,7 @@
       const docId = document.getElementById('editEventId').value || `${fullName}_${seller || 'default'}_${Date.now()}`;
 
       const actualUnitCost = actQty > 0 ? (cost / actQty) : 0;
-      const profit = (price * actQty) - cost;
+      const profit = actQty > 0 ? ((price * actQty) - cost) : 0;
 
       await setDoc(doc(db, "event_settings", docId), {
         name: fullName, rawDate: evDate, rawName: evNameRaw, seller, price, cost, estQty, actQty, actualUnitCost, profit
@@ -359,8 +374,6 @@
       document.getElementById('eventForm').reset();
       document.getElementById('editEventId').value = '';
       document.getElementById('cancelEditBtn').style.display = 'none';
-      document.getElementById('evDate').disabled = false;
-      document.getElementById('evName').disabled = false;
     };
 
     window.editEvent = (docId, fullName, rawDate, rawName, seller, price, cost, estQty, actQty) => {
@@ -368,10 +381,10 @@
       document.getElementById('evDate').value = rawDate || '';
       document.getElementById('evName').value = rawName || fullName;
       document.getElementById('evSeller').value = seller || '';
-      document.getElementById('evPrice').value = price;
-      document.getElementById('evCost').value = cost;
-      document.getElementById('evEstQty').value = estQty;
-      document.getElementById('evActQty').value = actQty;
+      document.getElementById('evPrice').value = price || '';
+      document.getElementById('evCost').value = cost || '';
+      document.getElementById('evEstQty').value = estQty || '';
+      document.getElementById('evActQty').value = actQty || '';
       document.getElementById('cancelEditBtn').style.display = 'inline-block';
     };
 
@@ -393,18 +406,23 @@
       snap.forEach(d => {
         const ev = d.data();
         const docId = d.id;
-        const actUPrice = ev.actQty > 0 ? (ev.cost / ev.actQty).toFixed(1) : 0;
+        
+        // 若尚未填寫實際收到張數，顯示標籤避免計算混淆
+        const actUPriceTxt = ev.actQty > 0 ? `$${(ev.cost / ev.actQty).toFixed(1)}/張` : '<span style="color:#909399;">待填寫</span>';
+        const profitTxt = ev.actQty > 0 
+          ? `<b style="color:${ev.profit >= 0 ? '#67c23a' : '#f56c6c'};">$${ev.profit}</b>`
+          : '<span style="color:#909399;">-</span>';
         
         tb.innerHTML += `
           <tr>
             <td><b>${ev.name}</b></td>
             <td>${ev.seller || '未填寫'}</td>
-            <td>售價: $${ev.price}<br><small style="color:#909399;">實際成本: $${actUPrice}/張</small></td>
-            <td>$${ev.cost}</td>
-            <td>預計: ${ev.estQty}張<br>實際: ${ev.actQty}張</td>
-            <td><b style="color:${ev.profit >= 0 ? '#67c23a' : '#f56c6c'};">$${ev.profit}</b></td>
+            <td>售價: $${ev.price || 0}<br><small style="color:#909399;">實際成本: ${actUPriceTxt}</small></td>
+            <td>$${ev.cost || 0}</td>
+            <td>預計: ${ev.estQty || 0}張<br>實際: ${ev.actQty || 0}張</td>
+            <td>${profitTxt}</td>
             <td>
-              <button class="btn-edit" onclick="editEvent('${docId}', '${ev.name}', '${ev.rawDate||''}', '${ev.rawName||''}', '${ev.seller||''}', ${ev.price}, ${ev.cost}, ${ev.estQty}, ${ev.actQty})">編輯</button>
+              <button class="btn-edit" onclick="editEvent('${docId}', '${ev.name}', '${ev.rawDate||''}', '${ev.rawName||''}', '${ev.seller||''}', ${ev.price||0}, ${ev.cost||0}, ${ev.estQty||0}, ${ev.actQty||0})">編輯</button>
               <button class="btn-danger" onclick="deleteEvent('${docId}')">刪除</button>
             </td>
           </tr>
