@@ -44,7 +44,7 @@
       <div class="form-group">
         <label for="eventSelect" class="required">活動名稱</label>
         <select id="eventSelect" required>
-          <option value="" disabled selected>請選擇活動名稱</option>
+          <option value="" disabled selected>載入活動中...</option>
         </select>
         <input type="text" id="eventOtherInput" class="other-input" placeholder="請自行填入活動名稱...">
       </div>
@@ -82,7 +82,7 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyDF7QySG1Jj4gdZvXwMRaKjRmI-lFKpj7k",
@@ -97,14 +97,23 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    const eventList = ["260725 RUN IT (Day1)", "260726 RUN IT (Day2)", "260729 RUN IT (Day3)", "260801 RUN IT (Day4)", "260802 RUN IT (Day5)", "其他"];
-    const eventSelect = document.getElementById('eventSelect');
-    eventList.forEach(event => {
-      const opt = document.createElement('option');
-      opt.value = event;
-      opt.textContent = event;
-      eventSelect.appendChild(opt);
-    });
+    // 從 Firebase 載入後台新增的活動
+    async function loadEvents() {
+      const eventSelect = document.getElementById('eventSelect');
+      eventSelect.innerHTML = '<option value="" disabled selected>請選擇活動名稱</option>';
+      const snap = await getDocs(collection(db, "event_settings"));
+      snap.forEach(d => {
+        const name = d.data().name;
+        const opt = document.createElement('option');
+        opt.value = name;
+        opt.textContent = name;
+        eventSelect.appendChild(opt);
+      });
+      const optOther = document.createElement('option');
+      optOther.value = '其他';
+      optOther.textContent = '其他';
+      eventSelect.appendChild(optOther);
+    }
 
     let allUsers = [];
     const usernameInput = document.getElementById('usernameInput');
@@ -165,12 +174,21 @@
 
       try {
         await addDoc(collection(db, "orders"), {
-          user: finalUser, social: socialInput, event: finalEvent, member: memberVal, qty: parseInt(qtyVal), note: noteVal, createdAt: serverTimestamp()
+          user: finalUser,
+          social: socialInput,
+          event: finalEvent,
+          member: memberVal,
+          qty: parseInt(qtyVal),
+          note: noteVal,
+          hasPaid: false, // 標記未匯款
+          createdAt: serverTimestamp()
         });
         alert(`登記成功！\n社群名稱：${finalUser}\n活動名稱：${finalEvent}\n成員：${memberVal}\n張數：${qtyVal}`);
         document.getElementById('orderForm').reset();
       } catch (err) { alert('提交失敗：' + err.message); }
     });
+
+    loadEvents();
   </script>
 
 </body>
