@@ -12,10 +12,8 @@
     .progress-item { border: 1px solid #e4e7ed; border-radius: 12px; padding: 16px; margin-bottom: 14px; background: #fff; }
     .item-title { font-weight: bold; font-size: 16px; margin-bottom: 6px; display: flex; justify-content: space-between; }
     .item-meta { font-size: 13px; color: #909399; margin-bottom: 10px; }
-    .progress-bar-bg { background-color: #ebeef5; border-radius: 10px; height: 10px; overflow: hidden; margin-bottom: 12px; }
+    .progress-bar-bg { background-color: #ebeef5; border-radius: 10px; height: 10px; overflow: hidden; }
     .progress-bar-fill { background-color: #67c23a; height: 100%; transition: width 0.3s; }
-    .btn-drive { display: inline-block; background-color: #409eff; color: white; text-decoration: none; padding: 6px 14px; border-radius: 6px; font-size: 13px; font-weight: 600; }
-    .btn-drive.disabled { background-color: #c0c4cc; pointer-events: none; }
     .badge { padding: 2px 8px; border-radius: 4px; font-size: 12px; }
     .badge-done { background: #f0f9eb; color: #67c23a; }
     .badge-working { background: #fdf6ec; color: #e6a23c; }
@@ -76,7 +74,6 @@
           <div class="progress-bar-bg">
             <div class="progress-bar-fill" style="width: ${percent}%;"></div>
           </div>
-          ${item.driveUrl ? `<a href="${item.driveUrl}" target="_blank" class="btn-drive">📁 點擊前往 Google Drive 雲端圖集</a>` : `<span class="btn-drive disabled">雲端連結整理中</span>`}
         `;
         container.appendChild(div);
       });
