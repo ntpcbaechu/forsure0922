@@ -90,7 +90,7 @@
         </select>
       </div>
 
-      <!-- 2. 選擇商品/活動 (從 Firebase event_settings 載入) -->
+      <!-- 2. 選擇商品/活動 -->
       <div class="form-group">
         <label for="event">品項 / 活動名稱 *</label>
         <select id="event" required>
@@ -118,7 +118,7 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-    // Firebase 配置 (若您有自訂 Key 請更換)
+    // Firebase 配置
     const firebaseConfig = {
       projectId: "forsure0922",
       authDomain: "forsure0922.firebaseapp.com",
@@ -147,24 +147,40 @@
         })
         .catch(error => {
           console.error('讀取名單失敗:', error);
-          document.getElementById('user').innerHTML = '<option value="">載入名單失敗，請刷洗頁面重試</option>';
+          document.getElementById('user').innerHTML = '<option value="">載入名單失敗，請重新整理頁面</option>';
         });
 
       loadEvents();
     });
 
-    // 載入 Firebase 活動設定
+    // 載入 Firebase 活動設定（已加入自動切除代拍檔名邏輯）
     async function loadEvents() {
       const eventSelect = document.getElementById('event');
       try {
         const querySnapshot = await getDocs(collection(db, "event_settings"));
         eventSelect.innerHTML = '<option value="">請選擇品項 / 活動</option>';
+        
+        const addedTitles = new Set(); // 避免重複選單選項
+
         querySnapshot.forEach((docSnap) => {
           const data = docSnap.data();
-          const option = document.createElement('option');
-          option.value = data.eventName || docSnap.id;
-          option.textContent = data.eventName || docSnap.id;
-          eventSelect.appendChild(option);
+
+          // 1. 優先取資料欄位中的前台標題
+          let displayTitle = data.title || data.displayName || data.eventName;
+
+          // 2. 若無欄位名稱，則抓 ID 並切除第一個底線「_」後面的代拍資訊
+          if (!displayTitle) {
+            displayTitle = docSnap.id.split('_')[0]; 
+          }
+
+          // 確保清單乾淨不重複
+          if (displayTitle && !addedTitles.has(displayTitle)) {
+            addedTitles.add(displayTitle);
+            const option = document.createElement('option');
+            option.value = displayTitle;
+            option.textContent = displayTitle;
+            eventSelect.appendChild(option);
+          }
         });
       } catch (e) {
         console.error("載入活動失敗:", e);
