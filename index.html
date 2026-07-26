@@ -5,23 +5,48 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>FORSURE🐶📸</title>
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 20px; max-width: 480px; margin: 0 auto; background-color: #f4f6f8; color: #333; }
-    .card { background: #ffffff; padding: 28px 24px; border-radius: 16px; box-shadow: 0 8px 20px rgba(0,0,0,0.06); }
-    h1 { font-size: 24px; margin-top: 0; margin-bottom: 24px; color: #222; text-align: center; }
-    .form-group { margin-bottom: 20px; position: relative; }
-    label { display: block; margin-bottom: 8px; font-weight: 600; font-size: 14px; color: #444; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 15px; max-width: 650px; margin: 0 auto; background-color: #f4f6f8; color: #333; }
+    .card { background: #ffffff; padding: 24px; border-radius: 16px; box-shadow: 0 8px 20px rgba(0,0,0,0.06); }
+    h1 { font-size: 22px; margin-top: 0; margin-bottom: 20px; color: #222; text-align: center; }
+    
+    /* 頂部導覽列風格 */
+    .nav-tabs { display: flex; border-bottom: 2px solid #e4e7ed; margin-bottom: 20px; gap: 4px; overflow-x: auto; }
+    .tab-btn { padding: 10px 12px; cursor: pointer; border: none; background: none; font-weight: 600; color: #909399; font-size: 14px; white-space: nowrap; }
+    .tab-btn.active { color: #409eff; border-bottom: 2px solid #409eff; }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    .form-group { margin-bottom: 18px; position: relative; }
+    label { display: block; margin-bottom: 6px; font-weight: 600; font-size: 14px; color: #444; }
     label.required::after { content: " *"; color: #f56c6c; }
-    input, select, textarea, button { width: 100%; padding: 12px 14px; border: 1px solid #dcdfe6; border-radius: 8px; box-sizing: border-box; font-size: 15px; background-color: #fff; transition: all 0.2s; font-family: inherit; }
+    input, select, textarea, button { width: 100%; padding: 12px; border: 1px solid #dcdfe6; border-radius: 8px; box-sizing: border-box; font-size: 15px; background-color: #fff; transition: all 0.2s; font-family: inherit; }
     input:focus, select:focus, textarea:focus { border-color: #409eff; outline: none; box-shadow: 0 0 0 3px rgba(64,158,255,0.1); }
     .other-input { margin-top: 10px; display: none; }
-    .custom-dropdown-list { position: absolute; top: 100%; left: 0; right: 0; max-height: 200px; overflow-y: auto; background-color: #ffffff; border: 1px solid #e4e7ed; border-radius: 8px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); z-index: 1000; display: none; margin-top: 4px; }
-    .dropdown-item { padding: 10px 14px; cursor: pointer; font-size: 14px; color: #333; border-bottom: 1px solid #f2f6fc; }
-    .dropdown-item:last-child { border-bottom: none; }
+    .custom-dropdown-list { position: absolute; top: 100%; left: 0; right: 0; max-height: 200px; overflow-y: auto; background-color: #ffffff; border: 1px solid #e4e7ed; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); z-index: 1000; display: none; margin-top: 4px; }
+    .dropdown-item { padding: 10px; cursor: pointer; font-size: 14px; color: #333; border-bottom: 1px solid #f2f6fc; }
     .dropdown-item:hover { background-color: #f5f7fa; color: #409eff; }
-    button { background-color: #409eff; color: white; border: none; font-weight: 600; font-size: 16px; cursor: pointer; margin-top: 10px; border-radius: 8px; }
-    button:hover { background-color: #66b1ff; }
-    .btn-view { display: block; text-align: center; margin-top: 15px; color: #909399; text-decoration: none; font-size: 13px; }
-    .btn-view:hover { color: #409eff; }
+    
+    button.submit-btn { background-color: #409eff; color: white; border: none; font-weight: 600; font-size: 16px; cursor: pointer; margin-top: 10px; border-radius: 8px; }
+    button.submit-btn:hover { background-color: #66b1ff; }
+
+    /* 計算區塊 */
+    .calc-box { background-color: #f8f9fa; border: 1px dashed #409eff; border-radius: 8px; padding: 14px; margin-top: 15px; font-size: 14px; }
+    .calc-row { display: flex; justify-content: space-between; margin-bottom: 8px; }
+    .calc-row.total { border-top: 1px solid #dcdfe6; padding-top: 8px; font-weight: bold; font-size: 16px; color: #f56c6c; }
+    .checkbox-label { display: flex; align-items: center; gap: 8px; font-weight: normal; cursor: pointer; }
+    .checkbox-label input { width: auto; }
+
+    /* 進度與表格 */
+    .progress-item { border: 1px solid #e4e7ed; border-radius: 12px; padding: 16px; margin-bottom: 14px; background: #fff; }
+    .progress-bar-bg { background-color: #ebeef5; border-radius: 10px; height: 10px; overflow: hidden; margin-top: 8px; }
+    .progress-bar-fill { background-color: #67c23a; height: 100%; transition: width 0.3s; }
+    .badge { padding: 2px 8px; border-radius: 4px; font-size: 12px; }
+    .badge-done { background: #f0f9eb; color: #67c23a; }
+    .badge-working { background: #fdf6ec; color: #e6a23c; }
+
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th, td { padding: 10px; text-align: left; border-bottom: 1px solid #e4e7ed; font-size: 13px; }
+    th { background-color: #f8f9fa; font-weight: 600; color: #555; }
     .error-msg { color: #f56c6c; font-size: 12px; margin-top: 4px; display: none; }
   </style>
 </head>
@@ -30,68 +55,144 @@
   <div class="card">
     <h1>FORSURE🐶📸</h1>
 
-    <form id="orderForm">
-      <!-- 1. 社群名稱 -->
-      <div class="form-group">
-        <label for="usernameInput" class="required">請選擇/輸入社群名稱</label>
-        <input type="text" id="usernameInput" placeholder="點擊選擇或輸入搜尋暱稱..." autocomplete="off" required>
-        <div id="userDropdown" class="custom-dropdown-list"></div>
-        <input type="text" id="userOtherInput" class="other-input" placeholder="請輸入您的社群名稱...">
-      </div>
+    <!-- 頂部頁籤導覽列 -->
+    <div class="nav-tabs">
+      <button class="tab-btn active" onclick="switchMainTab(0)">🔥 開團與進度</button>
+      <button class="tab-btn" onclick="switchMainTab(1)">📝 登記表單</button>
+      <button class="tab-btn" onclick="switchMainTab(2)">💰 匯款表單</button>
+      <button class="tab-btn" onclick="switchMainTab(3)">🔍 查詢登記</button>
+    </div>
 
-      <!-- IG / Threads 帳號 (改預設範例文字) -->
-      <div class="form-group">
-        <label for="socialInput" class="required">請輸入 IG/Threads 帳號</label>
-        <input type="text" id="socialInput" placeholder="例：ntpcbaechu" autocomplete="off" required>
-      </div>
+    <!-- 頁籤一：開團與進度 -->
+    <div class="tab-panel active">
+      <h3 style="font-size: 16px; margin-top:0;">目前開團與飯拍發放進度</h3>
+      <div id="progressList">載入進度中...</div>
+    </div>
 
-      <!-- 2. 活動名稱 -->
-      <div class="form-group">
-        <label for="eventSelect" class="required">活動名稱</label>
-        <select id="eventSelect" required>
-          <option value="" disabled selected>請選擇活動名稱</option>
-        </select>
-        <input type="text" id="eventOtherInput" class="other-input" placeholder="請自行填入活動名稱...">
-      </div>
+    <!-- 頁籤二：登記表單 -->
+    <div class="tab-panel">
+      <form id="orderForm">
+        <div class="form-group">
+          <label for="usernameInput" class="required">請選擇/輸入社群名稱</label>
+          <input type="text" id="usernameInput" placeholder="點擊選擇或輸入搜尋暱稱..." autocomplete="off" required>
+          <div id="userDropdown" class="custom-dropdown-list"></div>
+          <input type="text" id="userOtherInput" class="other-input" placeholder="請輸入您的社群名稱...">
+        </div>
 
-      <!-- 3. 成員 -->
-      <div class="form-group">
-        <label for="memberSelect" class="required">成員</label>
-        <select id="memberSelect" required>
-          <option value="" disabled selected>請選擇成員</option>
-          <option value="方燦">方燦</option>
-          <option value="Lee Know">Lee Know</option>
-          <option value="彰彬">彰彬</option>
-          <option value="鉉辰">鉉辰</option>
-          <option value="Han">Han</option>
-          <option value="Felix">Felix</option>
-          <option value="昇玟">昇玟</option>
-          <option value="I.N">I.N</option>
-        </select>
-      </div>
+        <div class="form-group">
+          <label for="socialInput" class="required">請輸入 IG/Threads 帳號</label>
+          <input type="text" id="socialInput" placeholder="例：ntpcbaechu" autocomplete="off" required>
+        </div>
 
-      <!-- 4. 張數 -->
-      <div class="form-group">
-        <label for="quantityInput" class="required">張數</label>
-        <input type="text" id="quantityInput" placeholder="請輸入數字(例:100)" required autocomplete="off">
-        <div id="qtyError" class="error-msg">請輸入正確的純數字（大於 0 的正整數）！</div>
-      </div>
+        <div class="form-group">
+          <label for="eventSelect" class="required">活動名稱</label>
+          <select id="eventSelect" required>
+            <option value="" disabled selected>請選擇活動名稱</option>
+          </select>
+          <input type="text" id="eventOtherInput" class="other-input" placeholder="請自行填入活動名稱...">
+        </div>
 
-      <!-- 備註 (清除預設文字，完全空白) -->
-      <div class="form-group">
-        <label for="noteInput">備註</label>
-        <textarea id="noteInput" rows="2"></textarea>
-      </div>
+        <div class="form-group">
+          <label for="memberSelect" class="required">成員</label>
+          <select id="memberSelect" required>
+            <option value="" disabled selected>請選擇成員</option>
+            <option value="方燦">方燦</option>
+            <option value="Lee Know">Lee Know</option>
+            <option value="彰彬">彰彬</option>
+            <option value="鉉辰">鉉辰</option>
+            <option value="Han">Han</option>
+            <option value="Felix">Felix</option>
+            <option value="昇玟">昇玟</option>
+            <option value="I.N">I.N</option>
+          </select>
+        </div>
 
-      <button type="submit" id="submitBtn">送出</button>
-    </form>
+        <div class="form-group">
+          <label for="quantityInput" class="required">張數</label>
+          <input type="text" id="quantityInput" placeholder="請輸入數字(例:100)" required autocomplete="off">
+          <div id="qtyError" class="error-msg">請輸入正確的純數字（大於 0 的正整數）！</div>
+        </div>
 
-    <a href="records.html" class="btn-view">📋 查看登記紀錄</a>
+        <div class="form-group">
+          <label for="noteInput">備註</label>
+          <textarea id="noteInput" rows="2"></textarea>
+        </div>
+
+        <button type="submit" id="submitBtn" class="submit-btn">送出登記</button>
+      </form>
+    </div>
+
+    <!-- 頁籤三：匯款表單 -->
+    <div class="tab-panel">
+      <form id="paymentForm">
+        <div class="form-group">
+          <label for="payUsernameInput" class="required">社群名稱</label>
+          <input type="text" id="payUsernameInput" placeholder="選擇或輸入搜尋暱稱..." autocomplete="off" required>
+          <div id="payUserDropdown" class="custom-dropdown-list"></div>
+        </div>
+
+        <div class="form-group">
+          <label for="paySocialInput" class="required">IG/Threads 帳號</label>
+          <input type="text" id="paySocialInput" placeholder="例：ntpcbaechu" required>
+        </div>
+
+        <div class="form-group">
+          <label for="payEventSelect" class="required">活動名稱</label>
+          <select id="payEventSelect" required>
+            <option value="" disabled selected>請選擇活動（載入單價中...）</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="payQtyInput" class="required">張數</label>
+          <input type="number" id="payQtyInput" min="1" placeholder="請輸入張數" required>
+        </div>
+
+        <div class="calc-box">
+          <div class="calc-row"><span>單價：</span><span id="unitPriceTxt">$0 / 張</span></div>
+          <div class="calc-row"><span>小計金額：</span><span id="subtotalTxt">$0</span></div>
+          <div class="calc-row">
+            <label class="checkbox-label">
+              <input type="checkbox" id="useCreditChk"> 使用抵用金 (可用餘額: <span id="creditBalanceTxt">$0</span>)
+            </label>
+            <span id="creditDeductTxt">-$0</span>
+          </div>
+          <div class="calc-row total"><span>最終應匯款金額：</span><span id="finalPayTxt">$0</span></div>
+        </div>
+
+        <div class="form-group" style="margin-top: 15px;">
+          <label for="bankLast5Input" class="required">匯款帳號後 5 碼</label>
+          <input type="text" id="bankLast5Input" maxlength="5" placeholder="例：12345" required>
+        </div>
+
+        <button type="submit" id="paySubmitBtn" class="submit-btn">送出匯款登記</button>
+      </form>
+    </div>
+
+    <!-- 頁籤四：查詢登記內容 -->
+    <div class="tab-panel">
+      <h3 style="font-size: 16px; margin-top:0;">公開登記紀錄</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>時間</th>
+            <th>社群名稱</th>
+            <th>活動名稱</th>
+            <th>成員</th>
+            <th>張數</th>
+          </tr>
+        </thead>
+        <tbody id="recordTableBody"></tbody>
+      </table>
+      <div id="recordEmptyMsg" style="text-align:center; padding:20px; color:#909399; display:none;">尚無登記紀錄</div>
+    </div>
+
   </div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, doc, getDocs, updateDoc, onSnapshot, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyDF7QySG1Jj4gdZvXwMRaKjRmI-lFKpj7k",
@@ -106,6 +207,19 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
+    // 切換頁籤
+    window.switchMainTab = (idx) => {
+      document.querySelectorAll('.tab-btn').forEach((b, i) => b.classList.toggle('active', i === idx));
+      document.querySelectorAll('.tab-panel').forEach((p, i) => p.classList.toggle('active', i === idx));
+    };
+
+    let allUsers = [];
+    let eventPrices = {};
+    let userCredits = {};
+    let currentCredit = 0;
+    let currentUnitPrice = 0;
+
+    // 初始化下拉選項與事件處理
     const eventList = ["260725 RUN IT (Day1)", "260726 RUN IT (Day2)", "260729 RUN IT (Day3)", "260801 RUN IT (Day4)", "260802 RUN IT (Day5)", "其他"];
     const eventSelect = document.getElementById('eventSelect');
     eventList.forEach(event => {
@@ -115,112 +229,210 @@
       eventSelect.appendChild(opt);
     });
 
-    let allUsers = [];
-    const usernameInput = document.getElementById('usernameInput');
-    const userDropdown = document.getElementById('userDropdown');
-    const userOtherInput = document.getElementById('userOtherInput');
-
-    fetch('users.json')
-      .then(res => res.json())
-      .then(data => {
-        allUsers = [...data, "其他"];
-        renderDropdown(allUsers);
-      });
-
-    function renderDropdown(users) {
-      userDropdown.innerHTML = '';
-      users.forEach(user => {
-        const item = document.createElement('div');
-        item.className = 'dropdown-item';
-        item.textContent = user;
-        item.addEventListener('mousedown', (e) => {
-          e.preventDefault();
-          selectUser(user);
-        });
-        userDropdown.appendChild(item);
-      });
-    }
-
-    function selectUser(user) {
-      usernameInput.value = user;
-      userDropdown.style.display = 'none';
-      if (user === '其他') {
-        userOtherInput.style.display = 'block';
-        userOtherInput.required = true;
-      } else {
-        userOtherInput.style.display = 'none';
-        userOtherInput.required = false;
-        userOtherInput.value = '';
-      }
-    }
-
-    usernameInput.addEventListener('focus', () => { userDropdown.style.display = 'block'; });
-    usernameInput.addEventListener('blur', () => { setTimeout(() => { userDropdown.style.display = 'none'; }, 200); });
-    usernameInput.addEventListener('input', () => {
-      const val = usernameInput.value.toLowerCase();
-      renderDropdown(allUsers.filter(u => u.toLowerCase().includes(val)));
-      userDropdown.style.display = 'block';
+    fetch('users.json').then(res => res.json()).then(data => {
+      allUsers = [...data, "其他"];
+      setupDropdown('usernameInput', 'userDropdown', 'userOtherInput');
+      setupDropdown('payUsernameInput', 'payUserDropdown', null, onPayUserSelected);
     });
 
+    function setupDropdown(inputId, dropdownId, otherInputId, callback) {
+      const input = document.getElementById(inputId);
+      const dropdown = document.getElementById(dropdownId);
+      const otherInput = otherInputId ? document.getElementById(otherInputId) : null;
+
+      function render(list) {
+        dropdown.innerHTML = '';
+        list.forEach(u => {
+          const item = document.createElement('div');
+          item.className = 'dropdown-item';
+          item.textContent = u;
+          item.onmousedown = (e) => {
+            e.preventDefault();
+            input.value = u;
+            dropdown.style.display = 'none';
+            if (otherInput) {
+              if (u === '其他') { otherInput.style.display = 'block'; otherInput.required = true; }
+              else { otherInput.style.display = 'none'; otherInput.required = false; }
+            }
+            if (callback) callback(u);
+          };
+          dropdown.appendChild(item);
+        });
+      }
+
+      input.onfocus = () => { dropdown.style.display = 'block'; render(allUsers); };
+      input.onblur = () => { setTimeout(() => dropdown.style.display = 'none', 200); };
+      input.oninput = () => {
+        const val = input.value.toLowerCase();
+        render(allUsers.filter(u => u.toLowerCase().includes(val)));
+        dropdown.style.display = 'block';
+      };
+    }
+
+    // --- 1. 開團與進度即時監聽 ---
+    const qProg = query(collection(db, "photo_progress"), orderBy("createdAt", "desc"));
+    onSnapshot(qProg, (snapshot) => {
+      const container = document.getElementById('progressList');
+      container.innerHTML = '';
+      if (snapshot.empty) { container.innerHTML = '<div style="text-align:center; padding:20px; color:#909399;">目前尚無開團進度。</div>'; return; }
+      snapshot.forEach(doc => {
+        const item = doc.data();
+        const percent = Math.min(100, Math.round((item.doneQty / item.totalQty) * 100)) || 0;
+        const isFinished = percent === 100;
+        const div = document.createElement('div');
+        div.className = 'progress-item';
+        div.innerHTML = `
+          <div style="font-weight:bold; display:flex; justify-content:space-between;">
+            <span>${item.eventName} - ${item.member}</span>
+            <span class="badge ${isFinished ? 'badge-done' : 'badge-working'}">${isFinished ? '已發放完畢' : '整理中'}</span>
+          </div>
+          <div style="font-size:13px; color:#909399; margin-top:4px;">進度：${item.doneQty} / ${item.totalQty} 張 (${percent}%)</div>
+          <div class="progress-bar-bg"><div class="progress-bar-fill" style="width:${percent}%;"></div></div>
+        `;
+        container.appendChild(div);
+      });
+    });
+
+    // --- 2. 登記表單提交 ---
     const eventOtherInput = document.getElementById('eventOtherInput');
     eventSelect.addEventListener('change', () => {
-      if (eventSelect.value === '其他') {
-        eventOtherInput.style.display = 'block';
-        eventOtherInput.required = true;
-      } else {
-        eventOtherInput.style.display = 'none';
-        eventOtherInput.required = false;
-        eventOtherInput.value = '';
-      }
+      if (eventSelect.value === '其他') { eventOtherInput.style.display = 'block'; eventOtherInput.required = true; }
+      else { eventOtherInput.style.display = 'none'; eventOtherInput.required = false; }
     });
 
     document.getElementById('orderForm').addEventListener('submit', async (e) => {
       e.preventDefault();
+      const u = document.getElementById('usernameInput').value.trim();
+      const uOther = document.getElementById('userOtherInput').value.trim();
+      const social = document.getElementById('socialInput').value.trim();
+      const ev = eventSelect.value;
+      const evOther = eventOtherInput.value.trim();
+      const mem = document.getElementById('memberSelect').value;
+      const qty = document.getElementById('quantityInput').value.trim();
+      const note = document.getElementById('noteInput').value.trim();
 
-      const userInput = usernameInput.value.trim();
-      const socialInput = document.getElementById('socialInput').value.trim();
-      const eventVal = eventSelect.value;
-      const memberVal = document.getElementById('memberSelect').value;
-      const qtyVal = document.getElementById('quantityInput').value.trim();
-      const noteVal = document.getElementById('noteInput').value.trim();
-
-      if (!userInput) { alert('請選擇或輸入社群名稱！'); return; }
-      if (userInput === '其他' && !userOtherInput.value.trim()) { alert('請填寫自訂的社群名稱！'); userOtherInput.focus(); return; }
-      if (!socialInput) { alert('請輸入 IG/Threads 帳號！'); return; }
-      if (!eventVal) { alert('請選擇活動名稱！'); return; }
-      if (eventVal === '其他' && !eventOtherInput.value.trim()) { alert('請填寫自訂的活動名稱！'); eventOtherInput.focus(); return; }
-      if (!memberVal) { alert('請選擇成員！'); return; }
-      if (!/^[1-9]\d*$/.test(qtyVal)) { alert('請輸入正確的張數（大於0的數字）！'); return; }
-
-      const btn = document.getElementById('submitBtn');
-      btn.disabled = true;
-      btn.textContent = '送出中...';
-
-      const finalUser = userInput === '其他' ? userOtherInput.value.trim() : userInput;
-      const finalEvent = eventVal === '其他' ? eventOtherInput.value.trim() : eventVal;
+      const finalUser = u === '其他' ? uOther : u;
+      const finalEvent = ev === '其他' ? evOther : ev;
 
       try {
         await addDoc(collection(db, "orders"), {
-          user: finalUser,
-          social: socialInput,
-          event: finalEvent,
-          member: memberVal,
-          qty: parseInt(qtyVal),
-          note: noteVal,
+          user: finalUser, social, event: finalEvent, member: mem, qty: parseInt(qty), note, createdAt: serverTimestamp()
+        });
+        alert(`登記成功！\n社群名稱：${finalUser}\n活動：${finalEvent}\n成員：${mem}\n張數：${qty}`);
+        document.getElementById('orderForm').reset();
+      } catch(err) { alert('提交失敗：' + err.message); }
+    });
+
+    // --- 3. 匯款計算與提交 ---
+    async function initPaymentData() {
+      const eventSnap = await getDocs(collection(db, "event_settings"));
+      const payEventSelect = document.getElementById('payEventSelect');
+      payEventSelect.innerHTML = '<option value="" disabled selected>請選擇活動</option>';
+      eventSnap.forEach(d => {
+        const data = d.data();
+        eventPrices[data.name] = data.price || 0;
+        const opt = document.createElement('option');
+        opt.value = data.name;
+        opt.textContent = `${data.name} ($${data.price}/張)`;
+        payEventSelect.appendChild(opt);
+      });
+
+      const userSnap = await getDocs(collection(db, "user_credits"));
+      userSnap.forEach(d => { userCredits[d.data().user] = d.data().credit || 0; });
+    }
+
+    function onPayUserSelected(user) {
+      currentCredit = userCredits[user] || 0;
+      document.getElementById('creditBalanceTxt').textContent = `$${currentCredit}`;
+      calcPayTotal();
+    }
+
+    document.getElementById('payEventSelect').addEventListener('change', (e) => {
+      currentUnitPrice = eventPrices[e.target.value] || 0;
+      document.getElementById('unitPriceTxt').textContent = `$${currentUnitPrice} / 張`;
+      calcPayTotal();
+    });
+
+    document.getElementById('payQtyInput').addEventListener('input', calcPayTotal);
+    document.getElementById('useCreditChk').addEventListener('change', calcPayTotal);
+
+    function calcPayTotal() {
+      const qty = parseInt(document.getElementById('payQtyInput').value) || 0;
+      const subtotal = qty * currentUnitPrice;
+      const useCredit = document.getElementById('useCreditChk').checked;
+      const deduct = useCredit ? Math.min(subtotal, currentCredit) : 0;
+      const finalPay = subtotal - deduct;
+
+      document.getElementById('subtotalTxt').textContent = `$${subtotal}`;
+      document.getElementById('creditDeductTxt').textContent = `-$${deduct}`;
+      document.getElementById('finalPayTxt').textContent = `$${finalPay}`;
+    }
+
+    document.getElementById('paymentForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const user = document.getElementById('payUsernameInput').value.trim();
+      const social = document.getElementById('paySocialInput').value.trim();
+      const eventName = document.getElementById('payEventSelect').value;
+      const qty = parseInt(document.getElementById('payQtyInput').value);
+      const bankLast5 = document.getElementById('bankLast5Input').value.trim();
+      const useCredit = document.getElementById('useCreditChk').checked;
+
+      const subtotal = qty * currentUnitPrice;
+      const deduct = useCredit ? Math.min(subtotal, currentCredit) : 0;
+      const finalPay = subtotal - deduct;
+
+      try {
+        await addDoc(collection(db, "payments"), {
+          user, social, eventName, qty, unitPrice: currentUnitPrice,
+          subtotal, creditUsed: deduct, finalPay, bankLast5,
           createdAt: serverTimestamp()
         });
 
-        alert(`登記成功！\n社群名稱：${finalUser}\n活動名稱：${finalEvent}\n成員：${memberVal}\n張數：${qtyVal}`);
-        document.getElementById('orderForm').reset();
-        userOtherInput.style.display = 'none';
-        eventOtherInput.style.display = 'none';
-      } catch (err) {
-        alert('提交失敗：' + err.message);
-      } finally {
-        btn.disabled = false;
-        btn.textContent = '送出';
-      }
+        if (deduct > 0) {
+          const userSnap = await getDocs(collection(db, "user_credits"));
+          userSnap.forEach(async (docSnap) => {
+            if (docSnap.data().user === user) {
+              await updateDoc(doc(db, "user_credits", docSnap.id), {
+                credit: currentCredit - deduct
+              });
+            }
+          });
+        }
+
+        alert(`匯款登記成功！\n應匯金額：$${finalPay}\n帳號後五碼：${bankLast5}`);
+        document.getElementById('paymentForm').reset();
+      } catch (err) { alert("提交失敗: " + err.message); }
     });
+
+    // --- 4. 查詢登記內容即時監聽 ---
+    const qOrders = query(collection(db, "orders"), orderBy("createdAt", "desc"));
+    onSnapshot(qOrders, (snapshot) => {
+      const tbody = document.getElementById('recordTableBody');
+      const emptyMsg = document.getElementById('recordEmptyMsg');
+      tbody.innerHTML = '';
+      if (snapshot.empty) { emptyMsg.style.display = 'block'; return; }
+      emptyMsg.style.display = 'none';
+      let idx = 1;
+      snapshot.forEach(d => {
+        const data = d.data();
+        const date = data.createdAt ? new Date(data.createdAt.seconds * 1000) : new Date();
+        const timeStr = `${date.getMonth()+1}/${date.getDate()} ${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}`;
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${idx++}</td>
+          <td>${timeStr}</td>
+          <td><b>${escapeHtml(data.user || '')}</b></td>
+          <td>${escapeHtml(data.event || '')}</td>
+          <td>${escapeHtml(data.member || '')}</td>
+          <td>${data.qty || 0}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    });
+
+    function escapeHtml(t) { return (t||'').replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+
+    initPaymentData();
   </script>
 
 </body>
