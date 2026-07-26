@@ -122,10 +122,8 @@
           });
         });
 
-        // 依照 rawDate 正序排列（舊的在前，最新的在後）
         tempEvents.sort((a, b) => a.rawDate.localeCompare(b.rawDate));
 
-        // 用 Set 過濾重複的場次名稱
         let seen = new Set();
         let events = [];
         tempEvents.forEach(item => {
@@ -173,6 +171,7 @@
           member: memberVal,
           qty: qtyVal,
           time: timeStr,
+          status: "待匯款", // 確保新送出的訂單狀態顯示為待匯款
           hasPaid: false,
           createdAt: serverTimestamp()
         });
@@ -183,10 +182,11 @@
           📸 <b>選擇場次：</b>${eventVal}<br>
           🐶 <b>成員名稱：</b>${memberVal}<br>
           🔢 <b>喊單張數：</b>${qtyVal} 張<br>
-          ⏰ <b>填單時間：</b>${timeStr}
+          ⏰ <b>填單時間：</b>${timeStr}<br>
+          📌 <b>目前狀態：</b>待匯款
         `;
 
-        lastReceiptText = `🎉【FORSURE 登記憑證】\n👤 社群名稱：${user}\n📸 選擇場次：${eventVal}\n🐶 成員名稱：${memberVal}\n🔢 喊單張數：${qtyVal} 張\n⏰ 填單時間：${timeStr}`;
+        lastReceiptText = `🎉【FORSURE 登記憑證】\n👤 社群名稱：${user}\n📸 選擇場次：${eventVal}\n🐶 成員名稱：${memberVal}\n🔢 喊單張數：${qtyVal} 張\n⏰ 填單時間：${timeStr}\n📌 目前狀態：待匯款`;
 
         document.getElementById('receiptContent').innerHTML = receiptHtml;
         document.getElementById('formSection').style.display = 'none';
