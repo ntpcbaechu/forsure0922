@@ -71,7 +71,7 @@
       </table>
     </div>
 
-    <!-- 3. 活動單價與成本設定 (新增編輯、刪除、完整成本利潤) -->
+    <!-- 3. 活動單價與成本設定 -->
     <div class="tab-content">
       <h3>設定活動單價與利潤分析</h3>
       <form id="eventForm" style="background:#f8f9fa; padding:15px; border-radius:8px; margin-bottom:15px;">
@@ -102,7 +102,7 @@
       </table>
     </div>
 
-    <!-- 4. 發圖進度更新 -->
+    <!-- 4. 發圖進度更新 (改為 4 種狀態下拉) -->
     <div class="tab-content">
       <h3>發佈與更新發圖進度</h3>
       <div class="input-group">
@@ -121,14 +121,19 @@
           <option value="I.N">I.N</option>
           <option value="團體/全體">團體/全體</option>
         </select>
+
+        <select id="progStatus" style="width: 120px;">
+          <option value="等圖中">⏳ 等圖中</option>
+          <option value="分圖中">📂 分圖中</option>
+          <option value="上傳中">☁️ 上傳中</option>
+          <option value="已發圖">✅ 已發圖</option>
+        </select>
         
-        <input type="number" id="progTotal" placeholder="總照片張數" style="width: 100px;">
-        <input type="number" id="progDone" placeholder="已發放張數" style="width: 100px;">
         <button id="saveProgBtn">發佈/更新進度</button>
       </div>
 
       <table>
-        <thead><tr><th>活動/成員</th><th>進度</th></tr></thead>
+        <thead><tr><th>活動/成員</th><th>目前狀態</th></tr></thead>
         <tbody id="progTable"></tbody>
       </table>
     </div>
@@ -136,7 +141,7 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore, collection, doc, setDoc, deleteDoc, updateDoc, onSnapshot, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getFirestore, collection, doc, setDoc, deleteDoc, updateDoc, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     if (prompt("請輸入管理者密碼：") === "emmanuel") {
       document.getElementById('mainAdmin').style.display = 'block';
@@ -232,7 +237,7 @@
       snap.forEach(d => { tb.innerHTML += `<tr><td>${d.data().user}</td><td>$${d.data().credit}</td></tr>`; });
     });
 
-    // --- 3. 活動單價與成本設定 (新增編輯、刪除、計算實際單價與利潤) ---
+    // --- 3. 活動單價與成本設定 ---
     document.getElementById('eventForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const name = document.getElementById('evName').value.trim();
@@ -261,7 +266,7 @@
 
     window.editEvent = (name, price, cost, estQty, actQty) => {
       document.getElementById('evName').value = name;
-      document.getElementById('evName').disabled = true; // 名稱當作 ID 不能改
+      document.getElementById('evName').disabled = true;
       document.getElementById('editEventId').value = name;
       document.getElementById('evPrice').value = price;
       document.getElementById('evCost').value = cost;
@@ -299,13 +304,12 @@
       });
     });
 
-    // --- 4. 發圖進度更新 ---
+    // --- 4. 發圖進度更新 (4種狀態) ---
     document.getElementById('saveProgBtn').onclick = async () => {
       const dateStr = document.getElementById('progDate').value.trim();
       const eventNameInput = document.getElementById('progEvent').value.trim();
       const member = document.getElementById('progMember').value;
-      const totalQty = parseInt(document.getElementById('progTotal').value) || 0;
-      const doneQty = parseInt(document.getElementById('progDone').value) || 0;
+      const status = document.getElementById('progStatus').value;
 
       if (!eventNameInput) return alert('請填寫活動名稱！');
       if (!member) return alert('請選擇成員！');
@@ -314,7 +318,7 @@
       const docId = `${fullEventName}_${member}`;
 
       await setDoc(doc(db, "photo_progress", docId), {
-        eventName: fullEventName, member, totalQty, doneQty, createdAt: serverTimestamp()
+        eventName: fullEventName, member, status, createdAt: serverTimestamp()
       });
       alert('發圖進度已更新');
     };
@@ -324,7 +328,7 @@
       tb.innerHTML = '';
       snap.forEach(d => {
         const item = d.data();
-        tb.innerHTML += `<tr><td>${item.eventName} - ${item.member}</td><td>${item.doneQty}/${item.totalQty}</td></tr>`;
+        tb.innerHTML += `<tr><td>${item.eventName} - ${item.member}</td><td><b>${item.status || '等圖中'}</b></td></tr>`;
       });
     });
   </script>
