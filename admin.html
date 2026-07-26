@@ -11,6 +11,12 @@
     .top-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
     .btn-home-nav { color: #409eff; text-decoration: none; font-size: 13px; font-weight: bold; background: #ecf5ff; padding: 6px 12px; border-radius: 6px; }
 
+    /* 登入區塊樣式 */
+    .login-box { max-width: 380px; margin: 60px auto; padding: 30px; background: #fff; border-radius: 16px; box-shadow: 0 8px 24px rgba(0,0,0,0.08); text-align: center; }
+    .login-box h3 { margin-bottom: 20px; color: #303133; }
+    .login-box input { width: 100%; margin-bottom: 15px; padding: 12px; border: 1px solid #dcdfe6; border-radius: 8px; box-sizing: border-box; font-size: 14px; }
+    .login-box button { width: 100%; padding: 12px; background: #409eff; color: white; border: none; border-radius: 8px; font-weight: bold; font-size: 15px; cursor: pointer; }
+
     .tabs { display: flex; border-bottom: 2px solid #e4e7ed; margin-bottom: 20px; gap: 10px; overflow-x: auto; }
     .tab-btn { padding: 10px 16px; cursor: pointer; border: none; background: none; font-weight: bold; color: #909399; font-size: 15px; white-space: nowrap; }
     .tab-btn.active { color: #409eff; border-bottom: 2px solid #409eff; }
@@ -36,7 +42,6 @@
     
     .summary-card { background: #f0f9eb; border: 1px solid #e1f3d8; border-radius: 8px; padding: 15px; margin-top: 20px; font-size: 14px; }
     .summary-title { font-weight: bold; color: #67c23a; margin-bottom: 8px; font-size: 15px; }
-
     .closed-tag { background: #f4f4f5; color: #909399; padding: 2px 6px; border-radius: 4px; font-size: 11px; margin-left: 6px; }
 
     @media (max-width: 768px) {
@@ -46,10 +51,24 @@
 </head>
 <body>
 
+  <!-- 登入卡片 (未登入時顯示) -->
+  <div id="loginSection" class="login-box">
+    <h3>FORSURE🐶📸 管理者登入</h3>
+    <form id="loginForm">
+      <input type="email" id="loginEmail" placeholder="管理者 Email" required>
+      <input type="password" id="loginPassword" placeholder="密碼" required>
+      <button type="submit">安全登入</button>
+    </form>
+  </div>
+
+  <!-- 控制台主區塊 (登入成功後顯示) -->
   <div class="card" id="mainAdmin" style="display:none;">
     <div class="top-nav">
       <a href="index.html" class="btn-home-nav">← 返回前台首頁</a>
-      <span style="font-size:12px; color:#909399;">FORSURE 後台管理系統</span>
+      <div>
+        <span id="currentUserEmail" style="font-size:12px; color:#909399; margin-right:10px;"></span>
+        <button id="logoutBtn" style="padding:4px 8px; font-size:12px; background:#909399;">登出</button>
+      </div>
     </div>
 
     <h2>FORSURE🐶📸 管理者控制台</h2>
@@ -112,7 +131,7 @@
       </table>
     </div>
 
-    <!-- 3. 活動單價與成本設定 (新增關閉勾選框) -->
+    <!-- 3. 活動單價與成本設定 -->
     <div class="tab-content">
       <h3>設定活動單價與利潤分析</h3>
       <form id="eventForm" style="background:#f8f9fa; padding:15px; border-radius:8px; margin-bottom:15px;">
@@ -160,7 +179,7 @@
       <div id="eventSummaryBox"></div>
     </div>
 
-    <!-- 4. 發圖進度更新 (新增 已結束 狀態) -->
+    <!-- 4. 發圖進度更新 -->
     <div class="tab-content">
       <h3>發佈與更新發圖進度</h3>
       <div class="input-group">
@@ -215,14 +234,8 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore, collection, doc, setDoc, deleteDoc, updateDoc, onSnapshot, getDocs, query, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-
-    if (prompt("請輸入管理者密碼：") === "marcon") {
-      document.getElementById('mainAdmin').style.display = 'block';
-    } else {
-      alert("密碼錯誤！");
-      window.location.href = "index.html";
-    }
+    import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    import { getFirestore, collection, doc, setDoc, deleteDoc, updateDoc, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyDF7QySG1Jj4gdZvXwMRaKjRmI-lFKpj7k",
@@ -235,44 +248,199 @@
     };
 
     const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
     const db = getFirestore(app);
+
+    // 監聽 Firebase Auth 登入狀態
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        document.getElementById('loginSection').style.display = 'none';
+        document.getElementById('mainAdmin').style.display = 'block';
+        document.getElementById('currentUserEmail').textContent = user.email;
+        initAdminDataListeners();
+      } else {
+        document.getElementById('loginSection').style.display = 'block';
+        document.getElementById('mainAdmin').style.display = 'none';
+      }
+    });
+
+    // 登入表單提交事件
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('loginEmail').value.trim();
+      const password = document.getElementById('loginPassword').value;
+
+      try {
+        await signInWithEmailAndPassword(auth, email, password);
+      } catch (err) {
+        alert("登入失敗：請檢查帳號密碼是否正確！\n" + err.message);
+      }
+    });
+
+    // 登出按鈕
+    document.getElementById('logoutBtn').onclick = () => {
+      signOut(auth);
+    };
 
     window.switchTab = (idx) => {
       document.querySelectorAll('.tab-btn').forEach((b, i) => b.classList.toggle('active', i === idx));
       document.querySelectorAll('.tab-content').forEach((c, i) => c.classList.toggle('active', i === idx));
     };
 
-    // --- 1. 匯款對帳審核 ---
-    onSnapshot(collection(db, "payments"), snap => {
-      const tb = document.getElementById('payTable');
-      tb.innerHTML = '';
-      snap.forEach(d => {
-        const p = d.data();
-        const docId = d.id;
-        const status = p.status || 'pending';
-        const noteErr = p.errorNote || '';
-        const checkDate = p.checkDate || '';
-        const actualAmt = p.actualAmt !== undefined ? p.actualAmt : p.finalPay;
+    // --- 載入後台監聽資料 ---
+    function initAdminDataListeners() {
+      // 1. 匯款對帳審核
+      onSnapshot(collection(db, "payments"), snap => {
+        const tb = document.getElementById('payTable');
+        tb.innerHTML = '';
+        snap.forEach(d => {
+          const p = d.data();
+          const docId = d.id;
+          const status = p.status || 'pending';
+          const noteErr = p.errorNote || '';
+          const checkDate = p.checkDate || '';
+          const actualAmt = p.actualAmt !== undefined ? p.actualAmt : p.finalPay;
 
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td><b>${p.user}</b><br><small style="color:#909399;">${p.social}</small></td>
-          <td>${p.eventName}<br>${p.qty} 張</td>
-          <td>$${p.finalPay} ${p.creditUsed > 0 ? `<small style="color:#67c23a;">(折抵$${p.creditUsed})</small>` : ''}</td>
-          <td><b>${p.bankLast5}</b></td>
-          <td><input type="number" style="width:70px;" value="${actualAmt}" onchange="updatePayField('${docId}', 'actualAmt', parseInt(this.value))"></td>
-          <td><input type="date" value="${checkDate}" onchange="updatePayField('${docId}', 'checkDate', this.value)"></td>
-          <td>
-            <button class="btn-toggle ${status === 'ok' ? 'ok-active' : ''}" onclick="setPayStatus('${docId}', 'ok')">🟢 已對帳</button>
-            <button class="btn-toggle ${status === 'error' ? 'err-active' : ''}" onclick="setPayStatus('${docId}', 'error')">🔴 有問題</button>
-            ${status === 'error' ? `<div class="status-err" onclick="editErrorNote('${docId}', '${noteErr}')">原因: ${noteErr || '點擊填寫'}</div>` : ''}
-          </td>
-          <td><button class="btn-danger" onclick="deletePayment('${docId}')">刪除</button></td>
-        `;
-        tb.appendChild(tr);
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td><b>${p.user}</b><br><small style="color:#909399;">${p.social}</small></td>
+            <td>${p.eventName}<br>${p.qty} 張</td>
+            <td>$${p.finalPay} ${p.creditUsed > 0 ? `<small style="color:#67c23a;">(折抵$${p.creditUsed})</small>` : ''}</td>
+            <td><b>${p.bankLast5}</b></td>
+            <td><input type="number" style="width:70px;" value="${actualAmt}" onchange="updatePayField('${docId}', 'actualAmt', parseInt(this.value))"></td>
+            <td><input type="date" value="${checkDate}" onchange="updatePayField('${docId}', 'checkDate', this.value)"></td>
+            <td>
+              <button class="btn-toggle ${status === 'ok' ? 'ok-active' : ''}" onclick="setPayStatus('${docId}', 'ok')">🟢 已對帳</button>
+              <button class="btn-toggle ${status === 'error' ? 'err-active' : ''}" onclick="setPayStatus('${docId}', 'error')">🔴 有問題</button>
+              ${status === 'error' ? `<div class="status-err" onclick="editErrorNote('${docId}', '${noteErr}')">原因: ${noteErr || '點擊填寫'}</div>` : ''}
+            </td>
+            <td><button class="btn-danger" onclick="deletePayment('${docId}')">刪除</button></td>
+          `;
+          tb.appendChild(tr);
+        });
       });
-    });
 
+      // 2. 抵用金管理
+      onSnapshot(collection(db, "user_credits"), snap => {
+        const tb = document.getElementById('creditTable');
+        tb.innerHTML = '';
+        snap.forEach(d => {
+          const item = d.data();
+          const id = d.id;
+          const rem = item.remaining !== undefined ? item.remaining : (item.credit - (item.used || 0));
+          tb.innerHTML += `
+            <tr>
+              <td><b>${item.user}</b></td>
+              <td>${item.fullEvent || '通用'}</td>
+              <td>$${item.credit}</td>
+              <td>$${item.used || 0}</td>
+              <td><b style="color:#67c23a;">$${rem}</b></td>
+              <td>
+                <button class="btn-edit" onclick="editCredit('${id}', '${item.user}', '${item.rawDate||''}', '${item.rawEvent||''}', ${item.credit}, ${item.used||0})">編輯</button>
+                <button class="btn-danger" onclick="deleteCredit('${id}')">刪除</button>
+              </td>
+            </tr>
+          `;
+        });
+      });
+
+      // 3. 活動單價與成本設定
+      onSnapshot(collection(db, "event_settings"), snap => {
+        const tb = document.getElementById('eventTable');
+        const summaryBox = document.getElementById('eventSummaryBox');
+        const progSelect = document.getElementById('progEventSelect');
+        
+        tb.innerHTML = '';
+        summaryBox.innerHTML = '';
+        progSelect.innerHTML = '<option value="" disabled selected>請選擇活動</option>';
+
+        let eventsList = [];
+        snap.forEach(d => { eventsList.push({ id: d.id, ...d.data() }); });
+        eventsList.sort((a, b) => (a.rawDate || a.name).localeCompare(b.rawDate || b.name));
+
+        const uniqueEvents = new Set();
+        const eventGroups = {};
+
+        eventsList.forEach(ev => {
+          const docId = ev.id;
+          const actUPriceTxt = ev.actQty > 0 ? `$${(ev.cost / ev.actQty).toFixed(1)}/張` : '<span style="color:#909399;">待填寫</span>';
+          const closedBadge = ev.isClosed ? '<span class="closed-tag">🚫 已關閉</span>' : '';
+
+          tb.innerHTML += `
+            <tr>
+              <td><b>${ev.name}</b>${closedBadge}</td>
+              <td>${ev.seller || '未填寫'}</td>
+              <td>${ev.note || '-'}</td>
+              <td>售價: $${ev.price || 0}<br><small style="color:#909399;">單張成本: ${actUPriceTxt}</small></td>
+              <td>$${ev.cost || 0}</td>
+              <td>${ev.actQty || 0}張</td>
+              <td>
+                <button class="btn-edit" onclick="editEvent('${docId}', '${ev.name}', '${ev.rawDate||''}', '${ev.rawName||''}', '${ev.seller||''}', '${ev.note||''}', ${ev.price||0}, ${ev.cost||0}, ${ev.actQty||0}, ${ev.isClosed||false})">編輯</button>
+                <button class="btn-danger" onclick="deleteEvent('${docId}')">刪除</button>
+              </td>
+            </tr>
+          `;
+
+          if (!eventGroups[ev.name]) {
+            eventGroups[ev.name] = { totalCost: 0, totalQty: 0, price: ev.price || 0, count: 0, isClosed: ev.isClosed };
+          }
+          eventGroups[ev.name].totalCost += (ev.cost || 0);
+          eventGroups[ev.name].totalQty += (ev.actQty || 0);
+          eventGroups[ev.name].count += 1;
+
+          if (!uniqueEvents.has(ev.name)) {
+            uniqueEvents.add(ev.name);
+            const opt = document.createElement('option');
+            opt.value = ev.name;
+            opt.textContent = ev.name + (ev.isClosed ? ' (已關閉)' : '');
+            progSelect.appendChild(opt);
+          }
+        });
+
+        for (const [eventName, g] of Object.entries(eventGroups)) {
+          const avgCost = g.totalQty > 0 ? (g.totalCost / g.totalQty).toFixed(1) : 0;
+          const estRevenue = g.totalQty * g.price;
+          const estProfit = estRevenue - g.totalCost;
+
+          summaryBox.innerHTML += `
+            <div class="summary-card">
+              <div class="summary-title">📊 活動總結算：${eventName} (${g.count} 筆進貨)${g.isClosed ? ' [已結團關閉]' : ''}</div>
+              <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap:10px;">
+                <div>總購入金額：<b>$${g.totalCost}</b></div>
+                <div>總收到張數：<b>${g.totalQty} 張</b></div>
+                <div>全團平均單張成本：<b>$${avgCost}/張</b></div>
+                <div>預估銷售總額：<b>$${estRevenue}</b></div>
+                <div>🔥 預估全團總利潤：<b style="color:${estProfit >= 0 ? '#67c23a' : '#f56c6c'};">$${estProfit}</b></div>
+              </div>
+            </div>
+          `;
+        }
+      });
+
+      // 4. 發圖進度更新
+      onSnapshot(collection(db, "photo_progress"), snap => {
+        const tb = document.getElementById('progTable');
+        tb.innerHTML = '';
+        snap.forEach(d => {
+          const item = d.data();
+          const docId = d.id;
+          const displayLabel = item.packageLabel ? ` (${item.packageLabel})` : '';
+          tb.innerHTML += `
+            <tr>
+              <td><b>${item.eventName}</b></td>
+              <td>${item.member}${displayLabel}</td>
+              <td><b>${item.status || '等圖中'}</b></td>
+              <td>
+                <button class="btn-edit" onclick="editProg('${docId}', '${item.eventName}', '${item.member}', '${item.packageLabel||''}', '${item.status}')">編輯</button>
+                <button class="btn-danger" onclick="deleteProg('${docId}')">刪除</button>
+              </td>
+            </tr>
+          `;
+        });
+      });
+    }
+
+    // --- 全局按鈕觸發事件 ---
     window.updatePayField = async (docId, field, val) => { await updateDoc(doc(db, "payments", docId), { [field]: val }); };
 
     window.setPayStatus = async (docId, newStatus) => {
@@ -294,7 +462,6 @@
       if (confirm('確定要刪除這筆匯款審核紀錄嗎？')) { await deleteDoc(doc(db, "payments", docId)); }
     };
 
-    // --- 2. 抵用金管理 ---
     document.getElementById('creditForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const user = document.getElementById('cUser').value.trim();
@@ -334,30 +501,6 @@
       if (confirm('確定要刪除這筆抵用金紀錄嗎？')) { await deleteDoc(doc(db, "user_credits", id)); }
     };
 
-    onSnapshot(collection(db, "user_credits"), snap => {
-      const tb = document.getElementById('creditTable');
-      tb.innerHTML = '';
-      snap.forEach(d => {
-        const item = d.data();
-        const id = d.id;
-        const rem = item.remaining !== undefined ? item.remaining : (item.credit - (item.used || 0));
-        tb.innerHTML += `
-          <tr>
-            <td><b>${item.user}</b></td>
-            <td>${item.fullEvent || '通用'}</td>
-            <td>$${item.credit}</td>
-            <td>$${item.used || 0}</td>
-            <td><b style="color:#67c23a;">$${rem}</b></td>
-            <td>
-              <button class="btn-edit" onclick="editCredit('${id}', '${item.user}', '${item.rawDate||''}', '${item.rawEvent||''}', ${item.credit}, ${item.used||0})">編輯</button>
-              <button class="btn-danger" onclick="deleteCredit('${id}')">刪除</button>
-            </td>
-          </tr>
-        `;
-      });
-    });
-
-    // --- 3. 活動單價與成本設定 (依日期升冪排序，可勾選關閉/結團) ---
     document.getElementById('eventForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const evDate = document.getElementById('evDate').value.trim();
@@ -407,81 +550,6 @@
       }
     };
 
-    onSnapshot(collection(db, "event_settings"), snap => {
-      const tb = document.getElementById('eventTable');
-      const summaryBox = document.getElementById('eventSummaryBox');
-      const progSelect = document.getElementById('progEventSelect');
-      
-      tb.innerHTML = '';
-      summaryBox.innerHTML = '';
-      progSelect.innerHTML = '<option value="" disabled selected>請選擇活動</option>';
-
-      let eventsList = [];
-      snap.forEach(d => { eventsList.push({ id: d.id, ...d.data() }); });
-
-      // 按日期升冪排序 (舊到新)
-      eventsList.sort((a, b) => (a.rawDate || a.name).localeCompare(b.rawDate || b.name));
-
-      const uniqueEvents = new Set();
-      const eventGroups = {};
-
-      eventsList.forEach(ev => {
-        const docId = ev.id;
-        const actUPriceTxt = ev.actQty > 0 ? `$${(ev.cost / ev.actQty).toFixed(1)}/張` : '<span style="color:#909399;">待填寫</span>';
-        const closedBadge = ev.isClosed ? '<span class="closed-tag">🚫 已關閉</span>' : '';
-
-        tb.innerHTML += `
-          <tr>
-            <td><b>${ev.name}</b>${closedBadge}</td>
-            <td>${ev.seller || '未填寫'}</td>
-            <td>${ev.note || '-'}</td>
-            <td>售價: $${ev.price || 0}<br><small style="color:#909399;">單張成本: ${actUPriceTxt}</small></td>
-            <td>$${ev.cost || 0}</td>
-            <td>${ev.actQty || 0}張</td>
-            <td>
-              <button class="btn-edit" onclick="editEvent('${docId}', '${ev.name}', '${ev.rawDate||''}', '${ev.rawName||''}', '${ev.seller||''}', '${ev.note||''}', ${ev.price||0}, ${ev.cost||0}, ${ev.actQty||0}, ${ev.isClosed||false})">編輯</button>
-              <button class="btn-danger" onclick="deleteEvent('${docId}')">刪除</button>
-            </td>
-          </tr>
-        `;
-
-        if (!eventGroups[ev.name]) {
-          eventGroups[ev.name] = { totalCost: 0, totalQty: 0, price: ev.price || 0, count: 0, isClosed: ev.isClosed };
-        }
-        eventGroups[ev.name].totalCost += (ev.cost || 0);
-        eventGroups[ev.name].totalQty += (ev.actQty || 0);
-        eventGroups[ev.name].count += 1;
-
-        if (!uniqueEvents.has(ev.name)) {
-          uniqueEvents.add(ev.name);
-          const opt = document.createElement('option');
-          opt.value = ev.name;
-          opt.textContent = ev.name + (ev.isClosed ? ' (已關閉)' : '');
-          progSelect.appendChild(opt);
-        }
-      });
-
-      for (const [eventName, g] of Object.entries(eventGroups)) {
-        const avgCost = g.totalQty > 0 ? (g.totalCost / g.totalQty).toFixed(1) : 0;
-        const estRevenue = g.totalQty * g.price;
-        const estProfit = estRevenue - g.totalCost;
-
-        summaryBox.innerHTML += `
-          <div class="summary-card">
-            <div class="summary-title">📊 活動總結算：${eventName} (${g.count} 筆進貨)${g.isClosed ? ' [已結團關閉]' : ''}</div>
-            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap:10px;">
-              <div>總購入金額：<b>$${g.totalCost}</b></div>
-              <div>總收到張數：<b>${g.totalQty} 張</b></div>
-              <div>全團平均單張成本：<b>$${avgCost}/張</b></div>
-              <div>預估銷售總額：<b>$${estRevenue}</b></div>
-              <div>🔥 預估全團總利潤：<b style="color:${estProfit >= 0 ? '#67c23a' : '#f56c6c'};">$${estProfit}</b></div>
-            </div>
-          </div>
-        `;
-      }
-    });
-
-    // --- 4. 發圖進度更新 ---
     document.getElementById('saveProgBtn').onclick = async () => {
       const fullEventName = document.getElementById('progEventSelect').value;
       const member = document.getElementById('progMember').value;
@@ -511,27 +579,6 @@
         await deleteDoc(doc(db, "photo_progress", docId));
       }
     };
-
-    onSnapshot(collection(db, "photo_progress"), snap => {
-      const tb = document.getElementById('progTable');
-      tb.innerHTML = '';
-      snap.forEach(d => {
-        const item = d.data();
-        const docId = d.id;
-        const displayLabel = item.packageLabel ? ` (${item.packageLabel})` : '';
-        tb.innerHTML += `
-          <tr>
-            <td><b>${item.eventName}</b></td>
-            <td>${item.member}${displayLabel}</td>
-            <td><b>${item.status || '等圖中'}</b></td>
-            <td>
-              <button class="btn-edit" onclick="editProg('${docId}', '${item.eventName}', '${item.member}', '${item.packageLabel||''}', '${item.status}')">編輯</button>
-              <button class="btn-danger" onclick="deleteProg('${docId}')">刪除</button>
-            </td>
-          </tr>
-        `;
-      });
-    });
   </script>
 
 </body>
