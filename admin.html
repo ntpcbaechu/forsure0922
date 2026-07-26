@@ -3,166 +3,237 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>管理者控制台 - FORSURE</title>
+  <title>FORSURE🐶📸 - 管理者控制台</title>
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 20px; background: #f5f7fa; color: #333; }
-    .container { max-width: 1000px; margin: 0 auto; background: #fff; padding: 20px; border-radius: 16px; box-shadow: 0 4px 16px rgba(0,0,0,0.06); }
-    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #e4e7ed; padding-bottom: 15px; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 20px; max-width: 1100px; margin: 0 auto; background-color: #f4f6f8; color: #333; }
+    .card { background: #ffffff; padding: 24px; border-radius: 16px; box-shadow: 0 8px 20px rgba(0,0,0,0.06); }
     
-    .nav-tabs { display: flex; gap: 10px; border-bottom: 1px solid #e4e7ed; margin-bottom: 20px; padding-bottom: 10px; flex-wrap: wrap; }
-    .nav-tab { padding: 10px 18px; font-weight: bold; color: #606266; background: #f4f4f5; border-radius: 8px; cursor: pointer; border: none; font-size: 14px; }
-    .nav-tab.active { background: #409eff; color: #fff; }
+    .top-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+    .btn-home-nav { color: #409eff; text-decoration: none; font-size: 13px; font-weight: bold; background: #ecf5ff; padding: 6px 12px; border-radius: 6px; }
 
+    .login-box { max-width: 380px; margin: 60px auto; padding: 30px; background: #fff; border-radius: 16px; box-shadow: 0 8px 24px rgba(0,0,0,0.08); text-align: center; }
+    .login-box h3 { margin-bottom: 20px; color: #303133; }
+    .login-box input { width: 100%; margin-bottom: 15px; padding: 12px; border: 1px solid #dcdfe6; border-radius: 8px; box-sizing: border-box; font-size: 14px; }
+    .login-box button { width: 100%; padding: 12px; background: #409eff; color: white; border: none; border-radius: 8px; font-weight: bold; font-size: 15px; cursor: pointer; }
+
+    .tabs { display: flex; border-bottom: 2px solid #e4e7ed; margin-bottom: 20px; gap: 10px; overflow-x: auto; }
+    .tab-btn { padding: 10px 16px; cursor: pointer; border: none; background: none; font-weight: bold; color: #909399; font-size: 15px; white-space: nowrap; }
+    .tab-btn.active { color: #409eff; border-bottom: 2px solid #409eff; }
     .tab-content { display: none; }
     .tab-content.active { display: block; }
+    input, select, button { padding: 8px 10px; border: 1px solid #dcdfe6; border-radius: 6px; font-size: 14px; margin-bottom: 10px; box-sizing: border-box; }
+    button { background-color: #409eff; color: white; border: none; font-weight: bold; cursor: pointer; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th, td { padding: 10px; border-bottom: 1px solid #e4e7ed; text-align: left; font-size: 13px; }
+    th { background: #f8f9fa; }
+    
+    .status-err { color: #f56c6c; font-weight: bold; cursor: pointer; text-decoration: underline; margin-top: 4px; }
+    .btn-toggle { padding: 4px 8px; border-radius: 4px; font-size: 12px; cursor: pointer; border: 1px solid #dcdfe6; background: #fff; }
+    .btn-toggle.ok-active { background: #e1f3d8; color: #67c23a; border-color: #67c23a; font-weight: bold; }
+    .btn-toggle.err-active { background: #fef0f0; color: #f56c6c; border-color: #f56c6c; font-weight: bold; }
+    
+    .input-group { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .btn-danger { background-color: #f56c6c; color: white; padding: 4px 8px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; }
+    .btn-edit { background-color: #e6a23c; color: white; padding: 4px 8px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; margin-right: 4px; }
 
-    table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-    th, td { padding: 12px; text-align: left; border-bottom: 1px solid #f0f2f5; font-size: 14px; }
-    th { background: #fafafa; color: #909399; font-weight: 600; }
+    .form-row-top { display: grid; grid-template-columns: 1fr 2fr 1.5fr 2fr; gap: 10px; margin-bottom: 10px; }
+    .form-row-bottom { display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 10px; margin-bottom: 10px; align-items: center; }
+    
+    .summary-card { background: #f0f9eb; border: 1px solid #e1f3d8; border-radius: 8px; padding: 15px; margin-top: 20px; font-size: 14px; }
+    .summary-title { font-weight: bold; color: #67c23a; margin-bottom: 8px; font-size: 15px; }
+    .closed-tag { background: #f4f4f5; color: #909399; padding: 2px 6px; border-radius: 4px; font-size: 11px; margin-left: 6px; }
 
-    input, select { padding: 8px 12px; font-size: 14px; border: 1px solid #dcdfe6; border-radius: 6px; box-sizing: border-box; }
-    .form-group { margin-bottom: 15px; }
-    label { font-weight: bold; display: block; margin-bottom: 5px; font-size: 14px; color: #606266; }
-
-    .btn-submit { background: #409eff; color: #fff; border: none; padding: 10px 20px; font-weight: bold; border-radius: 6px; cursor: pointer; }
-    .btn-submit:hover { background: #66b1ff; }
-
-    /* 按鈕樣式修復：未點擊時使用高對比深灰色，絕不白字白底 */
-    .status-btn-group { display: flex; gap: 6px; }
-    .btn-status { padding: 6px 12px; font-size: 12px; font-weight: bold; border-radius: 6px; cursor: pointer; border: 1px solid #dcdfe6; background: #f4f4f5; color: #606266; transition: all 0.2s; }
-    .btn-status:hover { background: #e6e8eb; color: #303133; }
-    .btn-status.active-ok { background: #e1f3d8; color: #67c23a; border-color: #b3e19d; }
-    .btn-status.active-err { background: #fde2e2; color: #f56c6c; border-color: #fbc4c4; }
-
-    .btn-del { background: #fef0f0; color: #f56c6c; border: 1px solid #fde2e2; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; }
-    .btn-del:hover { background: #f56c6c; color: #fff; }
+    @media (max-width: 768px) {
+      .form-row-top, .form-row-bottom { grid-template-columns: 1fr; }
+    }
   </style>
 </head>
 <body>
 
-  <div class="container">
-    <div class="header">
-      <h2 style="margin:0;">FORSURE🐶📸 管理者控制台</h2>
+  <!-- 登入卡片 -->
+  <div id="loginSection" class="login-box">
+    <h3>FORSURE🐶📸 管理者登入</h3>
+    <form id="loginForm">
+      <input type="email" id="loginEmail" placeholder="管理者 Email" required>
+      <input type="password" id="loginPassword" placeholder="密碼" required>
+      <button type="submit">安全登入</button>
+    </form>
+  </div>
+
+  <!-- 控制台主區塊 -->
+  <div class="card" id="mainAdmin" style="display:none;">
+    <div class="top-nav">
+      <a href="index.html" class="btn-home-nav">← 返回前台首頁</a>
+      <div>
+        <span id="currentUserEmail" style="font-size:12px; color:#909399; margin-right:10px;"></span>
+        <button id="logoutBtn" style="padding:4px 8px; font-size:12px; background:#909399;">登出</button>
+      </div>
     </div>
 
-    <!-- 4 個完整頁籤 -->
-    <div class="nav-tabs">
-      <button class="nav-tab active" onclick="switchTab(0)">1. 匯款對帳審核</button>
-      <button class="nav-tab" onclick="switchTab(1)">2. 成員抵用金管理</button>
-      <button class="nav-tab" onclick="switchTab(2)">3. 活動單價與成本設定</button>
-      <button class="nav-tab" onclick="switchTab(3)">4. 發圖進度更新</button>
+    <h2>FORSURE🐶📸 管理者控制台</h2>
+
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab(0)">1. 匯款對帳審核</button>
+      <button class="tab-btn" onclick="switchTab(1)">2. 成員抵用金管理</button>
+      <button class="tab-btn" onclick="switchTab(2)">3. 活動單價與成本設定</button>
+      <button class="tab-btn" onclick="switchTab(3)">4. 發圖進度更新</button>
     </div>
 
-    <!-- 頁籤 1: 匯款對帳審核 -->
-    <div class="tab-content active" id="tab0">
-      <h3>📋 匯款登記與對帳管理</h3>
+    <!-- 1. 匯款對帳審核 -->
+    <div class="tab-content active">
+      <h3>匯款登記與對帳管理</h3>
       <table>
         <thead>
           <tr>
             <th>社群名稱</th>
-            <th>活動 / 成員</th>
+            <th>活動/張數</th>
+            <th>應匯金額</th>
             <th>後五碼</th>
-            <th>填單時間</th>
-            <th>對帳狀態審核</th>
+            <th>對帳金額</th>
+            <th>對帳日期</th>
+            <th>對帳狀態</th>
             <th>操作</th>
           </tr>
         </thead>
-        <tbody id="paymentAdminTable">
-          <tr><td colspan="6" style="text-align:center; color:#909399;">載入資料中...</td></tr>
-        </tbody>
+        <tbody id="payTable"></tbody>
       </table>
     </div>
 
-    <!-- 頁籤 2: 成員抵用金管理 -->
-    <div class="tab-content" id="tab1">
-      <h3>💳 成員抵用金設定</h3>
-      <form id="creditForm" style="display:flex; gap:10px; margin-bottom:20px; align-items:flex-end;">
-        <div>
-          <label>成員名稱</label>
-          <select id="creditMember" required>
-            <option value="方燦">方燦</option>
-            <option value="Lee Know">Lee Know</option>
-            <option value="彰彬">彰彬</option>
-            <option value="鉉辰">鉉辰</option>
-            <option value="Han">Han</option>
-            <option value="Felix">Felix</option>
-            <option value="昇玟">昇玟</option>
-            <option value="I.N">I.N</option>
-          </select>
+    <!-- 2. 抵用金管理 -->
+    <div class="tab-content">
+      <h3>新增/修改成員抵用金紀錄</h3>
+      <form id="creditForm" style="background:#f8f9fa; padding:15px; border-radius:8px; margin-bottom:15px;">
+        <input type="hidden" id="editCreditId">
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap:10px;">
+          <div><label style="font-size:12px;">社群名稱</label><input type="text" id="cUser" placeholder="社群暱稱" required style="width:100%;"></div>
+          <div><label style="font-size:12px;">日期 (例: 260725)</label><input type="text" id="cDate" placeholder="YYMMDD" style="width:100%;"></div>
+          <div><label style="font-size:12px;">活動名稱</label><input type="text" id="cEvent" placeholder="活動名稱" style="width:100%;"></div>
+          <div><label style="font-size:12px;">轉抵用金金額 ($)</label><input type="number" id="cAmt" placeholder="轉抵金額" required style="width:100%;"></div>
+          <div><label style="font-size:12px;">已使用金額 ($)</label><input type="number" id="cUsed" placeholder="預設 0" value="0" style="width:100%;"></div>
         </div>
-        <div>
-          <label>抵用金金額 ($)</label>
-          <input type="number" id="creditAmount" placeholder="例: 100" required>
-        </div>
-        <button type="submit" class="btn-submit">儲存金額</button>
+        <button type="submit" style="margin-top:10px;">儲存/更新抵用金</button>
+        <button type="button" id="cancelCreditEdit" style="background:#909399; display:none; margin-top:10px;" onclick="resetCreditForm()">取消編輯</button>
       </form>
-      <table>
-        <thead>
-          <tr>
-            <th>成員名稱</th>
-            <th>當前剩餘抵用金</th>
-            <th>最後更新時間</th>
-          </tr>
-        </thead>
-        <tbody id="creditTable">
-          <tr><td colspan="3" style="text-align:center; color:#909399;">載入中...</td></tr>
-        </tbody>
-      </table>
-    </div>
 
-    <!-- 頁籤 3: 活動單價與成本設定 -->
-    <div class="tab-content" id="tab2">
-      <h3>📌 新增 / 管理開團活動</h3>
-      <form id="eventForm" style="max-width: 400px; margin-bottom: 20px;">
-        <div class="form-group">
-          <label>活動 / 場次名稱</label>
-          <input type="text" id="eventNameInput" placeholder="例: 260725 RUN IT SEOUL (Day1)" required>
-        </div>
-        <div class="form-group">
-          <label>每張飯拍單價 ($)</label>
-          <input type="number" id="eventPriceInput" placeholder="例: 15" required>
-        </div>
-        <button type="submit" class="btn-submit">新增場次</button>
-      </form>
       <table>
         <thead>
           <tr>
-            <th>活動 / 場次名稱</th>
-            <th>單價</th>
-            <th>建立時間</th>
+            <th>社群暱稱</th>
+            <th>日期活動</th>
+            <th>轉抵金額</th>
+            <th>已使用</th>
+            <th>剩餘金額</th>
             <th>操作</th>
           </tr>
         </thead>
-        <tbody id="eventTable">
-          <tr><td colspan="4" style="text-align:center; color:#909399;">載入中...</td></tr>
-        </tbody>
+        <tbody id="creditTable"></tbody>
       </table>
     </div>
 
-    <!-- 頁籤 4: 發圖進度更新 -->
-    <div class="tab-content" id="tab3">
-      <h3>📸 展覽 / 飯拍發圖進度</h3>
+    <!-- 3. 活動單價與成本設定 -->
+    <div class="tab-content">
+      <h3>設定活動單價與利潤分析</h3>
+      <form id="eventForm" style="background:#f8f9fa; padding:15px; border-radius:8px; margin-bottom:15px;">
+        <input type="hidden" id="editEventId">
+        
+        <div class="form-row-top">
+          <div><label style="font-size:12px;">日期 (例: 260725)</label><input type="text" id="evDate" placeholder="260725" style="width:100%;"></div>
+          <div><label style="font-size:12px;">活動名稱 (例: RUN IT)</label><input type="text" id="evName" placeholder="RUN IT (Day1)" required style="width:100%;"></div>
+          <div><label style="font-size:12px;">代拍 (例: 站姐A)</label><input type="text" id="evSeller" placeholder="代拍名稱" style="width:100%;"></div>
+          <div><label style="font-size:12px;">備註</label><input type="text" id="evNote" placeholder="備註說明..." style="width:100%;"></div>
+        </div>
+
+        <div class="form-row-bottom">
+          <div><label style="font-size:12px;">售出單價 ($)</label><input type="number" id="evPrice" placeholder="販售單價" style="width:100%;"></div>
+          <div><label style="font-size:12px;">總購入價 ($)</label><input type="number" id="evCost" placeholder="總購入成本" style="width:100%;"></div>
+          <div><label style="font-size:12px;">實際收到張數</label><input type="number" id="evActQty" placeholder="收到後填寫" style="width:100%;"></div>
+          <div style="display:flex; align-items:center; gap:6px; margin-top:10px;">
+            <input type="checkbox" id="evIsClosed" style="width:auto; margin:0;">
+            <label for="evIsClosed" style="font-size:13px; font-weight:bold; color:#f56c6c; cursor:pointer;">關閉/結團 (隱藏選單)</label>
+          </div>
+        </div>
+
+        <button type="submit" id="saveEventBtn">儲存活動設定</button>
+        <button type="button" id="cancelEditBtn" style="background:#909399; display:none;" onclick="resetEventForm()">取消編輯</button>
+      </form>
+
       <table>
         <thead>
           <tr>
-            <th>活動名稱</th>
+            <th>活動全名 (日期+名稱)</th>
+            <th>代拍名稱</th>
+            <th>備註</th>
+            <th>售價/單張成本</th>
+            <th>購入價</th>
+            <th>實際收到張數</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody id="eventTable"></tbody>
+      </table>
+
+      <div id="eventSummaryBox"></div>
+    </div>
+
+    <!-- 4. 發圖進度更新 -->
+    <div class="tab-content">
+      <h3>發佈與更新發圖進度</h3>
+      <input type="hidden" id="editProgId">
+      <div class="input-group">
+        <select id="progEventSelect" style="min-width: 200px;">
+          <option value="" disabled selected>請選擇活動</option>
+        </select>
+        
+        <select id="progMember" style="width: 120px;">
+          <option value="" disabled selected>請選擇成員</option>
+          <option value="方燦">方燦</option>
+          <option value="Lee Know">Lee Know</option>
+          <option value="彰彬">彰彬</option>
+          <option value="鉉辰">鉉辰</option>
+          <option value="Han">Han</option>
+          <option value="Felix">Felix</option>
+          <option value="昇玟">昇玟</option>
+          <option value="I.N">I.N</option>
+          <option value="團體/全體">團體/全體</option>
+        </select>
+
+        <select id="progSellerSelect" style="min-width: 130px;">
+          <option value="" disabled selected>請選擇代拍</option>
+        </select>
+
+        <select id="progStatus" style="width: 130px;">
+          <option value="" disabled selected>請選擇進度</option>
+          <option value="已預約">📅 已預約</option>
+          <option value="等圖中">⏳ 等圖中</option>
+          <option value="分圖中">📂 分圖中</option>
+          <option value="上傳中">☁️ 上傳中</option>
+          <option value="已發圖">✅ 已發圖</option>
+          <option value="已結束">🏁 已結束</option>
+        </select>
+        
+        <button id="saveProgBtn">發佈進度</button>
+        <button id="cancelProgBtn" style="background:#909399; display:none;" onclick="resetProgForm()">取消編輯</button>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>活動全名</th>
             <th>成員</th>
-            <th>目前進度</th>
-            <th>更新發圖日</th>
+            <th>代拍</th>
+            <th>目前狀態</th>
             <th>操作</th>
           </tr>
         </thead>
-        <tbody id="photoProgressTable">
-          <tr><td colspan="5" style="text-align:center; color:#909399;">載入中...</td></tr>
-        </tbody>
+        <tbody id="progTable"></tbody>
       </table>
     </div>
-
   </div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore, collection, onSnapshot, doc, setDoc, updateDoc, deleteDoc, addDoc, serverTimestamp, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    import { getFirestore, collection, doc, setDoc, deleteDoc, updateDoc, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyDF7QySG1Jj4gdZvXwMRaKjRmI-lFKpj7k",
@@ -175,96 +246,385 @@
     };
 
     const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
     const db = getFirestore(app);
 
-    // 切換頁籤
-    window.switchTab = function(idx) {
-      document.querySelectorAll('.nav-tab').forEach((tab, i) => {
-        tab.classList.toggle('active', i === idx);
-      });
-      document.querySelectorAll('.tab-content').forEach((content, i) => {
-        content.classList.toggle('active', i === idx);
-      });
+    let eventSellerMap = {};
+
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        document.getElementById('loginSection').style.display = 'none';
+        document.getElementById('mainAdmin').style.display = 'block';
+        document.getElementById('currentUserEmail').textContent = user.email;
+        initAdminDataListeners();
+      } else {
+        document.getElementById('loginSection').style.display = 'block';
+        document.getElementById('mainAdmin').style.display = 'none';
+      }
+    });
+
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('loginEmail').value.trim();
+      const password = document.getElementById('loginPassword').value;
+
+      try {
+        await signInWithEmailAndPassword(auth, email, password);
+      } catch (err) {
+        alert("登入失敗：請檢查帳號密碼是否正確！\n" + err.message);
+      }
+    });
+
+    document.getElementById('logoutBtn').onclick = () => { signOut(auth); };
+
+    window.switchTab = (idx) => {
+      document.querySelectorAll('.tab-btn').forEach((b, i) => b.classList.toggle('active', i === idx));
+      document.querySelectorAll('.tab-content').forEach((c, i) => c.classList.toggle('active', i === idx));
     };
 
-    // 1. 匯款對帳
-    onSnapshot(collection(db, "payments"), snap => {
-      const tbody = document.getElementById('paymentAdminTable');
-      tbody.innerHTML = '';
-      if (snap.empty) {
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:#909399;">目前沒有對帳紀錄。</td></tr>';
-        return;
-      }
-      snap.forEach(documentSnap => {
-        const p = documentSnap.data();
-        const id = documentSnap.id;
-        const status = p.status || 'pending';
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td><b>${p.user || '-'}</b></td>
-          <td>${p.eventName || '-'} (${p.qty || 0}張)</td>
-          <td><b style="font-family:monospace; font-size:15px; color:#409eff;">${p.bankLast5 || '-'}</b></td>
-          <td style="color:#909399; font-size:12px;">${p.time || '-'}</td>
-          <td>
-            <div class="status-btn-group">
-              <button class="btn-status ${status === 'ok' ? 'active-ok' : ''}" onclick="updateStatus('${id}', 'ok')">🟢 已對帳</button>
-              <button class="btn-status ${status === 'error' ? 'active-err' : ''}" onclick="updateStatus('${id}', 'error')">🔴 對帳問題</button>
+    function initAdminDataListeners() {
+      // 1. 匯款對帳審核
+      onSnapshot(collection(db, "payments"), snap => {
+        const tb = document.getElementById('payTable');
+        tb.innerHTML = '';
+        snap.forEach(d => {
+          const p = d.data();
+          const docId = d.id;
+          const status = p.status || 'pending';
+          const noteErr = p.errorNote || '';
+          const checkDate = p.checkDate || '';
+          const actualAmt = p.actualAmt !== undefined ? p.actualAmt : p.finalPay;
+
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td><b>${p.user}</b><br><small style="color:#909399;">${p.social}</small></td>
+            <td>${p.eventName}<br>${p.qty} 張</td>
+            <td>$${p.finalPay} ${p.creditUsed > 0 ? `<small style="color:#67c23a;">(折抵$${p.creditUsed})</small>` : ''}</td>
+            <td><b>${p.bankLast5}</b></td>
+            <td><input type="number" style="width:70px;" value="${actualAmt}" onchange="updatePayField('${docId}', 'actualAmt', parseInt(this.value))"></td>
+            <td><input type="date" value="${checkDate}" onchange="updatePayField('${docId}', 'checkDate', this.value)"></td>
+            <td>
+              <button class="btn-toggle ${status === 'ok' ? 'ok-active' : ''}" onclick="setPayStatus('${docId}', 'ok')">🟢 已對帳</button>
+              <button class="btn-toggle ${status === 'error' ? 'err-active' : ''}" onclick="setPayStatus('${docId}', 'error')">🔴 有問題</button>
+              ${status === 'error' ? `<div class="status-err" onclick="editErrorNote('${docId}', '${noteErr}')">原因: ${noteErr || '點擊填寫'}</div>` : ''}
+            </td>
+            <td><button class="btn-danger" onclick="deletePayment('${docId}')">刪除</button></td>
+          `;
+          tb.appendChild(tr);
+        });
+      });
+
+      // 2. 抵用金管理
+      onSnapshot(collection(db, "user_credits"), snap => {
+        const tb = document.getElementById('creditTable');
+        tb.innerHTML = '';
+        snap.forEach(d => {
+          const item = d.data();
+          const id = d.id;
+          const rem = item.remaining !== undefined ? item.remaining : (item.credit - (item.used || 0));
+          tb.innerHTML += `
+            <tr>
+              <td><b>${item.user}</b></td>
+              <td>${item.fullEvent || '通用'}</td>
+              <td>$${item.credit}</td>
+              <td>$${item.used || 0}</td>
+              <td><b style="color:#67c23a;">$${rem}</b></td>
+              <td>
+                <button class="btn-edit" onclick="editCredit('${id}', '${item.user}', '${item.rawDate||''}', '${item.rawEvent||''}', ${item.credit}, ${item.used||0})">編輯</button>
+                <button class="btn-danger" onclick="deleteCredit('${id}')">刪除</button>
+              </td>
+            </tr>
+          `;
+        });
+      });
+
+      // 3. 活動單價與成本設定
+      onSnapshot(collection(db, "event_settings"), snap => {
+        const tb = document.getElementById('eventTable');
+        const summaryBox = document.getElementById('eventSummaryBox');
+        const progSelect = document.getElementById('progEventSelect');
+        
+        tb.innerHTML = '';
+        summaryBox.innerHTML = '';
+        progSelect.innerHTML = '<option value="" disabled selected>請選擇活動</option>';
+        eventSellerMap = {};
+
+        let eventsList = [];
+        snap.forEach(d => { eventsList.push({ id: d.id, ...d.data() }); });
+        eventsList.sort((a, b) => (a.rawDate || a.name).localeCompare(b.rawDate || b.name));
+
+        const uniqueEvents = new Set();
+        const eventGroups = {};
+
+        eventsList.forEach(ev => {
+          const docId = ev.id;
+          const actUPriceTxt = ev.actQty > 0 ? `$${(ev.cost / ev.actQty).toFixed(1)}/張` : '<span style="color:#909399;">待填寫</span>';
+          const closedBadge = ev.isClosed ? '<span class="closed-tag">🚫 已關閉</span>' : '';
+
+          if (!eventSellerMap[ev.name]) eventSellerMap[ev.name] = [];
+          if (ev.seller && !eventSellerMap[ev.name].includes(ev.seller)) {
+            eventSellerMap[ev.name].push(ev.seller);
+          }
+
+          tb.innerHTML += `
+            <tr>
+              <td><b>${ev.name}</b>${closedBadge}</td>
+              <td>${ev.seller || '未填寫'}</td>
+              <td>${ev.note || '-'}</td>
+              <td>售價: $${ev.price || 0}<br><small style="color:#909399;">單張成本: ${actUPriceTxt}</small></td>
+              <td>$${ev.cost || 0}</td>
+              <td>${ev.actQty || 0}張</td>
+              <td>
+                <button class="btn-edit" onclick="editEvent('${docId}', '${ev.name}', '${ev.rawDate||''}', '${ev.rawName||''}', '${ev.seller||''}', '${ev.note||''}', ${ev.price||0}, ${ev.cost||0}, ${ev.actQty||0}, ${ev.isClosed||false})">編輯</button>
+                <button class="btn-danger" onclick="deleteEvent('${docId}')">刪除</button>
+              </td>
+            </tr>
+          `;
+
+          if (!eventGroups[ev.name]) {
+            eventGroups[ev.name] = { totalCost: 0, totalQty: 0, price: ev.price || 0, count: 0, isClosed: ev.isClosed };
+          }
+          eventGroups[ev.name].totalCost += (ev.cost || 0);
+          eventGroups[ev.name].totalQty += (ev.actQty || 0);
+          eventGroups[ev.name].count += 1;
+
+          if (!uniqueEvents.has(ev.name)) {
+            uniqueEvents.add(ev.name);
+            const opt = document.createElement('option');
+            opt.value = ev.name;
+            opt.textContent = ev.name + (ev.isClosed ? ' (已關閉)' : '');
+            progSelect.appendChild(opt);
+          }
+        });
+
+        for (const [eventName, g] of Object.entries(eventGroups)) {
+          const avgCost = g.totalQty > 0 ? (g.totalCost / g.totalQty).toFixed(1) : 0;
+          const estRevenue = g.totalQty * g.price;
+          const estProfit = estRevenue - g.totalCost;
+
+          summaryBox.innerHTML += `
+            <div class="summary-card">
+              <div class="summary-title">📊 活動總結算：${eventName} (${g.count} 筆進貨)${g.isClosed ? ' [已結團關閉]' : ''}</div>
+              <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap:10px;">
+                <div>總購入金額：<b>$${g.totalCost}</b></div>
+                <div>總收到張數：<b>${g.totalQty} 張</b></div>
+                <div>全團平均單張成本：<b>$${avgCost}/張</b></div>
+                <div>預估銷售總額：<b>$${estRevenue}</b></div>
+                <div>🔥 預估全團總利潤：<b style="color:${estProfit >= 0 ? '#67c23a' : '#f56c6c'};">$${estProfit}</b></div>
+              </div>
             </div>
-          </td>
-          <td><button class="btn-del" onclick="deletePayment('${id}')">刪除</button></td>
-        `;
-        tbody.appendChild(tr);
+          `;
+        }
+      });
+
+      // 4. 發圖進度更新 (成員與代拍欄位獨立開來)
+      onSnapshot(collection(db, "photo_progress"), snap => {
+        const tb = document.getElementById('progTable');
+        tb.innerHTML = '';
+        snap.forEach(d => {
+          const item = d.data();
+          const docId = d.id;
+          tb.innerHTML += `
+            <tr>
+              <td><b>${item.eventName}</b></td>
+              <td>${item.member}</td>
+              <td>${item.seller || '無/預設'}</td>
+              <td><b>${item.status || '等圖中'}</b></td>
+              <td>
+                <button class="btn-edit" onclick="editProg('${docId}', '${item.eventName}', '${item.member}', '${item.seller||''}', '${item.status}')">編輯</button>
+                <button class="btn-danger" onclick="deleteProg('${docId}')">刪除</button>
+              </td>
+            </tr>
+          `;
+        });
+      });
+    }
+
+    document.getElementById('progEventSelect').addEventListener('change', (e) => {
+      const selectedEvent = e.target.value;
+      const sellerSelect = document.getElementById('progSellerSelect');
+      sellerSelect.innerHTML = '<option value="" disabled selected>請選擇代拍</option>';
+
+      const sellers = eventSellerMap[selectedEvent] || [];
+      sellers.forEach(s => {
+        if (s) {
+          const opt = document.createElement('option');
+          opt.value = s;
+          opt.textContent = s;
+          sellerSelect.appendChild(opt);
+        }
       });
     });
 
-    window.updateStatus = async (id, status) => { await updateDoc(doc(db, "payments", id), { status }); };
-    window.deletePayment = async (id) => { if(confirm('確定刪除？')) await deleteDoc(doc(db, "payments", id)); };
+    window.updatePayField = async (docId, field, val) => { await updateDoc(doc(db, "payments", docId), { [field]: val }); };
 
-    // 2. 抵用金
+    window.setPayStatus = async (docId, newStatus) => {
+      const today = new Date().toISOString().slice(0,10);
+      if (newStatus === 'error') {
+        const reason = prompt("請輸入對帳問題原因：");
+        if (reason !== null) { await updateDoc(doc(db, "payments", docId), { status: 'error', errorNote: reason, checkDate: today }); }
+      } else {
+        await updateDoc(doc(db, "payments", docId), { status: 'ok', errorNote: '', checkDate: today });
+      }
+    };
+
+    window.editErrorNote = async (docId, oldNote) => {
+      const reason = prompt("修改問題原因：", oldNote);
+      if (reason !== null) { await updateDoc(doc(db, "payments", docId), { errorNote: reason }); }
+    };
+
+    window.deletePayment = async (docId) => {
+      if (confirm('確定要刪除這筆匯款審核紀錄嗎？')) { await deleteDoc(doc(db, "payments", docId)); }
+    };
+
     document.getElementById('creditForm').addEventListener('submit', async (e) => {
       e.preventDefault();
-      const member = document.getElementById('creditMember').value;
-      const amount = parseInt(document.getElementById('creditAmount').value) || 0;
-      await setDoc(doc(db, "credits", member), { member, amount, updatedAt: serverTimestamp() });
-      alert('抵用金已更新！');
+      const user = document.getElementById('cUser').value.trim();
+      const cDate = document.getElementById('cDate').value.trim();
+      const cEvent = document.getElementById('cEvent').value.trim();
+      const credit = parseInt(document.getElementById('cAmt').value) || 0;
+      const used = parseInt(document.getElementById('cUsed').value) || 0;
+      
+      const fullEvent = cDate ? `${cDate} ${cEvent}` : cEvent;
+      const remaining = credit - used;
+      const docId = document.getElementById('editCreditId').value || `${user}_${fullEvent || '通用'}_${Date.now()}`;
+
+      await setDoc(doc(db, "user_credits", docId), { user, rawDate: cDate, rawEvent: cEvent, fullEvent, credit, used, remaining });
+      alert('抵用金紀錄已儲存！');
+      resetCreditForm();
     });
 
-    onSnapshot(collection(db, "credits"), snap => {
-      const tbody = document.getElementById('creditTable');
-      tbody.innerHTML = '';
-      snap.forEach(docSnap => {
-        const d = docSnap.data();
-        tbody.innerHTML += `<tr><td><b>${d.member}</b></td><td style="color:#67c23a; font-weight:bold;">$${d.amount}</td><td style="color:#909399; font-size:12px;">已更新</td></tr>`;
-      });
-    });
+    window.resetCreditForm = () => {
+      document.getElementById('creditForm').reset();
+      document.getElementById('editCreditId').value = '';
+      document.getElementById('cancelCreditEdit').style.display = 'none';
+      document.getElementById('cUser').disabled = false;
+    };
 
-    // 3. 活動單價設定
+    window.editCredit = (id, user, rawDate, rawEvent, credit, used) => {
+      document.getElementById('editCreditId').value = id;
+      document.getElementById('cUser').value = user;
+      document.getElementById('cUser').disabled = true;
+      document.getElementById('cDate').value = rawDate || '';
+      document.getElementById('cEvent').value = rawEvent || '';
+      document.getElementById('cAmt').value = credit;
+      document.getElementById('cUsed').value = used;
+      document.getElementById('cancelCreditEdit').style.display = 'inline-block';
+    };
+
+    window.deleteCredit = async (id) => {
+      if (confirm('確定要刪除這筆抵用金紀錄嗎？')) { await deleteDoc(doc(db, "user_credits", id)); }
+    };
+
     document.getElementById('eventForm').addEventListener('submit', async (e) => {
       e.preventDefault();
-      const name = document.getElementById('eventNameInput').value.trim();
-      const price = parseInt(document.getElementById('eventPriceInput').value) || 0;
-      await addDoc(collection(db, "events"), { name, price, createdAt: serverTimestamp() });
-      document.getElementById('eventNameInput').value = '';
-      alert('活動已成功新增！');
-    });
+      const evDate = document.getElementById('evDate').value.trim();
+      const evNameRaw = document.getElementById('evName').value.trim();
+      const seller = document.getElementById('evSeller').value.trim();
+      const note = document.getElementById('evNote').value.trim();
+      const price = parseFloat(document.getElementById('evPrice').value) || 0;
+      const cost = parseFloat(document.getElementById('evCost').value) || 0;
+      const actQty = parseInt(document.getElementById('evActQty').value) || 0;
+      const isClosed = document.getElementById('evIsClosed').checked;
 
-    onSnapshot(query(collection(db, "events"), orderBy("createdAt", "desc")), snap => {
-      const tbody = document.getElementById('eventTable');
-      tbody.innerHTML = '';
-      snap.forEach(docSnap => {
-        const d = docSnap.data();
-        tbody.innerHTML += `
-          <tr>
-            <td><b>${d.name || d.eventName}</b></td>
-            <td>$${d.price || 0}</td>
-            <td style="color:#909399; font-size:12px;">已建立</td>
-            <td><button class="btn-del" onclick="deleteEvent('${docSnap.id}')">刪除</button></td>
-          </tr>`;
+      const fullName = evDate ? `${evDate} ${evNameRaw}` : evNameRaw;
+      const docId = document.getElementById('editEventId').value || `${fullName}_${seller || 'default'}_${Date.now()}`;
+
+      await setDoc(doc(db, "event_settings", docId), {
+        name: fullName, rawDate: evDate, rawName: evNameRaw, seller, note, price, cost, actQty, isClosed
       });
+
+      alert('活動設定已儲存！');
+      resetEventForm();
     });
 
-    window.deleteEvent = async (id) => { if(confirm('確定刪除此場次？')) await deleteDoc(doc(db, "events", id)); };
+    window.resetEventForm = () => {
+      document.getElementById('eventForm').reset();
+      document.getElementById('editEventId').value = '';
+      document.getElementById('evIsClosed').checked = false;
+      document.getElementById('cancelEditBtn').style.display = 'none';
+    };
 
+    window.editEvent = (docId, fullName, rawDate, rawName, seller, note, price, cost, actQty, isClosed) => {
+      document.getElementById('editEventId').value = docId;
+      document.getElementById('evDate').value = rawDate || '';
+      document.getElementById('evName').value = rawName || fullName;
+      document.getElementById('evSeller').value = seller || '';
+      document.getElementById('evNote').value = note || '';
+      document.getElementById('evPrice').value = price || '';
+      document.getElementById('evCost').value = cost || '';
+      document.getElementById('evActQty').value = actQty || '';
+      document.getElementById('evIsClosed').checked = isClosed === true || isClosed === 'true';
+      document.getElementById('cancelEditBtn').style.display = 'inline-block';
+    };
+
+    window.deleteEvent = async (docId) => {
+      if (confirm(`確定要刪除這筆活動設定嗎？`)) {
+        await deleteDoc(doc(db, "event_settings", docId));
+        alert('已刪除');
+      }
+    };
+
+    document.getElementById('saveProgBtn').onclick = async () => {
+      const fullEventName = document.getElementById('progEventSelect').value;
+      const member = document.getElementById('progMember').value;
+      const seller = document.getElementById('progSellerSelect').value;
+      const status = document.getElementById('progStatus').value;
+      const editId = document.getElementById('editProgId').value;
+
+      if (!fullEventName) return alert('請選擇活動！');
+      if (!member) return alert('請選擇成員！');
+      if (!status) return alert('請選擇進度狀態！');
+
+      const targetDocId = editId || `${fullEventName}_${member}_${seller || 'single'}`;
+
+      await setDoc(doc(db, "photo_progress", targetDocId), {
+        eventName: fullEventName, member, seller, status, updatedAt: serverTimestamp(), createdAt: serverTimestamp()
+      }, { merge: true });
+
+      alert(editId ? '進度修改已儲存！' : '發圖進度已新增！');
+      resetProgForm();
+    };
+
+    window.resetProgForm = () => {
+      document.getElementById('editProgId').value = '';
+      document.getElementById('progEventSelect').value = '';
+      document.getElementById('progMember').value = '';
+      document.getElementById('progSellerSelect').innerHTML = '<option value="" disabled selected>請選擇代拍</option>';
+      document.getElementById('progStatus').value = '';
+      document.getElementById('saveProgBtn').textContent = '發佈進度';
+      document.getElementById('cancelProgBtn').style.display = 'none';
+    };
+
+    window.editProg = (docId, eventName, member, seller, status) => {
+      document.getElementById('editProgId').value = docId;
+      document.getElementById('progEventSelect').value = eventName;
+      
+      const sellerSelect = document.getElementById('progSellerSelect');
+      sellerSelect.innerHTML = '<option value="" disabled>請選擇代拍</option>';
+      const sellers = eventSellerMap[eventName] || [];
+      sellers.forEach(s => {
+        if (s) {
+          const opt = document.createElement('option');
+          opt.value = s;
+          opt.textContent = s;
+          sellerSelect.appendChild(opt);
+        }
+      });
+
+      document.getElementById('progMember').value = member;
+      document.getElementById('progSellerSelect').value = seller || '';
+      document.getElementById('progStatus').value = status || '';
+      document.getElementById('saveProgBtn').textContent = '儲存修改';
+      document.getElementById('cancelProgBtn').style.display = 'inline-block';
+    };
+
+    window.deleteProg = async (docId) => {
+      if (confirm('確定要刪除這筆發圖進度嗎？')) {
+        await deleteDoc(doc(db, "photo_progress", docId));
+      }
+    };
   </script>
+
 </body>
 </html>
