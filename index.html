@@ -156,6 +156,16 @@
       }
     }
 
+    // 關鍵補強：動態接收子頁面（如 credit.html）傳來的實時高度通知
+    window.addEventListener('message', (event) => {
+      if (event.data && event.data.frameHeight) {
+        const activeIframe = document.querySelector('.tab-content.active iframe');
+        if (activeIframe) {
+          activeIframe.style.height = (event.data.frameHeight + 40) + 'px';
+        }
+      }
+    });
+
     document.addEventListener('DOMContentLoaded', () => {
       const iframes = document.querySelectorAll('iframe');
 
