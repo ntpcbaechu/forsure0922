@@ -68,24 +68,43 @@
       </table>
     </div>
 
-    <!-- 2. 抵用金管理 -->
+    <!-- 2. 抵用金管理 (全欄位: 日期活動合體與剩餘計算) -->
     <div class="tab-content">
-      <h3>新增/修改成員抵用金</h3>
-      <input type="text" id="creditUser" placeholder="社群暱稱">
-      <input type="number" id="creditAmount" placeholder="抵用金額 ($)">
-      <button id="saveCreditBtn">儲存/更新抵用金</button>
+      <h3>新增/修改成員抵用金紀錄</h3>
+      <form id="creditForm" style="background:#f8f9fa; padding:15px; border-radius:8px; margin-bottom:15px;">
+        <input type="hidden" id="editCreditId">
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap:10px;">
+          <div><label style="font-size:12px;">社群名稱</label><input type="text" id="cUser" placeholder="社群暱稱" required style="width:100%;"></div>
+          <div><label style="font-size:12px;">日期 (例: 260725)</label><input type="text" id="cDate" placeholder="YYMMDD" style="width:100%;"></div>
+          <div><label style="font-size:12px;">活動名稱</label><input type="text" id="cEvent" placeholder="活動名稱" style="width:100%;"></div>
+          <div><label style="font-size:12px;">轉抵用金金額 ($)</label><input type="number" id="cAmt" placeholder="轉抵金額" required style="width:100%;"></div>
+          <div><label style="font-size:12px;">已使用金額 ($)</label><input type="number" id="cUsed" placeholder="預設 0" value="0" style="width:100%;"></div>
+        </div>
+        <button type="submit" style="margin-top:10px;">儲存/更新抵用金</button>
+        <button type="button" id="cancelCreditEdit" style="background:#909399; display:none; margin-top:10px;" onclick="resetCreditForm()">取消編輯</button>
+      </form>
+
       <table>
-        <thead><tr><th>社群暱稱</th><th>目前抵用金</th></tr></thead>
+        <thead>
+          <tr>
+            <th>社群暱稱</th>
+            <th>日期活動</th>
+            <th>轉抵金額</th>
+            <th>已使用</th>
+            <th>剩餘金額</th>
+            <th>操作</th>
+          </tr>
+        </thead>
         <tbody id="creditTable"></tbody>
       </table>
     </div>
 
-    <!-- 3. 活動單價與成本設定 -->
+    <!-- 3. 活動單價與成本設定 (獨立日期與名稱) -->
     <div class="tab-content">
       <h3>設定活動單價與利潤分析</h3>
       <form id="eventForm" style="background:#f8f9fa; padding:15px; border-radius:8px; margin-bottom:15px;">
         <input type="hidden" id="editEventId">
-        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap:10px;">
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap:10px;">
           <div><label style="font-size:12px;">日期 (例: 260725)</label><input type="text" id="evDate" placeholder="YYMMDD" style="width:100%;"></div>
           <div><label style="font-size:12px;">活動名稱 (例: RUN IT (Day1))</label><input type="text" id="evName" placeholder="活動名稱" required style="width:100%;"></div>
           <div><label style="font-size:12px;">售出單價 ($)</label><input type="number" id="evPrice" placeholder="販售單價" required style="width:100%;"></div>
@@ -152,9 +171,9 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore, collection, doc, setDoc, deleteDoc, updateDoc, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getFirestore, collection, doc, setDoc, deleteDoc, updateDoc, onSnapshot, getDocs, query, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-    if (prompt("請輸入管理者密碼：") === "emmanuel") {
+    if (prompt("請輸入管理者密碼：") === "marcon") {
       document.getElementById('mainAdmin').style.display = 'block';
     } else {
       alert("密碼錯誤！");
@@ -179,7 +198,7 @@
       document.querySelectorAll('.tab-content').forEach((c, i) => c.classList.toggle('active', i === idx));
     };
 
-    // --- 1. 匯款對帳審核 ---
+    // --- 1. 匯款對帳審核 (按下已對帳自動更新抵用金使用量) ---
     onSnapshot(collection(db, "payments"), snap => {
       const tb = document.getElementById('payTable');
       tb.innerHTML = '';
@@ -195,7 +214,7 @@
         tr.innerHTML = `
           <td><b>${p.user}</b><br><small style="color:#909399;">${p.social}</small></td>
           <td>${p.eventName}<br>${p.qty} 張</td>
-          <td>$${p.finalPay}</td>
+          <td>$${p.finalPay} ${p.creditUsed > 0 ? `<small style="color:#67c23a;">(折抵$${p.creditUsed})</small>` : ''}</td>
           <td><b>${p.bankLast5}</b></td>
           <td><input type="number" style="width:70px;" value="${actualAmt}" onchange="updatePayField('${docId}', 'actualAmt', parseInt(this.value))"></td>
           <td><input type="date" value="${checkDate}" onchange="updatePayField('${docId}', 'checkDate', this.value)"></td>
@@ -214,15 +233,37 @@
     };
 
     window.setPayStatus = async (docId, newStatus) => {
+      const today = new Date().toISOString().slice(0,10);
       if (newStatus === 'error') {
         const reason = prompt("請輸入對帳問題原因：");
         if (reason !== null) {
-          const today = new Date().toISOString().slice(0,10);
           await updateDoc(doc(db, "payments", docId), { status: 'error', errorNote: reason, checkDate: today });
         }
       } else {
-        const today = new Date().toISOString().slice(0,10);
+        // 按下已對帳，更新狀態並同步扣抵抵用金紀錄
         await updateDoc(doc(db, "payments", docId), { status: 'ok', errorNote: '', checkDate: today });
+        
+        // 抓取該訂單資料進行抵用金自動扣除
+        const pSnap = await getDocs(collection(db, "payments"));
+        pSnap.forEach(async (pDoc) => {
+          if (pDoc.id === docId && pDoc.data().creditUsed > 0) {
+            const pData = pDoc.data();
+            const q = query(collection(db, "user_credits"), where("user", "==", pData.user));
+            const cSnap = await getDocs(q);
+            let remDeduct = pData.creditUsed;
+            cSnap.forEach(async (cDoc) => {
+              if (remDeduct > 0) {
+                const cData = cDoc.data();
+                const curRem = cData.remaining !== undefined ? cData.remaining : (cData.credit - (cData.used || 0));
+                const deductHere = Math.min(curRem, remDeduct);
+                const newUsed = (cData.used || 0) + deductHere;
+                const newRem = cData.credit - newUsed;
+                await updateDoc(doc(db, "user_credits", cDoc.id), { used: newUsed, remaining: newRem });
+                remDeduct -= deductHere;
+              }
+            });
+          }
+        });
       }
     };
 
@@ -231,24 +272,75 @@
       if (reason !== null) { await updateDoc(doc(db, "payments", docId), { errorNote: reason }); }
     };
 
-    // --- 2. 抵用金管理 ---
-    document.getElementById('saveCreditBtn').onclick = async () => {
-      const user = document.getElementById('creditUser').value.trim();
-      const credit = parseInt(document.getElementById('creditAmount').value) || 0;
-      if (!user) return alert('請填寫暱稱');
-      await setDoc(doc(db, "user_credits", user), { user, credit });
-      alert('抵用金已更新');
-      document.getElementById('creditUser').value = '';
-      document.getElementById('creditAmount').value = '';
+    // --- 2. 抵用金管理 (日期+活動合體與自動剩餘計算) ---
+    document.getElementById('creditForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const user = document.getElementById('cUser').value.trim();
+      const cDate = document.getElementById('cDate').value.trim();
+      const cEvent = document.getElementById('cEvent').value.trim();
+      const credit = parseInt(document.getElementById('cAmt').value) || 0;
+      const used = parseInt(document.getElementById('cUsed').value) || 0;
+      
+      const fullEvent = cDate ? `${cDate} ${cEvent}` : cEvent;
+      const remaining = credit - used;
+      const docId = document.getElementById('editCreditId').value || `${user}_${fullEvent || '通用'}`;
+
+      await setDoc(doc(db, "user_credits", docId), {
+        user, rawDate: cDate, rawEvent: cEvent, fullEvent, credit, used, remaining
+      });
+
+      alert('抵用金紀錄已儲存！');
+      resetCreditForm();
+    });
+
+    window.resetCreditForm = () => {
+      document.getElementById('creditForm').reset();
+      document.getElementById('editCreditId').value = '';
+      document.getElementById('cancelCreditEdit').style.display = 'none';
+      document.getElementById('cUser').disabled = false;
+    };
+
+    window.editCredit = (id, user, rawDate, rawEvent, credit, used) => {
+      document.getElementById('editCreditId').value = id;
+      document.getElementById('cUser').value = user;
+      document.getElementById('cUser').disabled = true;
+      document.getElementById('cDate').value = rawDate || '';
+      document.getElementById('cEvent').value = rawEvent || '';
+      document.getElementById('cAmt').value = credit;
+      document.getElementById('cUsed').value = used;
+      document.getElementById('cancelCreditEdit').style.display = 'inline-block';
+    };
+
+    window.deleteCredit = async (id) => {
+      if (confirm('確定要刪除這筆抵用金紀錄嗎？')) {
+        await deleteDoc(doc(db, "user_credits", id));
+      }
     };
 
     onSnapshot(collection(db, "user_credits"), snap => {
       const tb = document.getElementById('creditTable');
       tb.innerHTML = '';
-      snap.forEach(d => { tb.innerHTML += `<tr><td>${d.data().user}</td><td>$${d.data().credit}</td></tr>`; });
+      snap.forEach(d => {
+        const item = d.data();
+        const id = d.id;
+        const rem = item.remaining !== undefined ? item.remaining : (item.credit - (item.used || 0));
+        tb.innerHTML += `
+          <tr>
+            <td><b>${item.user}</b></td>
+            <td>${item.fullEvent || '通用'}</td>
+            <td>$${item.credit}</td>
+            <td>$${item.used || 0}</td>
+            <td><b style="color:#67c23a;">$${rem}</b></td>
+            <td>
+              <button class="btn-edit" onclick="editCredit('${id}', '${item.user}', '${item.rawDate||''}', '${item.rawEvent||''}', ${item.credit}, ${item.used||0})">編輯</button>
+              <button class="btn-danger" onclick="deleteCredit('${id}')">刪除</button>
+            </td>
+          </tr>
+        `;
+      });
     });
 
-    // --- 3. 活動單價與成本設定 (日期與名稱合體邏輯) ---
+    // --- 3. 活動單價與成本設定 ---
     document.getElementById('eventForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const evDate = document.getElementById('evDate').value.trim();

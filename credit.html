@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>抵用金查詢</title>
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 10px; margin: 0; background: #fff; color: #333; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 5px; margin: 0; background: #fff; color: #333; }
     .form-group { margin-bottom: 18px; position: relative; }
     label { display: block; margin-bottom: 6px; font-weight: 600; font-size: 14px; color: #444; }
     input { width: 100%; padding: 12px; border: 1px solid #dcdfe6; border-radius: 8px; box-sizing: border-box; font-size: 15px; }
@@ -33,7 +33,7 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getFirestore, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyDF7QySG1Jj4gdZvXwMRaKjRmI-lFKpj7k",
@@ -48,13 +48,9 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    let userCredits = {};
     let allUsers = [];
 
     async function initData() {
-      const snap = await getDocs(collection(db, "user_credits"));
-      snap.forEach(d => { userCredits[d.data().user] = d.data().credit || 0; });
-
       fetch('users.json').then(r => r.json()).then(data => {
         allUsers = data;
         setupDropdown();
@@ -75,7 +71,7 @@
             e.preventDefault();
             input.value = u;
             dropdown.style.display = 'none';
-            showCredit(u);
+            fetchUserCredit(u);
           };
           dropdown.appendChild(item);
         });
@@ -90,10 +86,23 @@
       };
     }
 
-    function showCredit(user) {
+    async function fetchUserCredit(user) {
+      let totalRemaining = 0;
+      const q = query(collection(db, "user_credits"), where("user", "==", user));
+      const snap = await getDocs(q);
+      snap.forEach(d => {
+        const item = d.data();
+        totalRemaining += (item.remaining !== undefined ? item.remaining : (item.credit || 0));
+      });
+
       document.getElementById('targetUser').textContent = user;
-      document.getElementById('targetCredit').textContent = `$${userCredits[user] || 0}`;
+      document.getElementById('targetCredit').textContent = `$${totalRemaining}`;
       document.getElementById('creditBox').style.display = 'block';
+      notifyHeight();
+    }
+
+    function notifyHeight() {
+      window.parent.postMessage({ frameHeight: document.body.scrollHeight }, '*');
     }
 
     initData();

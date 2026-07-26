@@ -3,46 +3,39 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>FORSURE🐶📸 - 登記紀錄</title>
+  <title>查詢登記紀錄</title>
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 20px; max-width: 800px; margin: 0 auto; background-color: #f4f6f8; color: #333; }
-    .card { background: #ffffff; padding: 24px; border-radius: 16px; box-shadow: 0 8px 20px rgba(0,0,0,0.06); }
-    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-    h1 { font-size: 20px; margin: 0; color: #222; }
-    .btn-back { background-color: #e4e7ed; color: #333; text-decoration: none; padding: 6px 12px; border-radius: 6px; font-weight: 600; font-size: 13px; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 5px; margin: 0; background: #fff; color: #333; }
     table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-    th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e4e7ed; font-size: 14px; }
+    th, td { padding: 10px; text-align: left; border-bottom: 1px solid #e4e7ed; font-size: 13px; }
     th { background-color: #f8f9fa; font-weight: 600; color: #555; }
-    tr:hover { background-color: #f9fafc; }
+    .status-badge { padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; }
+    .status-wait { background: #fdf6ec; color: #e6a23c; }
+    .status-ok { background: #f0f9eb; color: #67c23a; }
+    .status-err { background: #fef0f0; color: #f56c6c; }
   </style>
 </head>
 <body>
 
-  <div class="card">
-    <div class="header">
-      <h1>FORSURE🐶📸 登記紀錄</h1>
-      <a href="index.html" class="btn-back">← 返回首頁</a>
-    </div>
-
-    <table>
-      <thead>
-        <tr>
-          <th>#</th>
-          <th>填單時間</th>
-          <th>社群名稱</th>
-          <th>活動名稱</th>
-          <th>成員</th>
-          <th>張數</th>
-        </tr>
-      </thead>
-      <tbody id="tableBody"></tbody>
-    </table>
-    <div id="emptyMsg" style="text-align:center; padding:30px; color:#909399; display:none;">尚無登記紀錄</div>
-  </div>
+  <h3 style="font-size: 16px; margin-top:0;">公開登記紀錄</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>時間</th>
+        <th>社群名稱</th>
+        <th>活動/成員</th>
+        <th>張數</th>
+        <th>狀態</th>
+      </tr>
+    </thead>
+    <tbody id="recordTableBody"></tbody>
+  </table>
+  <div id="recordEmptyMsg" style="text-align:center; padding:20px; color:#909399; display:none;">尚無登記紀錄</div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore, collection, query, orderBy, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getFirestore, collection, onSnapshot, query, orderBy, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyDF7QySG1Jj4gdZvXwMRaKjRmI-lFKpj7k",
@@ -57,35 +50,61 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    const q = query(collection(db, "orders"), orderBy("createdAt", "desc"));
-    onSnapshot(q, (snapshot) => {
-      const tbody = document.getElementById('tableBody');
-      const emptyMsg = document.getElementById('emptyMsg');
-      tbody.innerHTML = '';
+    let payStatusMap = {};
 
-      if (snapshot.empty) { emptyMsg.style.display = 'block'; return; }
-      emptyMsg.style.display = 'none';
-      let index = 1;
-
-      snapshot.forEach((doc) => {
-        const data = doc.data();
-        const date = data.createdAt ? new Date(data.createdAt.seconds * 1000) : new Date();
-        const timeStr = `${date.getMonth()+1}/${date.getDate()} ${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}`;
-
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${index++}</td>
-          <td>${timeStr}</td>
-          <td><b>${escapeHtml(data.user || '')}</b></td>
-          <td>${escapeHtml(data.event || '')}</td>
-          <td>${escapeHtml(data.member || '')}</td>
-          <td>${data.qty || 0}</td>
-        `;
-        tbody.appendChild(tr);
+    async function loadPayStatus() {
+      const snap = await getDocs(collection(db, "payments"));
+      snap.forEach(d => {
+        const data = d.data();
+        const key = `${data.user}_${data.eventName}_${data.member}`;
+        payStatusMap[key] = data.status || 'pending';
       });
-    });
+    }
 
-    function escapeHtml(text) { return (text||'').replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+    async function init() {
+      await loadPayStatus();
+
+      onSnapshot(query(collection(db, "orders"), orderBy("createdAt", "desc")), (snapshot) => {
+        const tbody = document.getElementById('recordTableBody');
+        const emptyMsg = document.getElementById('recordEmptyMsg');
+        tbody.innerHTML = '';
+        if (snapshot.empty) { emptyMsg.style.display = 'block'; notifyHeight(); return; }
+        emptyMsg.style.display = 'none';
+        let idx = 1;
+        snapshot.forEach(d => {
+          const data = d.data();
+          const date = data.createdAt ? new Date(data.createdAt.seconds * 1000) : new Date();
+          const timeStr = `${date.getMonth()+1}/${date.getDate()} ${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}`;
+          
+          const key = `${data.user}_${data.event}_${data.member}`;
+          const payStatus = payStatusMap[key];
+
+          let statusHtml = '<span class="status-badge status-wait">⏳ 待匯款</span>';
+          if (data.hasPaid) {
+            if (payStatus === 'ok') statusHtml = '<span class="status-badge status-ok">🟢 已對帳</span>';
+            else if (payStatus === 'error') statusHtml = '<span class="status-badge status-err">🔴 對帳問題</span>';
+            else statusHtml = '<span class="status-badge status-wait">🟡 審核中</span>';
+          }
+
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${idx++}</td>
+            <td>${timeStr}</td>
+            <td><b>${escapeHtml(data.user || '')}</b></td>
+            <td>${escapeHtml(data.event || '')}<br><small style="color:#909399;">${escapeHtml(data.member || '')}</small></td>
+            <td>${data.qty || 0}</td>
+            <td>${statusHtml}</td>
+          `;
+          tbody.appendChild(tr);
+        });
+        notifyHeight();
+      });
+    }
+
+    function escapeHtml(t) { return (t||'').replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+    function notifyHeight() { setTimeout(() => { window.parent.postMessage({ frameHeight: document.body.scrollHeight }, '*'); }, 100); }
+
+    init();
   </script>
 
 </body>
