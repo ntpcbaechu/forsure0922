@@ -16,10 +16,11 @@
     tr:last-child td { border-bottom: none; }
 
     .status-tag { padding: 3px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; display: inline-block; }
-    .status-registered { background: #f4f4f5; color: #909399; } /* 已登記 (待匯款) */
-    .status-pending { background: #fdf6ec; color: #e6a23c; }    /* 待對帳 */
-    .status-ok { background: #f0f9eb; color: #67c23a; }         /* 已對帳 */
-    .status-photo { background: #e8f4ff; color: #1890ff; }      /* 已發圖 */
+    .status-registered { background: #f4f4f5; color: #909399; } /* 已登記 */
+    .status-unpaid { background: #fef0f0; color: #f56c6c; border: 1px solid #fde2e2; } /* ⏳ 待匯款 (紅字提醒) */
+    .status-pending { background: #fdf6ec; color: #e6a23c; }    /* 🟡 待對帳 */
+    .status-ok { background: #f0f9eb; color: #67c23a; }         /* 🟢 已對帳 */
+    .status-photo { background: #e8f4ff; color: #1890ff; }      /* ✅ 已發圖 */
     .status-err { background: #fef0f0; color: #f56c6c; border: 1px solid #f56c6c; }
   </style>
 </head>
@@ -100,7 +101,6 @@
       currentOrdersSnap.forEach(doc => {
         const data = doc.data();
         const orderId = doc.id;
-        // 相容不同欄位名稱，避免出現未分類活動
         const eventName = data.event || data.fullEvent || data.eventName || '未分類活動';
         const member = data.member || '未知成員';
         const groupKey = `${eventName}__${member}`;
@@ -142,27 +142,27 @@
         group.items.forEach((item, index) => {
           const payData = paymentsMap[item.id];
           
-          // 計算最後更新時間或填單時間
           let updateTimeStr = item.time || (item.createdAt ? new Date(item.createdAt.seconds * 1000).toLocaleString('zh-TW', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false }) : '');
           if (payData && payData.createdAt) {
             updateTimeStr = new Date(payData.createdAt.seconds * 1000).toLocaleString('zh-TW', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false });
           }
 
-          // 帳號末 5 碼遮罩
           let bankLast5 = '-';
           if (payData && payData.bankLast5) {
             bankLast5 = payData.bankLast5.substring(0, 2) + '***';
           }
 
-          // 判定狀態
+          // 判斷發圖進度與狀態連動 (方案 A)
+          const photoStatus = photoProg ? photoProg.status : '';
+          const isPhotoSent = photoStatus === '已發圖';
+          // 只要進度是 等圖中 / 製作中 / 催圖中，且買家尚未匯款，即視為墊款催款狀態
+          const isWaitingForPhoto = photoStatus.includes('等圖') || photoStatus.includes('製作') || photoStatus.includes('催圖');
+
           let statusHtml = '<span class="status-tag status-registered">📝 已登記</span>';
           let deleteDateStr = '-';
 
-          const isPhotoSent = photoProg && photoProg.status === '已發圖';
-
           if (isPhotoSent) {
             statusHtml = '<span class="status-tag status-photo">✅ 已發圖</span>';
-            // 計算發圖日 + 7 天
             if (photoProg.sentDate) {
               const d = new Date(photoProg.sentDate);
               d.setDate(d.getDate() + 7);
@@ -179,6 +179,9 @@
             } else {
               statusHtml = '<span class="status-tag status-pending">🟡 待對帳</span>';
             }
+          } else if (isWaitingForPhoto) {
+            // 方案 A 關鍵：進度進入等圖中且未付款 ➔ 自動變更為 ⏳ 待匯款
+            statusHtml = '<span class="status-tag status-unpaid">⏳ 待匯款</span>';
           }
 
           rowsHtml += `
