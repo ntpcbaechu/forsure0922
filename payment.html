@@ -12,6 +12,9 @@
     button { background-color: #1989fa; color: white; font-weight: bold; border: none; cursor: pointer; margin-top: 10px; font-size: 16px; border-radius: 8px; }
     button:disabled { background-color: #a0cfff; cursor: not-allowed; }
     
+    .list-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+    .btn-select-all { background: none; border: none; color: #409eff; font-size: 13px; font-weight: bold; cursor: pointer; padding: 0; width: auto; margin: 0; }
+
     /* 活動多選卡片清單 */
     .unpaid-list { border: 1px solid #dcdfe6; border-radius: 8px; padding: 10px; background: #fafafa; max-height: 280px; overflow-y: auto; }
     .unpaid-item { background: #ffffff; border: 1px solid #e4e7ed; border-radius: 8px; padding: 12px; margin-bottom: 8px; display: flex; align-items: center; gap: 10px; cursor: pointer; transition: all 0.2s ease; }
@@ -44,7 +47,10 @@
     </div>
 
     <div class="form-group">
-      <label>勾選欲合併匯款的已登記活動 (可複選) *</label>
+      <div class="list-header">
+        <label style="margin:0;">勾選欲合併匯款的已登記活動 (可複選) *</label>
+        <button type="button" class="btn-select-all" id="selectAllBtn" style="display:none;" onclick="toggleSelectAll()">☑️ 一鍵全選</button>
+      </div>
       <div id="unpaidListContainer" class="unpaid-list">
         <div style="color:#909399; font-size:13px; text-align:center; padding:10px;">請先選擇社群名稱</div>
       </div>
@@ -102,14 +108,12 @@
     initData();
 
     async function initData() {
-      // 1. 抓取活動單價
       const evSnap = await getDocs(collection(db, "event_settings"));
       evSnap.forEach(doc => {
         const data = doc.data();
         eventPrices[data.name] = parseFloat(data.price) || 0;
       });
 
-      // 2. 抓取「未對帳/未匯款 (hasPaid != true)」的訂單紀錄
       const ordersSnap = await getDocs(collection(db, "orders"));
       unpaidOrders = [];
       const userSet = new Set();
@@ -124,7 +128,6 @@
         }
       });
 
-      // 3. 渲染社群名稱下拉選單
       const userSelect = document.getElementById('payUser');
       userSelect.innerHTML = '<option value="" disabled selected>請選擇社群名稱</option>';
 
@@ -142,20 +145,23 @@
       notifyHeight();
     }
 
-    // 當選擇社群名稱時，帶出該使用者的多選清單與抵用金
     document.getElementById('payUser').addEventListener('change', async (e) => {
       const selectedUser = e.target.value;
       const listContainer = document.getElementById('unpaidListContainer');
+      const selectAllBtn = document.getElementById('selectAllBtn');
       listContainer.innerHTML = '';
 
       const myOrders = unpaidOrders.filter(o => o.user === selectedUser);
 
       if (myOrders.length === 0) {
         listContainer.innerHTML = '<div style="color:#909399; font-size:13px; text-align:center; padding:10px;">該使用者目前沒有未匯款項目。</div>';
+        selectAllBtn.style.display = 'none';
         return;
       }
 
-      // 渲染多選清單
+      selectAllBtn.style.display = 'inline-block';
+
+      // 渲染多選清單（預設全勾）
       myOrders.forEach(o => {
         const uPrice = eventPrices[o.eventName] || 0;
         const itemSubtotal = o.qty * uPrice;
@@ -163,7 +169,7 @@
         const itemDiv = document.createElement('div');
         itemDiv.className = 'unpaid-item';
         itemDiv.innerHTML = `
-          <input type="checkbox" class="order-chk" value="${o.id}" data-subtotal="${itemSubtotal}" data-qty="${o.qty}" data-price="${uPrice}">
+          <input type="checkbox" class="order-chk" value="${o.id}" data-subtotal="${itemSubtotal}" data-qty="${o.qty}" data-price="${uPrice}" checked>
           <div class="unpaid-info">
             <div class="unpaid-title">${o.eventName} (成員: ${o.member || '全體'})</div>
             <div>登記張數：${o.qty} 張 (單價 $${uPrice})</div>
@@ -171,7 +177,6 @@
           <div class="unpaid-price">$${itemSubtotal}</div>
         `;
 
-        // 點擊整列皆可勾選
         itemDiv.addEventListener('click', (evt) => {
           if (evt.target.tagName !== 'INPUT') {
             const chk = itemDiv.querySelector('.order-chk');
@@ -183,7 +188,6 @@
         listContainer.appendChild(itemDiv);
       });
 
-      // 查詢抵用金
       userCreditObj = null;
       document.getElementById('creditBox').style.display = 'none';
       document.getElementById('useCreditCheck').checked = false;
@@ -207,6 +211,13 @@
       calculateTotal();
       notifyHeight();
     });
+
+    window.toggleSelectAll = () => {
+      const chks = document.querySelectorAll('.order-chk');
+      const allChecked = Array.from(chks).every(c => c.checked);
+      chks.forEach(c => c.checked = !allChecked);
+      calculateTotal();
+    };
 
     document.getElementById('useCreditCheck').addEventListener('change', calculateTotal);
 
@@ -243,9 +254,16 @@
       document.getElementById('txtFinalPay').textContent = `$${finalPay}`;
 
       document.getElementById('submitBtn').disabled = selectedOrders.length === 0;
+
+      // 更新按鈕文字
+      const allChks = document.querySelectorAll('.order-chk');
+      const selectAllBtn = document.getElementById('selectAllBtn');
+      if (allChks.length > 0) {
+        const isAllChecked = Array.from(allChks).every(c => c.checked);
+        selectAllBtn.textContent = isAllChecked ? '☑️ 取消全選' : '☑️ 一鍵全選';
+      }
     }
 
-    // 提交多選匯款單
     document.getElementById('payForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       if (selectedOrders.length === 0) return alert('請至少勾選一項要匯款的活動！');
@@ -259,7 +277,6 @@
         const social = document.getElementById('paySocial').value.trim();
         const bankLast5 = document.getElementById('payBankLast5').value.trim();
 
-        // 均分折抵的抵用金給每一筆訂單
         let remCreditUsed = creditUsed;
 
         for (let i = 0; i < selectedOrders.length; i++) {
@@ -278,7 +295,6 @@
 
           const itemFinalPay = Math.max(0, item.subtotal - itemCreditDiscount);
 
-          // 1. 批次新增 payments 紀錄
           await addDoc(collection(db, "payments"), {
             user,
             social,
@@ -294,11 +310,9 @@
             createdAt: serverTimestamp()
           });
 
-          // 2. 標記該筆訂單為已登記匯款
           await updateDoc(doc(db, "orders", item.orderId), { hasPaid: true });
         }
 
-        // 3. 更新使用者抵用金紀錄
         if (creditUsed > 0 && userCreditObj) {
           const newUsed = (userCreditObj.used || 0) + creditUsed;
           const newRem = userCreditObj.credit - newUsed;
