@@ -71,7 +71,7 @@
       </table>
     </div>
 
-    <!-- 3. 活動單價與成本設定 -->
+    <!-- 3. 活動單價與成本設定 (核心活動資料庫) -->
     <div class="tab-content">
       <h3>設定活動單價與利潤分析</h3>
       <form id="eventForm" style="background:#f8f9fa; padding:15px; border-radius:8px; margin-bottom:15px;">
@@ -102,12 +102,13 @@
       </table>
     </div>
 
-    <!-- 4. 發圖進度更新 (改為 4 種狀態下拉) -->
+    <!-- 4. 發圖進度更新 (活動名稱自動帶入下拉選單) -->
     <div class="tab-content">
       <h3>發佈與更新發圖進度</h3>
       <div class="input-group">
-        <input type="text" id="progDate" placeholder="日期 (YYMMDD)" style="width: 110px;">
-        <input type="text" id="progEvent" placeholder="活動名稱 (例: RUN IT (Day1))">
+        <select id="progEventSelect" style="min-width: 200px;">
+          <option value="" disabled selected>載入活動中...</option>
+        </select>
         
         <select id="progMember" style="width: 120px;">
           <option value="" disabled selected>選擇成員</option>
@@ -237,7 +238,7 @@
       snap.forEach(d => { tb.innerHTML += `<tr><td>${d.data().user}</td><td>$${d.data().credit}</td></tr>`; });
     });
 
-    // --- 3. 活動單價與成本設定 ---
+    // --- 3. 活動單價與成本設定 (資料庫核心) ---
     document.getElementById('eventForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const name = document.getElementById('evName').value.trim();
@@ -282,12 +283,19 @@
       }
     };
 
+    // 監聽活動並同時同步更新「頁籤 4」的下拉選單
     onSnapshot(collection(db, "event_settings"), snap => {
       const tb = document.getElementById('eventTable');
+      const progSelect = document.getElementById('progEventSelect');
+      
       tb.innerHTML = '';
+      progSelect.innerHTML = '<option value="" disabled selected>請選擇活動</option>';
+
       snap.forEach(d => {
         const ev = d.data();
         const actUPrice = ev.actQty > 0 ? (ev.cost / ev.actQty).toFixed(1) : 0;
+        
+        // 渲染表格
         tb.innerHTML += `
           <tr>
             <td><b>${ev.name}</b></td>
@@ -301,20 +309,24 @@
             </td>
           </tr>
         `;
+
+        // 連動頁籤 4 下拉選單
+        const opt = document.createElement('option');
+        opt.value = ev.name;
+        opt.textContent = ev.name;
+        progSelect.appendChild(opt);
       });
     });
 
-    // --- 4. 發圖進度更新 (4種狀態) ---
+    // --- 4. 發圖進度更新 (直接選擇已存在的活動) ---
     document.getElementById('saveProgBtn').onclick = async () => {
-      const dateStr = document.getElementById('progDate').value.trim();
-      const eventNameInput = document.getElementById('progEvent').value.trim();
+      const fullEventName = document.getElementById('progEventSelect').value;
       const member = document.getElementById('progMember').value;
       const status = document.getElementById('progStatus').value;
 
-      if (!eventNameInput) return alert('請填寫活動名稱！');
+      if (!fullEventName) return alert('請選擇活動！');
       if (!member) return alert('請選擇成員！');
 
-      const fullEventName = dateStr ? `${dateStr} ${eventNameInput}` : eventNameInput;
       const docId = `${fullEventName}_${member}`;
 
       await setDoc(doc(db, "photo_progress", docId), {
