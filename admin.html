@@ -144,7 +144,8 @@
         </div>
 
         <div class="form-row-bottom">
-          <div><label style="font-size:12px;">售出單價 ($)</label><input type="number" id="evPrice" placeholder="販售單價" style="width:100%;"></div>
+          <!-- 支援小數點後1位 -->
+          <div><label style="font-size:12px;">售出單價 ($)</label><input type="number" step="0.1" min="0" id="evPrice" placeholder="販售單價" style="width:100%;"></div>
           <div><label style="font-size:12px;">總購入價 ($)</label><input type="number" id="evCost" placeholder="總購入成本" style="width:100%;"></div>
           <div><label style="font-size:12px;">實際收到張數</label><input type="number" id="evActQty" placeholder="收到後填寫" style="width:100%;"></div>
           <div style="display:flex; align-items:center; gap:6px; margin-top:10px;">
@@ -417,7 +418,7 @@
         }
       });
 
-      // 4. 發圖進度更新 (成員與代拍欄位獨立開來)
+      // 4. 發圖進度更新
       onSnapshot(collection(db, "photo_progress"), snap => {
         const tb = document.getElementById('progTable');
         tb.innerHTML = '';
