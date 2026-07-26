@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>FORSURE🐶📸 - 管理者控制台</title>
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 20px; max-width: 1100px; margin: 0 auto; background-color: #f4f6f8; color: #333; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 20px; max-width: 1150px; margin: 0 auto; background-color: #f4f6f8; color: #333; }
     .card { background: #ffffff; padding: 24px; border-radius: 16px; box-shadow: 0 8px 20px rgba(0,0,0,0.06); }
     
     .top-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
@@ -73,14 +73,37 @@
     <h2>FORSURE🐶📸 管理者控制台</h2>
 
     <div class="tabs">
-      <button class="tab-btn active" onclick="switchTab(0)">1. 匯款對帳審核</button>
-      <button class="tab-btn" onclick="switchTab(1)">2. 成員抵用金管理</button>
-      <button class="tab-btn" onclick="switchTab(2)">3. 活動單價與成本設定</button>
-      <button class="tab-btn" onclick="switchTab(3)">4. 發圖進度更新</button>
+      <button class="tab-btn active" onclick="switchTab(0)">1. 團員登記管理(修改/刪除)</button>
+      <button class="tab-btn" onclick="switchTab(1)">2. 匯款對帳審核</button>
+      <button class="tab-btn" onclick="switchTab(2)">3. 成員抵用金管理</button>
+      <button class="tab-btn" onclick="switchTab(3)">4. 活動單價與成本設定</button>
+      <button class="tab-btn" onclick="switchTab(4)">5. 發圖進度更新</button>
+    </div>
+
+    <!-- 0. 團員登記管理 (新增功能) -->
+    <div class="tab-content active">
+      <h3>團員填單紀錄管理 (修正登記錯成員/張數)</h3>
+      <div style="margin-bottom:12px; display:flex; gap:10px;">
+        <input type="text" id="searchOrderInput" placeholder="搜尋社群名稱或活動/成員..." style="max-width:300px;">
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>社群暱稱</th>
+            <th>活動名稱</th>
+            <th>登記成員</th>
+            <th>登記張數</th>
+            <th>登記時間</th>
+            <th>匯款狀態</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody id="ordersAdminTable"></tbody>
+      </table>
     </div>
 
     <!-- 1. 匯款對帳審核 -->
-    <div class="tab-content active">
+    <div class="tab-content">
       <h3>匯款登記與對帳管理</h3>
       <table>
         <thead>
@@ -272,6 +295,7 @@
 
     let eventSellerMap = {};
     let ordersList = [];
+    let memberListGlobal = [];
 
     document.addEventListener('DOMContentLoaded', () => {
       fetch('users.json')
@@ -290,6 +314,7 @@
       fetch('members.json')
         .then(res => res.json())
         .then(members => {
+          memberListGlobal = members;
           const memberSel = document.getElementById('cMember');
           memberSel.innerHTML = '<option value="">請選擇成員</option>';
           const evMemberSel = document.getElementById('evMember');
@@ -341,9 +366,36 @@
     };
 
     function initAdminDataListeners() {
+      // 0. 團員登記管理 (orders 監聽與修改)
       onSnapshot(collection(db, "orders"), snap => {
         ordersList = [];
-        snap.forEach(d => ordersList.push(d.data()));
+        const tb = document.getElementById('ordersAdminTable');
+        tb.innerHTML = '';
+
+        snap.forEach(d => {
+          const item = d.data();
+          const docId = d.id;
+          const eName = item.event || item.eventName || item.fullEvent || '未命名';
+          const qty = item.qty !== undefined ? item.qty : (item.quantity !== undefined ? item.quantity : (item.count || 0));
+          const timeStr = item.time || (item.createdAt ? new Date(item.createdAt.seconds * 1000).toLocaleString('zh-TW', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false }) : '-');
+
+          ordersList.push({ id: docId, ...item, eventName: eName, qty });
+
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td><b>${item.user || '-'}</b></td>
+            <td>${eName}</td>
+            <td><b style="color:#409eff;">${item.member || '未設定'}</b></td>
+            <td>${qty} 張</td>
+            <td><small style="color:#909399;">${timeStr}</small></td>
+            <td>${item.hasPaid ? '<span style="color:#67c23a; font-weight:bold;">🟢 已匯款</span>' : '<span style="color:#909399;">📝 登記待匯</span>'}</td>
+            <td>
+              <button class="btn-edit" onclick="editUserOrder('${docId}', '${item.member||''}', ${qty})">修改成員/張數</button>
+              <button class="btn-danger" onclick="deleteUserOrder('${docId}', '${item.user}', '${item.member}')">刪除</button>
+            </td>
+          `;
+          tb.appendChild(tr);
+        });
       });
 
       // 1. 匯款對帳審核
@@ -402,7 +454,7 @@
         });
       });
 
-      // 3. 活動單價與成本設定 (不重複加總，拆包團精準結算)
+      // 3. 活動單價與成本設定
       onSnapshot(collection(db, "event_settings"), snap => {
         const tb = document.getElementById('eventTable');
         const summaryBox = document.getElementById('eventSummaryBox');
@@ -424,7 +476,6 @@
           const docId = ev.id;
           const closedBadge = ev.isClosed ? '<span class="closed-tag">🚫 已關閉</span>' : '';
 
-          // 1. 自動計算前台登記這筆「活動+成員」的總包數
           const matchedOrders = ordersList.filter(o => {
             const matchEvent = (o.event === ev.name || o.event === ev.rawName || o.fullEvent === ev.name);
             const matchMember = !ev.member || o.member === ev.member;
@@ -435,7 +486,6 @@
             return sum + qty;
           }, 0);
 
-          // 2. 預估銷售額 = 該成員紀錄的包數 × 單價
           const estRevenue = totalOrderedPacks * (ev.price || 0);
 
           if (!eventSellerMap[ev.name]) eventSellerMap[ev.name] = [];
@@ -483,11 +533,8 @@
           }
         });
 
-        // 核心計算：根據獨立訂單計算真正的活動發售包數 (避免拆包成員重複計算)
         for (const [eventName, g] of Object.entries(eventGroups)) {
           const actOrders = ordersList.filter(o => (o.event === eventName || o.fullEvent === eventName || o.rawName === eventName));
-          
-          // 計算真正不重複發售的實際總包數
           const realEventPacks = actOrders.reduce((sum, o) => {
             const qty = Number(o.qty !== undefined ? o.qty : (o.quantity !== undefined ? o.quantity : o.count)) || 0;
             return sum + qty;
@@ -533,6 +580,44 @@
         });
       });
     }
+
+    // 0. 團員登記管理：修改成員與張數
+    window.editUserOrder = async (docId, oldMember, oldQty) => {
+      const newMember = prompt(`請輸入要修正的成員名稱（目前為 ${oldMember}）：\n可填寫例如：方燦, Lee Know, 彰彬, 鉉辰, Han, Felix, 昇玟, I.N, 團體/全體`, oldMember);
+      if (newMember === null || newMember.trim() === '') return;
+
+      const newQtyStr = prompt(`請確認或修改張數（目前為 ${oldQty} 張）：`, oldQty);
+      if (newQtyStr === null) return;
+      const newQty = parseInt(newQtyStr) || 0;
+
+      try {
+        await updateDoc(doc(db, "orders", docId), {
+          member: newMember.trim(),
+          qty: newQty,
+          quantity: newQty // 兼容舊欄位
+        });
+        alert('✅ 登記成員與張數已成功修改！前台將同步更新。');
+      } catch (err) {
+        alert('修改失敗: ' + err.message);
+      }
+    };
+
+    // 0. 團員登記管理：刪除登記
+    window.deleteUserOrder = async (docId, user, member) => {
+      if (confirm(`確定要刪除 [${user}] 登記的 [${member}] 紀錄嗎？`)) {
+        await deleteDoc(doc(db, "orders", docId));
+        alert('已成功刪除該筆登記。');
+      }
+    };
+
+    // 關鍵字搜尋過濾登記列表
+    document.getElementById('searchOrderInput').addEventListener('input', (e) => {
+      const kw = e.target.value.toLowerCase();
+      const rows = document.querySelectorAll('#ordersAdminTable tr');
+      rows.forEach(r => {
+        r.style.display = r.textContent.toLowerCase().includes(kw) ? '' : 'none';
+      });
+    });
 
     document.getElementById('progEventSelect').addEventListener('change', (e) => {
       const selectedEvent = e.target.value;
