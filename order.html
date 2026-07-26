@@ -93,11 +93,17 @@
       eventSelect.innerHTML = '<option value="" disabled selected>請選擇活動名稱</option>';
 
       const snap = await getDocs(collection(db, "event_settings"));
+      const uniqueEvents = new Set();
+
       snap.forEach(d => {
-        const opt = document.createElement('option');
-        opt.value = d.data().name;
-        opt.textContent = d.data().name;
-        eventSelect.appendChild(opt);
+        const evName = d.data().name;
+        if (evName && !uniqueEvents.has(evName)) {
+          uniqueEvents.add(evName);
+          const opt = document.createElement('option');
+          opt.value = evName;
+          opt.textContent = evName;
+          eventSelect.appendChild(opt);
+        }
       });
 
       const optOther = document.createElement('option');

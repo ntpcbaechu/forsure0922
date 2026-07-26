@@ -96,7 +96,10 @@
 
     async function initData() {
       const eventSnap = await getDocs(collection(db, "event_settings"));
-      eventSnap.forEach(d => { eventPrices[d.data().name] = d.data().price || 0; });
+      eventSnap.forEach(d => { 
+        const data = d.data();
+        if (data.name) { eventPrices[data.name] = data.price || 0; }
+      });
 
       const userSnap = await getDocs(collection(db, "user_credits"));
       userSnap.forEach(d => {
