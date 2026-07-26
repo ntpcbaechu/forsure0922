@@ -112,7 +112,10 @@
       ordersSnap.forEach(doc => {
         const d = doc.data();
         if (!d.hasPaid) {
-          unpaidOrders.push({ id: doc.id, ...d });
+          // 支援多種活動與張數欄位備援
+          const eName = d.eventName || d.event || d.fullEvent || '未命名活動';
+          const quantity = d.qty !== undefined ? d.qty : (d.quantity !== undefined ? d.quantity : (d.count || 0));
+          unpaidOrders.push({ id: doc.id, ...d, eventName: eName, qty: quantity });
           userSet.add(d.user);
         }
       });
@@ -146,7 +149,8 @@
       myOrders.forEach(o => {
         const opt = document.createElement('option');
         opt.value = o.id;
-        opt.textContent = `${o.eventName} (成員: ${o.member})`;
+        const displayEvent = o.eventName || o.event || o.fullEvent || '未命名活動';
+        opt.textContent = `${displayEvent} (成員: ${o.member || '未知'})`;
         eventSelect.appendChild(opt);
       });
 
@@ -180,9 +184,12 @@
       const order = unpaidOrders.find(o => o.id === orderId);
 
       if (order) {
-        document.getElementById('payQty').value = order.qty;
-        selUnitPrice = eventPrices[order.eventName] || 0;
-        selSubtotal = order.qty * selUnitPrice;
+        const orderQty = order.qty !== undefined ? order.qty : (order.quantity !== undefined ? order.quantity : (order.count || 0));
+        document.getElementById('payQty').value = orderQty;
+        
+        const displayEvent = order.eventName || order.event || order.fullEvent || '';
+        selUnitPrice = eventPrices[displayEvent] || 0;
+        selSubtotal = orderQty * selUnitPrice;
         calculateTotal();
       }
     });
@@ -231,13 +238,14 @@
         const qty = parseInt(document.getElementById('payQty').value) || 0;
 
         const order = unpaidOrders.find(o => o.id === orderId);
+        const displayEvent = order.eventName || order.event || order.fullEvent || '未命名活動';
 
         // 1. 新增匯款紀錄至 payments
         await addDoc(collection(db, "payments"), {
           user,
           social,
           orderId,
-          eventName: `${order.eventName} (${order.member})`,
+          eventName: `${displayEvent} (${order.member || '未知'})`,
           qty,
           unitPrice: selUnitPrice,
           subtotal: selSubtotal,

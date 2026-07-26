@@ -10,21 +10,18 @@
     .group-header { background: #f8f9fa; padding: 12px 16px; font-weight: bold; font-size: 15px; color: #303133; border-bottom: 1px solid #e4e7ed; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
     .group-badge { font-size: 12px; background: #ecf5ff; color: #409eff; padding: 3px 8px; border-radius: 4px; font-weight: normal; }
     
-    /* 預設電腦版表格 */
     .table-wrapper { width: 100%; overflow-x: auto; }
     table { width: 100%; border-collapse: collapse; }
     th, td { padding: 10px 12px; text-align: left; font-size: 13px; border-bottom: 1px solid #f0f2f5; white-space: nowrap; }
     th { background: #fafafa; color: #909399; font-weight: 600; font-size: 12px; }
     tr:last-child td { border-bottom: none; }
 
-    /* 手機版卡片清單 (預設隱藏) */
     .mobile-list { display: none; padding: 10px; }
     .mobile-item { background: #fff; border: 1px solid #ebeef5; border-radius: 8px; padding: 12px; margin-bottom: 10px; box-shadow: 0 1px 4px rgba(0,0,0,0.02); }
     .mobile-item-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; border-bottom: 1px dashed #f0f2f5; padding-bottom: 6px; }
     .mobile-item-title { font-weight: bold; font-size: 15px; color: #303133; }
     .mobile-item-row { font-size: 13px; color: #606266; margin-bottom: 4px; display: flex; justify-content: space-between; }
 
-    /* 狀態標籤 */
     .status-tag { padding: 3px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; display: inline-block; }
     .status-registered { background: #f4f4f5; color: #909399; }
     .status-unpaid { background: #fef0f0; color: #f56c6c; border: 1px solid #fde2e2; }
@@ -33,7 +30,6 @@
     .status-photo { background: #e8f4ff; color: #1890ff; }
     .status-err { background: #fef0f0; color: #f56c6c; border: 1px solid #f56c6c; }
 
-    /* 手機螢幕響應式切換 (< 600px 自動切換為卡片) */
     @media (max-width: 600px) {
       .table-wrapper { display: none; }
       .mobile-list { display: block; }
@@ -90,7 +86,6 @@
 
     let currentOrdersSnap = null;
 
-    // 嚴格依 createdAt (建立登記時間) 排序
     onSnapshot(query(collection(db, "orders"), orderBy("createdAt", "asc")), (snapshot) => {
       currentOrdersSnap = snapshot;
       renderOrders();
@@ -113,16 +108,20 @@
       currentOrdersSnap.forEach(doc => {
         const data = doc.data();
         const orderId = doc.id;
+        
+        // 多重欄位名稱相容
         const eventName = data.event || data.fullEvent || data.eventName || '未分類活動';
         const member = data.member || '未知成員';
         const groupKey = `${eventName}__${member}`;
+
+        const itemQty = parseInt(data.qty !== undefined ? data.qty : (data.quantity !== undefined ? data.quantity : (data.count || 0))) || 0;
 
         if (!groups[groupKey]) {
           groups[groupKey] = { eventName, member, items: [], totalQty: 0 };
         }
 
-        groups[groupKey].items.push({ id: orderId, eventName, member, ...data });
-        groups[groupKey].totalQty += (parseInt(data.qty) || 0);
+        groups[groupKey].items.push({ id: orderId, eventName, member, qty: itemQty, ...data });
+        groups[groupKey].totalQty += itemQty;
       });
 
       const sortedKeys = Object.keys(groups).sort((a, b) => {
@@ -186,13 +185,15 @@
             statusHtml = '<span class="status-tag status-unpaid">⏳ 待匯款</span>';
           }
 
+          const displayQty = item.qty !== undefined ? item.qty : (item.quantity !== undefined ? item.quantity : (item.count || 0));
+
           // 電腦版表格行
           rowsHtml += `
             <tr>
               <td style="width:25px; text-align:center; color:#909399;">${index + 1}</td>
               <td style="color:#606266;">${updateTimeStr}</td>
               <td><b>${item.user}</b></td>
-              <td><b>${item.qty}</b> 張</td>
+              <td><b>${displayQty}</b> 張</td>
               <td style="font-family:monospace; color:#606266;">${bankLast5}</td>
               <td>${statusHtml}</td>
               <td style="color:#f56c6c; font-size:12px;">${deleteDateStr}</td>
@@ -207,7 +208,7 @@
                 <div>${statusHtml}</div>
               </div>
               <div class="mobile-item-row">
-                <span>▫️ 喊單張數：</span><b>${item.qty} 張</b>
+                <span>▫️ 喊單張數：</span><b>${displayQty} 張</b>
               </div>
               <div class="mobile-item-row">
                 <span>▫️ 填單 / 更新時間：</span><span style="color:#606266;">${updateTimeStr}</span>
@@ -226,7 +227,6 @@
             <div class="group-badge">共 ${group.items.length} 筆 / 總計 ${group.totalQty} 張</div>
           </div>
           
-          <!-- 電腦版視圖 -->
           <div class="table-wrapper">
             <table>
               <thead>
@@ -246,7 +246,6 @@
             </table>
           </div>
 
-          <!-- 手機版視圖 -->
           <div class="mobile-list">
             ${mobileCardsHtml}
           </div>
