@@ -74,7 +74,8 @@
     const db = getFirestore(app);
 
     document.addEventListener('DOMContentLoaded', () => {
-      fetch('users.json').then(res => res.json()).then(users => {
+      // 修正為從上一層 json 資料夾讀取
+      fetch('../json/users.json').then(res => res.json()).then(users => {
         const userSel = document.getElementById('cUser');
         userSel.innerHTML = '<option value="">請選擇社群暱稱</option>';
         users.forEach(u => {
@@ -85,7 +86,7 @@
         });
       });
 
-      fetch('members.json').then(res => res.json()).then(members => {
+      fetch('../json/members.json').then(res => res.json()).then(members => {
         const memberSel = document.getElementById('cMember');
         memberSel.innerHTML = '<option value="">請選擇成員</option>';
         members.forEach(m => {

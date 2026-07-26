@@ -93,7 +93,8 @@
     let ordersList = [];
 
     document.addEventListener('DOMContentLoaded', () => {
-      fetch('members.json').then(res => res.json()).then(members => {
+      // 修正為從上一層 json 資料夾讀取
+      fetch('../json/members.json').then(res => res.json()).then(members => {
         const evMemberSel = document.getElementById('evMember');
         evMemberSel.innerHTML = '<option value="">請選擇成員</option>';
         members.forEach(m => {
