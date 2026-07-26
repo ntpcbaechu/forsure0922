@@ -5,15 +5,106 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>FORSURE🐶📸</title>
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 20px; max-width: 500px; margin: 0 auto; background-color: #f9f9f9; }
-    .card { background: white; padding: 24px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
-    h1 { font-size: 24px; margin-top: 0; color: #333; text-align: center; }
-    .form-group { margin-bottom: 18px; }
-    label { display: block; margin-bottom: 8px; font-weight: 600; color: #444; }
-    input, select, button { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; font-size: 15px; }
-    input:focus { border-color: #007bff; outline: none; }
-    button { background-color: #007bff; color: white; border: none; font-weight: bold; cursor: pointer; margin-top: 10px; transition: background 0.2s; }
-    button:hover { background-color: #0056b3; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      padding: 20px;
+      max-width: 480px;
+      margin: 0 auto;
+      background-color: #f4f6f8;
+      color: #333;
+    }
+    .card {
+      background: #ffffff;
+      padding: 28px 24px;
+      border-radius: 16px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.06);
+    }
+    h1 {
+      font-size: 24px;
+      margin-top: 0;
+      margin-bottom: 24px;
+      color: #222;
+      text-align: center;
+    }
+    .form-group {
+      margin-bottom: 20px;
+      position: relative;
+    }
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      font-size: 14px;
+      color: #444;
+    }
+    input, select, button {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1px solid #dcdfe6;
+      border-radius: 8px;
+      box-sizing: border-box;
+      font-size: 15px;
+      background-color: #fff;
+      transition: all 0.2s;
+    }
+    input:focus, select:focus {
+      border-color: #409eff;
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(64,158,255,0.1);
+    }
+    .other-input {
+      margin-top: 10px;
+      display: none;
+    }
+    /* 客製化下拉選單 */
+    .custom-dropdown-list {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      max-height: 200px;
+      overflow-y: auto;
+      background-color: #ffffff;
+      border: 1px solid #e4e7ed;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      z-index: 1000;
+      display: none;
+      margin-top: 4px;
+    }
+    .dropdown-item {
+      padding: 10px 14px;
+      cursor: pointer;
+      font-size: 14px;
+      color: #333;
+      border-bottom: 1px solid #f2f6fc;
+    }
+    .dropdown-item:last-child {
+      border-bottom: none;
+    }
+    .dropdown-item:hover {
+      background-color: #f5f7fa;
+      color: #409eff;
+    }
+    button {
+      background-color: #409eff;
+      color: white;
+      border: none;
+      font-weight: 600;
+      font-size: 16px;
+      cursor: pointer;
+      margin-top: 10px;
+      border-radius: 8px;
+    }
+    button:hover {
+      background-color: #66b1ff;
+    }
+    .error-msg {
+      color: #f56c6c;
+      font-size: 12px;
+      margin-top: 4px;
+      display: none;
+    }
   </style>
 </head>
 <body>
@@ -22,41 +113,176 @@
     <h1>FORSURE🐶📸</h1>
 
     <form id="orderForm">
+      <!-- 1. 社群名稱 -->
       <div class="form-group">
-        <label for="username">請選擇 / 輸入 LINE 社群暱稱：</label>
-        <input list="user-list" id="username" name="username" placeholder="點擊選擇或輸入搜尋暱稱..." required autocomplete="off">
-        <datalist id="user-list">
-          <!-- JS 自動填入成員 -->
-        </datalist>
+        <label for="usernameInput">請選擇/輸入社群名稱：</label>
+        <input type="text" id="usernameInput" placeholder="點擊選擇或輸入搜尋暱稱..." autocomplete="off" required>
+        <div id="userDropdown" class="custom-dropdown-list"></div>
+        <input type="text" id="userOtherInput" class="other-input" placeholder="請輸入您的社群名稱...">
       </div>
 
+      <!-- 2. 活動名稱 (後台選項控制) -->
       <div class="form-group">
-        <label for="item">登記拆分項目：</label>
-        <input type="text" id="item" name="item" placeholder="例如：飯拍小卡 1張" required>
+        <label for="eventSelect">活動名稱：</label>
+        <select id="eventSelect" required>
+          <option value="" disabled selected>請選擇活動名稱</option>
+          <!-- 後台可直接編輯以下選項 -->
+        </select>
+        <input type="text" id="eventOtherInput" class="other-input" placeholder="請自行填入活動名稱...">
       </div>
 
-      <button type="submit">提交登記</button>
+      <!-- 3. 成員 -->
+      <div class="form-group">
+        <label for="memberSelect">成員：</label>
+        <select id="memberSelect" required>
+          <option value="" disabled selected>請選擇成員</option>
+          <option value="方燦">方燦</option>
+          <option value="Lee Know">Lee Know</option>
+          <option value="彰彬">彰彬</option>
+          <option value="鉉辰">鉉辰</option>
+          <option value="Han">Han</option>
+          <option value="Felix">Felix</option>
+          <option value="昇玟">昇玟</option>
+          <option value="I.N">I.N</option>
+        </select>
+      </div>
+
+      <!-- 4. 張數 -->
+      <div class="form-group">
+        <label for="quantityInput">張數：</label>
+        <input type="text" id="quantityInput" placeholder="請輸入數字(例:100)" required autocomplete="off">
+        <div id="qtyError" class="error-msg">請輸入正確的純數字（大於 0 的正整數）！</div>
+      </div>
+
+      <!-- 提交按鈕 -->
+      <button type="submit">送出</button>
     </form>
   </div>
 
   <script>
+    // ===== 6-1. 活動名稱後台設定區 (管理者可在這裡新增/修改選項) =====
+    const eventList = [
+      "260725 RUN IT (Day1)",
+      "260726 RUN IT (Day2)",
+      "260729 RUN IT (Day3)",
+      "260801 RUN IT (Day4)",
+      "260802 RUN IT (Day5)",
+      "其他"
+    ];
+
+    // 初始化活動下拉選項
+    const eventSelect = document.getElementById('eventSelect');
+    eventList.forEach(event => {
+      const opt = document.createElement('option');
+      opt.value = event;
+      opt.textContent = event;
+      eventSelect.appendChild(opt);
+    });
+
+    // ===== 1. 社群名稱客製選單功能 =====
+    let allUsers = [];
+    const usernameInput = document.getElementById('usernameInput');
+    const userDropdown = document.getElementById('userDropdown');
+    const userOtherInput = document.getElementById('userOtherInput');
+
     fetch('users.json')
-      .then(response => response.json())
-      .then(users => {
-        const datalist = document.getElementById('user-list');
-        users.forEach(user => {
-          const option = document.createElement('option');
-          option.value = user;
-          datalist.appendChild(option);
-        });
+      .then(res => res.json())
+      .then(data => {
+        allUsers = [...data, "其他"];
+        renderDropdown(allUsers);
       })
       .catch(err => console.error('無法載入成員名單:', err));
 
+    function renderDropdown(users) {
+      userDropdown.innerHTML = '';
+      users.forEach(user => {
+        const item = document.createElement('div');
+        item.className = 'dropdown-item';
+        item.textContent = user;
+        item.addEventListener('mousedown', (e) => {
+          e.preventDefault();
+          selectUser(user);
+        });
+        userDropdown.appendChild(item);
+      });
+    }
+
+    function selectUser(user) {
+      usernameInput.value = user;
+      userDropdown.style.display = 'none';
+      if (user === '其他') {
+        userOtherInput.style.display = 'block';
+        userOtherInput.required = true;
+      } else {
+        userOtherInput.style.display = 'none';
+        userOtherInput.required = false;
+        userOtherInput.value = '';
+      }
+    }
+
+    usernameInput.addEventListener('focus', () => {
+      userDropdown.style.display = 'block';
+    });
+
+    usernameInput.addEventListener('blur', () => {
+      setTimeout(() => { userDropdown.style.display = 'none'; }, 200);
+    });
+
+    usernameInput.addEventListener('input', () => {
+      const val = usernameInput.value.toLowerCase();
+      const filtered = allUsers.filter(u => u.toLowerCase().includes(val));
+      renderDropdown(filtered);
+      userDropdown.style.display = 'block';
+
+      if (usernameInput.value !== '其他') {
+        userOtherInput.style.display = 'none';
+        userOtherInput.required = false;
+      }
+    });
+
+    // ===== 2. 活動選擇「其他」邏輯 =====
+    const eventOtherInput = document.getElementById('eventOtherInput');
+    eventSelect.addEventListener('change', () => {
+      if (eventSelect.value === '其他') {
+        eventOtherInput.style.display = 'block';
+        eventOtherInput.required = true;
+      } else {
+        eventOtherInput.style.display = 'none';
+        eventOtherInput.required = false;
+        eventOtherInput.value = '';
+      }
+    });
+
+    // ===== 8. 張數數字驗證 =====
+    const quantityInput = document.getElementById('quantityInput');
+    const qtyError = document.getElementById('qtyError');
+
+    quantityInput.addEventListener('input', () => {
+      const val = quantityInput.value.trim();
+      const isPureNumber = /^[1-9]\d*$/.test(val);
+      if (val !== '' && !isPureNumber) {
+        qtyError.style.display = 'block';
+      } else {
+        qtyError.style.display = 'none';
+      }
+    });
+
+    // ===== 送出表單驗證 =====
     document.getElementById('orderForm').addEventListener('submit', (e) => {
       e.preventDefault();
-      const name = document.getElementById('username').value;
-      const item = document.getElementById('item').value;
-      alert(`登記成功！\n暱稱：${name}\n項目：${item}`);
+
+      const qtyVal = quantityInput.value.trim();
+      if (!/^[1-9]\d*$/.test(qtyVal)) {
+        alert('請輸入正確的張數（只能輸入整數字！）');
+        quantityInput.focus();
+        return;
+      }
+
+      const finalUser = usernameInput.value === '其他' ? userOtherInput.value.trim() : usernameInput.value;
+      const finalEvent = eventSelect.value === '其他' ? eventOtherInput.value.trim() : eventSelect.value;
+      const finalMember = document.getElementById('memberSelect').value;
+
+      alert(`登記成功！\n社群名稱：${finalUser}\n活動名稱：${finalEvent}\n成員：${finalMember}\n張數：${qtyVal}`);
     });
   </script>
 
