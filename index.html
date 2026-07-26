@@ -102,9 +102,9 @@
       <iframe src="payment.html" id="iframe-pay" scrolling="no"></iframe>
     </div>
 
-    <!-- 這裡修正為 search.html -->
+    <!-- 這裡精準修正為 records.html -->
     <div id="query" class="tab-content">
-      <iframe src="search.html" id="iframe-query" scrolling="no"></iframe>
+      <iframe src="records.html" id="iframe-query" scrolling="no"></iframe>
     </div>
 
     <div id="credit" class="tab-content">
@@ -156,7 +156,7 @@
       }
     }
 
-    // 關鍵補強：動態接收子頁面（如 credit.html）傳來的實時高度通知
+    // 動態接收子頁面傳來的實時高度通知
     window.addEventListener('message', (event) => {
       if (event.data && event.data.frameHeight) {
         const activeIframe = document.querySelector('.tab-content.active iframe');
