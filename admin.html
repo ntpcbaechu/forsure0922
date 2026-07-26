@@ -71,13 +71,14 @@
       </table>
     </div>
 
-    <!-- 3. 活動單價與成本設定 (核心活動資料庫) -->
+    <!-- 3. 活動單價與成本設定 (核心活動資料庫：拆成日期與名稱兩格) -->
     <div class="tab-content">
       <h3>設定活動單價與利潤分析</h3>
       <form id="eventForm" style="background:#f8f9fa; padding:15px; border-radius:8px; margin-bottom:15px;">
         <input type="hidden" id="editEventId">
-        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:10px;">
-          <div><label style="font-size:12px;">活動名稱 (例: 260725 RUN IT (Day1))</label><input type="text" id="evName" placeholder="活動名稱" required style="width:100%;"></div>
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap:10px;">
+          <div><label style="font-size:12px;">日期 (例: 260725)</label><input type="text" id="evDate" placeholder="YYMMDD" style="width:100%;"></div>
+          <div><label style="font-size:12px;">活動名稱 (例: RUN IT (Day1))</label><input type="text" id="evName" placeholder="活動名稱" required style="width:100%;"></div>
           <div><label style="font-size:12px;">售出單價 ($)</label><input type="number" id="evPrice" placeholder="販售單價" required style="width:100%;"></div>
           <div><label style="font-size:12px;">總購入價 ($)</label><input type="number" id="evCost" placeholder="總購入成本" required style="width:100%;"></div>
           <div><label style="font-size:12px;">預計張數</label><input type="number" id="evEstQty" placeholder="預計張數" required style="width:100%;"></div>
@@ -90,7 +91,7 @@
       <table>
         <thead>
           <tr>
-            <th>活動名稱</th>
+            <th>活動全名 (日期+名稱)</th>
             <th>售價/實際單價</th>
             <th>購入價</th>
             <th>預計/實際張數</th>
@@ -102,11 +103,11 @@
       </table>
     </div>
 
-    <!-- 4. 發圖進度更新 (活動名稱自動帶入下拉選單) -->
+    <!-- 4. 發圖進度更新 -->
     <div class="tab-content">
       <h3>發佈與更新發圖進度</h3>
       <div class="input-group">
-        <select id="progEventSelect" style="min-width: 200px;">
+        <select id="progEventSelect" style="min-width: 220px;">
           <option value="" disabled selected>載入活動中...</option>
         </select>
         
@@ -238,20 +239,24 @@
       snap.forEach(d => { tb.innerHTML += `<tr><td>${d.data().user}</td><td>$${d.data().credit}</td></tr>`; });
     });
 
-    // --- 3. 活動單價與成本設定 (資料庫核心) ---
+    // --- 3. 活動單價與成本設定 (日期與名稱合體邏輯) ---
     document.getElementById('eventForm').addEventListener('submit', async (e) => {
       e.preventDefault();
-      const name = document.getElementById('evName').value.trim();
+      const evDate = document.getElementById('evDate').value.trim();
+      const evNameRaw = document.getElementById('evName').value.trim();
       const price = parseFloat(document.getElementById('evPrice').value) || 0;
       const cost = parseFloat(document.getElementById('evCost').value) || 0;
       const estQty = parseInt(document.getElementById('evEstQty').value) || 0;
       const actQty = parseInt(document.getElementById('evActQty').value) || 0;
 
+      // 自動組合成 "YYMMDD 活動名稱"
+      const fullName = evDate ? `${evDate} ${evNameRaw}` : evNameRaw;
+
       const actualUnitCost = actQty > 0 ? (cost / actQty) : 0;
       const profit = (price * actQty) - cost;
 
-      await setDoc(doc(db, "event_settings", name), {
-        name, price, cost, estQty, actQty, actualUnitCost, profit
+      await setDoc(doc(db, "event_settings", fullName), {
+        name: fullName, rawDate: evDate, rawName: evNameRaw, price, cost, estQty, actQty, actualUnitCost, profit
       });
 
       alert('活動設定已儲存！');
@@ -262,13 +267,16 @@
       document.getElementById('eventForm').reset();
       document.getElementById('editEventId').value = '';
       document.getElementById('cancelEditBtn').style.display = 'none';
+      document.getElementById('evDate').disabled = false;
       document.getElementById('evName').disabled = false;
     };
 
-    window.editEvent = (name, price, cost, estQty, actQty) => {
-      document.getElementById('evName').value = name;
+    window.editEvent = (fullName, rawDate, rawName, price, cost, estQty, actQty) => {
+      document.getElementById('evDate').value = rawDate || '';
+      document.getElementById('evName').value = rawName || fullName;
+      document.getElementById('evDate').disabled = true;
       document.getElementById('evName').disabled = true;
-      document.getElementById('editEventId').value = name;
+      document.getElementById('editEventId').value = fullName;
       document.getElementById('evPrice').value = price;
       document.getElementById('evCost').value = cost;
       document.getElementById('evEstQty').value = estQty;
@@ -276,14 +284,13 @@
       document.getElementById('cancelEditBtn').style.display = 'inline-block';
     };
 
-    window.deleteEvent = async (name) => {
-      if (confirm(`確定要刪除活動「${name}」嗎？`)) {
-        await deleteDoc(doc(db, "event_settings", name));
+    window.deleteEvent = async (fullName) => {
+      if (confirm(`確定要刪除活動「${fullName}」嗎？`)) {
+        await deleteDoc(doc(db, "event_settings", fullName));
         alert('已刪除');
       }
     };
 
-    // 監聽活動並同時同步更新「頁籤 4」的下拉選單
     onSnapshot(collection(db, "event_settings"), snap => {
       const tb = document.getElementById('eventTable');
       const progSelect = document.getElementById('progEventSelect');
@@ -295,7 +302,6 @@
         const ev = d.data();
         const actUPrice = ev.actQty > 0 ? (ev.cost / ev.actQty).toFixed(1) : 0;
         
-        // 渲染表格
         tb.innerHTML += `
           <tr>
             <td><b>${ev.name}</b></td>
@@ -304,13 +310,12 @@
             <td>預計: ${ev.estQty}張<br>實際: ${ev.actQty}張</td>
             <td><b style="color:${ev.profit >= 0 ? '#67c23a' : '#f56c6c'};">$${ev.profit}</b></td>
             <td>
-              <button class="btn-edit" onclick="editEvent('${ev.name}', ${ev.price}, ${ev.cost}, ${ev.estQty}, ${ev.actQty})">編輯</button>
+              <button class="btn-edit" onclick="editEvent('${ev.name}', '${ev.rawDate||''}', '${ev.rawName||''}', ${ev.price}, ${ev.cost}, ${ev.estQty}, ${ev.actQty})">編輯</button>
               <button class="btn-danger" onclick="deleteEvent('${ev.name}')">刪除</button>
             </td>
           </tr>
         `;
 
-        // 連動頁籤 4 下拉選單
         const opt = document.createElement('option');
         opt.value = ev.name;
         opt.textContent = ev.name;
@@ -318,7 +323,7 @@
       });
     });
 
-    // --- 4. 發圖進度更新 (直接選擇已存在的活動) ---
+    // --- 4. 發圖進度更新 ---
     document.getElementById('saveProgBtn').onclick = async () => {
       const fullEventName = document.getElementById('progEventSelect').value;
       const member = document.getElementById('progMember').value;

@@ -36,7 +36,6 @@
 
     .progress-item { border: 1px solid #e4e7ed; border-radius: 12px; padding: 16px; margin-bottom: 14px; background: #fff; display: flex; justify-content: space-between; align-items: center; }
     
-    /* 狀態標籤樣式 */
     .status-badge { padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: bold; }
     .status-waiting { background: #f4f4f5; color: #909399; }
     .status-sorting { background: #fdf6ec; color: #e6a23c; }
@@ -47,6 +46,11 @@
     th, td { padding: 10px; text-align: left; border-bottom: 1px solid #e4e7ed; font-size: 13px; }
     th { background-color: #f8f9fa; font-weight: 600; color: #555; }
     .info-msg { font-size: 12px; color: #e6a23c; margin-top: 4px; }
+
+    /* 底部隱形管理頁面連結 */
+    .secret-footer { text-align: center; margin-top: 30px; margin-bottom: 10px; }
+    .secret-admin-link { color: #ffffff; font-size: 10px; text-decoration: none; user-select: none; }
+    .secret-admin-link:hover { color: #dcdfe6; }
   </style>
 </head>
 <body>
@@ -189,6 +193,11 @@
 
   </div>
 
+  <!-- 底部置中隱形管理頁面連結 -->
+  <div class="secret-footer">
+    <a href="admin.html" class="secret-admin-link">管理頁面</a>
+  </div>
+
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getFirestore, collection, addDoc, doc, getDocs, updateDoc, onSnapshot, query, orderBy, serverTimestamp, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
@@ -282,7 +291,6 @@
       };
     }
 
-    // 即時監聽進度 (4種狀態對應呈現)
     onSnapshot(query(collection(db, "photo_progress"), orderBy("createdAt", "desc")), (snapshot) => {
       const container = document.getElementById('progressList');
       container.innerHTML = '';
