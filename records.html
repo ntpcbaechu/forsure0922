@@ -5,37 +5,29 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>查詢登記紀錄</title>
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 5px; margin: 0; background: #fff; color: #333; }
-    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-    th, td { padding: 10px; text-align: left; border-bottom: 1px solid #e4e7ed; font-size: 13px; }
-    th { background-color: #f8f9fa; font-weight: 600; color: #555; }
-    .status-badge { padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; }
-    .status-wait { background: #fdf6ec; color: #e6a23c; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 10px; margin: 0; background: #fff; color: #333; }
+    .group-card { background: #fff; border: 1px solid #e4e7ed; border-radius: 12px; margin-bottom: 20px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.03); }
+    .group-header { background: #f8f9fa; padding: 12px 16px; font-weight: bold; font-size: 15px; color: #303133; border-bottom: 1px solid #e4e7ed; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
+    .group-badge { font-size: 12px; background: #ecf5ff; color: #409eff; padding: 3px 8px; border-radius: 4px; font-weight: normal; }
+    
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 10px 12px; text-align: left; font-size: 13px; border-bottom: 1px solid #f0f2f5; }
+    th { background: #fafafa; color: #909399; font-weight: 600; font-size: 12px; }
+    tr:last-child td { border-bottom: none; }
+
+    .status-tag { padding: 3px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; display: inline-block; }
+    .status-pending { background: #fdf6ec; color: #e6a23c; }
     .status-ok { background: #f0f9eb; color: #67c23a; }
-    .status-err { background: #fef0f0; color: #f56c6c; }
   </style>
 </head>
 <body>
 
-  <h3 style="font-size: 16px; margin-top:0;">公開登記紀錄</h3>
-  <table>
-    <thead>
-      <tr>
-        <th>#</th>
-        <th>時間</th>
-        <th>社群名稱</th>
-        <th>活動/成員</th>
-        <th>張數</th>
-        <th>狀態</th>
-      </tr>
-    </thead>
-    <tbody id="recordTableBody"></tbody>
-  </table>
-  <div id="recordEmptyMsg" style="text-align:center; padding:20px; color:#909399; display:none;">尚無登記紀錄</div>
+  <h3 style="font-size: 16px; margin-top:0; margin-bottom: 15px;">公開登記紀錄</h3>
+  <div id="recordsContainer">載入紀錄中...</div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore, collection, onSnapshot, query, orderBy, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getFirestore, collection, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyDF7QySG1Jj4gdZvXwMRaKjRmI-lFKpj7k",
@@ -50,61 +42,109 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    let payStatusMap = {};
+    // 官方成員排序字典
+    const memberOrder = ["方燦", "Lee Know", "彰彬", "鉉辰", "Han", "Felix", "昇玟", "I.N", "團體/全體"];
 
-    async function loadPayStatus() {
-      const snap = await getDocs(collection(db, "payments"));
-      snap.forEach(d => {
-        const data = d.data();
-        const key = `${data.user}_${data.eventName}_${data.member}`;
-        payStatusMap[key] = data.status || 'pending';
-      });
-    }
+    // 正序 createdAt 確保最早填單者排在最上面
+    onSnapshot(query(collection(db, "orders"), orderBy("createdAt", "asc")), (snapshot) => {
+      const container = document.getElementById('recordsContainer');
+      container.innerHTML = '';
 
-    async function init() {
-      await loadPayStatus();
-
-      onSnapshot(query(collection(db, "orders"), orderBy("createdAt", "desc")), (snapshot) => {
-        const tbody = document.getElementById('recordTableBody');
-        const emptyMsg = document.getElementById('recordEmptyMsg');
-        tbody.innerHTML = '';
-        if (snapshot.empty) { emptyMsg.style.display = 'block'; notifyHeight(); return; }
-        emptyMsg.style.display = 'none';
-        let idx = 1;
-        snapshot.forEach(d => {
-          const data = d.data();
-          const date = data.createdAt ? new Date(data.createdAt.seconds * 1000) : new Date();
-          const timeStr = `${date.getMonth()+1}/${date.getDate()} ${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}`;
-          
-          const key = `${data.user}_${data.event}_${data.member}`;
-          const payStatus = payStatusMap[key];
-
-          let statusHtml = '<span class="status-badge status-wait">⏳ 待匯款</span>';
-          if (data.hasPaid) {
-            if (payStatus === 'ok') statusHtml = '<span class="status-badge status-ok">🟢 已對帳</span>';
-            else if (payStatus === 'error') statusHtml = '<span class="status-badge status-err">🔴 對帳問題</span>';
-            else statusHtml = '<span class="status-badge status-wait">🟡 審核中</span>';
-          }
-
-          const tr = document.createElement('tr');
-          tr.innerHTML = `
-            <td>${idx++}</td>
-            <td>${timeStr}</td>
-            <td><b>${escapeHtml(data.user || '')}</b></td>
-            <td>${escapeHtml(data.event || '')}<br><small style="color:#909399;">${escapeHtml(data.member || '')}</small></td>
-            <td>${data.qty || 0}</td>
-            <td>${statusHtml}</td>
-          `;
-          tbody.appendChild(tr);
-        });
+      if (snapshot.empty) {
+        container.innerHTML = '<div style="text-align:center; padding:20px; color:#909399;">目前尚無登記紀錄。</div>';
         notifyHeight();
+        return;
+      }
+
+      // 依 [活動_成員] 進行分組
+      const groups = {};
+
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        const eventName = data.eventName || '未分類活動';
+        const member = data.member || '未知成員';
+        const groupKey = `${eventName}__${member}`;
+
+        if (!groups[groupKey]) {
+          groups[groupKey] = {
+            eventName,
+            member,
+            items: [],
+            totalQty: 0
+          };
+        }
+
+        groups[groupKey].items.push(data);
+        groups[groupKey].totalQty += (parseInt(data.qty) || 0);
       });
+
+      // 排序分組：先依活動名稱，再依成員官方年齡順序
+      const sortedKeys = Object.keys(groups).sort((a, b) => {
+        const gA = groups[a];
+        const gB = groups[b];
+
+        if (gA.eventName !== gB.eventName) {
+          return gA.eventName.localeCompare(gB.eventName);
+        }
+
+        const idxA = memberOrder.indexOf(gA.member);
+        const idxB = memberOrder.indexOf(gB.member);
+        return (idxA === -1 ? 99 : idxA) - (idxB === -1 ? 99 : idxB);
+      });
+
+      // 渲染模式 B 分組列表
+      sortedKeys.forEach(key => {
+        const group = groups[key];
+        
+        const card = document.createElement('div');
+        card.className = 'group-card';
+
+        let rowsHtml = '';
+        group.items.forEach((item, index) => {
+          const timeStr = item.time || (item.createdAt ? new Date(item.createdAt.seconds * 1000).toLocaleString('zh-TW', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false }) : '');
+          const statusHtml = item.hasPaid ? '<span class="status-tag status-ok">🟢 已對帳</span>' : '<span class="status-tag status-pending">⏳ 待匯款</span>';
+
+          rowsHtml += `
+            <tr>
+              <td style="width:30px; text-align:center; color:#909399;">${index + 1}</td>
+              <td style="color:#606266;">${timeStr}</td>
+              <td><b>${item.user}</b></td>
+              <td><b>${item.qty}</b> 張</td>
+              <td>${statusHtml}</td>
+            </tr>
+          `;
+        });
+
+        card.innerHTML = `
+          <div class="group-header">
+            <div>📌 ${group.eventName} - <span style="color:#409eff;">${group.member}</span></div>
+            <div class="group-badge">共 ${group.items.length} 筆 / 總計 ${group.totalQty} 張</div>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th style="width:30px; text-align:center;">#</th>
+                <th>填單時間</th>
+                <th>社群名稱</th>
+                <th>張數</th>
+                <th>對帳狀態</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rowsHtml}
+            </tbody>
+          </table>
+        `;
+
+        container.appendChild(card);
+      });
+
+      notifyHeight();
+    });
+
+    function notifyHeight() {
+      setTimeout(() => { window.parent.postMessage({ frameHeight: document.body.scrollHeight }, '*'); }, 100);
     }
-
-    function escapeHtml(t) { return (t||'').replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
-    function notifyHeight() { setTimeout(() => { window.parent.postMessage({ frameHeight: document.body.scrollHeight }, '*'); }, 100); }
-
-    init();
   </script>
 
 </body>

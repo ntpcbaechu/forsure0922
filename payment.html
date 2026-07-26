@@ -6,72 +6,71 @@
   <title>匯款表單</title>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 5px; margin: 0; background: #fff; color: #333; }
-    .form-group { margin-bottom: 18px; position: relative; }
-    label { display: block; margin-bottom: 6px; font-weight: 600; font-size: 14px; color: #444; }
-    label.required::after { content: " *"; color: #f56c6c; }
-    input, select, button { width: 100%; padding: 12px; border: 1px solid #dcdfe6; border-radius: 8px; box-sizing: border-box; font-size: 15px; }
-    .custom-dropdown-list { position: absolute; top: 100%; left: 0; right: 0; max-height: 200px; overflow-y: auto; background-color: #ffffff; border: 1px solid #e4e7ed; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); z-index: 1000; display: none; margin-top: 4px; }
-    .dropdown-item { padding: 10px; cursor: pointer; font-size: 14px; border-bottom: 1px solid #f2f6fc; }
-    .dropdown-item:hover { background-color: #f5f7fa; color: #409eff; }
-    .calc-box { background-color: #f8f9fa; border: 1px dashed #409eff; border-radius: 8px; padding: 14px; margin-top: 15px; font-size: 14px; }
-    .calc-row { display: flex; justify-content: space-between; margin-bottom: 8px; }
-    .calc-row.total { border-top: 1px solid #dcdfe6; padding-top: 8px; font-weight: bold; font-size: 16px; color: #f56c6c; }
-    .checkbox-label { display: flex; align-items: center; gap: 8px; font-weight: normal; cursor: pointer; }
-    .checkbox-label input { width: auto; }
-    button.submit-btn { background-color: #409eff; color: white; border: none; font-weight: 600; font-size: 16px; cursor: pointer; margin-top: 15px; }
-    .info-msg { font-size: 12px; color: #e6a23c; margin-top: 4px; }
+    .form-group { margin-bottom: 15px; }
+    label { display: block; font-weight: bold; margin-bottom: 6px; font-size: 14px; color: #303133; }
+    input, select, button { width: 100%; padding: 12px; border: 1px solid #dcdfe6; border-radius: 8px; font-size: 14px; box-sizing: border-box; }
+    button { background-color: #1989fa; color: white; font-weight: bold; border: none; cursor: pointer; margin-top: 10px; font-size: 16px; border-radius: 8px; }
+    button:disabled { background-color: #a0cfff; cursor: not-allowed; }
+    .summary-box { background: #f8f9fa; border: 1px dashed #dcdfe6; border-radius: 8px; padding: 15px; margin-top: 15px; }
+    .summary-item { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px; color: #606266; }
+    .summary-total { display: flex; justify-content: space-between; font-weight: bold; font-size: 16px; color: #f56c6c; border-top: 1px solid #e4e7ed; padding-top: 10px; margin-top: 10px; }
+    .credit-checkbox { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #67c23a; margin-top: 6px; }
+    .credit-checkbox input { width: auto; margin: 0; }
   </style>
 </head>
 <body>
 
-  <form id="paymentForm">
+  <form id="payForm">
     <div class="form-group">
-      <label for="payUsernameInput" class="required">社群名稱</label>
-      <input type="text" id="payUsernameInput" placeholder="選擇或輸入搜尋暱稱..." autocomplete="off" required>
-      <div id="payUserDropdown" class="custom-dropdown-list"></div>
+      <label>社群名稱 *</label>
+      <select id="payUser" required>
+        <option value="" disabled selected>載入未匯款名單中...</option>
+      </select>
     </div>
 
     <div class="form-group">
-      <label for="paySocialInput" class="required">IG/Threads 帳號</label>
-      <input type="text" id="paySocialInput" placeholder="例：ntpcbaechu" required>
+      <label>IG / Threads 帳號 *</label>
+      <input type="text" id="paySocial" placeholder="例：ntpcbaechu" required>
     </div>
 
     <div class="form-group">
-      <label for="payEventSelect" class="required">請選擇已登記未匯款的活動</label>
-      <select id="payEventSelect" required>
+      <label>請選擇已登記未匯款的活動 *</label>
+      <select id="payEvent" required disabled>
         <option value="" disabled selected>請先選擇社群名稱</option>
       </select>
-      <div id="noOrderMsg" class="info-msg" style="display:none;">⚠️ 此帳號目前沒有待匯款的登記紀錄！</div>
     </div>
 
     <div class="form-group">
-      <label for="payQtyInput" class="required">登記張數</label>
-      <input type="number" id="payQtyInput" placeholder="選擇活動後自動帶出" readonly required style="background:#f5f7fa;">
+      <label>登記張數 *</label>
+      <input type="number" id="payQty" readonly placeholder="選擇活動後自動帶出" style="background:#f5f7fa;">
     </div>
 
-    <div class="calc-box">
-      <div class="calc-row"><span>單價：</span><span id="unitPriceTxt">$0 / 張</span></div>
-      <div class="calc-row"><span>小計金額：</span><span id="subtotalTxt">$0</span></div>
-      <div class="calc-row">
-        <label class="checkbox-label">
-          <input type="checkbox" id="useCreditChk"> 使用抵用金 (可用餘額: <span id="creditBalanceTxt">$0</span>)
+    <div class="summary-box">
+      <div class="summary-item"><span>單價：</span><span id="txtPrice">$0 / 張</span></div>
+      <div class="summary-item"><span>小計金額：</span><span id="txtSubtotal">$0</span></div>
+      
+      <div id="creditBox" style="display:none;">
+        <label class="credit-checkbox">
+          <input type="checkbox" id="useCreditCheck">
+          <span>使用抵用金 (可用餘額: <b id="txtCreditRem">$0</b>)</span>
         </label>
-        <span id="creditDeductTxt">-$0</span>
+        <div class="summary-item" style="color:#67c23a; margin-top:4px;"><span>折抵金額：</span><span id="txtCreditDiscount">-$0</span></div>
       </div>
-      <div class="calc-row total"><span>最終應匯款金額：</span><span id="finalPayTxt">$0</span></div>
+
+      <div class="summary-total"><span>最終應匯款金額：</span><span id="txtFinalPay">$0</span></div>
     </div>
 
-    <div class="form-group" style="margin-top: 15px;">
-      <label for="bankLast5Input" class="required">匯款帳號後 5 碼</label>
-      <input type="text" id="bankLast5Input" maxlength="5" placeholder="例：12345" required>
+    <div class="form-group" style="margin-top:15px;">
+      <label>匯款帳號後 5 碼 *</label>
+      <input type="text" id="payBankLast5" maxlength="5" placeholder="請填寫末 5 碼" required>
     </div>
 
-    <button type="submit" id="paySubmitBtn" class="submit-btn">送出匯款登記</button>
+    <button type="submit" id="submitBtn">送出匯款登記</button>
   </form>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore, collection, addDoc, doc, getDocs, updateDoc, query, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getFirestore, collection, getDocs, addDoc, doc, updateDoc, query, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyDF7QySG1Jj4gdZvXwMRaKjRmI-lFKpj7k",
@@ -86,157 +85,190 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    let allUsers = [];
+    let unpaidOrders = [];
     let eventPrices = {};
-    let userCredits = {};
-    let userPendingOrders = [];
-    let currentCredit = 0;
-    let currentUnitPrice = 0;
-    let selectedOrderDocId = null;
+    let userCreditObj = null;
 
-    async function initData() {
-      const eventSnap = await getDocs(collection(db, "event_settings"));
-      eventSnap.forEach(d => { 
-        const data = d.data();
-        if (data.name) { eventPrices[data.name] = data.price || 0; }
-      });
-
-      const userSnap = await getDocs(collection(db, "user_credits"));
-      userSnap.forEach(d => {
-        const item = d.data();
-        const rem = item.remaining !== undefined ? item.remaining : (item.credit || 0);
-        userCredits[item.user] = (userCredits[item.user] || 0) + rem;
-      });
-
-      fetch('users.json').then(res => res.json()).then(data => {
-        allUsers = data;
-        setupDropdown();
-      });
-    }
-
-    function setupDropdown() {
-      const input = document.getElementById('payUsernameInput');
-      const dropdown = document.getElementById('payUserDropdown');
-
-      function render(list) {
-        dropdown.innerHTML = '';
-        list.forEach(u => {
-          const item = document.createElement('div');
-          item.className = 'dropdown-item';
-          item.textContent = u;
-          item.onmousedown = (e) => {
-            e.preventDefault();
-            input.value = u;
-            dropdown.style.display = 'none';
-            onPayUserSelected(u);
-          };
-          dropdown.appendChild(item);
-        });
-      }
-
-      input.onfocus = () => { dropdown.style.display = 'block'; render(allUsers); };
-      input.onblur = () => { setTimeout(() => dropdown.style.display = 'none', 200); };
-      input.oninput = () => {
-        const val = input.value.toLowerCase();
-        render(allUsers.filter(u => u.toLowerCase().includes(val)));
-        dropdown.style.display = 'block';
-      };
-    }
-
-    async function onPayUserSelected(user) {
-      currentCredit = userCredits[user] || 0;
-      document.getElementById('creditBalanceTxt').textContent = `$${currentCredit}`;
-
-      const q = query(collection(db, "orders"), where("user", "==", user));
-      const snap = await getDocs(q);
-      const payEventSelect = document.getElementById('payEventSelect');
-      const noMsg = document.getElementById('noOrderMsg');
-      payEventSelect.innerHTML = '<option value="" disabled selected>請選擇活動</option>';
-      userPendingOrders = [];
-
-      snap.forEach(d => {
-        const data = d.data();
-        if (!data.hasPaid) { userPendingOrders.push({ id: d.id, ...data }); }
-      });
-
-      if (userPendingOrders.length === 0) {
-        noMsg.style.display = 'block';
-        document.getElementById('payQtyInput').value = '';
-        currentUnitPrice = 0;
-        calcPayTotal();
-        notifyHeight();
-        return;
-      }
-
-      noMsg.style.display = 'none';
-      userPendingOrders.forEach(o => {
-        const opt = document.createElement('option');
-        opt.value = o.id;
-        opt.textContent = `${o.event} (${o.member} - ${o.qty}張)`;
-        payEventSelect.appendChild(opt);
-      });
-      notifyHeight();
-    }
-
-    document.getElementById('payEventSelect').addEventListener('change', (e) => {
-      selectedOrderDocId = e.target.value;
-      const targetOrder = userPendingOrders.find(o => o.id === selectedOrderDocId);
-      if (targetOrder) {
-        document.getElementById('payQtyInput').value = targetOrder.qty;
-        if (targetOrder.social) { document.getElementById('paySocialInput').value = targetOrder.social; }
-        currentUnitPrice = eventPrices[targetOrder.event] || 0;
-        document.getElementById('unitPriceTxt').textContent = `$${currentUnitPrice} / 張`;
-        calcPayTotal();
-      }
-    });
-
-    document.getElementById('useCreditChk').addEventListener('change', calcPayTotal);
-
-    function calcPayTotal() {
-      const qty = parseInt(document.getElementById('payQtyInput').value) || 0;
-      const subtotal = qty * currentUnitPrice;
-      const useCredit = document.getElementById('useCreditChk').checked;
-      const deduct = useCredit ? Math.min(subtotal, currentCredit) : 0;
-      const finalPay = subtotal - deduct;
-
-      document.getElementById('subtotalTxt').textContent = `$${subtotal}`;
-      document.getElementById('creditDeductTxt').textContent = `-$${deduct}`;
-      document.getElementById('finalPayTxt').textContent = `$${finalPay}`;
-    }
-
-    document.getElementById('paymentForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const user = document.getElementById('payUsernameInput').value.trim();
-      const social = document.getElementById('paySocialInput').value.trim();
-      const bankLast5 = document.getElementById('bankLast5Input').value.trim();
-      const useCredit = document.getElementById('useCreditChk').checked;
-      const targetOrder = userPendingOrders.find(o => o.id === selectedOrderDocId);
-
-      if (!targetOrder) { alert("請選擇要匯款的活動項目"); return; }
-
-      const qty = targetOrder.qty;
-      const subtotal = qty * currentUnitPrice;
-      const deduct = useCredit ? Math.min(subtotal, currentCredit) : 0;
-      const finalPay = subtotal - deduct;
-
-      try {
-        await addDoc(collection(db, "payments"), {
-          user, social, eventName: targetOrder.event, member: targetOrder.member, qty,
-          unitPrice: currentUnitPrice, subtotal, creditUsed: deduct, finalPay, bankLast5, status: 'pending', createdAt: serverTimestamp()
-        });
-
-        await updateDoc(doc(db, "orders", selectedOrderDocId), { hasPaid: true });
-
-        alert(`匯款登記成功！\n活動：${targetOrder.event}\n應匯金額：$${finalPay}\n帳號後五碼：${bankLast5}`);
-        window.location.reload();
-      } catch (err) { alert("提交失敗: " + err.message); }
-    });
-
-    function notifyHeight() {
-      setTimeout(() => { window.parent.postMessage({ frameHeight: document.body.scrollHeight }, '*'); }, 100);
-    }
+    let selUnitPrice = 0;
+    let selSubtotal = 0;
+    let selCreditUsed = 0;
+    let selFinalPay = 0;
 
     initData();
+
+    async function initData() {
+      // 1. 抓取活動單價
+      const evSnap = await getDocs(collection(db, "event_settings"));
+      evSnap.forEach(doc => {
+        const data = doc.data();
+        eventPrices[data.name] = parseFloat(data.price) || 0;
+      });
+
+      // 2. 只抓取「已登記且尚未完成對帳 (hasPaid != true)」的訂單紀錄
+      const ordersSnap = await getDocs(collection(db, "orders"));
+      unpaidOrders = [];
+      const userSet = new Set();
+
+      ordersSnap.forEach(doc => {
+        const d = doc.data();
+        if (!d.hasPaid) {
+          unpaidOrders.push({ id: doc.id, ...d });
+          userSet.add(d.user);
+        }
+      });
+
+      // 3. 動態渲染「有填單且未匯款」的社群名稱下拉選單
+      const userSelect = document.getElementById('payUser');
+      userSelect.innerHTML = '<option value="" disabled selected>請選擇社群名稱</option>';
+
+      if (userSet.size === 0) {
+        userSelect.innerHTML = '<option value="" disabled selected>🎉 目前沒有待匯款的社群暱稱</option>';
+      } else {
+        Array.from(userSet).sort().forEach(u => {
+          const opt = document.createElement('option');
+          opt.value = u;
+          opt.textContent = u;
+          userSelect.appendChild(opt);
+        });
+      }
+    }
+
+    // 當選擇社群名稱時，帶出該使用者尚未對帳的活動與抵用金
+    document.getElementById('payUser').addEventListener('change', async (e) => {
+      const selectedUser = e.target.value;
+      const eventSelect = document.getElementById('payEvent');
+      
+      eventSelect.disabled = false;
+      eventSelect.innerHTML = '<option value="" disabled selected>請選擇已登記未匯款的活動</option>';
+
+      // 過濾該使用者的未對帳活動
+      const myOrders = unpaidOrders.filter(o => o.user === selectedUser);
+      myOrders.forEach(o => {
+        const opt = document.createElement('option');
+        opt.value = o.id;
+        opt.textContent = `${o.eventName} (成員: ${o.member})`;
+        eventSelect.appendChild(opt);
+      });
+
+      // 查詢抵用金
+      userCreditObj = null;
+      document.getElementById('creditBox').style.display = 'none';
+      document.getElementById('useCreditCheck').checked = false;
+
+      const creditSnap = await getDocs(query(collection(db, "user_credits"), where("user", "==", selectedUser)));
+      if (!creditSnap.empty) {
+        creditSnap.forEach(d => {
+          const c = d.data();
+          const rem = c.remaining !== undefined ? c.remaining : (c.credit - (c.used || 0));
+          if (rem > 0) {
+            userCreditObj = { id: d.id, ...c, remaining: rem };
+          }
+        });
+      }
+
+      if (userCreditObj) {
+        document.getElementById('creditBox').style.display = 'block';
+        document.getElementById('txtCreditRem').textContent = `$${userCreditObj.remaining}`;
+      }
+
+      resetCalculation();
+    });
+
+    // 當選擇活動時，帶出張數與計算金額
+    document.getElementById('payEvent').addEventListener('change', (e) => {
+      const orderId = e.target.value;
+      const order = unpaidOrders.find(o => o.id === orderId);
+
+      if (order) {
+        document.getElementById('payQty').value = order.qty;
+        selUnitPrice = eventPrices[order.eventName] || 0;
+        selSubtotal = order.qty * selUnitPrice;
+        calculateTotal();
+      }
+    });
+
+    document.getElementById('useCreditCheck').addEventListener('change', calculateTotal);
+
+    function calculateTotal() {
+      const isUseCredit = document.getElementById('useCreditCheck').checked;
+      let availCredit = userCreditObj ? userCreditObj.remaining : 0;
+
+      if (isUseCredit && availCredit > 0) {
+        selCreditUsed = Math.min(selSubtotal, availCredit);
+      } else {
+        selCreditUsed = 0;
+      }
+
+      selFinalPay = Math.max(0, selSubtotal - selCreditUsed);
+
+      document.getElementById('txtPrice').textContent = `$${selUnitPrice} / 張`;
+      document.getElementById('txtSubtotal').textContent = `$${selSubtotal}`;
+      document.getElementById('txtCreditDiscount').textContent = `-$${selCreditUsed}`;
+      document.getElementById('txtFinalPay').textContent = `$${selFinalPay}`;
+    }
+
+    function resetCalculation() {
+      document.getElementById('payQty').value = '';
+      selUnitPrice = 0;
+      selSubtotal = 0;
+      selCreditUsed = 0;
+      selFinalPay = 0;
+      calculateTotal();
+    }
+
+    // 提交匯款單
+    document.getElementById('payForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('submitBtn');
+      btn.disabled = true;
+      btn.textContent = '提交中...';
+
+      try {
+        const user = document.getElementById('payUser').value;
+        const social = document.getElementById('paySocial').value.trim();
+        const orderId = document.getElementById('payEvent').value;
+        const bankLast5 = document.getElementById('payBankLast5').value.trim();
+        const qty = parseInt(document.getElementById('payQty').value) || 0;
+
+        const order = unpaidOrders.find(o => o.id === orderId);
+
+        // 1. 新增匯款紀錄至 payments
+        await addDoc(collection(db, "payments"), {
+          user,
+          social,
+          orderId,
+          eventName: `${order.eventName} (${order.member})`,
+          qty,
+          unitPrice: selUnitPrice,
+          subtotal: selSubtotal,
+          creditUsed: selCreditUsed,
+          finalPay: selFinalPay,
+          bankLast5,
+          status: 'pending',
+          createdAt: serverTimestamp()
+        });
+
+        // 2. 標記訂單為已登記匯款
+        await updateDoc(doc(db, "orders", orderId), { hasPaid: true });
+
+        // 3. 若有使用抵用金，更新抵用金紀錄
+        if (selCreditUsed > 0 && userCreditObj) {
+          const newUsed = (userCreditObj.used || 0) + selCreditUsed;
+          const newRem = userCreditObj.credit - newUsed;
+          await updateDoc(doc(db, "user_credits", userCreditObj.id), {
+            used: newUsed,
+            remaining: newRem
+          });
+        }
+
+        alert('✅ 匯款登記已成功送出！管理者將儘速核對金額。');
+        location.reload();
+      } catch (err) {
+        alert('提交失敗: ' + err.message);
+        btn.disabled = false;
+        btn.textContent = '送出匯款登記';
+      }
+    });
   </script>
 
 </body>
