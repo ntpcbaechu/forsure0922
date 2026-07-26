@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FORSURE🐶📸 - 匯款登記表單</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 20px; max-width: 500px; margin: 0 auto; background-color: #f4f6f8; color: #333; }
+    .card { background: #ffffff; padding: 28px 24px; border-radius: 16px; box-shadow: 0 8px 20px rgba(0,0,0,0.06); }
+    h1 { font-size: 22px; margin-top: 0; margin-bottom: 20px; color: #222; text-align: center; }
+    .form-group { margin-bottom: 18px; position: relative; }
+    label { display: block; margin-bottom: 6px; font-weight: 600; font-size: 14px; color: #444; }
+    label.required::after { content: " *"; color: #f56c6c; }
+    input, select, textarea, button { width: 100%; padding: 12px; border: 1px solid #dcdfe6; border-radius: 8px; box-sizing: border-box; font-size: 15px; background: #fff; }
+    .calc-box { background-color: #f8f9fa; border: 1px dashed #409eff; border-radius: 8px; padding: 14px; margin-top: 15px; font-size: 14px; }
+    .calc-row { display: flex; justify-content: space-between; margin-bottom: 8px; }
+    .calc-row.total { border-top: 1px solid #dcdfe6; padding-top: 8px; font-weight: bold; font-size: 16px; color: #f56c6c; }
+    .checkbox-label { display: flex; align-items: center; gap: 8px; font-weight: normal; cursor: pointer; }
+    .checkbox-label input { width: auto; }
+    button { background-color: #409eff; color: white; border: none; font-weight: 600; font-size: 16px; cursor: pointer; margin-top: 15px; border-radius: 8px; }
+    .nav-links { display: flex; justify-content: space-between; margin-top: 15px; font-size: 13px; }
+    .nav-links a { color: #909399; text-decoration: none; }
+    .custom-dropdown-list { position: absolute; top: 100%; left: 0; right: 0; max-height: 180px; overflow-y: auto; background: #fff; border: 1px solid #e4e7ed; border-radius: 8px; z-index: 1000; display: none; }
+    .dropdown-item { padding: 10px; cursor: pointer; font-size: 14px; border-bottom: 1px solid #f2f6fc; }
+    .dropdown-item:hover { background-color: #f5f7fa; color: #409eff; }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <h1>FORSURE🐶📸 匯款表單</h1>
+
+    <form id="paymentForm">
+      <!-- 1. 社群名稱 -->
+      <div class="form-group">
+        <label for="usernameInput" class="required">社群名稱</label>
+        <input type="text" id="usernameInput" placeholder="選擇或輸入搜尋暱稱..." autocomplete="off" required>
+        <div id="userDropdown" class="custom-dropdown-list"></div>
+      </div>
+
+      <!-- 2. IG / Threads -->
+      <div class="form-group">
+        <label for="socialInput" class="required">IG/Threads 帳號</label>
+        <input type="text" id="socialInput" placeholder="例：@your_account" required>
+      </div>
+
+      <!-- 3. 活動名稱 -->
+      <div class="form-group">
+        <label for="eventSelect" class="required">活動名稱</label>
+        <select id="eventSelect" required>
+          <option value="" disabled selected>請選擇活動（載入單價中...）</option>
+        </select>
+      </div>
+
+      <!-- 4. 張數 -->
+      <div class="form-group">
+        <label for="qtyInput" class="required">張數</label>
+        <input type="number" id="qtyInput" min="1" placeholder="請輸入張數" required>
+      </div>
+
+      <!-- 自動計算與抵用金區塊 -->
+      <div class="calc-box">
+        <div class="calc-row"><span>單價：</span><span id="unitPriceTxt">$0 / 張</span></div>
+        <div class="calc-row"><span>小計金額：</span><span id="subtotalTxt">$0</span></div>
+        <div class="calc-row">
+          <label class="checkbox-label">
+            <input type="checkbox" id="useCreditChk"> 使用抵用金 (可用餘額: <span id="creditBalanceTxt">$0</span>)
+          </label>
+          <span id="creditDeductTxt">-$0</span>
+        </div>
+        <div class="calc-row total"><span>最終應匯款金額：</span><span id="finalPayTxt">$0</span></div>
+      </div>
+
+      <!-- 5. 匯款後五碼 -->
+      <div class="form-group" style="margin-top: 15px;">
+        <label for="bankLast5Input" class="required">匯款帳號後 5 碼</label>
+        <input type="text" id="bankLast5Input" maxlength="5" placeholder="例：12345" required>
+      </div>
+
+      <button type="submit" id="submitBtn">送出匯款登記</button>
+    </form>
+
+    <div class="nav-links">
+      <a href="index.html">← 返回登記頁</a>
+      <a href="progress.html">📸 查看發圖進度</a>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getFirestore, collection, addDoc, doc, getDoc, getDocs, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDF7QySG1Jj4gdZvXwMRaKjRmI-lFKpj7k",
+      authDomain: "forsure0922.firebaseapp.com",
+      databaseURL: "https://forsure0922-default-rtdb.firebaseio.com",
+      projectId: "forsure0922",
+      storageBucket: "forsure0922.firebasestorage.app",
+      messagingSenderId: "817449290174",
+      appId: "1:817449290174:web:6b4ec1d36c171ff97011ef"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    let eventPrices = {};
+    let userCredits = {};
+    let currentCredit = 0;
+    let currentUnitPrice = 0;
+
+    // 1. 初始化資料 (載入活動單價與抵用金)
+    async function initData() {
+      // 載入活動單價
+      const eventSnap = await getDocs(collection(db, "event_settings"));
+      const eventSelect = document.getElementById('eventSelect');
+      eventSelect.innerHTML = '<option value="" disabled selected>請選擇活動</option>';
+      eventSnap.forEach(d => {
+        const data = d.data();
+        eventPrices[data.name] = data.price || 0;
+        const opt = document.createElement('option');
+        opt.value = data.name;
+        opt.textContent = `${data.name} ($${data.price}/張)`;
+        eventSelect.appendChild(opt);
+      });
+
+      // 載入用戶抵用金
+      const userSnap = await getDocs(collection(db, "user_credits"));
+      userSnap.forEach(d => {
+        userCredits[d.data().user] = d.data().credit || 0;
+      });
+
+      // 載入社群清單
+      fetch('users.json').then(r => r.json()).then(data => {
+        setupUserDropdown(data);
+      });
+    }
+
+    function setupUserDropdown(users) {
+      const input = document.getElementById('usernameInput');
+      const dropdown = document.getElementById('userDropdown');
+
+      function render(list) {
+        dropdown.innerHTML = '';
+        list.forEach(u => {
+          const item = document.createElement('div');
+          item.className = 'dropdown-item';
+          item.textContent = u;
+          item.onmousedown = (e) => {
+            e.preventDefault();
+            input.value = u;
+            dropdown.style.display = 'none';
+            onUserSelected(u);
+          };
+          dropdown.appendChild(item);
+        });
+      }
+
+      input.onfocus = () => { dropdown.style.display = 'block'; render(users); };
+      input.onblur = () => { setTimeout(() => dropdown.style.display = 'none', 200); };
+      input.oninput = () => {
+        const val = input.value.toLowerCase();
+        render(users.filter(u => u.toLowerCase().includes(val)));
+      };
+    }
+
+    function onUserSelected(user) {
+      currentCredit = userCredits[user] || 0;
+      document.getElementById('creditBalanceTxt').textContent = `$${currentCredit}`;
+      calculateTotal();
+    }
+
+    // 計算邏輯
+    document.getElementById('eventSelect').addEventListener('change', (e) => {
+      currentUnitPrice = eventPrices[e.target.value] || 0;
+      document.getElementById('unitPriceTxt').textContent = `$${currentUnitPrice} / 張`;
+      calculateTotal();
+    });
+
+    document.getElementById('qtyInput').addEventListener('input', calculateTotal);
+    document.getElementById('useCreditChk').addEventListener('change', calculateTotal);
+
+    function calculateTotal() {
+      const qty = parseInt(document.getElementById('qtyInput').value) || 0;
+      const subtotal = qty * currentUnitPrice;
+      const useCredit = document.getElementById('useCreditChk').checked;
+
+      let deduct = 0;
+      if (useCredit) {
+        deduct = Math.min(subtotal, currentCredit);
+      }
+
+      const finalPay = subtotal - deduct;
+
+      document.getElementById('subtotalTxt').textContent = `$${subtotal}`;
+      document.getElementById('creditDeductTxt').textContent = `-$${deduct}`;
+      document.getElementById('finalPayTxt').textContent = `$${finalPay}`;
+    }
+
+    // 表單送出
+    document.getElementById('paymentForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const user = document.getElementById('usernameInput').value.trim();
+      const social = document.getElementById('socialInput').value.trim();
+      const eventName = document.getElementById('eventSelect').value;
+      const qty = parseInt(document.getElementById('qtyInput').value);
+      const bankLast5 = document.getElementById('bankLast5Input').value.trim();
+      const useCredit = document.getElementById('useCreditChk').checked;
+
+      const subtotal = qty * currentUnitPrice;
+      const deduct = useCredit ? Math.min(subtotal, currentCredit) : 0;
+      const finalPay = subtotal - deduct;
+
+      try {
+        // 寫入匯款紀錄
+        await addDoc(collection(db, "payments"), {
+          user, social, eventName, qty, unitPrice: currentUnitPrice,
+          subtotal, creditUsed: deduct, finalPay, bankLast5,
+          createdAt: serverTimestamp()
+        });
+
+        // 扣除抵用金
+        if (deduct > 0) {
+          const userSnap = await getDocs(collection(db, "user_credits"));
+          userSnap.forEach(async (docSnap) => {
+            if (docSnap.data().user === user) {
+              await updateDoc(doc(db, "user_credits", docSnap.id), {
+                credit: currentCredit - deduct
+              });
+            }
+          });
+        }
+
+        alert(`匯款登記成功 \n需匯款金額：$${finalPay}\n帳號後五碼：${bankLast5}`);
+        window.location.reload();
+      } catch (err) {
+        alert("提交失敗: " + err.message);
+      }
+    });
+
+    initData();
+  </script>
+
+</body>
+</html>

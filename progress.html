@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FORSURE🐶📸 - 飯拍發圖進度</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 20px; max-width: 650px; margin: 0 auto; background-color: #f4f6f8; color: #333; }
+    .card { background: #ffffff; padding: 24px; border-radius: 16px; box-shadow: 0 8px 20px rgba(0,0,0,0.06); }
+    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    h1 { font-size: 20px; margin: 0; color: #222; }
+    .progress-item { border: 1px solid #e4e7ed; border-radius: 12px; padding: 16px; margin-bottom: 14px; background: #fff; }
+    .item-title { font-weight: bold; font-size: 16px; margin-bottom: 6px; display: flex; justify-content: space-between; }
+    .item-meta { font-size: 13px; color: #909399; margin-bottom: 10px; }
+    .progress-bar-bg { background-color: #ebeef5; border-radius: 10px; height: 10px; overflow: hidden; margin-bottom: 12px; }
+    .progress-bar-fill { background-color: #67c23a; height: 100%; transition: width 0.3s; }
+    .btn-drive { display: inline-block; background-color: #409eff; color: white; text-decoration: none; padding: 6px 14px; border-radius: 6px; font-size: 13px; font-weight: 600; }
+    .btn-drive.disabled { background-color: #c0c4cc; pointer-events: none; }
+    .badge { padding: 2px 8px; border-radius: 4px; font-size: 12px; }
+    .badge-done { background: #f0f9eb; color: #67c23a; }
+    .badge-working { background: #fdf6ec; color: #e6a23c; }
+    .btn-back { background-color: #e4e7ed; color: #333; text-decoration: none; padding: 6px 12px; border-radius: 6px; font-size: 13px; }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <div class="header">
+      <h1>FORSURE🐶📸 飯拍發放進度</h1>
+      <a href="index.html" class="btn-back">返回表單</a>
+    </div>
+
+    <div id="progressList">載入進度中...</div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getFirestore, collection, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDF7QySG1Jj4gdZvXwMRaKjRmI-lFKpj7k",
+      authDomain: "forsure0922.firebaseapp.com",
+      databaseURL: "https://forsure0922-default-rtdb.firebaseio.com",
+      projectId: "forsure0922",
+      storageBucket: "forsure0922.firebasestorage.app",
+      messagingSenderId: "817449290174",
+      appId: "1:817449290174:web:6b4ec1d36c171ff97011ef"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const q = query(collection(db, "photo_progress"), orderBy("createdAt", "desc"));
+    onSnapshot(q, (snapshot) => {
+      const container = document.getElementById('progressList');
+      container.innerHTML = '';
+
+      if (snapshot.empty) {
+        container.innerHTML = '<div style="text-align:center; padding:30px; color:#909399;">目前尚未發布進度項目。</div>';
+        return;
+      }
+
+      snapshot.forEach(doc => {
+        const item = doc.data();
+        const percent = Math.min(100, Math.round((item.doneQty / item.totalQty) * 100)) || 0;
+        const isFinished = percent === 100;
+
+        const div = document.createElement('div');
+        div.className = 'progress-item';
+        div.innerHTML = `
+          <div class="item-title">
+            <span>${item.eventName} - ${item.member}</span>
+            <span class="badge ${isFinished ? 'badge-done' : 'badge-working'}">${isFinished ? '已發放完畢' : '整理中'}</span>
+          </div>
+          <div class="item-meta">進度：${item.doneQty} / ${item.totalQty} 張 (${percent}%)</div>
+          <div class="progress-bar-bg">
+            <div class="progress-bar-fill" style="width: ${percent}%;"></div>
+          </div>
+          ${item.driveUrl ? `<a href="${item.driveUrl}" target="_blank" class="btn-drive">📁 點擊前往 Google Drive 雲端圖集</a>` : `<span class="btn-drive disabled">雲端連結整理中</span>`}
+        `;
+        container.appendChild(div);
+      });
+    });
+  </script>
+
+</body>
+</html>
