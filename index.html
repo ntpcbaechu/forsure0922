@@ -56,7 +56,6 @@
       margin-top: 10px;
       display: none;
     }
-    /* 客製化下拉選單 */
     .custom-dropdown-list {
       position: absolute;
       top: 100%;
@@ -96,9 +95,16 @@
       margin-top: 10px;
       border-radius: 8px;
     }
-    button:hover {
-      background-color: #66b1ff;
+    button:hover { background-color: #66b1ff; }
+    .btn-view {
+      display: block;
+      text-align: center;
+      margin-top: 15px;
+      color: #909399;
+      text-decoration: none;
+      font-size: 13px;
     }
+    .btn-view:hover { color: #409eff; }
     .error-msg {
       color: #f56c6c;
       font-size: 12px;
@@ -121,12 +127,11 @@
         <input type="text" id="userOtherInput" class="other-input" placeholder="請輸入您的社群名稱...">
       </div>
 
-      <!-- 2. 活動名稱 (後台選項控制) -->
+      <!-- 2. 活動名稱 -->
       <div class="form-group">
         <label for="eventSelect">活動名稱：</label>
         <select id="eventSelect" required>
           <option value="" disabled selected>請選擇活動名稱</option>
-          <!-- 後台可直接編輯以下選項 -->
         </select>
         <input type="text" id="eventOtherInput" class="other-input" placeholder="請自行填入活動名稱...">
       </div>
@@ -157,10 +162,11 @@
       <!-- 提交按鈕 -->
       <button type="submit">送出</button>
     </form>
+
+    <a href="admin.html" class="btn-view">📋 查看登記紀錄區</a>
   </div>
 
   <script>
-    // ===== 6-1. 活動名稱後台設定區 (管理者可在這裡新增/修改選項) =====
     const eventList = [
       "260725 RUN IT (Day1)",
       "260726 RUN IT (Day2)",
@@ -170,7 +176,6 @@
       "其他"
     ];
 
-    // 初始化活動下拉選項
     const eventSelect = document.getElementById('eventSelect');
     eventList.forEach(event => {
       const opt = document.createElement('option');
@@ -179,7 +184,6 @@
       eventSelect.appendChild(opt);
     });
 
-    // ===== 1. 社群名稱客製選單功能 =====
     let allUsers = [];
     const usernameInput = document.getElementById('usernameInput');
     const userDropdown = document.getElementById('userDropdown');
@@ -220,27 +224,19 @@
       }
     }
 
-    usernameInput.addEventListener('focus', () => {
-      userDropdown.style.display = 'block';
-    });
-
-    usernameInput.addEventListener('blur', () => {
-      setTimeout(() => { userDropdown.style.display = 'none'; }, 200);
-    });
-
+    usernameInput.addEventListener('focus', () => { userDropdown.style.display = 'block'; });
+    usernameInput.addEventListener('blur', () => { setTimeout(() => { userDropdown.style.display = 'none'; }, 200); });
     usernameInput.addEventListener('input', () => {
       const val = usernameInput.value.toLowerCase();
       const filtered = allUsers.filter(u => u.toLowerCase().includes(val));
       renderDropdown(filtered);
       userDropdown.style.display = 'block';
-
       if (usernameInput.value !== '其他') {
         userOtherInput.style.display = 'none';
         userOtherInput.required = false;
       }
     });
 
-    // ===== 2. 活動選擇「其他」邏輯 =====
     const eventOtherInput = document.getElementById('eventOtherInput');
     eventSelect.addEventListener('change', () => {
       if (eventSelect.value === '其他') {
@@ -253,21 +249,19 @@
       }
     });
 
-    // ===== 8. 張數數字驗證 =====
     const quantityInput = document.getElementById('quantityInput');
     const qtyError = document.getElementById('qtyError');
 
     quantityInput.addEventListener('input', () => {
       const val = quantityInput.value.trim();
-      const isPureNumber = /^[1-9]\d*$/.test(val);
-      if (val !== '' && !isPureNumber) {
+      if (val !== '' && !/^[1-9]\d*$/.test(val)) {
         qtyError.style.display = 'block';
       } else {
         qtyError.style.display = 'none';
       }
     });
 
-    // ===== 送出表單驗證 =====
+    // ===== 送出並儲存至本地資料庫 =====
     document.getElementById('orderForm').addEventListener('submit', (e) => {
       e.preventDefault();
 
@@ -282,7 +276,30 @@
       const finalEvent = eventSelect.value === '其他' ? eventOtherInput.value.trim() : eventSelect.value;
       const finalMember = document.getElementById('memberSelect').value;
 
+      // 取得現在時間
+      const now = new Date();
+      const timeStr = `${now.getMonth()+1}/${now.getDate()} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+
+      // 建立紀錄物件
+      const newRecord = {
+        time: timeStr,
+        user: finalUser,
+        event: finalEvent,
+        member: finalMember,
+        qty: qtyVal
+      };
+
+      // 讀取既有紀錄並寫入
+      const existingRecords = JSON.parse(localStorage.getItem('forsure_orders') || '[]');
+      existingRecords.push(newRecord);
+      localStorage.setItem('forsure_orders', JSON.stringify(existingRecords));
+
       alert(`登記成功！\n社群名稱：${finalUser}\n活動名稱：${finalEvent}\n成員：${finalMember}\n張數：${qtyVal}`);
+      
+      // 重置表單
+      document.getElementById('orderForm').reset();
+      userOtherInput.style.display = 'none';
+      eventOtherInput.style.display = 'none';
     });
   </script>
 
