@@ -162,7 +162,6 @@
         </div>
 
         <div class="form-row-bottom">
-          <!-- 支援小數點後1位 -->
           <div><label style="font-size:12px;">售出單價/包 ($)</label><input type="number" step="0.1" min="0" id="evPrice" placeholder="販售單價" style="width:100%;"></div>
           <div><label style="font-size:12px;">總購入價 ($)</label><input type="number" id="evCost" placeholder="總購入成本" style="width:100%;"></div>
           <div><label style="font-size:12px;">實際收到張數</label><input type="number" id="evActQty" placeholder="收到後填寫" style="width:100%;"></div>
@@ -272,9 +271,8 @@
     const db = getFirestore(app);
 
     let eventSellerMap = {};
-    let ordersList = []; // 快取前台登記訂單資料
+    let ordersList = [];
 
-    // 載入 users.json & members.json 到下拉選單
     document.addEventListener('DOMContentLoaded', () => {
       fetch('users.json')
         .then(res => res.json())
@@ -292,10 +290,8 @@
       fetch('members.json')
         .then(res => res.json())
         .then(members => {
-          // 抵用金頁籤成員選單
           const memberSel = document.getElementById('cMember');
           memberSel.innerHTML = '<option value="">請選擇成員</option>';
-          // 活動成本頁籤成員選單
           const evMemberSel = document.getElementById('evMember');
           evMemberSel.innerHTML = '<option value="">請選擇成員</option>';
 
@@ -345,7 +341,6 @@
     };
 
     function initAdminDataListeners() {
-      // 自動監聽前台登記訂單 (orders)，作為包數統計
       onSnapshot(collection(db, "orders"), snap => {
         ordersList = [];
         snap.forEach(d => ordersList.push(d.data()));
@@ -407,7 +402,7 @@
         });
       });
 
-      // 3. 活動單價與成本設定 (加入成員連動與自動銷售額計算)
+      // 3. 活動單價與成本設定 (不重複加總，拆包團精準結算)
       onSnapshot(collection(db, "event_settings"), snap => {
         const tb = document.getElementById('eventTable');
         const summaryBox = document.getElementById('eventSummaryBox');
@@ -431,13 +426,16 @@
 
           // 1. 自動計算前台登記這筆「活動+成員」的總包數
           const matchedOrders = ordersList.filter(o => {
-            const matchEvent = o.event === ev.name || o.event === ev.rawName;
+            const matchEvent = (o.event === ev.name || o.event === ev.rawName || o.fullEvent === ev.name);
             const matchMember = !ev.member || o.member === ev.member;
             return matchEvent && matchMember;
           });
-          const totalOrderedPacks = matchedOrders.reduce((sum, o) => sum + (Number(o.quantity) || 0), 0);
+          const totalOrderedPacks = matchedOrders.reduce((sum, o) => {
+            const qty = Number(o.qty !== undefined ? o.qty : (o.quantity !== undefined ? o.quantity : o.count)) || 0;
+            return sum + qty;
+          }, 0);
 
-          // 2. 預估銷售額 = 登記總包數 × 單價
+          // 2. 預估銷售額 = 該成員紀錄的包數 × 單價
           const estRevenue = totalOrderedPacks * (ev.price || 0);
 
           if (!eventSellerMap[ev.name]) eventSellerMap[ev.name] = [];
@@ -464,12 +462,16 @@
           `;
 
           if (!eventGroups[ev.name]) {
-            eventGroups[ev.name] = { totalCost: 0, totalActQty: 0, totalRevenue: 0, totalPacks: 0, count: 0, isClosed: ev.isClosed };
+            eventGroups[ev.name] = { 
+              unitPrice: ev.price || 0,
+              totalCost: 0, 
+              totalActQty: 0, 
+              count: 0, 
+              isClosed: ev.isClosed 
+            };
           }
           eventGroups[ev.name].totalCost += (ev.cost || 0);
           eventGroups[ev.name].totalActQty += (ev.actQty || 0);
-          eventGroups[ev.name].totalRevenue += estRevenue;
-          eventGroups[ev.name].totalPacks += totalOrderedPacks;
           eventGroups[ev.name].count += 1;
 
           if (!uniqueEvents.has(ev.name)) {
@@ -481,17 +483,27 @@
           }
         });
 
+        // 核心計算：根據獨立訂單計算真正的活動發售包數 (避免拆包成員重複計算)
         for (const [eventName, g] of Object.entries(eventGroups)) {
-          const estProfit = g.totalRevenue - g.totalCost;
+          const actOrders = ordersList.filter(o => (o.event === eventName || o.fullEvent === eventName || o.rawName === eventName));
+          
+          // 計算真正不重複發售的實際總包數
+          const realEventPacks = actOrders.reduce((sum, o) => {
+            const qty = Number(o.qty !== undefined ? o.qty : (o.quantity !== undefined ? o.quantity : o.count)) || 0;
+            return sum + qty;
+          }, 0);
+
+          const realTotalRevenue = realEventPacks * g.unitPrice;
+          const estProfit = realTotalRevenue - g.totalCost;
 
           summaryBox.innerHTML += `
             <div class="summary-card">
               <div class="summary-title">📊 活動總結算：${eventName} (${g.count} 筆成員代拍紀錄)${g.isClosed ? ' [已結團關閉]' : ''}</div>
               <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap:10px;">
                 <div>總購入成本：<b>$${g.totalCost}</b></div>
-                <div>總登記售出：<b>${g.totalPacks} 包</b></div>
+                <div>總登記售出：<b>${realEventPacks} 包</b></div>
                 <div>實際收到圖檔：<b>${g.totalActQty} 張</b></div>
-                <div>預估總銷售額：<b>$${g.totalRevenue}</b></div>
+                <div>預估總銷售額：<b>$${realTotalRevenue}</b></div>
                 <div>🔥 預估全團總利潤：<b style="color:${estProfit >= 0 ? '#67c23a' : '#f56c6c'};">$${estProfit}</b></div>
               </div>
             </div>
