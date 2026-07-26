@@ -8,6 +8,7 @@
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 5px; margin: 0; background: #fff; color: #333; }
     .progress-item { border: 1px solid #e4e7ed; border-radius: 12px; padding: 16px; margin-bottom: 12px; background: #fff; display: flex; justify-content: space-between; align-items: center; }
     .status-badge { padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: bold; }
+    .status-reserved { background: #f3e5f5; color: #8e24aa; }
     .status-waiting { background: #f4f4f5; color: #909399; }
     .status-sorting { background: #fdf6ec; color: #e6a23c; }
     .status-uploading { background: #ecf5ff; color: #409eff; }
@@ -37,7 +38,8 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    onSnapshot(query(collection(db, "photo_progress"), orderBy("createdAt", "desc")), (snapshot) => {
+    // 依據 updatedAt (最後修改時間) 倒序排列，確保最新編輯的永遠在最上面
+    onSnapshot(query(collection(db, "photo_progress"), orderBy("updatedAt", "desc")), (snapshot) => {
       const container = document.getElementById('progressList');
       container.innerHTML = '';
       if (snapshot.empty) {
@@ -49,19 +51,31 @@
       let itemsList = [];
       snapshot.forEach(doc => { itemsList.push(doc.data()); });
 
-      // 按活動名稱/日期升冪排序
-      itemsList.sort((a, b) => a.eventName.localeCompare(b.eventName));
+      // 自動對應與轉譯每個活動下的代拍為：代拍 1, 代拍 2...
+      const sellerMapping = {};
 
       itemsList.forEach(item => {
+        const eventName = item.eventName;
+        const realSeller = item.seller || 'default';
+
+        if (!sellerMapping[eventName]) { sellerMapping[eventName] = []; }
+        if (!sellerMapping[eventName].includes(realSeller)) {
+          sellerMapping[eventName].push(realSeller);
+        }
+
+        const sellerIndex = sellerMapping[eventName].indexOf(realSeller) + 1;
+        const anonLabel = sellerMapping[eventName].length > 1 || realSeller !== 'default' ? ` (代拍 ${sellerIndex})` : '';
+
         const status = item.status || '等圖中';
         
         let badgeClass = 'status-waiting';
-        if (status === '分圖中') badgeClass = 'status-sorting';
+        if (status === '已預約') badgeClass = 'status-reserved';
+        else if (status === '分圖中') badgeClass = 'status-sorting';
         else if (status === '上傳中') badgeClass = 'status-uploading';
         else if (status === '已發圖') badgeClass = 'status-done';
         else if (status === '已結束') badgeClass = 'status-closed';
 
-        const displayMember = item.packageLabel ? `${item.member} (${item.packageLabel})` : item.member;
+        const displayMember = `${item.member}${anonLabel}`;
 
         const div = document.createElement('div');
         div.className = 'progress-item';
