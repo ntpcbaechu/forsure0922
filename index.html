@@ -3,55 +3,174 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>FORSURE🐶📸</title>
+  <title>FORSURE 🐶 📷</title>
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 0; background: #f5f7fa; color: #333; }
-    .container { max-width: 800px; margin: 20px auto; padding: 20px; background: #fff; border-radius: 16px; box-shadow: 0 4px 16px rgba(0,0,0,0.06); }
-    .header { text-align: center; margin-bottom: 20px; }
-    .header h1 { font-size: 24px; margin: 0 0 10px 0; color: #303133; }
-    
-    /* 頁籤選單：自動換行 + 膠囊風格 */
-    .nav-tabs { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; border-bottom: 1px solid #e4e7ed; padding-bottom: 12px; margin-bottom: 20px; }
-    .nav-tab { padding: 8px 14px; font-size: 14px; font-weight: bold; color: #606266; background: #f4f4f5; border-radius: 20px; cursor: pointer; border: 1px solid transparent; transition: all 0.2s ease; text-align: center; }
-    .nav-tab:hover { color: #409eff; background: #ecf5ff; }
-    .nav-tab.active { color: #fff; background: #409eff; border-color: #409eff; box-shadow: 0 2px 6px rgba(64,158,255,0.3); }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      margin: 0;
+      padding: 40px 20px;
+      background-color: #f5f5f7;
+      color: #333;
+    }
 
-    iframe { width: 100%; border: none; min-height: 500px; }
+    .main-card {
+      max-width: 900px;
+      margin: 0 auto;
+      background: #ffffff;
+      border-radius: 20px;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.05);
+      padding: 30px;
+      box-sizing: border-box;
+    }
+
+    .header-title {
+      text-align: center;
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 24px;
+      color: #1d1d1f;
+    }
+
+    /* 頁籤導覽列 */
+    .nav-tabs {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 30px;
+    }
+
+    .tab-btn {
+      padding: 10px 18px;
+      border: none;
+      background-color: #f2f2f7;
+      color: #1d1d1f;
+      border-radius: 20px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .tab-btn:hover {
+      background-color: #e5e5ea;
+    }
+
+    .tab-btn.active {
+      background-color: #0071e3;
+      color: #ffffff;
+    }
+
+    /* 內容容器與 iframe 設置 */
+    .tab-content {
+      display: none;
+      width: 100%;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    iframe {
+      width: 100%;
+      border: none;
+      overflow: hidden; /* 徹底隱藏 iframe 內部的滾輪 */
+      transition: height 0.2s ease;
+    }
   </style>
 </head>
 <body>
 
-  <div class="container">
-    <div class="header">
-      <h1>FORSURE🐶📸</h1>
-    </div>
+  <div class="main-card">
+    <div class="header-title">FORSURE 🐶 📷</div>
 
-    <!-- 5 個頁籤按鈕自動換行 -->
+    <!-- 導覽按鈕區 -->
     <div class="nav-tabs">
-      <div class="nav-tab" onclick="switchTab('progress.html', this)">🔥 開團與進度</div>
-      <div class="nav-tab" onclick="switchTab('order.html', this)">📝 登記表單</div>
-      <div class="nav-tab" onclick="switchTab('payment.html', this)">💰 匯款表單</div>
-      <div class="nav-tab active" onclick="switchTab('records.html', this)">🔍 查詢登記與對帳</div>
-      <div class="nav-tab" onclick="switchTab('credit.html', this)">💳 抵用金查詢</div>
+      <button class="tab-btn active" onclick="switchTab('progress')">🔥 開團與進度</button>
+      <button class="tab-btn" onclick="switchTab('order')">📝 登記表單</button>
+      <button class="tab-btn" onclick="switchTab('pay')">💰 匯款表單</button>
+      <button class="tab-btn" onclick="switchTab('query')">🔍 查詢登記與對帳</button>
+      <button class="tab-btn" onclick="switchTab('credit')">💳 抵用金查詢</button>
     </div>
 
-    <iframe id="mainFrame" src="records.html"></iframe>
+    <!-- 頁籤 1: 開團與進度 -->
+    <div id="progress" class="tab-content active">
+      <iframe src="progress.html" id="iframe-progress" scrolling="no"></iframe>
+    </div>
+
+    <!-- 頁籤 2: 登記表單 -->
+    <div id="order" class="tab-content">
+      <iframe src="order.html" id="iframe-order" scrolling="no"></iframe>
+    </div>
+
+    <!-- 頁籤 3: 匯款表單 -->
+    <div id="pay" class="tab-content">
+      <iframe src="pay.html" id="iframe-pay" scrolling="no"></iframe>
+    </div>
+
+    <!-- 頁籤 4: 查詢登記與對帳 -->
+    <div id="query" class="tab-content">
+      <iframe src="query.html" id="iframe-query" scrolling="no"></iframe>
+    </div>
+
+    <!-- 頁籤 5: 抵用金查詢 -->
+    <div id="credit" class="tab-content">
+      <iframe src="credit.html" id="iframe-credit" scrolling="no"></iframe>
+    </div>
   </div>
 
   <script>
-    function switchTab(page, el) {
-      document.getElementById('mainFrame').src = page;
-      document.querySelectorAll('.nav-tab').forEach(tab => tab.classList.remove('active'));
-      el.classList.add('active');
+    // 1. 切換 Tab 頁籤
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+
+      event.target.classList.add('active');
+      const targetContent = document.getElementById(tabId);
+      targetContent.classList.add('active');
+
+      // 切換時立即為該頁面的 iframe 重新計算並調整高度
+      const iframe = targetContent.querySelector('iframe');
+      if (iframe) {
+        autoResizeIframe(iframe);
+      }
     }
 
-    // 監聽來自 iframe 的動態高度調整
-    window.addEventListener('message', function(e) {
-      if (e.data && e.data.frameHeight) {
-        document.getElementById('mainFrame').style.height = (e.data.frameHeight + 20) + 'px';
+    // 2. 自動調整 iframe 高度至內部實際高度
+    function autoResizeIframe(iframe) {
+      try {
+        if (iframe && iframe.contentWindow && iframe.contentWindow.document) {
+          const body = iframe.contentWindow.document.body;
+          const html = iframe.contentWindow.document.documentElement;
+
+          if (body && html) {
+            // 計算內部精準高度並加上額外緩衝空間
+            const contentHeight = Math.max(
+              body.scrollHeight, body.offsetHeight,
+              html.clientHeight, html.scrollHeight, html.offsetHeight
+            );
+            
+            iframe.style.height = (contentHeight + 30) + 'px';
+          }
+        }
+      } catch (e) {
+        console.warn("無法自動取得 iframe 高度:", e);
+        iframe.style.height = '1000px'; // 預設高度備案
       }
+    }
+
+    // 3. 頁面載入完成後自動為所有 iframe 綁定動態高估邏輯
+    document.addEventListener('DOMContentLoaded', () => {
+      const iframes = document.querySelectorAll('iframe');
+
+      iframes.forEach(iframe => {
+        iframe.addEventListener('load', () => {
+          autoResizeIframe(iframe);
+          // 延遲再計算一次，防止如 users.json 下拉選單載入完成後高度變化
+          setTimeout(() => autoResizeIframe(iframe), 400);
+        });
+      });
     });
   </script>
-
 </body>
 </html>
