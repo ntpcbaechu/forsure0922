@@ -36,7 +36,7 @@
     .btn-danger { background-color: #f56c6c; color: white; padding: 4px 8px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; }
     .btn-edit { background-color: #e6a23c; color: white; padding: 4px 8px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; margin-right: 4px; }
 
-    .form-row-top { display: grid; grid-template-columns: 1fr 2fr 1.5fr 2fr; gap: 10px; margin-bottom: 10px; }
+    .form-row-top { display: grid; grid-template-columns: 1fr 1.5fr 1.5fr 1.5fr 1.5fr; gap: 10px; margin-bottom: 10px; }
     .form-row-bottom { display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 10px; margin-bottom: 10px; align-items: center; }
     
     .summary-card { background: #f0f9eb; border: 1px solid #e1f3d8; border-radius: 8px; padding: 15px; margin-top: 20px; font-size: 14px; }
@@ -151,13 +151,19 @@
         <div class="form-row-top">
           <div><label style="font-size:12px;">日期 (例: 260725)</label><input type="text" id="evDate" placeholder="260725" style="width:100%;"></div>
           <div><label style="font-size:12px;">活動名稱 (例: RUN IT)</label><input type="text" id="evName" placeholder="RUN IT (Day1)" required style="width:100%;"></div>
+          <div>
+            <label style="font-size:12px;">成員</label>
+            <select id="evMember" required style="width:100%;">
+              <option value="">載入成員中...</option>
+            </select>
+          </div>
           <div><label style="font-size:12px;">代拍 (例: 站姐A)</label><input type="text" id="evSeller" placeholder="代拍名稱" style="width:100%;"></div>
           <div><label style="font-size:12px;">備註</label><input type="text" id="evNote" placeholder="備註說明..." style="width:100%;"></div>
         </div>
 
         <div class="form-row-bottom">
           <!-- 支援小數點後1位 -->
-          <div><label style="font-size:12px;">售出單價 ($)</label><input type="number" step="0.1" min="0" id="evPrice" placeholder="販售單價" style="width:100%;"></div>
+          <div><label style="font-size:12px;">售出單價/包 ($)</label><input type="number" step="0.1" min="0" id="evPrice" placeholder="販售單價" style="width:100%;"></div>
           <div><label style="font-size:12px;">總購入價 ($)</label><input type="number" id="evCost" placeholder="總購入成本" style="width:100%;"></div>
           <div><label style="font-size:12px;">實際收到張數</label><input type="number" id="evActQty" placeholder="收到後填寫" style="width:100%;"></div>
           <div style="display:flex; align-items:center; gap:6px; margin-top:10px;">
@@ -174,9 +180,12 @@
         <thead>
           <tr>
             <th>活動全名 (日期+名稱)</th>
+            <th>成員</th>
             <th>代拍名稱</th>
             <th>備註</th>
-            <th>售價/單張成本</th>
+            <th>售價 (每包)</th>
+            <th>已登記包數</th>
+            <th>預估銷售額</th>
             <th>購入價</th>
             <th>實際收到張數</th>
             <th>操作</th>
@@ -263,8 +272,9 @@
     const db = getFirestore(app);
 
     let eventSellerMap = {};
+    let ordersList = []; // 快取前台登記訂單資料
 
-    // 載入 users.json & members.json 到抵用金下拉選單
+    // 載入 users.json & members.json 到下拉選單
     document.addEventListener('DOMContentLoaded', () => {
       fetch('users.json')
         .then(res => res.json())
@@ -282,15 +292,25 @@
       fetch('members.json')
         .then(res => res.json())
         .then(members => {
+          // 抵用金頁籤成員選單
           const memberSel = document.getElementById('cMember');
           memberSel.innerHTML = '<option value="">請選擇成員</option>';
+          // 活動成本頁籤成員選單
+          const evMemberSel = document.getElementById('evMember');
+          evMemberSel.innerHTML = '<option value="">請選擇成員</option>';
+
           members.forEach(m => {
-            const opt = document.createElement('option');
-            opt.value = m;
-            opt.textContent = m;
-            memberSel.appendChild(opt);
+            const opt1 = document.createElement('option');
+            opt1.value = m;
+            opt1.textContent = m;
+            memberSel.appendChild(opt1);
+
+            const opt2 = document.createElement('option');
+            opt2.value = m;
+            opt2.textContent = m;
+            evMemberSel.appendChild(opt2);
           });
-        }).catch(err => console.error("cMember 載入失敗:", err));
+        }).catch(err => console.error("members 載入失敗:", err));
     });
 
     onAuthStateChanged(auth, (user) => {
@@ -325,6 +345,12 @@
     };
 
     function initAdminDataListeners() {
+      // 自動監聽前台登記訂單 (orders)，作為包數統計
+      onSnapshot(collection(db, "orders"), snap => {
+        ordersList = [];
+        snap.forEach(d => ordersList.push(d.data()));
+      });
+
       // 1. 匯款對帳審核
       onSnapshot(collection(db, "payments"), snap => {
         const tb = document.getElementById('payTable');
@@ -381,7 +407,7 @@
         });
       });
 
-      // 3. 活動單價與成本設定
+      // 3. 活動單價與成本設定 (加入成員連動與自動銷售額計算)
       onSnapshot(collection(db, "event_settings"), snap => {
         const tb = document.getElementById('eventTable');
         const summaryBox = document.getElementById('eventSummaryBox');
@@ -401,8 +427,18 @@
 
         eventsList.forEach(ev => {
           const docId = ev.id;
-          const actUPriceTxt = ev.actQty > 0 ? `$${(ev.cost / ev.actQty).toFixed(1)}/張` : '<span style="color:#909399;">待填寫</span>';
           const closedBadge = ev.isClosed ? '<span class="closed-tag">🚫 已關閉</span>' : '';
+
+          // 1. 自動計算前台登記這筆「活動+成員」的總包數
+          const matchedOrders = ordersList.filter(o => {
+            const matchEvent = o.event === ev.name || o.event === ev.rawName;
+            const matchMember = !ev.member || o.member === ev.member;
+            return matchEvent && matchMember;
+          });
+          const totalOrderedPacks = matchedOrders.reduce((sum, o) => sum + (Number(o.quantity) || 0), 0);
+
+          // 2. 預估銷售額 = 登記總包數 × 單價
+          const estRevenue = totalOrderedPacks * (ev.price || 0);
 
           if (!eventSellerMap[ev.name]) eventSellerMap[ev.name] = [];
           if (ev.seller && !eventSellerMap[ev.name].includes(ev.seller)) {
@@ -412,23 +448,28 @@
           tb.innerHTML += `
             <tr>
               <td><b>${ev.name}</b>${closedBadge}</td>
+              <td><b>${ev.member || '全體/無'}</b></td>
               <td>${ev.seller || '未填寫'}</td>
               <td>${ev.note || '-'}</td>
-              <td>售價: $${ev.price || 0}<br><small style="color:#909399;">單張成本: ${actUPriceTxt}</small></td>
+              <td>$${ev.price || 0}/包</td>
+              <td><b>${totalOrderedPacks} 包</b></td>
+              <td><b style="color:#409eff;">$${estRevenue}</b></td>
               <td>$${ev.cost || 0}</td>
-              <td>${ev.actQty || 0}張</td>
+              <td>${ev.actQty || 0} 張</td>
               <td>
-                <button class="btn-edit" onclick="editEvent('${docId}', '${ev.name}', '${ev.rawDate||''}', '${ev.rawName||''}', '${ev.seller||''}', '${ev.note||''}', ${ev.price||0}, ${ev.cost||0}, ${ev.actQty||0}, ${ev.isClosed||false})">編輯</button>
+                <button class="btn-edit" onclick="editEvent('${docId}', '${ev.name}', '${ev.rawDate||''}', '${ev.rawName||''}', '${ev.member||''}', '${ev.seller||''}', '${ev.note||''}', ${ev.price||0}, ${ev.cost||0}, ${ev.actQty||0}, ${ev.isClosed||false})">編輯</button>
                 <button class="btn-danger" onclick="deleteEvent('${docId}')">刪除</button>
               </td>
             </tr>
           `;
 
           if (!eventGroups[ev.name]) {
-            eventGroups[ev.name] = { totalCost: 0, totalQty: 0, price: ev.price || 0, count: 0, isClosed: ev.isClosed };
+            eventGroups[ev.name] = { totalCost: 0, totalActQty: 0, totalRevenue: 0, totalPacks: 0, count: 0, isClosed: ev.isClosed };
           }
           eventGroups[ev.name].totalCost += (ev.cost || 0);
-          eventGroups[ev.name].totalQty += (ev.actQty || 0);
+          eventGroups[ev.name].totalActQty += (ev.actQty || 0);
+          eventGroups[ev.name].totalRevenue += estRevenue;
+          eventGroups[ev.name].totalPacks += totalOrderedPacks;
           eventGroups[ev.name].count += 1;
 
           if (!uniqueEvents.has(ev.name)) {
@@ -441,18 +482,16 @@
         });
 
         for (const [eventName, g] of Object.entries(eventGroups)) {
-          const avgCost = g.totalQty > 0 ? (g.totalCost / g.totalQty).toFixed(1) : 0;
-          const estRevenue = g.totalQty * g.price;
-          const estProfit = estRevenue - g.totalCost;
+          const estProfit = g.totalRevenue - g.totalCost;
 
           summaryBox.innerHTML += `
             <div class="summary-card">
-              <div class="summary-title">📊 活動總結算：${eventName} (${g.count} 筆進貨)${g.isClosed ? ' [已結團關閉]' : ''}</div>
+              <div class="summary-title">📊 活動總結算：${eventName} (${g.count} 筆成員代拍紀錄)${g.isClosed ? ' [已結團關閉]' : ''}</div>
               <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap:10px;">
-                <div>總購入金額：<b>$${g.totalCost}</b></div>
-                <div>總收到張數：<b>${g.totalQty} 張</b></div>
-                <div>全團平均單張成本：<b>$${avgCost}/張</b></div>
-                <div>預估銷售總額：<b>$${estRevenue}</b></div>
+                <div>總購入成本：<b>$${g.totalCost}</b></div>
+                <div>總登記售出：<b>${g.totalPacks} 包</b></div>
+                <div>實際收到圖檔：<b>${g.totalActQty} 張</b></div>
+                <div>預估總銷售額：<b>$${g.totalRevenue}</b></div>
                 <div>🔥 預估全團總利潤：<b style="color:${estProfit >= 0 ? '#67c23a' : '#f56c6c'};">$${estProfit}</b></div>
               </div>
             </div>
@@ -565,6 +604,7 @@
       e.preventDefault();
       const evDate = document.getElementById('evDate').value.trim();
       const evNameRaw = document.getElementById('evName').value.trim();
+      const member = document.getElementById('evMember').value;
       const seller = document.getElementById('evSeller').value.trim();
       const note = document.getElementById('evNote').value.trim();
       const price = parseFloat(document.getElementById('evPrice').value) || 0;
@@ -573,10 +613,10 @@
       const isClosed = document.getElementById('evIsClosed').checked;
 
       const fullName = evDate ? `${evDate} ${evNameRaw}` : evNameRaw;
-      const docId = document.getElementById('editEventId').value || `${fullName}_${seller || 'default'}_${Date.now()}`;
+      const docId = document.getElementById('editEventId').value || `${fullName}_${member || 'all'}_${seller || 'default'}_${Date.now()}`;
 
       await setDoc(doc(db, "event_settings", docId), {
-        name: fullName, rawDate: evDate, rawName: evNameRaw, seller, note, price, cost, actQty, isClosed
+        name: fullName, rawDate: evDate, rawName: evNameRaw, member, seller, note, price, cost, actQty, isClosed
       });
 
       alert('活動設定已儲存！');
@@ -590,10 +630,11 @@
       document.getElementById('cancelEditBtn').style.display = 'none';
     };
 
-    window.editEvent = (docId, fullName, rawDate, rawName, seller, note, price, cost, actQty, isClosed) => {
+    window.editEvent = (docId, fullName, rawDate, rawName, member, seller, note, price, cost, actQty, isClosed) => {
       document.getElementById('editEventId').value = docId;
       document.getElementById('evDate').value = rawDate || '';
       document.getElementById('evName').value = rawName || fullName;
+      document.getElementById('evMember').value = member || '';
       document.getElementById('evSeller').value = seller || '';
       document.getElementById('evNote').value = note || '';
       document.getElementById('evPrice').value = price || '';
