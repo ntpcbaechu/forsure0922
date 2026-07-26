@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>表單填寫</title>
+  <title>登記表單</title>
   <style>
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -33,7 +33,7 @@
       margin-bottom: 8px;
       font-weight: 600;
     }
-    select, input[type="text"], input[type="number"] {
+    select, input[type="text"], input[type="number"], textarea {
       width: 100%;
       padding: 12px;
       border: 1px solid #ccc;
@@ -62,6 +62,7 @@
   <div class="container">
     <h1>登記表單</h1>
     <form id="orderForm">
+      <!-- 1. 選擇成員名單 -->
       <div class="form-group">
         <label for="user">社群名稱 / 暱稱 *</label>
         <select id="user" required>
@@ -69,18 +70,53 @@
         </select>
       </div>
 
-      <button type="submit">提交</button>
+      <!-- 2. 選擇商品/活動 -->
+      <div class="form-group">
+        <label for="event">品項 / 活動名稱 *</label>
+        <select id="event" required>
+          <option value="">載入活動列表中...</option>
+        </select>
+      </div>
+
+      <!-- 3. 數量 -->
+      <div class="form-group">
+        <label for="quantity">數量 *</label>
+        <input type="number" id="quantity" min="1" value="1" required>
+      </div>
+
+      <!-- 4. 備註 -->
+      <div class="form-group">
+        <label for="note">備註欄位</label>
+        <input type="text" id="note" placeholder="如有其他需求請填寫">
+      </div>
+
+      <button type="submit" id="submitBtn">提交訂單</button>
     </form>
   </div>
 
-  <script>
-    // 自動載入 users.json 的成員名單
+  <script type="module">
+    // 匯入 Firebase SDK
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+    // TODO: 請確認底下的 Firebase 設定與你的專案一致
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "forsure0922.firebaseapp.com",
+      projectId: "forsure0922",
+      storageBucket: "forsure0922.appspot.com",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    // 1. 載入 users.json 名單
     document.addEventListener('DOMContentLoaded', () => {
       fetch('users.json')
         .then(response => {
-          if (!response.ok) {
-            throw new Error('無法讀取 users.json 檔案');
-          }
+          if (!response.ok) throw new Error('無法讀取 users.json');
           return response.json();
         })
         .then(users => {
@@ -95,9 +131,66 @@
         })
         .catch(error => {
           console.error('讀取名單失敗:', error);
-          const userSelect = document.getElementById('user');
-          userSelect.innerHTML = '<option value="">載入名單失敗，請刷洗頁面重試</option>';
+          document.getElementById('user').innerHTML = '<option value="">載入失敗，請重新整理</option>';
         });
+
+      // 2. 從 Firebase event_settings 載入活動下拉選單
+      loadEvents();
+    });
+
+    async function loadEvents() {
+      const eventSelect = document.getElementById('event');
+      try {
+        const querySnapshot = await getDocs(collection(db, "event_settings"));
+        eventSelect.innerHTML = '<option value="">請選擇品項 / 活動</option>';
+        querySnapshot.forEach((docSnap) => {
+          const data = docSnap.data();
+          const option = document.createElement('option');
+          option.value = data.eventName || docSnap.id;
+          option.textContent = data.eventName || docSnap.id;
+          eventSelect.appendChild(option);
+        });
+      } catch (e) {
+        console.error("載入活動失敗:", e);
+        // 若無法讀取則提供備用選項
+        eventSelect.innerHTML = `
+          <option value="">請選擇品項 / 活動</option>
+          <option value="預設商品A">預設商品 A</option>
+        `;
+      }
+    }
+
+    // 3. 表單送出 logic
+    document.getElementById('orderForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const submitBtn = document.getElementById('submitBtn');
+      submitBtn.disabled = true;
+      submitBtn.textContent = '提交中...';
+
+      const userName = document.getElementById('user').value;
+      const eventName = document.getElementById('event').value;
+      const quantity = parseInt(document.getElementById('quantity').value, 10);
+      const note = document.getElementById('note').value;
+
+      try {
+        await addDoc(collection(db, "orders"), {
+          user: userName,
+          event: eventName,
+          quantity: quantity,
+          note: note,
+          status: "pending_payment", // 預設狀態設為「待匯款」
+          createdAt: new Date()
+        });
+
+        alert('提交成功！狀態已記錄為「待匯款」');
+        document.getElementById('orderForm').reset();
+      } catch (error) {
+        console.error("提交錯誤:", error);
+        alert('提交失敗：' + error.message);
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = '提交訂單';
+      }
     });
   </script>
 </body>
