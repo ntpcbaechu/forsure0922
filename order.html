@@ -101,11 +101,11 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    // 載入活動清單
+    // 載入活動清單（改從 event_settings 抓取）
     async function loadEvents() {
       const eventSelect = document.getElementById('event');
       try {
-        const snap = await getDocs(collection(db, "events"));
+        const snap = await getDocs(collection(db, "event_settings"));
         
         if (snap.empty) {
           eventSelect.innerHTML = '<option value="">目前尚無開放的場次</option>';
@@ -115,14 +115,15 @@
         let events = [];
         snap.forEach(doc => {
           const d = doc.data();
-          const name = d.name || d.eventName || d.title || '未命名活動';
+          const name = d.name || d.eventName || d.title || doc.id;
           events.push({
             name: name,
-            createdAt: d.createdAt ? (d.createdAt.seconds || 0) : 0
+            rawDate: d.rawDate || ''
           });
         });
 
-        events.sort((a, b) => b.createdAt - a.createdAt);
+        // 簡單依 rawDate 排序讓新的在前面
+        events.sort((a, b) => b.rawDate.localeCompare(a.rawDate));
 
         eventSelect.innerHTML = '<option value="">-- 請選擇場次 --</option>';
         events.forEach(item => {
