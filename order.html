@@ -105,7 +105,6 @@
     async function loadEvents() {
       const eventSelect = document.getElementById('event');
       try {
-        // 移除 orderBy，改在抓出資料後用記憶體排序，避免 Firestore 索引出錯導致連線中斷
         const snap = await getDocs(collection(db, "events"));
         
         if (snap.empty) {
@@ -123,7 +122,6 @@
           });
         });
 
-        // 照建立時間降冪排序（新的在前面）
         events.sort((a, b) => b.createdAt - a.createdAt);
 
         eventSelect.innerHTML = '<option value="">-- 請選擇場次 --</option>';
@@ -132,7 +130,7 @@
         });
 
       } catch (err) {
-        console.error("Firestore 載入場次失敗資訊：", err);
+        alert("載入場次失敗錯誤：" + err.message);
         eventSelect.innerHTML = '<option value="">載入失敗，請重新整理</option>';
       }
       notifyHeight();
