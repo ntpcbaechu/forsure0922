@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FORSURE🐶📸 - 登記表單</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 20px; max-width: 480px; margin: 0 auto; background-color: #f4f6f8; color: #333; }
+    .card { background: #ffffff; padding: 28px 24px; border-radius: 16px; box-shadow: 0 8px 20px rgba(0,0,0,0.06); }
+    h1 { font-size: 22px; margin-top: 0; margin-bottom: 20px; color: #222; text-align: center; }
+    .form-group { margin-bottom: 18px; position: relative; }
+    label { display: block; margin-bottom: 6px; font-weight: 600; font-size: 14px; color: #444; }
+    label.required::after { content: " *"; color: #f56c6c; }
+    input, select, textarea, button { width: 100%; padding: 12px 14px; border: 1px solid #dcdfe6; border-radius: 8px; box-sizing: border-box; font-size: 15px; background-color: #fff; transition: all 0.2s; font-family: inherit; }
+    input:focus, select:focus, textarea:focus { border-color: #409eff; outline: none; box-shadow: 0 0 0 3px rgba(64,158,255,0.1); }
+    .other-input { margin-top: 10px; display: none; }
+    .custom-dropdown-list { position: absolute; top: 100%; left: 0; right: 0; max-height: 200px; overflow-y: auto; background-color: #ffffff; border: 1px solid #e4e7ed; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); z-index: 1000; display: none; margin-top: 4px; }
+    .dropdown-item { padding: 10px 14px; cursor: pointer; font-size: 14px; color: #333; border-bottom: 1px solid #f2f6fc; }
+    .dropdown-item:hover { background-color: #f5f7fa; color: #409eff; }
+    button { background-color: #409eff; color: white; border: none; font-weight: 600; font-size: 16px; cursor: pointer; margin-top: 10px; border-radius: 8px; }
+    button:hover { background-color: #66b1ff; }
+    .btn-back { display: block; text-align: center; margin-top: 15px; color: #909399; text-decoration: none; font-size: 13px; }
+    .btn-back:hover { color: #409eff; }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <h1>FORSURE🐶📸 登記表單</h1>
+
+    <form id="orderForm">
+      <div class="form-group">
+        <label for="usernameInput" class="required">請選擇/輸入社群名稱</label>
+        <input type="text" id="usernameInput" placeholder="點擊選擇或輸入搜尋暱稱..." autocomplete="off" required>
+        <div id="userDropdown" class="custom-dropdown-list"></div>
+        <input type="text" id="userOtherInput" class="other-input" placeholder="請輸入您的社群名稱...">
+      </div>
+
+      <div class="form-group">
+        <label for="socialInput" class="required">請輸入 IG/Threads 帳號</label>
+        <input type="text" id="socialInput" placeholder="例：ntpcbaechu" autocomplete="off" required>
+      </div>
+
+      <div class="form-group">
+        <label for="eventSelect" class="required">活動名稱</label>
+        <select id="eventSelect" required>
+          <option value="" disabled selected>請選擇活動名稱</option>
+        </select>
+        <input type="text" id="eventOtherInput" class="other-input" placeholder="請自行填入活動名稱...">
+      </div>
+
+      <div class="form-group">
+        <label for="memberSelect" class="required">成員</label>
+        <select id="memberSelect" required>
+          <option value="" disabled selected>請選擇成員</option>
+          <option value="方燦">方燦</option>
+          <option value="Lee Know">Lee Know</option>
+          <option value="彰彬">彰彬</option>
+          <option value="鉉辰">鉉辰</option>
+          <option value="Han">Han</option>
+          <option value="Felix">Felix</option>
+          <option value="昇玟">昇玟</option>
+          <option value="I.N">I.N</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="quantityInput" class="required">張數</label>
+        <input type="text" id="quantityInput" placeholder="請輸入數字(例:100)" required autocomplete="off">
+      </div>
+
+      <div class="form-group">
+        <label for="noteInput">備註</label>
+        <textarea id="noteInput" rows="2"></textarea>
+      </div>
+
+      <button type="submit" id="submitBtn">送出登記</button>
+    </form>
+
+    <a href="index.html" class="btn-back">← 返回首頁</a>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDF7QySG1Jj4gdZvXwMRaKjRmI-lFKpj7k",
+      authDomain: "forsure0922.firebaseapp.com",
+      databaseURL: "https://forsure0922-default-rtdb.firebaseio.com",
+      projectId: "forsure0922",
+      storageBucket: "forsure0922.firebasestorage.app",
+      messagingSenderId: "817449290174",
+      appId: "1:817449290174:web:6b4ec1d36c171ff97011ef"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const eventList = ["260725 RUN IT (Day1)", "260726 RUN IT (Day2)", "260729 RUN IT (Day3)", "260801 RUN IT (Day4)", "260802 RUN IT (Day5)", "其他"];
+    const eventSelect = document.getElementById('eventSelect');
+    eventList.forEach(event => {
+      const opt = document.createElement('option');
+      opt.value = event;
+      opt.textContent = event;
+      eventSelect.appendChild(opt);
+    });
+
+    let allUsers = [];
+    const usernameInput = document.getElementById('usernameInput');
+    const userDropdown = document.getElementById('userDropdown');
+    const userOtherInput = document.getElementById('userOtherInput');
+
+    fetch('users.json').then(res => res.json()).then(data => {
+      allUsers = [...data, "其他"];
+      renderDropdown(allUsers);
+    });
+
+    function renderDropdown(users) {
+      userDropdown.innerHTML = '';
+      users.forEach(user => {
+        const item = document.createElement('div');
+        item.className = 'dropdown-item';
+        item.textContent = user;
+        item.addEventListener('mousedown', (e) => {
+          e.preventDefault();
+          selectUser(user);
+        });
+        userDropdown.appendChild(item);
+      });
+    }
+
+    function selectUser(user) {
+      usernameInput.value = user;
+      userDropdown.style.display = 'none';
+      if (user === '其他') { userOtherInput.style.display = 'block'; userOtherInput.required = true; }
+      else { userOtherInput.style.display = 'none'; userOtherInput.required = false; }
+    }
+
+    usernameInput.addEventListener('focus', () => { userDropdown.style.display = 'block'; });
+    usernameInput.addEventListener('blur', () => { setTimeout(() => { userDropdown.style.display = 'none'; }, 200); });
+    usernameInput.addEventListener('input', () => {
+      const val = usernameInput.value.toLowerCase();
+      renderDropdown(allUsers.filter(u => u.toLowerCase().includes(val)));
+      userDropdown.style.display = 'block';
+    });
+
+    const eventOtherInput = document.getElementById('eventOtherInput');
+    eventSelect.addEventListener('change', () => {
+      if (eventSelect.value === '其他') { eventOtherInput.style.display = 'block'; eventOtherInput.required = true; }
+      else { eventOtherInput.style.display = 'none'; eventOtherInput.required = false; }
+    });
+
+    document.getElementById('orderForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const userInput = usernameInput.value.trim();
+      const socialInput = document.getElementById('socialInput').value.trim();
+      const eventVal = eventSelect.value;
+      const memberVal = document.getElementById('memberSelect').value;
+      const qtyVal = document.getElementById('quantityInput').value.trim();
+      const noteVal = document.getElementById('noteInput').value.trim();
+
+      const finalUser = userInput === '其他' ? userOtherInput.value.trim() : userInput;
+      const finalEvent = eventVal === '其他' ? eventOtherInput.value.trim() : eventVal;
+
+      try {
+        await addDoc(collection(db, "orders"), {
+          user: finalUser, social: socialInput, event: finalEvent, member: memberVal, qty: parseInt(qtyVal), note: noteVal, createdAt: serverTimestamp()
+        });
+        alert(`登記成功！\n社群名稱：${finalUser}\n活動名稱：${finalEvent}\n成員：${memberVal}\n張數：${qtyVal}`);
+        document.getElementById('orderForm').reset();
+      } catch (err) { alert('提交失敗：' + err.message); }
+    });
+  </script>
+
+</body>
+</html>

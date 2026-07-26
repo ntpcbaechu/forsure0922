@@ -18,8 +18,7 @@
     th, td { padding: 10px; border-bottom: 1px solid #e4e7ed; text-align: left; font-size: 13px; }
     th { background: #f8f9fa; }
     
-    .status-ok { color: #67c23a; font-weight: bold; }
-    .status-err { color: #f56c6c; font-weight: bold; cursor: pointer; text-decoration: underline; }
+    .status-err { color: #f56c6c; font-weight: bold; cursor: pointer; text-decoration: underline; margin-top: 4px; }
     .btn-toggle { padding: 4px 8px; border-radius: 4px; font-size: 12px; cursor: pointer; border: 1px solid #dcdfe6; background: #fff; }
     .btn-toggle.ok-active { background: #e1f3d8; color: #67c23a; border-color: #67c23a; font-weight: bold; }
     .btn-toggle.err-active { background: #fef0f0; color: #f56c6c; border-color: #f56c6c; font-weight: bold; }
@@ -37,7 +36,7 @@
       <button class="tab-btn" onclick="switchTab(3)">4. 發圖進度更新</button>
     </div>
 
-    <!-- 頁籤一：匯款對帳審核 -->
+    <!-- 1. 匯款對帳審核 -->
     <div class="tab-content active">
       <h3>匯款登記與對帳管理</h3>
       <table>
@@ -56,7 +55,7 @@
       </table>
     </div>
 
-    <!-- 頁籤二：抵用金管理 -->
+    <!-- 2. 抵用金管理 -->
     <div class="tab-content">
       <h3>新增/修改成員抵用金</h3>
       <input type="text" id="creditUser" placeholder="社群暱稱">
@@ -68,7 +67,7 @@
       </table>
     </div>
 
-    <!-- 頁籤三：活動單價設定 -->
+    <!-- 3. 活動單價設定 -->
     <div class="tab-content">
       <h3>設定活動單張金額</h3>
       <input type="text" id="eventNameInput" placeholder="活動名稱 (例: 260725 RUN IT Day1)">
@@ -80,7 +79,7 @@
       </table>
     </div>
 
-    <!-- 頁籤四：發圖進度更新 -->
+    <!-- 4. 發圖進度更新 -->
     <div class="tab-content">
       <h3>發佈與更新發圖進度</h3>
       <input type="text" id="progEvent" placeholder="活動名稱">
@@ -124,14 +123,14 @@
       document.querySelectorAll('.tab-content').forEach((c, i) => c.classList.toggle('active', i === idx));
     };
 
-    // --- 1. 對帳管理審核 ---
+    // --- 對帳管理 ---
     onSnapshot(collection(db, "payments"), snap => {
       const tb = document.getElementById('payTable');
       tb.innerHTML = '';
       snap.forEach(d => {
         const p = d.data();
         const docId = d.id;
-        const status = p.status || 'pending'; // pending, ok, error
+        const status = p.status || 'pending';
         const noteErr = p.errorNote || '';
         const checkDate = p.checkDate || '';
         const actualAmt = p.actualAmt !== undefined ? p.actualAmt : p.finalPay;
@@ -160,33 +159,23 @@
 
     window.setPayStatus = async (docId, newStatus) => {
       if (newStatus === 'error') {
-        const reason = prompt("請輸入對帳問題原因（例如：金額少50元、帳號後五碼不符）：");
+        const reason = prompt("請輸入對帳問題原因（例：少匯50元、帳號後五碼不符）：");
         if (reason !== null) {
           const today = new Date().toISOString().slice(0,10);
-          await updateDoc(doc(db, "payments", docId), {
-            status: 'error',
-            errorNote: reason,
-            checkDate: today
-          });
+          await updateDoc(doc(db, "payments", docId), { status: 'error', errorNote: reason, checkDate: today });
         }
       } else {
         const today = new Date().toISOString().slice(0,10);
-        await updateDoc(doc(db, "payments", docId), {
-          status: 'ok',
-          errorNote: '',
-          checkDate: today
-        });
+        await updateDoc(doc(db, "payments", docId), { status: 'ok', errorNote: '', checkDate: today });
       }
     };
 
     window.editErrorNote = async (docId, oldNote) => {
-      const reason = prompt("修改對帳問題原因：", oldNote);
-      if (reason !== null) {
-        await updateDoc(doc(db, "payments", docId), { errorNote: reason });
-      }
+      const reason = prompt("修改問題原因：", oldNote);
+      if (reason !== null) { await updateDoc(doc(db, "payments", docId), { errorNote: reason }); }
     };
 
-    // --- 2. 抵用金管理 ---
+    // --- 抵用金管理 ---
     document.getElementById('saveCreditBtn').onclick = async () => {
       const user = document.getElementById('creditUser').value.trim();
       const credit = parseInt(document.getElementById('creditAmount').value) || 0;
@@ -200,12 +189,10 @@
     onSnapshot(collection(db, "user_credits"), snap => {
       const tb = document.getElementById('creditTable');
       tb.innerHTML = '';
-      snap.forEach(d => {
-        tb.innerHTML += `<tr><td>${d.data().user}</td><td>$${d.data().credit}</td></tr>`;
-      });
+      snap.forEach(d => { tb.innerHTML += `<tr><td>${d.data().user}</td><td>$${d.data().credit}</td></tr>`; });
     });
 
-    // --- 3. 活動單價設定 ---
+    // --- 活動單價 ---
     document.getElementById('saveEventBtn').onclick = async () => {
       const name = document.getElementById('eventNameInput').value.trim();
       const price = parseInt(document.getElementById('eventPriceInput').value) || 0;
@@ -217,12 +204,10 @@
     onSnapshot(collection(db, "event_settings"), snap => {
       const tb = document.getElementById('eventTable');
       tb.innerHTML = '';
-      snap.forEach(d => {
-        tb.innerHTML += `<tr><td>${d.data().name}</td><td>$${d.data().price} / 張</td></tr>`;
-      });
+      snap.forEach(d => { tb.innerHTML += `<tr><td>${d.data().name}</td><td>$${d.data().price} / 張</td></tr>`; });
     });
 
-    // --- 4. 發圖進度更新 ---
+    // --- 發圖進度 ---
     document.getElementById('saveProgBtn').onclick = async () => {
       const eventName = document.getElementById('progEvent').value.trim();
       const member = document.getElementById('progMember').value.trim();

@@ -10,14 +10,12 @@
     .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
     h1 { font-size: 20px; margin: 0; color: #222; }
     .progress-item { border: 1px solid #e4e7ed; border-radius: 12px; padding: 16px; margin-bottom: 14px; background: #fff; }
-    .item-title { font-weight: bold; font-size: 16px; margin-bottom: 6px; display: flex; justify-content: space-between; }
-    .item-meta { font-size: 13px; color: #909399; margin-bottom: 10px; }
-    .progress-bar-bg { background-color: #ebeef5; border-radius: 10px; height: 10px; overflow: hidden; }
-    .progress-bar-fill { background-color: #67c23a; height: 100%; transition: width 0.3s; }
+    .progress-bar-bg { background-color: #ebeef5; border-radius: 10px; height: 10px; overflow: hidden; margin-top: 8px; }
+    .progress-bar-fill { background-color: #67c23a; height: 100%; }
     .badge { padding: 2px 8px; border-radius: 4px; font-size: 12px; }
     .badge-done { background: #f0f9eb; color: #67c23a; }
     .badge-working { background: #fdf6ec; color: #e6a23c; }
-    .btn-back { background-color: #e4e7ed; color: #333; text-decoration: none; padding: 6px 12px; border-radius: 6px; font-size: 13px; }
+    .btn-back { background-color: #e4e7ed; color: #333; text-decoration: none; padding: 6px 12px; border-radius: 6px; font-size: 13px; font-weight: 600; }
   </style>
 </head>
 <body>
@@ -25,7 +23,7 @@
   <div class="card">
     <div class="header">
       <h1>FORSURE🐶📸 飯拍發放進度</h1>
-      <a href="index.html" class="btn-back">返回表單</a>
+      <a href="index.html" class="btn-back">← 返回首頁</a>
     </div>
 
     <div id="progressList">載入進度中...</div>
@@ -66,14 +64,12 @@
         const div = document.createElement('div');
         div.className = 'progress-item';
         div.innerHTML = `
-          <div class="item-title">
+          <div style="font-weight:bold; display:flex; justify-content:space-between;">
             <span>${item.eventName} - ${item.member}</span>
             <span class="badge ${isFinished ? 'badge-done' : 'badge-working'}">${isFinished ? '已發放完畢' : '整理中'}</span>
           </div>
-          <div class="item-meta">進度：${item.doneQty} / ${item.totalQty} 張 (${percent}%)</div>
-          <div class="progress-bar-bg">
-            <div class="progress-bar-fill" style="width: ${percent}%;"></div>
-          </div>
+          <div style="font-size:13px; color:#909399; margin-top:4px;">進度：${item.doneQty} / ${item.totalQty} 張 (${percent}%)</div>
+          <div class="progress-bar-bg"><div class="progress-bar-fill" style="width: ${percent}%;"></div></div>
         `;
         container.appendChild(div);
       });
