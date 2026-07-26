@@ -80,7 +80,7 @@
       <button class="tab-btn" onclick="switchTab(4)">5. 發圖進度更新</button>
     </div>
 
-    <!-- 0. 團員登記管理 (新增功能) -->
+    <!-- 0. 團員登記管理 -->
     <div class="tab-content active">
       <h3>團員填單紀錄管理 (修正登記錯成員/張數)</h3>
       <div style="margin-bottom:12px; display:flex; gap:10px;">
@@ -295,7 +295,6 @@
 
     let eventSellerMap = {};
     let ordersList = [];
-    let memberListGlobal = [];
 
     document.addEventListener('DOMContentLoaded', () => {
       fetch('users.json')
@@ -314,7 +313,6 @@
       fetch('members.json')
         .then(res => res.json())
         .then(members => {
-          memberListGlobal = members;
           const memberSel = document.getElementById('cMember');
           memberSel.innerHTML = '<option value="">請選擇成員</option>';
           const evMemberSel = document.getElementById('evMember');
@@ -366,7 +364,7 @@
     };
 
     function initAdminDataListeners() {
-      // 0. 團員登記管理 (orders 監聽與修改)
+      // 0. 團員登記管理
       onSnapshot(collection(db, "orders"), snap => {
         ordersList = [];
         const tb = document.getElementById('ordersAdminTable');
@@ -454,7 +452,7 @@
         });
       });
 
-      // 3. 活動單價與成本設定
+      // 3. 活動單價與成本設定 (依活動+成員獨立進行利潤與包數結算)
       onSnapshot(collection(db, "event_settings"), snap => {
         const tb = document.getElementById('eventTable');
         const summaryBox = document.getElementById('eventSummaryBox');
@@ -470,12 +468,14 @@
         eventsList.sort((a, b) => (a.rawDate || a.name).localeCompare(b.rawDate || b.name));
 
         const uniqueEvents = new Set();
-        const eventGroups = {};
+        const memberGroups = {};
 
         eventsList.forEach(ev => {
           const docId = ev.id;
           const closedBadge = ev.isClosed ? '<span class="closed-tag">🚫 已關閉</span>' : '';
+          const mName = ev.member || '全體/無';
 
+          // 計算該活動 + 該成員的喊單包數
           const matchedOrders = ordersList.filter(o => {
             const matchEvent = (o.event === ev.name || o.event === ev.rawName || o.fullEvent === ev.name);
             const matchMember = !ev.member || o.member === ev.member;
@@ -496,7 +496,7 @@
           tb.innerHTML += `
             <tr>
               <td><b>${ev.name}</b>${closedBadge}</td>
-              <td><b>${ev.member || '全體/無'}</b></td>
+              <td><b>${mName}</b></td>
               <td>${ev.seller || '未填寫'}</td>
               <td>${ev.note || '-'}</td>
               <td>$${ev.price || 0}/包</td>
@@ -511,8 +511,12 @@
             </tr>
           `;
 
-          if (!eventGroups[ev.name]) {
-            eventGroups[ev.name] = { 
+          // 按「活動名稱 + 成員」進行獨立結算分組
+          const groupKey = `${ev.name}__${mName}`;
+          if (!memberGroups[groupKey]) {
+            memberGroups[groupKey] = { 
+              eventName: ev.name,
+              member: mName,
               unitPrice: ev.price || 0,
               totalCost: 0, 
               totalActQty: 0, 
@@ -520,9 +524,9 @@
               isClosed: ev.isClosed 
             };
           }
-          eventGroups[ev.name].totalCost += (ev.cost || 0);
-          eventGroups[ev.name].totalActQty += (ev.actQty || 0);
-          eventGroups[ev.name].count += 1;
+          memberGroups[groupKey].totalCost += (ev.cost || 0);
+          memberGroups[groupKey].totalActQty += (ev.actQty || 0);
+          memberGroups[groupKey].count += 1;
 
           if (!uniqueEvents.has(ev.name)) {
             uniqueEvents.add(ev.name);
@@ -533,22 +537,28 @@
           }
         });
 
-        for (const [eventName, g] of Object.entries(eventGroups)) {
-          const actOrders = ordersList.filter(o => (o.event === eventName || o.fullEvent === eventName || o.rawName === eventName));
-          const realEventPacks = actOrders.reduce((sum, o) => {
+        // 為每個「活動 + 成員」獨立生成結算卡片
+        for (const [groupKey, g] of Object.entries(memberGroups)) {
+          const actOrders = ordersList.filter(o => {
+            const matchEv = (o.event === g.eventName || o.fullEvent === g.eventName || o.rawName === g.eventName);
+            const matchMem = g.member === '全體/無' ? true : (o.member === g.member);
+            return matchEv && matchMem;
+          });
+
+          const realPacks = actOrders.reduce((sum, o) => {
             const qty = Number(o.qty !== undefined ? o.qty : (o.quantity !== undefined ? o.quantity : o.count)) || 0;
             return sum + qty;
           }, 0);
 
-          const realTotalRevenue = realEventPacks * g.unitPrice;
+          const realTotalRevenue = realPacks * g.unitPrice;
           const estProfit = realTotalRevenue - g.totalCost;
 
           summaryBox.innerHTML += `
             <div class="summary-card">
-              <div class="summary-title">📊 活動總結算：${eventName} (${g.count} 筆成員代拍紀錄)${g.isClosed ? ' [已結團關閉]' : ''}</div>
+              <div class="summary-title">📊 成員活動總結算：${g.eventName} - <span style="color:#409eff;">${g.member}</span> (${g.count} 筆代拍紀錄)${g.isClosed ? ' [已結團關閉]' : ''}</div>
               <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap:10px;">
                 <div>總購入成本：<b>$${g.totalCost}</b></div>
-                <div>總登記售出：<b>${realEventPacks} 包</b></div>
+                <div>總登記售出：<b>${realPacks} 包</b></div>
                 <div>實際收到圖檔：<b>${g.totalActQty} 張</b></div>
                 <div>預估總銷售額：<b>$${realTotalRevenue}</b></div>
                 <div>🔥 預估全團總利潤：<b style="color:${estProfit >= 0 ? '#67c23a' : '#f56c6c'};">$${estProfit}</b></div>
@@ -594,7 +604,7 @@
         await updateDoc(doc(db, "orders", docId), {
           member: newMember.trim(),
           qty: newQty,
-          quantity: newQty // 兼容舊欄位
+          quantity: newQty
         });
         alert('✅ 登記成員與張數已成功修改！前台將同步更新。');
       } catch (err) {
@@ -610,7 +620,6 @@
       }
     };
 
-    // 關鍵字搜尋過濾登記列表
     document.getElementById('searchOrderInput').addEventListener('input', (e) => {
       const kw = e.target.value.toLowerCase();
       const rows = document.querySelectorAll('#ordersAdminTable tr');
