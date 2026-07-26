@@ -3,33 +3,64 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>登記表單</title>
+  <title>表單填寫</title>
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 10px; margin: 0; background: #fff; color: #333; }
-    .form-group { margin-bottom: 15px; }
-    label { font-weight: bold; font-size: 14px; display: block; margin-bottom: 5px; color: #606266; }
-    input, select { width: 100%; padding: 10px; font-size: 14px; border: 1px solid #dcdfe6; border-radius: 8px; box-sizing: border-box; }
-    input:focus, select:focus { border-color: #409eff; outline: none; }
-    .submit-btn { width: 100%; background: #409eff; color: #fff; border: none; padding: 12px; font-size: 16px; font-weight: bold; border-radius: 8px; cursor: pointer; transition: background 0.2s; }
-    .submit-btn:hover { background: #66b1ff; }
-
-    /* 成功憑證卡片樣式 */
-    .receipt-card { background: #f0f9eb; border: 1px solid #e1f3d8; border-radius: 12px; padding: 20px; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-    .receipt-title { font-size: 18px; font-weight: bold; color: #67c23a; margin-bottom: 15px; }
-    .receipt-body { background: #fff; border-radius: 8px; border: 1px dashed #b3e19d; padding: 15px; text-align: left; font-size: 14px; line-height: 1.8; color: #303133; margin-bottom: 15px; }
-    .receipt-btn-group { display: flex; gap: 10px; justify-content: center; }
-    .btn-secondary { background: #ecf5ff; color: #409eff; border: 1px solid #b3d8ff; padding: 10px 16px; font-size: 14px; font-weight: bold; border-radius: 8px; cursor: pointer; flex: 1; }
-    .btn-secondary:hover { background: #409eff; color: #fff; }
-    .btn-outline { background: #fff; color: #606266; border: 1px solid #dcdfe6; padding: 10px 16px; font-size: 14px; border-radius: 8px; cursor: pointer; flex: 1; }
-    .btn-outline:hover { background: #f4f4f5; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background-color: #f5f5f7;
+      color: #333;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background: #fff;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 24px;
+      color: #1d1d1f;
+    }
+    .form-group {
+      margin-bottom: 20px;
+    }
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+    }
+    select, input[type="text"], input[type="number"] {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      box-sizing: border-box;
+      font-size: 16px;
+    }
+    button {
+      width: 100%;
+      padding: 14px;
+      background-color: #0071e3;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    button:hover {
+      background-color: #0077ed;
+    }
   </style>
 </head>
 <body>
-
-  <!-- 表單區塊 -->
-  <div id="formSection">
-    <h3 style="font-size: 17px; margin-top:0; margin-bottom: 15px; color:#303133;">📝 飯拍登記表單</h3>
-    
+  <div class="container">
+    <h1>登記表單</h1>
     <form id="orderForm">
       <div class="form-group">
         <label for="user">社群名稱 / 暱稱 *</label>
@@ -38,197 +69,36 @@
         </select>
       </div>
 
-      <div class="form-group">
-        <label for="event">選擇場次 / 活動 *</label>
-        <select id="event" required>
-          <option value="">載入場次中...</option>
-        </select>
-      </div>
-
-      <div class="form-group">
-        <label for="member">成員名稱 *</label>
-        <select id="member" required>
-          <option value="">請選擇成員</option>
-          <option value="方燦">方燦</option>
-          <option value="Lee Know">Lee Know</option>
-          <option value="彰彬">彰彬</option>
-          <option value="鉉辰">鉉辰</option>
-          <option value="Han">Han</option>
-          <option value="Felix">Felix</option>
-          <option value="昇玟">昇玟</option>
-          <option value="I.N">I.N</option>
-          <option value="團體/全體">團體/全體</option>
-        </select>
-      </div>
-
-      <div class="form-group">
-        <label for="qty">喊單張數 *</label>
-        <input type="number" id="qty" min="1" value="100" required>
-      </div>
-
-      <button type="submit" class="submit-btn" id="submitBtn">送出登記</button>
+      <button type="submit">提交</button>
     </form>
   </div>
 
-  <!-- 送出成功憑證區塊 (預設隱藏) -->
-  <div id="receiptSection" style="display: none;">
-    <div class="receipt-card">
-      <div class="receipt-title">🎉 請將此畫面截圖存檔</div>
-      
-      <div class="receipt-body" id="receiptContent">
-        <!-- JS 動態帶入資料 -->
-      </div>
-
-      <div class="receipt-btn-group">
-        <button class="btn-secondary" onclick="copyReceiptText()">📋 複製訂單明細</button>
-        <button class="btn-outline" onclick="resetForm()">📝 再填一筆</button>
-      </div>
-    </div>
-  </div>
-
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore, collection, addDoc, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-
-    const firebaseConfig = {
-      apiKey: "AIzaSyDF7QySG1Jj4gdZvXwMRaKjRmI-lFKpj7k",
-      authDomain: "forsure0922.firebaseapp.com",
-      databaseURL: "https://forsure0922-default-rtdb.firebaseio.com",
-      projectId: "forsure0922",
-      storageBucket: "forsure0922.firebasestorage.app",
-      messagingSenderId: "817449290174",
-      appId: "1:817449290174:web:6b4ec1d36c171ff97011ef"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-
-    // 同步載入「場次」與「社群成員名單（從 user_credits 或 users 取得，此處以 user_credits 為例）」
-    async function initPageData() {
-      const eventSelect = document.getElementById('event');
-      const userSelect = document.getElementById('user');
-
-      try {
-        // 1. 載入活動場次
-        const snapEvents = await getDocs(collection(db, "event_settings"));
-        if (snapEvents.empty) {
-          eventSelect.innerHTML = '<option value="">目前尚無開放的場次</option>';
-        } else {
-          let tempEvents = [];
-          snapEvents.forEach(doc => {
-            const d = doc.data();
-            const name = d.name || d.eventName || d.title || doc.id;
-            tempEvents.push({ name: name, rawDate: d.rawDate || '' });
+  <script>
+    // 自動載入 users.json 的成員名單
+    document.addEventListener('DOMContentLoaded', () => {
+      fetch('users.json')
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('無法讀取 users.json 檔案');
+          }
+          return response.json();
+        })
+        .then(users => {
+          const userSelect = document.getElementById('user');
+          userSelect.innerHTML = '<option value="">請選擇您的名稱</option>';
+          users.forEach(user => {
+            const option = document.createElement('option');
+            option.value = user;
+            option.textContent = user;
+            userSelect.appendChild(option);
           });
-          tempEvents.sort((a, b) => a.rawDate.localeCompare(b.rawDate));
-
-          let seenEvents = new Set();
-          eventSelect.innerHTML = '<option value="">-- 請選擇場次 --</option>';
-          tempEvents.forEach(item => {
-            if (!seenEvents.has(item.name)) {
-              seenEvents.add(item.name);
-              eventSelect.innerHTML += `<option value="${item.name}">${item.name}</option>`;
-            }
-          });
-        }
-
-        // 2. 載入社群名稱下拉選單 (從 user_credits 抓取現有名單)
-        const snapCredits = await getDocs(collection(db, "user_credits"));
-        userSelect.innerHTML = '<option value="">-- 請選擇社群名稱 --</option>';
-        let userSet = new Set();
-        snapCredits.forEach(doc => {
-          const d = doc.data();
-          if (d.user) userSet.add(d.user);
+        })
+        .catch(error => {
+          console.error('讀取名單失敗:', error);
+          const userSelect = document.getElementById('user');
+          userSelect.innerHTML = '<option value="">載入名單失敗，請刷洗頁面重試</option>';
         });
-
-        if (userSet.size === 0) {
-          userSelect.innerHTML = '<option value="" disabled>目前無可用成員名單，請先由後台新增</option>';
-        } else {
-          Array.from(userSet).sort().forEach(u => {
-            userSelect.innerHTML += `<option value="${u}">${u}</option>`;
-          });
-        }
-
-      } catch (err) {
-        alert("載入資料失敗錯誤：" + err.message);
-      }
-      notifyHeight();
-    }
-
-    initPageData();
-
-    let lastReceiptText = '';
-
-    // 送出表單
-    document.getElementById('orderForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const btn = document.getElementById('submitBtn');
-      btn.disabled = true;
-      btn.innerText = '處理中...';
-
-      const user = document.getElementById('user').value;
-      const eventVal = document.getElementById('event').value;
-      const memberVal = document.getElementById('member').value;
-      const qtyVal = parseInt(document.getElementById('qty').value) || 0;
-
-      const now = new Date();
-      const timeStr = now.toLocaleString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
-
-      try {
-        await addDoc(collection(db, "orders"), {
-          user: user,
-          event: eventVal,
-          member: memberVal,
-          qty: qtyVal,
-          time: timeStr,
-          status: "待匯款",
-          hasPaid: false,
-          createdAt: serverTimestamp()
-        });
-
-        const receiptHtml = `
-          👤 <b>社群名稱：</b>${user}<br>
-          📸 <b>選擇場次：</b>${eventVal}<br>
-          🐶 <b>成員名稱：</b>${memberVal}<br>
-          🔢 <b>喊單張數：</b>${qtyVal} 張<br>
-          ⏰ <b>填單時間：</b>${timeStr}<br>
-          📌 <b>目前狀態：</b>待匯款
-        `;
-
-        lastReceiptText = `🎉【FORSURE 登記憑證】\n👤 社群名稱：${user}\n📸 選擇場次：${eventVal}\n🐶 成員名稱：${memberVal}\n🔢 喊單張數：${qtyVal} 張\n⏰ 填單時間：${timeStr}\n📌 目前狀態：待匯款`;
-
-        document.getElementById('receiptContent').innerHTML = receiptHtml;
-        document.getElementById('formSection').style.display = 'none';
-        document.getElementById('receiptSection').style.display = 'block';
-
-      } catch (err) {
-        alert('登記失敗：' + err.message);
-      } finally {
-        btn.disabled = false;
-        btn.innerText = '送出登記';
-        notifyHeight();
-      }
     });
-
-    window.copyReceiptText = function() {
-      navigator.clipboard.writeText(lastReceiptText).then(() => {
-        alert('明細已複製到剪貼簿！');
-      }).catch(() => {
-        alert('複製失敗，請手動截圖保存。');
-      });
-    };
-
-    window.resetForm = function() {
-      document.getElementById('orderForm').reset();
-      document.getElementById('formSection').style.display = 'block';
-      document.getElementById('receiptSection').style.display = 'none';
-      notifyHeight();
-    };
-
-    function notifyHeight() {
-      setTimeout(() => { window.parent.postMessage({ frameHeight: document.body.scrollHeight }, '*'); }, 100);
-    }
   </script>
-
 </body>
 </html>
