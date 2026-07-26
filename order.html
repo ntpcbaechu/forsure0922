@@ -33,7 +33,9 @@
     <form id="orderForm">
       <div class="form-group">
         <label for="user">社群名稱 / 暱稱 *</label>
-        <input type="text" id="user" required placeholder="請輸入您在 Line 社群或 IG 的名稱">
+        <select id="user" required>
+          <option value="">載入成員名單中...</option>
+        </select>
       </div>
 
       <div class="form-group">
@@ -101,51 +103,59 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    // 載入活動清單（正序排列、過濾重複）
-    async function loadEvents() {
+    // 同步載入「場次」與「社群成員名單（從 user_credits 或 users 取得，此處以 user_credits 為例）」
+    async function initPageData() {
       const eventSelect = document.getElementById('event');
+      const userSelect = document.getElementById('user');
+
       try {
-        const snap = await getDocs(collection(db, "event_settings"));
-        
-        if (snap.empty) {
+        // 1. 載入活動場次
+        const snapEvents = await getDocs(collection(db, "event_settings"));
+        if (snapEvents.empty) {
           eventSelect.innerHTML = '<option value="">目前尚無開放的場次</option>';
-          return;
+        } else {
+          let tempEvents = [];
+          snapEvents.forEach(doc => {
+            const d = doc.data();
+            const name = d.name || d.eventName || d.title || doc.id;
+            tempEvents.push({ name: name, rawDate: d.rawDate || '' });
+          });
+          tempEvents.sort((a, b) => a.rawDate.localeCompare(b.rawDate));
+
+          let seenEvents = new Set();
+          eventSelect.innerHTML = '<option value="">-- 請選擇場次 --</option>';
+          tempEvents.forEach(item => {
+            if (!seenEvents.has(item.name)) {
+              seenEvents.add(item.name);
+              eventSelect.innerHTML += `<option value="${item.name}">${item.name}</option>`;
+            }
+          });
         }
 
-        let tempEvents = [];
-        snap.forEach(doc => {
+        // 2. 載入社群名稱下拉選單 (從 user_credits 抓取現有名單)
+        const snapCredits = await getDocs(collection(db, "user_credits"));
+        userSelect.innerHTML = '<option value="">-- 請選擇社群名稱 --</option>';
+        let userSet = new Set();
+        snapCredits.forEach(doc => {
           const d = doc.data();
-          const name = d.name || d.eventName || d.title || doc.id;
-          tempEvents.push({
-            name: name,
-            rawDate: d.rawDate || ''
+          if (d.user) userSet.add(d.user);
+        });
+
+        if (userSet.size === 0) {
+          userSelect.innerHTML = '<option value="" disabled>目前無可用成員名單，請先由後台新增</option>';
+        } else {
+          Array.from(userSet).sort().forEach(u => {
+            userSelect.innerHTML += `<option value="${u}">${u}</option>`;
           });
-        });
-
-        tempEvents.sort((a, b) => a.rawDate.localeCompare(b.rawDate));
-
-        let seen = new Set();
-        let events = [];
-        tempEvents.forEach(item => {
-          if (!seen.has(item.name)) {
-            seen.add(item.name);
-            events.push(item);
-          }
-        });
-
-        eventSelect.innerHTML = '<option value="">-- 請選擇場次 --</option>';
-        events.forEach(item => {
-          eventSelect.innerHTML += `<option value="${item.name}">${item.name}</option>`;
-        });
+        }
 
       } catch (err) {
-        alert("載入場次失敗錯誤：" + err.message);
-        eventSelect.innerHTML = '<option value="">載入失敗，請重新整理</option>';
+        alert("載入資料失敗錯誤：" + err.message);
       }
       notifyHeight();
     }
 
-    loadEvents();
+    initPageData();
 
     let lastReceiptText = '';
 
@@ -156,7 +166,7 @@
       btn.disabled = true;
       btn.innerText = '處理中...';
 
-      const user = document.getElementById('user').value.trim();
+      const user = document.getElementById('user').value;
       const eventVal = document.getElementById('event').value;
       const memberVal = document.getElementById('member').value;
       const qtyVal = parseInt(document.getElementById('qty').value) || 0;
@@ -171,12 +181,11 @@
           member: memberVal,
           qty: qtyVal,
           time: timeStr,
-          status: "待匯款", // 確保新送出的訂單狀態顯示為待匯款
+          status: "待匯款",
           hasPaid: false,
           createdAt: serverTimestamp()
         });
 
-        // 組成明細內容
         const receiptHtml = `
           👤 <b>社群名稱：</b>${user}<br>
           📸 <b>選擇場次：</b>${eventVal}<br>
@@ -201,7 +210,6 @@
       }
     });
 
-    // 複製明細
     window.copyReceiptText = function() {
       navigator.clipboard.writeText(lastReceiptText).then(() => {
         alert('明細已複製到剪貼簿！');
@@ -210,7 +218,6 @@
       });
     };
 
-    // 重置表單
     window.resetForm = function() {
       document.getElementById('orderForm').reset();
       document.getElementById('formSection').style.display = 'block';
