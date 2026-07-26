@@ -89,7 +89,6 @@
       renderOrders();
     });
 
-    // 支援包含與相容比對開團進度
     function getPhotoProgress(eventName, member) {
       return photoProgressList.find(p => {
         const matchEvent = (p.eventName === eventName || p.event === eventName);
@@ -164,7 +163,6 @@
 
           const photoStatus = photoProg ? (photoProg.status || '') : '';
           const isPhotoSent = photoStatus === '已發圖';
-          // 只要包含「分圖」、「等圖」、「製作」、「催圖」、「上傳」即變成待匯款
           const isWaitingForPhoto = photoStatus.includes('分圖') || photoStatus.includes('等圖') || photoStatus.includes('製作') || photoStatus.includes('催圖') || photoStatus.includes('上傳');
 
           let statusHtml = '<span class="status-tag status-registered">📝 已登記</span>';

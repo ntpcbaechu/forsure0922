@@ -5,16 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>登記表單</title>
   <style>
-    /* 讓子頁面背景透明、內外邊距乾淨，專門給 index.html 的 iframe 嵌入 */
     html, body {
       margin: 0;
       padding: 10px;
       background-color: transparent;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
       color: #333;
-      overflow: hidden; /* 防止子頁面自己跳滾輪 */
+      overflow: hidden;
     }
-
     .container {
       max-width: 600px;
       margin: 0 auto;
@@ -24,7 +22,6 @@
       box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
       box-sizing: border-box;
     }
-
     h1 {
       text-align: center;
       margin-top: 0;
@@ -32,18 +29,15 @@
       color: #1d1d1f;
       font-size: 24px;
     }
-
     .form-group {
       margin-bottom: 20px;
     }
-
     label {
       display: block;
       margin-bottom: 8px;
       font-weight: 600;
       font-size: 15px;
     }
-
     select, input[type="text"], input[type="number"], textarea {
       width: 100%;
       padding: 12px;
@@ -54,11 +48,9 @@
       outline: none;
       transition: border-color 0.2s;
     }
-
     select:focus, input:focus, textarea:focus {
       border-color: #0071e3;
     }
-
     button {
       width: 100%;
       padding: 14px;
@@ -72,7 +64,6 @@
       transition: background 0.2s;
       margin-top: 10px;
     }
-
     button:hover {
       background-color: #0077ed;
     }
@@ -82,7 +73,6 @@
   <div class="container">
     <h1>登記表單</h1>
     <form id="orderForm">
-      <!-- 1. 選擇成員名單 (從 users.json 載入) -->
       <div class="form-group">
         <label for="user">社群名稱 / 暱稱 *</label>
         <select id="user" required>
@@ -90,7 +80,6 @@
         </select>
       </div>
 
-      <!-- 2. 選擇商品/活動 (從 Firebase event_settings 載入) -->
       <div class="form-group">
         <label for="event">品項 / 活動名稱 *</label>
         <select id="event" required>
@@ -98,7 +87,6 @@
         </select>
       </div>
 
-      <!-- 3. 選擇成員 (從 members.json 載入) -->
       <div class="form-group">
         <label for="member">成員 *</label>
         <select id="member" required>
@@ -106,13 +94,11 @@
         </select>
       </div>
 
-      <!-- 4. 數量 -->
       <div class="form-group">
         <label for="quantity">數量 *</label>
         <input type="number" id="quantity" placeholder="請輸入數量" required min="1" step="1">
       </div>
 
-      <!-- 5. 備註 -->
       <div class="form-group">
         <label for="note">備註欄位</label>
         <input type="text" id="note" placeholder="如有其他需求請填寫">
@@ -126,8 +112,8 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-    // Firebase 配置
     const firebaseConfig = {
+      apiKey: "AIzaSyDF7QySG1Jj4gdZvXwMRaKjRmI-lFKpj7k",
       projectId: "forsure0922",
       authDomain: "forsure0922.firebaseapp.com",
       storageBucket: "forsure0922.appspot.com"
@@ -137,8 +123,8 @@
     const db = getFirestore(app);
 
     document.addEventListener('DOMContentLoaded', () => {
-      // 1. 載入 users.json 名單
-      fetch('users.json')
+      // 改為從上一層的 json 資料夾讀取
+      fetch('../json/users.json')
         .then(response => {
           if (!response.ok) throw new Error('無法讀取 users.json');
           return response.json();
@@ -158,8 +144,7 @@
           document.getElementById('user').innerHTML = '<option value="">載入名單失敗，請重新整理頁面</option>';
         });
 
-      // 2. 載入 members.json 成員名單
-      fetch('members.json')
+      fetch('../json/members.json')
         .then(response => {
           if (!response.ok) throw new Error('無法讀取 members.json');
           return response.json();
@@ -179,11 +164,9 @@
           document.getElementById('member').innerHTML = '<option value="">載入成員失敗，請重新整理頁面</option>';
         });
 
-      // 3. 載入活動列表
       loadEvents();
     });
 
-    // 載入 Firebase 活動設定（自動切除代拍檔名與廠商資訊）
     async function loadEvents() {
       const eventSelect = document.getElementById('event');
       try {
@@ -194,8 +177,7 @@
 
         querySnapshot.forEach((docSnap) => {
           const data = docSnap.data();
-
-          let displayTitle = data.title || data.displayName || data.eventName;
+          let displayTitle = data.title || data.displayName || data.eventName || data.name;
 
           if (!displayTitle) {
             displayTitle = docSnap.id.split('_')[0]; 
@@ -215,7 +197,6 @@
       }
     }
 
-    // 表單提交與數量嚴格驗證邏輯
     document.getElementById('orderForm').addEventListener('submit', async (e) => {
       e.preventDefault();
 
@@ -225,7 +206,6 @@
       const rawQuantity = document.getElementById('quantity').value.trim();
       const note = document.getElementById('note').value;
 
-      // 嚴格驗證數量：必須為正整數，不允許符號、小數、0 或負數
       const qtyNum = Number(rawQuantity);
       if (!rawQuantity || isNaN(qtyNum) || !Number.isInteger(qtyNum) || qtyNum <= 0) {
         alert('請輸入正確的購買數量（請勿輸入數字以外的符號）');
@@ -243,11 +223,11 @@
           member: memberName,
           quantity: qtyNum,
           note: note,
-          status: "pending_payment", // 預設狀態設為「待匯款」
+          hasPaid: false,
           createdAt: new Date()
         });
 
-        alert('提交成功！狀態已記錄為「待匯款」');
+        alert('提交成功！');
         document.getElementById('orderForm').reset();
       } catch (error) {
         console.error("提交錯誤:", error);

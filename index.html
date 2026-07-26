@@ -72,7 +72,7 @@
     iframe {
       width: 100%;
       border: none;
-      overflow: hidden; /* 徹底隱藏內部捲軸 */
+      overflow: hidden;
       transition: height 0.2s ease;
     }
   </style>
@@ -91,24 +91,23 @@
     </div>
 
     <div id="progress" class="tab-content active">
-      <iframe src="progress.html" id="iframe-progress" scrolling="no"></iframe>
+      <iframe src="index/index_progress.html" id="iframe-progress" scrolling="no"></iframe>
     </div>
 
     <div id="order" class="tab-content">
-      <iframe src="order.html" id="iframe-order" scrolling="no"></iframe>
+      <iframe src="index/index_order.html" id="iframe-order" scrolling="no"></iframe>
     </div>
 
     <div id="pay" class="tab-content">
-      <iframe src="payment.html" id="iframe-pay" scrolling="no"></iframe>
+      <iframe src="index/index_payment.html" id="iframe-pay" scrolling="no"></iframe>
     </div>
 
-    <!-- 這裡精準修正為 records.html -->
     <div id="query" class="tab-content">
-      <iframe src="records.html" id="iframe-query" scrolling="no"></iframe>
+      <iframe src="index/index_records.html" id="iframe-query" scrolling="no"></iframe>
     </div>
 
     <div id="credit" class="tab-content">
-      <iframe src="credit.html" id="iframe-credit" scrolling="no"></iframe>
+      <iframe src="index/index_credit.html" id="iframe-credit" scrolling="no"></iframe>
     </div>
   </div>
 
@@ -156,7 +155,6 @@
       }
     }
 
-    // 動態接收子頁面傳來的實時高度通知
     window.addEventListener('message', (event) => {
       if (event.data && event.data.frameHeight) {
         const activeIframe = document.querySelector('.tab-content.active iframe');
