@@ -139,7 +139,7 @@
         <div class="form-row-top">
           <div><label style="font-size:12px;">日期 (例: 260725)</label><input type="text" id="evDate" placeholder="260725" style="width:100%;"></div>
           <div><label style="font-size:12px;">活動名稱 (例: RUN IT)</label><input type="text" id="evName" placeholder="RUN IT (Day1)" required style="width:100%;"></div>
-          <div><label style="font-size:12px;">代拍 (例: 站姐A)</label><input type="text" id="evSeller" placeholder="代拍真實名稱" style="width:100%;"></div>
+          <div><label style="font-size:12px;">代拍 (例: 站姐A)</label><input type="text" id="evSeller" placeholder="代拍名稱" style="width:100%;"></div>
           <div><label style="font-size:12px;">備註</label><input type="text" id="evNote" placeholder="備註說明..." style="width:100%;"></div>
         </div>
 
@@ -178,8 +178,9 @@
     <!-- 4. 發圖進度更新 -->
     <div class="tab-content">
       <h3>發佈與更新發圖進度</h3>
+      <input type="hidden" id="editProgId">
       <div class="input-group">
-        <select id="progEventSelect" style="min-width: 200px;">
+        <select id="progEventSelect" style="min-width: 220px;">
           <option value="" disabled selected>載入活動中...</option>
         </select>
         
@@ -196,7 +197,10 @@
           <option value="團體/全體">團體/全體</option>
         </select>
 
-        <input type="text" id="progSeller" placeholder="真實代拍名字" style="width:140px; margin-bottom:0;">
+        <!-- 代拍下拉選單（自動帶入 Admin-3 設定的代拍名稱） -->
+        <select id="progSellerSelect" style="min-width: 130px;">
+          <option value="">預設/單一代拍</option>
+        </select>
 
         <select id="progStatus" style="width: 120px;">
           <option value="已預約">📅 已預約</option>
@@ -207,7 +211,8 @@
           <option value="已結束">🏁 已結束</option>
         </select>
         
-        <button id="saveProgBtn">發佈/更新進度</button>
+        <button id="saveProgBtn">發佈進度</button>
+        <button id="cancelProgBtn" style="background:#909399; display:none;" onclick="resetProgForm()">取消編輯</button>
       </div>
 
       <table>
@@ -242,6 +247,8 @@
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
+
+    let eventSellerMap = {}; // 紀錄各活動在 Admin-3 設定的代拍
 
     onAuthStateChanged(auth, (user) => {
       if (user) {
@@ -330,7 +337,7 @@
         });
       });
 
-      // 3. 活動單價與成本設定
+      // 3. 活動單價與成本設定 (自動收集代拍名稱供 Admin-4 選用)
       onSnapshot(collection(db, "event_settings"), snap => {
         const tb = document.getElementById('eventTable');
         const summaryBox = document.getElementById('eventSummaryBox');
@@ -339,6 +346,7 @@
         tb.innerHTML = '';
         summaryBox.innerHTML = '';
         progSelect.innerHTML = '<option value="" disabled selected>請選擇活動</option>';
+        eventSellerMap = {};
 
         let eventsList = [];
         snap.forEach(d => { eventsList.push({ id: d.id, ...d.data() }); });
@@ -351,6 +359,12 @@
           const docId = ev.id;
           const actUPriceTxt = ev.actQty > 0 ? `$${(ev.cost / ev.actQty).toFixed(1)}/張` : '<span style="color:#909399;">待填寫</span>';
           const closedBadge = ev.isClosed ? '<span class="closed-tag">🚫 已關閉</span>' : '';
+
+          // 收集每個活動在 Admin-3 設定的所有代拍
+          if (!eventSellerMap[ev.name]) eventSellerMap[ev.name] = [];
+          if (ev.seller && !eventSellerMap[ev.name].includes(ev.seller)) {
+            eventSellerMap[ev.name].push(ev.seller);
+          }
 
           tb.innerHTML += `
             <tr>
@@ -425,6 +439,23 @@
         });
       });
     }
+
+    // 當 Admin-4 選擇活動時，自動將該活動在 Admin-3 設定的代拍帶入選單
+    document.getElementById('progEventSelect').addEventListener('change', (e) => {
+      const selectedEvent = e.target.value;
+      const sellerSelect = document.getElementById('progSellerSelect');
+      sellerSelect.innerHTML = '<option value="">預設/單一代拍</option>';
+
+      const sellers = eventSellerMap[selectedEvent] || [];
+      sellers.forEach(s => {
+        if (s) {
+          const opt = document.createElement('option');
+          opt.value = s;
+          opt.textContent = s;
+          sellerSelect.appendChild(opt);
+        }
+      });
+    });
 
     window.updatePayField = async (docId, field, val) => { await updateDoc(doc(db, "payments", docId), { [field]: val }); };
 
@@ -535,30 +566,59 @@
       }
     };
 
+    // Admin-4 發佈 / 儲存修改進度
     document.getElementById('saveProgBtn').onclick = async () => {
       const fullEventName = document.getElementById('progEventSelect').value;
       const member = document.getElementById('progMember').value;
-      const seller = document.getElementById('progSeller').value.trim();
+      const seller = document.getElementById('progSellerSelect').value;
       const status = document.getElementById('progStatus').value;
+      const editId = document.getElementById('editProgId').value;
 
       if (!fullEventName) return alert('請選擇活動！');
       if (!member) return alert('請選擇成員！');
 
-      const docId = `${fullEventName}_${member}_${seller || 'single'}`;
+      const targetDocId = editId || `${fullEventName}_${member}_${seller || 'single'}`;
 
-      await setDoc(doc(db, "photo_progress", docId), {
+      await setDoc(doc(db, "photo_progress", targetDocId), {
         eventName: fullEventName, member, seller, status, updatedAt: serverTimestamp(), createdAt: serverTimestamp()
       }, { merge: true });
 
-      alert('發圖進度已更新');
-      document.getElementById('progSeller').value = '';
+      alert(editId ? '進度修改已儲存！' : '發圖進度已新增！');
+      resetProgForm();
+    };
+
+    window.resetProgForm = () => {
+      document.getElementById('editProgId').value = '';
+      document.getElementById('progEventSelect').value = '';
+      document.getElementById('progMember').value = '';
+      document.getElementById('progSellerSelect').innerHTML = '<option value="">預設/單一代拍</option>';
+      document.getElementById('progStatus').value = '已預約';
+      document.getElementById('saveProgBtn').textContent = '發佈進度';
+      document.getElementById('cancelProgBtn').style.display = 'none';
     };
 
     window.editProg = (docId, eventName, member, seller, status) => {
+      document.getElementById('editProgId').value = docId;
       document.getElementById('progEventSelect').value = eventName;
+      
+      // 觸發帶出該活動的代拍下拉選項
+      const sellerSelect = document.getElementById('progSellerSelect');
+      sellerSelect.innerHTML = '<option value="">預設/單一代拍</option>';
+      const sellers = eventSellerMap[eventName] || [];
+      sellers.forEach(s => {
+        if (s) {
+          const opt = document.createElement('option');
+          opt.value = s;
+          opt.textContent = s;
+          sellerSelect.appendChild(opt);
+        }
+      });
+
       document.getElementById('progMember').value = member;
-      document.getElementById('progSeller').value = seller || '';
+      document.getElementById('progSellerSelect').value = seller || '';
       document.getElementById('progStatus').value = status;
+      document.getElementById('saveProgBtn').textContent = '儲存修改';
+      document.getElementById('cancelProgBtn').style.display = 'inline-block';
     };
 
     window.deleteProg = async (docId) => {
