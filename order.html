@@ -86,7 +86,7 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore, collection, addDoc, getDocs, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyDF7QySG1Jj4gdZvXwMRaKjRmI-lFKpj7k",
@@ -105,14 +105,34 @@
     async function loadEvents() {
       const eventSelect = document.getElementById('event');
       try {
-        const snap = await getDocs(query(collection(db, "events"), orderBy("createdAt", "desc")));
-        eventSelect.innerHTML = '<option value="">-- 請選擇場次 --</option>';
+        // 移除 orderBy，改在抓出資料後用記憶體排序，避免 Firestore 索引出錯導致連線中斷
+        const snap = await getDocs(collection(db, "events"));
+        
+        if (snap.empty) {
+          eventSelect.innerHTML = '<option value="">目前尚無開放的場次</option>';
+          return;
+        }
+
+        let events = [];
         snap.forEach(doc => {
           const d = doc.data();
-          const name = d.name || d.eventName || '未命名活動';
-          eventSelect.innerHTML += `<option value="${name}">${name}</option>`;
+          const name = d.name || d.eventName || d.title || '未命名活動';
+          events.push({
+            name: name,
+            createdAt: d.createdAt ? (d.createdAt.seconds || 0) : 0
+          });
         });
+
+        // 照建立時間降冪排序（新的在前面）
+        events.sort((a, b) => b.createdAt - a.createdAt);
+
+        eventSelect.innerHTML = '<option value="">-- 請選擇場次 --</option>';
+        events.forEach(item => {
+          eventSelect.innerHTML += `<option value="${item.name}">${item.name}</option>`;
+        });
+
       } catch (err) {
+        console.error("Firestore 載入場次失敗資訊：", err);
         eventSelect.innerHTML = '<option value="">載入失敗，請重新整理</option>';
       }
       notifyHeight();
