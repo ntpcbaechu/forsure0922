@@ -5,54 +5,74 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>登記表單</title>
   <style>
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    /* 讓子頁面背景透明、內外邊距乾淨，專門給 index.html 的 iframe 嵌入 */
+    html, body {
       margin: 0;
-      padding: 20px;
-      background-color: #f5f5f7;
+      padding: 10px;
+      background-color: transparent;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
       color: #333;
+      overflow: hidden; /* 防止子頁面自己跳滾輪 */
     }
+
     .container {
       max-width: 600px;
       margin: 0 auto;
-      background: #fff;
+      background: #ffffff;
       padding: 30px;
-      border-radius: 12px;
-      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+      border-radius: 16px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+      box-sizing: border-box;
     }
+
     h1 {
       text-align: center;
+      margin-top: 0;
       margin-bottom: 24px;
       color: #1d1d1f;
+      font-size: 24px;
     }
+
     .form-group {
       margin-bottom: 20px;
     }
+
     label {
       display: block;
       margin-bottom: 8px;
       font-weight: 600;
+      font-size: 15px;
     }
+
     select, input[type="text"], input[type="number"], textarea {
       width: 100%;
       padding: 12px;
-      border: 1px solid #ccc;
-      border-radius: 8px;
+      border: 1px solid #d2d2d7;
+      border-radius: 10px;
       box-sizing: border-box;
       font-size: 16px;
+      outline: none;
+      transition: border-color 0.2s;
     }
+
+    select:focus, input:focus, textarea:focus {
+      border-color: #0071e3;
+    }
+
     button {
       width: 100%;
       padding: 14px;
       background-color: #0071e3;
       color: white;
       border: none;
-      border-radius: 8px;
+      border-radius: 10px;
       font-size: 16px;
       font-weight: 600;
       cursor: pointer;
       transition: background 0.2s;
+      margin-top: 10px;
     }
+
     button:hover {
       background-color: #0077ed;
     }
@@ -62,7 +82,7 @@
   <div class="container">
     <h1>登記表單</h1>
     <form id="orderForm">
-      <!-- 1. 選擇成員名單 -->
+      <!-- 1. 選擇成員名單 (從 users.json 載入) -->
       <div class="form-group">
         <label for="user">社群名稱 / 暱稱 *</label>
         <select id="user" required>
@@ -70,7 +90,7 @@
         </select>
       </div>
 
-      <!-- 2. 選擇商品/活動 -->
+      <!-- 2. 選擇商品/活動 (從 Firebase event_settings 載入) -->
       <div class="form-group">
         <label for="event">品項 / 活動名稱 *</label>
         <select id="event" required>
@@ -95,24 +115,20 @@
   </div>
 
   <script type="module">
-    // 匯入 Firebase SDK
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-    // TODO: 請確認底下的 Firebase 設定與你的專案一致
+    // Firebase 配置 (若您有自訂 Key 請更換)
     const firebaseConfig = {
-      apiKey: "YOUR_API_KEY",
-      authDomain: "forsure0922.firebaseapp.com",
       projectId: "forsure0922",
-      storageBucket: "forsure0922.appspot.com",
-      messagingSenderId: "YOUR_SENDER_ID",
-      appId: "YOUR_APP_ID"
+      authDomain: "forsure0922.firebaseapp.com",
+      storageBucket: "forsure0922.appspot.com"
     };
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    // 1. 載入 users.json 名單
+    // 載入 users.json 名單
     document.addEventListener('DOMContentLoaded', () => {
       fetch('users.json')
         .then(response => {
@@ -131,13 +147,13 @@
         })
         .catch(error => {
           console.error('讀取名單失敗:', error);
-          document.getElementById('user').innerHTML = '<option value="">載入失敗，請重新整理</option>';
+          document.getElementById('user').innerHTML = '<option value="">載入名單失敗，請刷洗頁面重試</option>';
         });
 
-      // 2. 從 Firebase event_settings 載入活動下拉選單
       loadEvents();
     });
 
+    // 載入 Firebase 活動設定
     async function loadEvents() {
       const eventSelect = document.getElementById('event');
       try {
@@ -152,15 +168,11 @@
         });
       } catch (e) {
         console.error("載入活動失敗:", e);
-        // 若無法讀取則提供備用選項
-        eventSelect.innerHTML = `
-          <option value="">請選擇品項 / 活動</option>
-          <option value="預設商品A">預設商品 A</option>
-        `;
+        eventSelect.innerHTML = '<option value="">請選擇品項 / 活動</option>';
       }
     }
 
-    // 3. 表單送出 logic
+    // 表單提交邏輯
     document.getElementById('orderForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const submitBtn = document.getElementById('submitBtn');
