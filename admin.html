@@ -22,6 +22,8 @@
     .btn-toggle { padding: 4px 8px; border-radius: 4px; font-size: 12px; cursor: pointer; border: 1px solid #dcdfe6; background: #fff; }
     .btn-toggle.ok-active { background: #e1f3d8; color: #67c23a; border-color: #67c23a; font-weight: bold; }
     .btn-toggle.err-active { background: #fef0f0; color: #f56c6c; border-color: #f56c6c; font-weight: bold; }
+    
+    .input-group { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
   </style>
 </head>
 <body>
@@ -82,11 +84,28 @@
     <!-- 4. 發圖進度更新 -->
     <div class="tab-content">
       <h3>發佈與更新發圖進度</h3>
-      <input type="text" id="progEvent" placeholder="活動名稱">
-      <input type="text" id="progMember" placeholder="成員 (例: 鉉辰)">
-      <input type="number" id="progTotal" placeholder="總照片張數">
-      <input type="number" id="progDone" placeholder="已發放張數">
-      <button id="saveProgBtn">發佈/更新進度</button>
+      <div class="input-group">
+        <input type="text" id="progDate" placeholder="日期 (YYMMDD)" style="width: 110px;">
+        <input type="text" id="progEvent" placeholder="活動名稱 (例: RUN IT (Day1))">
+        
+        <select id="progMember" style="width: 120px;">
+          <option value="" disabled selected>選擇成員</option>
+          <option value="方燦">方燦</option>
+          <option value="Lee Know">Lee Know</option>
+          <option value="彰彬">彰彬</option>
+          <option value="鉉辰">鉉辰</option>
+          <option value="Han">Han</option>
+          <option value="Felix">Felix</option>
+          <option value="昇玟">昇玟</option>
+          <option value="I.N">I.N</option>
+          <option value="團體/全體">團體/全體</option>
+        </select>
+        
+        <input type="number" id="progTotal" placeholder="總照片張數" style="width: 100px;">
+        <input type="number" id="progDone" placeholder="已發放張數" style="width: 100px;">
+        <button id="saveProgBtn">發佈/更新進度</button>
+      </div>
+
       <table>
         <thead><tr><th>活動/成員</th><th>進度</th></tr></thead>
         <tbody id="progTable"></tbody>
@@ -207,16 +226,23 @@
       snap.forEach(d => { tb.innerHTML += `<tr><td>${d.data().name}</td><td>$${d.data().price} / 張</td></tr>`; });
     });
 
-    // --- 發圖進度 ---
+    // --- 發圖進度更新 (改版：日期+活動名稱+成員下拉) ---
     document.getElementById('saveProgBtn').onclick = async () => {
-      const eventName = document.getElementById('progEvent').value.trim();
-      const member = document.getElementById('progMember').value.trim();
+      const dateStr = document.getElementById('progDate').value.trim();
+      const eventNameInput = document.getElementById('progEvent').value.trim();
+      const member = document.getElementById('progMember').value;
       const totalQty = parseInt(document.getElementById('progTotal').value) || 0;
       const doneQty = parseInt(document.getElementById('progDone').value) || 0;
 
-      const docId = `${eventName}_${member}`;
+      if (!eventNameInput) return alert('請填寫活動名稱！');
+      if (!member) return alert('請選擇成員！');
+
+      // 有填日期就組合成 "YYMMDD 活動名稱"，沒填就直接使用活動名稱
+      const fullEventName = dateStr ? `${dateStr} ${eventNameInput}` : eventNameInput;
+
+      const docId = `${fullEventName}_${member}`;
       await setDoc(doc(db, "photo_progress", docId), {
-        eventName, member, totalQty, doneQty, createdAt: serverTimestamp()
+        eventName: fullEventName, member, totalQty, doneQty, createdAt: serverTimestamp()
       });
       alert('發圖進度已更新');
     };
