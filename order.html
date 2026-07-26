@@ -101,7 +101,7 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    // 載入活動清單（改從 event_settings 抓取）
+    // 載入活動清單（正序排列、過濾重複）
     async function loadEvents() {
       const eventSelect = document.getElementById('event');
       try {
@@ -112,18 +112,28 @@
           return;
         }
 
-        let events = [];
+        let tempEvents = [];
         snap.forEach(doc => {
           const d = doc.data();
           const name = d.name || d.eventName || d.title || doc.id;
-          events.push({
+          tempEvents.push({
             name: name,
             rawDate: d.rawDate || ''
           });
         });
 
-        // 簡單依 rawDate 排序讓新的在前面
-        events.sort((a, b) => b.rawDate.localeCompare(a.rawDate));
+        // 依照 rawDate 正序排列（舊的在前，最新的在後）
+        tempEvents.sort((a, b) => a.rawDate.localeCompare(b.rawDate));
+
+        // 用 Set 過濾重複的場次名稱
+        let seen = new Set();
+        let events = [];
+        tempEvents.forEach(item => {
+          if (!seen.has(item.name)) {
+            seen.add(item.name);
+            events.push(item);
+          }
+        });
 
         eventSelect.innerHTML = '<option value="">-- 請選擇場次 --</option>';
         events.forEach(item => {
