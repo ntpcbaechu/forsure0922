@@ -5,60 +5,191 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>FORSURE🐶📸</title>
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 20px; max-width: 480px; margin: 0 auto; background-color: #f4f6f8; color: #333; }
-    .card { background: #ffffff; padding: 28px 24px; border-radius: 16px; box-shadow: 0 8px 20px rgba(0,0,0,0.06); text-align: center; }
-    h1 { font-size: 26px; margin-top: 0; margin-bottom: 8px; color: #222; }
-    p.subtitle { color: #909399; font-size: 14px; margin-bottom: 24px; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 15px; max-width: 650px; margin: 0 auto; background-color: #f4f6f8; color: #333; }
+    .card { background: #ffffff; padding: 24px; border-radius: 16px; box-shadow: 0 8px 20px rgba(0,0,0,0.06); }
+    h1 { font-size: 22px; margin-top: 0; margin-bottom: 20px; color: #222; text-align: center; }
     
-    .menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 20px; }
-    .menu-btn { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 18px 10px; background-color: #ffffff; border: 1px solid #e4e7ed; border-radius: 12px; text-decoration: none; color: #333; font-weight: bold; font-size: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.02); transition: all 0.2s; }
-    .menu-btn:hover { border-color: #409eff; color: #409eff; transform: translateY(-2px); box-shadow: 0 6px 14px rgba(64,158,255,0.12); }
-    .menu-btn .icon { font-size: 24px; margin-bottom: 8px; }
+    .nav-tabs { display: flex; border-bottom: 2px solid #e4e7ed; margin-bottom: 20px; gap: 4px; overflow-x: auto; }
+    .tab-btn { padding: 10px 12px; cursor: pointer; border: none; background: none; font-weight: 600; color: #909399; font-size: 14px; white-space: nowrap; }
+    .tab-btn.active { color: #409eff; border-bottom: 2px solid #409eff; }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
 
-    .progress-box { margin-top: 24px; text-align: left; background: #f8f9fa; border-radius: 12px; padding: 16px; border: 1px solid #ebeef5; }
-    .progress-box h3 { font-size: 15px; margin-top: 0; margin-bottom: 12px; color: #444; display: flex; justify-content: space-between; align-items: center; }
-    .progress-item { background: #fff; border-radius: 8px; padding: 12px; margin-bottom: 10px; border: 1px solid #e4e7ed; }
-    .progress-bar-bg { background-color: #ebeef5; border-radius: 10px; height: 8px; overflow: hidden; margin-top: 6px; }
-    .progress-bar-fill { background-color: #67c23a; height: 100%; }
-    .badge { padding: 2px 6px; border-radius: 4px; font-size: 11px; }
+    .form-group { margin-bottom: 18px; position: relative; }
+    label { display: block; margin-bottom: 6px; font-weight: 600; font-size: 14px; color: #444; }
+    label.required::after { content: " *"; color: #f56c6c; }
+    input, select, textarea, button { width: 100%; padding: 12px; border: 1px solid #dcdfe6; border-radius: 8px; box-sizing: border-box; font-size: 15px; background-color: #fff; transition: all 0.2s; font-family: inherit; }
+    input:focus, select:focus, textarea:focus { border-color: #409eff; outline: none; box-shadow: 0 0 0 3px rgba(64,158,255,0.1); }
+    .other-input { margin-top: 10px; display: none; }
+    .custom-dropdown-list { position: absolute; top: 100%; left: 0; right: 0; max-height: 200px; overflow-y: auto; background-color: #ffffff; border: 1px solid #e4e7ed; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); z-index: 1000; display: none; margin-top: 4px; }
+    .dropdown-item { padding: 10px; cursor: pointer; font-size: 14px; color: #333; border-bottom: 1px solid #f2f6fc; }
+    .dropdown-item:hover { background-color: #f5f7fa; color: #409eff; }
+    
+    button.submit-btn { background-color: #409eff; color: white; border: none; font-weight: 600; font-size: 16px; cursor: pointer; margin-top: 10px; border-radius: 8px; }
+    button.submit-btn:hover { background-color: #66b1ff; }
+
+    .calc-box { background-color: #f8f9fa; border: 1px dashed #409eff; border-radius: 8px; padding: 14px; margin-top: 15px; font-size: 14px; }
+    .calc-row { display: flex; justify-content: space-between; margin-bottom: 8px; }
+    .calc-row.total { border-top: 1px solid #dcdfe6; padding-top: 8px; font-weight: bold; font-size: 16px; color: #f56c6c; }
+    .checkbox-label { display: flex; align-items: center; gap: 8px; font-weight: normal; cursor: pointer; }
+    .checkbox-label input { width: auto; }
+
+    .progress-item { border: 1px solid #e4e7ed; border-radius: 12px; padding: 16px; margin-bottom: 14px; background: #fff; }
+    .progress-bar-bg { background-color: #ebeef5; border-radius: 10px; height: 10px; overflow: hidden; margin-top: 8px; }
+    .progress-bar-fill { background-color: #67c23a; height: 100%; transition: width 0.3s; }
+    .badge { padding: 2px 8px; border-radius: 4px; font-size: 12px; }
     .badge-done { background: #f0f9eb; color: #67c23a; }
     .badge-working { background: #fdf6ec; color: #e6a23c; }
+
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th, td { padding: 10px; text-align: left; border-bottom: 1px solid #e4e7ed; font-size: 13px; }
+    th { background-color: #f8f9fa; font-weight: 600; color: #555; }
+    .info-msg { font-size: 12px; color: #e6a23c; margin-top: 4px; }
   </style>
 </head>
 <body>
 
   <div class="card">
     <h1>FORSURE🐶📸</h1>
-    <p class="subtitle">歡迎來到 FORSURE 服務門戶</p>
 
-    <div class="menu-grid">
-      <a href="order.html" class="menu-btn">
-        <span class="icon">📝</span>
-        <span>填寫登記</span>
-      </a>
-      <a href="payment.html" class="menu-btn">
-        <span class="icon">💰</span>
-        <span>填寫匯款</span>
-      </a>
-      <a href="records.html" class="menu-btn">
-        <span class="icon">🔍</span>
-        <span>查詢登記</span>
-      </a>
-      <a href="progress.html" class="menu-btn">
-        <span class="icon">📸</span>
-        <span>發圖進度</span>
-      </a>
+    <div class="nav-tabs">
+      <button class="tab-btn active" onclick="switchMainTab(0)">🔥 開團與進度</button>
+      <button class="tab-btn" onclick="switchMainTab(1)">📝 登記表單</button>
+      <button class="tab-btn" onclick="switchMainTab(2)">💰 匯款表單</button>
+      <button class="tab-btn" onclick="switchMainTab(3)">🔍 查詢登記</button>
     </div>
 
-    <div class="progress-box">
-      <h3>🔥 最新開團與發圖進度 <a href="progress.html" style="font-size:12px; color:#409eff; text-decoration:none;">查看全部 →</a></h3>
-      <div id="homeProgressList">載入中...</div>
+    <!-- 頁籤一：開團與進度 -->
+    <div class="tab-panel active">
+      <h3 style="font-size: 16px; margin-top:0;">目前開團與飯拍發放進度</h3>
+      <div id="progressList">載入進度中...</div>
     </div>
+
+    <!-- 頁籤二：登記表單 -->
+    <div class="tab-panel">
+      <form id="orderForm">
+        <div class="form-group">
+          <label for="usernameInput" class="required">請選擇/輸入社群名稱</label>
+          <input type="text" id="usernameInput" placeholder="點擊選擇或輸入搜尋暱稱..." autocomplete="off" required>
+          <div id="userDropdown" class="custom-dropdown-list"></div>
+          <input type="text" id="userOtherInput" class="other-input" placeholder="請輸入您的社群名稱...">
+        </div>
+
+        <div class="form-group">
+          <label for="socialInput" class="required">請輸入 IG/Threads 帳號</label>
+          <input type="text" id="socialInput" placeholder="例：ntpcbaechu" autocomplete="off" required>
+        </div>
+
+        <div class="form-group">
+          <label for="eventSelect" class="required">活動名稱</label>
+          <select id="eventSelect" required>
+            <option value="" disabled selected>載入活動中...</option>
+          </select>
+          <input type="text" id="eventOtherInput" class="other-input" placeholder="請自行填入活動名稱...">
+        </div>
+
+        <div class="form-group">
+          <label for="memberSelect" class="required">成員</label>
+          <select id="memberSelect" required>
+            <option value="" disabled selected>請選擇成員</option>
+            <option value="方燦">方燦</option>
+            <option value="Lee Know">Lee Know</option>
+            <option value="彰彬">彰彬</option>
+            <option value="鉉辰">鉉辰</option>
+            <option value="Han">Han</option>
+            <option value="Felix">Felix</option>
+            <option value="昇玟">昇玟</option>
+            <option value="I.N">I.N</option>
+            <option value="團體/全體">團體/全體</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="quantityInput" class="required">張數</label>
+          <input type="text" id="quantityInput" placeholder="請輸入數字(例:100)" required autocomplete="off">
+        </div>
+
+        <div class="form-group">
+          <label for="noteInput">備註</label>
+          <textarea id="noteInput" rows="2"></textarea>
+        </div>
+
+        <button type="submit" id="submitBtn" class="submit-btn">送出登記</button>
+      </form>
+    </div>
+
+    <!-- 頁籤三：匯款表單 -->
+    <div class="tab-panel">
+      <form id="paymentForm">
+        <div class="form-group">
+          <label for="payUsernameInput" class="required">社群名稱</label>
+          <input type="text" id="payUsernameInput" placeholder="選擇或輸入搜尋暱稱..." autocomplete="off" required>
+          <div id="payUserDropdown" class="custom-dropdown-list"></div>
+        </div>
+
+        <div class="form-group">
+          <label for="paySocialInput" class="required">IG/Threads 帳號</label>
+          <input type="text" id="paySocialInput" placeholder="例：ntpcbaechu" required>
+        </div>
+
+        <div class="form-group">
+          <label for="payEventSelect" class="required">請選擇已登記未匯款的活動</label>
+          <select id="payEventSelect" required>
+            <option value="" disabled selected>請先選擇社群名稱</option>
+          </select>
+          <div id="noOrderMsg" class="info-msg" style="display:none;">⚠️ 此帳號目前沒有待匯款的登記紀錄！</div>
+        </div>
+
+        <div class="form-group">
+          <label for="payQtyInput" class="required">登記張數</label>
+          <input type="number" id="payQtyInput" placeholder="選擇活動後自動帶出" readonly required style="background:#f5f7fa;">
+        </div>
+
+        <div class="calc-box">
+          <div class="calc-row"><span>單價：</span><span id="unitPriceTxt">$0 / 張</span></div>
+          <div class="calc-row"><span>小計金額：</span><span id="subtotalTxt">$0</span></div>
+          <div class="calc-row">
+            <label class="checkbox-label">
+              <input type="checkbox" id="useCreditChk"> 使用抵用金 (可用餘額: <span id="creditBalanceTxt">$0</span>)
+            </label>
+            <span id="creditDeductTxt">-$0</span>
+          </div>
+          <div class="calc-row total"><span>最終應匯款金額：</span><span id="finalPayTxt">$0</span></div>
+        </div>
+
+        <div class="form-group" style="margin-top: 15px;">
+          <label for="bankLast5Input" class="required">匯款帳號後 5 碼</label>
+          <input type="text" id="bankLast5Input" maxlength="5" placeholder="例：12345" required>
+        </div>
+
+        <button type="submit" id="paySubmitBtn" class="submit-btn">送出匯款登記</button>
+      </form>
+    </div>
+
+    <!-- 頁籤四：查詢登記內容 -->
+    <div class="tab-panel">
+      <h3 style="font-size: 16px; margin-top:0;">公開登記紀錄</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>時間</th>
+            <th>社群名稱</th>
+            <th>活動名稱</th>
+            <th>成員</th>
+            <th>張數</th>
+          </tr>
+        </thead>
+        <tbody id="recordTableBody"></tbody>
+      </table>
+      <div id="recordEmptyMsg" style="text-align:center; padding:20px; color:#909399; display:none;">尚無登記紀錄</div>
+    </div>
+
   </div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore, collection, onSnapshot, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, doc, getDocs, updateDoc, onSnapshot, query, orderBy, serverTimestamp, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyDF7QySG1Jj4gdZvXwMRaKjRmI-lFKpj7k",
@@ -73,11 +204,90 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    const q = query(collection(db, "photo_progress"), orderBy("createdAt", "desc"), limit(3));
-    onSnapshot(q, (snapshot) => {
-      const container = document.getElementById('homeProgressList');
+    window.switchMainTab = (idx) => {
+      document.querySelectorAll('.tab-btn').forEach((b, i) => b.classList.toggle('active', i === idx));
+      document.querySelectorAll('.tab-panel').forEach((p, i) => p.classList.toggle('active', i === idx));
+    };
+
+    let allUsers = [];
+    let eventPrices = {};
+    let userCredits = {};
+    let userPendingOrders = [];
+    let currentCredit = 0;
+    let currentUnitPrice = 0;
+    let selectedOrderDocId = null;
+
+    // 載入動態活動選單
+    async function loadEvents() {
+      const eventSelect = document.getElementById('eventSelect');
+      const payEventSelect = document.getElementById('payEventSelect');
+      
+      eventSelect.innerHTML = '<option value="" disabled selected>請選擇活動名稱</option>';
+      eventPrices = {};
+
+      const snap = await getDocs(collection(db, "event_settings"));
+      snap.forEach(d => {
+        const data = d.data();
+        const name = data.name;
+        eventPrices[name] = data.price || 0;
+
+        const opt = document.createElement('option');
+        opt.value = name;
+        opt.textContent = name;
+        eventSelect.appendChild(opt);
+      });
+
+      const optOther = document.createElement('option');
+      optOther.value = '其他';
+      optOther.textContent = '其他';
+      eventSelect.appendChild(optOther);
+    }
+
+    fetch('users.json').then(res => res.json()).then(data => {
+      allUsers = [...data, "其他"];
+      setupDropdown('usernameInput', 'userDropdown', 'userOtherInput');
+      setupDropdown('payUsernameInput', 'payUserDropdown', null, onPayUserSelected);
+    });
+
+    function setupDropdown(inputId, dropdownId, otherInputId, callback) {
+      const input = document.getElementById(inputId);
+      const dropdown = document.getElementById(dropdownId);
+      const otherInput = otherInputId ? document.getElementById(otherInputId) : null;
+
+      function render(list) {
+        dropdown.innerHTML = '';
+        list.forEach(u => {
+          const item = document.createElement('div');
+          item.className = 'dropdown-item';
+          item.textContent = u;
+          item.onmousedown = (e) => {
+            e.preventDefault();
+            input.value = u;
+            dropdown.style.display = 'none';
+            if (otherInput) {
+              if (u === '其他') { otherInput.style.display = 'block'; otherInput.required = true; }
+              else { otherInput.style.display = 'none'; otherInput.required = false; }
+            }
+            if (callback) callback(u);
+          };
+          dropdown.appendChild(item);
+        });
+      }
+
+      input.onfocus = () => { dropdown.style.display = 'block'; render(allUsers); };
+      input.onblur = () => { setTimeout(() => dropdown.style.display = 'none', 200); };
+      input.oninput = () => {
+        const val = input.value.toLowerCase();
+        render(allUsers.filter(u => u.toLowerCase().includes(val)));
+        dropdown.style.display = 'block';
+      };
+    }
+
+    // 即時監聽進度
+    onSnapshot(query(collection(db, "photo_progress"), orderBy("createdAt", "desc")), (snapshot) => {
+      const container = document.getElementById('progressList');
       container.innerHTML = '';
-      if (snapshot.empty) { container.innerHTML = '<div style="text-align:center; color:#909399; font-size:13px;">目前尚無開團資訊</div>'; return; }
+      if (snapshot.empty) { container.innerHTML = '<div style="text-align:center; padding:20px; color:#909399;">目前尚無開團進度。</div>'; return; }
       snapshot.forEach(doc => {
         const item = doc.data();
         const percent = Math.min(100, Math.round((item.doneQty / item.totalQty) * 100)) || 0;
@@ -85,16 +295,181 @@
         const div = document.createElement('div');
         div.className = 'progress-item';
         div.innerHTML = `
-          <div style="font-size:13px; font-weight:bold; display:flex; justify-space-between;">
+          <div style="font-weight:bold; display:flex; justify-content:space-between;">
             <span>${item.eventName} - ${item.member}</span>
-            <span class="badge ${isFinished ? 'badge-done' : 'badge-working'}">${isFinished ? '已發完' : '整理中'}</span>
+            <span class="badge ${isFinished ? 'badge-done' : 'badge-working'}">${isFinished ? '已發放完畢' : '整理中'}</span>
           </div>
-          <div style="font-size:11px; color:#909399; margin-top:3px;">${item.doneQty}/${item.totalQty} 張 (${percent}%)</div>
+          <div style="font-size:13px; color:#909399; margin-top:4px;">進度：${item.doneQty} / ${item.totalQty} 張 (${percent}%)</div>
           <div class="progress-bar-bg"><div class="progress-bar-fill" style="width:${percent}%;"></div></div>
         `;
         container.appendChild(div);
       });
     });
+
+    // 登記表單提交
+    const eventOtherInput = document.getElementById('eventOtherInput');
+    document.getElementById('eventSelect').addEventListener('change', (e) => {
+      if (e.target.value === '其他') { eventOtherInput.style.display = 'block'; eventOtherInput.required = true; }
+      else { eventOtherInput.style.display = 'none'; eventOtherInput.required = false; }
+    });
+
+    document.getElementById('orderForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const u = document.getElementById('usernameInput').value.trim();
+      const uOther = document.getElementById('userOtherInput').value.trim();
+      const social = document.getElementById('socialInput').value.trim();
+      const ev = document.getElementById('eventSelect').value;
+      const evOther = eventOtherInput.value.trim();
+      const mem = document.getElementById('memberSelect').value;
+      const qty = document.getElementById('quantityInput').value.trim();
+      const note = document.getElementById('noteInput').value.trim();
+
+      const finalUser = u === '其他' ? uOther : u;
+      const finalEvent = ev === '其他' ? evOther : ev;
+
+      try {
+        await addDoc(collection(db, "orders"), {
+          user: finalUser, social, event: finalEvent, member: mem, qty: parseInt(qty), note, hasPaid: false, createdAt: serverTimestamp()
+        });
+        alert(`登記成功！\n社群名稱：${finalUser}\n活動：${finalEvent}\n成員：${mem}\n張數：${qty}`);
+        document.getElementById('orderForm').reset();
+      } catch(err) { alert('提交失敗：' + err.message); }
+    });
+
+    // 匯款相關初始化
+    async function initPaymentData() {
+      const eventSnap = await getDocs(collection(db, "event_settings"));
+      eventSnap.forEach(d => { eventPrices[d.data().name] = d.data().price || 0; });
+
+      const userSnap = await getDocs(collection(db, "user_credits"));
+      userSnap.forEach(d => { userCredits[d.data().user] = d.data().credit || 0; });
+    }
+
+    async function onPayUserSelected(user) {
+      currentCredit = userCredits[user] || 0;
+      document.getElementById('creditBalanceTxt').textContent = `$${currentCredit}`;
+
+      const q = query(collection(db, "orders"), where("user", "==", user));
+      const snap = await getDocs(q);
+      const payEventSelect = document.getElementById('payEventSelect');
+      const noMsg = document.getElementById('noOrderMsg');
+      payEventSelect.innerHTML = '<option value="" disabled selected>請選擇活動</option>';
+      userPendingOrders = [];
+
+      snap.forEach(d => {
+        const data = d.data();
+        if (!data.hasPaid) { userPendingOrders.push({ id: d.id, ...data }); }
+      });
+
+      if (userPendingOrders.length === 0) {
+        noMsg.style.display = 'block';
+        document.getElementById('payQtyInput').value = '';
+        currentUnitPrice = 0;
+        calcPayTotal();
+        return;
+      }
+
+      noMsg.style.display = 'none';
+      userPendingOrders.forEach(o => {
+        const opt = document.createElement('option');
+        opt.value = o.id;
+        opt.textContent = `${o.event} (${o.member} - ${o.qty}張)`;
+        payEventSelect.appendChild(opt);
+      });
+    }
+
+    document.getElementById('payEventSelect').addEventListener('change', (e) => {
+      selectedOrderDocId = e.target.value;
+      const targetOrder = userPendingOrders.find(o => o.id === selectedOrderDocId);
+      if (targetOrder) {
+        document.getElementById('payQtyInput').value = targetOrder.qty;
+        if (targetOrder.social) { document.getElementById('paySocialInput').value = targetOrder.social; }
+        currentUnitPrice = eventPrices[targetOrder.event] || 0;
+        document.getElementById('unitPriceTxt').textContent = `$${currentUnitPrice} / 張`;
+        calcPayTotal();
+      }
+    });
+
+    document.getElementById('useCreditChk').addEventListener('change', calcPayTotal);
+
+    function calcPayTotal() {
+      const qty = parseInt(document.getElementById('payQtyInput').value) || 0;
+      const subtotal = qty * currentUnitPrice;
+      const useCredit = document.getElementById('useCreditChk').checked;
+      const deduct = useCredit ? Math.min(subtotal, currentCredit) : 0;
+      const finalPay = subtotal - deduct;
+
+      document.getElementById('subtotalTxt').textContent = `$${subtotal}`;
+      document.getElementById('creditDeductTxt').textContent = `-$${deduct}`;
+      document.getElementById('finalPayTxt').textContent = `$${finalPay}`;
+    }
+
+    document.getElementById('paymentForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const user = document.getElementById('payUsernameInput').value.trim();
+      const social = document.getElementById('paySocialInput').value.trim();
+      const bankLast5 = document.getElementById('bankLast5Input').value.trim();
+      const useCredit = document.getElementById('useCreditChk').checked;
+      const targetOrder = userPendingOrders.find(o => o.id === selectedOrderDocId);
+
+      if (!targetOrder) { alert("請選擇要匯款的活動項目"); return; }
+
+      const qty = targetOrder.qty;
+      const subtotal = qty * currentUnitPrice;
+      const deduct = useCredit ? Math.min(subtotal, currentCredit) : 0;
+      const finalPay = subtotal - deduct;
+
+      try {
+        await addDoc(collection(db, "payments"), {
+          user, social, eventName: targetOrder.event, member: targetOrder.member, qty,
+          unitPrice: currentUnitPrice, subtotal, creditUsed: deduct, finalPay, bankLast5, createdAt: serverTimestamp()
+        });
+
+        await updateDoc(doc(db, "orders", selectedOrderDocId), { hasPaid: true });
+
+        if (deduct > 0) {
+          const userSnap = await getDocs(collection(db, "user_credits"));
+          userSnap.forEach(async (docSnap) => {
+            if (docSnap.data().user === user) {
+              await updateDoc(doc(db, "user_credits", docSnap.id), { credit: currentCredit - deduct });
+            }
+          });
+        }
+
+        alert(`匯款登記成功！\n活動：${targetOrder.event}\n應匯金額：$${finalPay}\n帳號後五碼：${bankLast5}`);
+        window.location.reload();
+      } catch (err) { alert("提交失敗: " + err.message); }
+    });
+
+    // 查詢紀錄即時監聽
+    onSnapshot(query(collection(db, "orders"), orderBy("createdAt", "desc")), (snapshot) => {
+      const tbody = document.getElementById('recordTableBody');
+      const emptyMsg = document.getElementById('recordEmptyMsg');
+      tbody.innerHTML = '';
+      if (snapshot.empty) { emptyMsg.style.display = 'block'; return; }
+      emptyMsg.style.display = 'none';
+      let idx = 1;
+      snapshot.forEach(d => {
+        const data = d.data();
+        const date = data.createdAt ? new Date(data.createdAt.seconds * 1000) : new Date();
+        const timeStr = `${date.getMonth()+1}/${date.getDate()} ${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}`;
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${idx++}</td>
+          <td>${timeStr}</td>
+          <td><b>${escapeHtml(data.user || '')}</b></td>
+          <td>${escapeHtml(data.event || '')}</td>
+          <td>${escapeHtml(data.member || '')}</td>
+          <td>${data.qty || 0}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    });
+
+    function escapeHtml(t) { return (t||'').replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+
+    loadEvents();
+    initPaymentData();
   </script>
 
 </body>

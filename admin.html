@@ -5,14 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>FORSURE🐶📸 - 管理者控制台</title>
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 20px; max-width: 1050px; margin: 0 auto; background-color: #f4f6f8; color: #333; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 20px; max-width: 1100px; margin: 0 auto; background-color: #f4f6f8; color: #333; }
     .card { background: #ffffff; padding: 24px; border-radius: 16px; box-shadow: 0 8px 20px rgba(0,0,0,0.06); }
     .tabs { display: flex; border-bottom: 2px solid #e4e7ed; margin-bottom: 20px; gap: 10px; overflow-x: auto; }
     .tab-btn { padding: 10px 16px; cursor: pointer; border: none; background: none; font-weight: bold; color: #909399; font-size: 15px; white-space: nowrap; }
     .tab-btn.active { color: #409eff; border-bottom: 2px solid #409eff; }
     .tab-content { display: none; }
     .tab-content.active { display: block; }
-    input, select, button { padding: 8px 10px; border: 1px solid #dcdfe6; border-radius: 6px; font-size: 14px; margin-bottom: 10px; }
+    input, select, button { padding: 8px 10px; border: 1px solid #dcdfe6; border-radius: 6px; font-size: 14px; margin-bottom: 10px; box-sizing: border-box; }
     button { background-color: #409eff; color: white; border: none; font-weight: bold; cursor: pointer; }
     table { width: 100%; border-collapse: collapse; margin-top: 10px; }
     th, td { padding: 10px; border-bottom: 1px solid #e4e7ed; text-align: left; font-size: 13px; }
@@ -24,6 +24,8 @@
     .btn-toggle.err-active { background: #fef0f0; color: #f56c6c; border-color: #f56c6c; font-weight: bold; }
     
     .input-group { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .btn-danger { background-color: #f56c6c; padding: 4px 8px; font-size: 12px; border-radius: 4px; }
+    .btn-edit { background-color: #e6a23c; padding: 4px 8px; font-size: 12px; border-radius: 4px; margin-right: 4px; }
   </style>
 </head>
 <body>
@@ -34,7 +36,7 @@
     <div class="tabs">
       <button class="tab-btn active" onclick="switchTab(0)">1. 匯款對帳審核</button>
       <button class="tab-btn" onclick="switchTab(1)">2. 成員抵用金管理</button>
-      <button class="tab-btn" onclick="switchTab(2)">3. 活動單價設定</button>
+      <button class="tab-btn" onclick="switchTab(2)">3. 活動單價與成本設定</button>
       <button class="tab-btn" onclick="switchTab(3)">4. 發圖進度更新</button>
     </div>
 
@@ -50,7 +52,7 @@
             <th>後五碼</th>
             <th>對帳金額</th>
             <th>對帳日期</th>
-            <th>對帳狀態 (勾選對帳/問題)</th>
+            <th>對帳狀態</th>
           </tr>
         </thead>
         <tbody id="payTable"></tbody>
@@ -69,14 +71,33 @@
       </table>
     </div>
 
-    <!-- 3. 活動單價設定 -->
+    <!-- 3. 活動單價與成本設定 (新增編輯、刪除、完整成本利潤) -->
     <div class="tab-content">
-      <h3>設定活動單張金額</h3>
-      <input type="text" id="eventNameInput" placeholder="活動名稱 (例: 260725 RUN IT Day1)">
-      <input type="number" id="eventPriceInput" placeholder="單張單價 ($)">
-      <button id="saveEventBtn">新增/更新活動單價</button>
+      <h3>設定活動單價與利潤分析</h3>
+      <form id="eventForm" style="background:#f8f9fa; padding:15px; border-radius:8px; margin-bottom:15px;">
+        <input type="hidden" id="editEventId">
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:10px;">
+          <div><label style="font-size:12px;">活動名稱 (例: 260725 RUN IT (Day1))</label><input type="text" id="evName" placeholder="活動名稱" required style="width:100%;"></div>
+          <div><label style="font-size:12px;">售出單價 ($)</label><input type="number" id="evPrice" placeholder="販售單價" required style="width:100%;"></div>
+          <div><label style="font-size:12px;">總購入價 ($)</label><input type="number" id="evCost" placeholder="總購入成本" required style="width:100%;"></div>
+          <div><label style="font-size:12px;">預計張數</label><input type="number" id="evEstQty" placeholder="預計張數" required style="width:100%;"></div>
+          <div><label style="font-size:12px;">實際收到張數</label><input type="number" id="evActQty" placeholder="實際收到張數" required style="width:100%;"></div>
+        </div>
+        <button type="submit" id="saveEventBtn" style="margin-top:10px;">儲存活動設定</button>
+        <button type="button" id="cancelEditBtn" style="background:#909399; display:none; margin-top:10px;" onclick="resetEventForm()">取消編輯</button>
+      </form>
+
       <table>
-        <thead><tr><th>活動名稱</th><th>單價</th></tr></thead>
+        <thead>
+          <tr>
+            <th>活動名稱</th>
+            <th>售價/實際單價</th>
+            <th>購入價</th>
+            <th>預計/實際張數</th>
+            <th>預估利潤</th>
+            <th>操作</th>
+          </tr>
+        </thead>
         <tbody id="eventTable"></tbody>
       </table>
     </div>
@@ -115,7 +136,7 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore, collection, doc, setDoc, updateDoc, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getFirestore, collection, doc, setDoc, deleteDoc, updateDoc, onSnapshot, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     if (prompt("請輸入管理者密碼：") === "emmanuel") {
       document.getElementById('mainAdmin').style.display = 'block';
@@ -142,7 +163,7 @@
       document.querySelectorAll('.tab-content').forEach((c, i) => c.classList.toggle('active', i === idx));
     };
 
-    // --- 對帳管理 ---
+    // --- 1. 匯款對帳審核 ---
     onSnapshot(collection(db, "payments"), snap => {
       const tb = document.getElementById('payTable');
       tb.innerHTML = '';
@@ -178,7 +199,7 @@
 
     window.setPayStatus = async (docId, newStatus) => {
       if (newStatus === 'error') {
-        const reason = prompt("請輸入對帳問題原因（例：少匯50元、帳號後五碼不符）：");
+        const reason = prompt("請輸入對帳問題原因：");
         if (reason !== null) {
           const today = new Date().toISOString().slice(0,10);
           await updateDoc(doc(db, "payments", docId), { status: 'error', errorNote: reason, checkDate: today });
@@ -194,7 +215,7 @@
       if (reason !== null) { await updateDoc(doc(db, "payments", docId), { errorNote: reason }); }
     };
 
-    // --- 抵用金管理 ---
+    // --- 2. 抵用金管理 ---
     document.getElementById('saveCreditBtn').onclick = async () => {
       const user = document.getElementById('creditUser').value.trim();
       const credit = parseInt(document.getElementById('creditAmount').value) || 0;
@@ -211,22 +232,74 @@
       snap.forEach(d => { tb.innerHTML += `<tr><td>${d.data().user}</td><td>$${d.data().credit}</td></tr>`; });
     });
 
-    // --- 活動單價 ---
-    document.getElementById('saveEventBtn').onclick = async () => {
-      const name = document.getElementById('eventNameInput').value.trim();
-      const price = parseInt(document.getElementById('eventPriceInput').value) || 0;
-      if (!name) return alert('請填寫活動名稱');
-      await setDoc(doc(db, "event_settings", name), { name, price });
-      alert('活動單價已更新');
+    // --- 3. 活動單價與成本設定 (新增編輯、刪除、計算實際單價與利潤) ---
+    document.getElementById('eventForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const name = document.getElementById('evName').value.trim();
+      const price = parseFloat(document.getElementById('evPrice').value) || 0;
+      const cost = parseFloat(document.getElementById('evCost').value) || 0;
+      const estQty = parseInt(document.getElementById('evEstQty').value) || 0;
+      const actQty = parseInt(document.getElementById('evActQty').value) || 0;
+
+      const actualUnitCost = actQty > 0 ? (cost / actQty) : 0;
+      const profit = (price * actQty) - cost;
+
+      await setDoc(doc(db, "event_settings", name), {
+        name, price, cost, estQty, actQty, actualUnitCost, profit
+      });
+
+      alert('活動設定已儲存！');
+      resetEventForm();
+    });
+
+    window.resetEventForm = () => {
+      document.getElementById('eventForm').reset();
+      document.getElementById('editEventId').value = '';
+      document.getElementById('cancelEditBtn').style.display = 'none';
+      document.getElementById('evName').disabled = false;
+    };
+
+    window.editEvent = (name, price, cost, estQty, actQty) => {
+      document.getElementById('evName').value = name;
+      document.getElementById('evName').disabled = true; // 名稱當作 ID 不能改
+      document.getElementById('editEventId').value = name;
+      document.getElementById('evPrice').value = price;
+      document.getElementById('evCost').value = cost;
+      document.getElementById('evEstQty').value = estQty;
+      document.getElementById('evActQty').value = actQty;
+      document.getElementById('cancelEditBtn').style.display = 'inline-block';
+    };
+
+    window.deleteEvent = async (name) => {
+      if (confirm(`確定要刪除活動「${name}」嗎？`)) {
+        await deleteDoc(doc(db, "event_settings", name));
+        alert('已刪除');
+      }
     };
 
     onSnapshot(collection(db, "event_settings"), snap => {
       const tb = document.getElementById('eventTable');
       tb.innerHTML = '';
-      snap.forEach(d => { tb.innerHTML += `<tr><td>${d.data().name}</td><td>$${d.data().price} / 張</td></tr>`; });
+      snap.forEach(d => {
+        const ev = d.data();
+        const actUPrice = ev.actQty > 0 ? (ev.cost / ev.actQty).toFixed(1) : 0;
+        tb.innerHTML += `
+          <tr>
+            <td><b>${ev.name}</b></td>
+            <td>售價: $${ev.price}<br><small style="color:#909399;">實際成本: $${actUPrice}/張</small></td>
+            <td>$${ev.cost}</td>
+            <td>預計: ${ev.estQty}張<br>實際: ${ev.actQty}張</td>
+            <td><b style="color:${ev.profit >= 0 ? '#67c23a' : '#f56c6c'};">$${ev.profit}</b></td>
+            <td>
+              <button class="btn-edit" onclick="editEvent('${ev.name}', ${ev.price}, ${ev.cost}, ${ev.estQty}, ${ev.actQty})">編輯</button>
+              <button class="btn-danger" onclick="deleteEvent('${ev.name}')">刪除</button>
+            </td>
+          </tr>
+        `;
+      });
     });
 
-    // --- 發圖進度更新 (改版：日期+活動名稱+成員下拉) ---
+    // --- 4. 發圖進度更新 ---
     document.getElementById('saveProgBtn').onclick = async () => {
       const dateStr = document.getElementById('progDate').value.trim();
       const eventNameInput = document.getElementById('progEvent').value.trim();
@@ -237,10 +310,9 @@
       if (!eventNameInput) return alert('請填寫活動名稱！');
       if (!member) return alert('請選擇成員！');
 
-      // 有填日期就組合成 "YYMMDD 活動名稱"，沒填就直接使用活動名稱
       const fullEventName = dateStr ? `${dateStr} ${eventNameInput}` : eventNameInput;
-
       const docId = `${fullEventName}_${member}`;
+
       await setDoc(doc(db, "photo_progress", docId), {
         eventName: fullEventName, member, totalQty, doneQty, createdAt: serverTimestamp()
       });
