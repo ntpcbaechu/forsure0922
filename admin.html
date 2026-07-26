@@ -47,16 +47,17 @@
 
     <h2>FORSURE🐶📸 管理者控制台</h2>
 
+    <!-- 已正確對應至 admin/ 資料夾下的子頁面 -->
     <div class="tabs">
-      <button class="tab-btn active" onclick="switchAdminTab(0, 'admin_orders.html')">1. 團員登記管理(修改/刪除)</button>
-      <button class="tab-btn" onclick="switchAdminTab(1, 'admin_payments.html')">2. 匯款對帳審核</button>
-      <button class="tab-btn" onclick="switchAdminTab(2, 'admin_credits.html')">3. 成員抵用金管理</button>
-      <button class="tab-btn" onclick="switchAdminTab(3, 'admin_events.html')">4. 活動單價與成本設定</button>
-      <button class="tab-btn" onclick="switchAdminTab(4, 'admin_progress.html')">5. 發圖進度更新</button>
+      <button class="tab-btn active" onclick="switchAdminTab(0, 'admin/admin_orders.html')">1. 團員登記管理(修改/刪除)</button>
+      <button class="tab-btn" onclick="switchAdminTab(1, 'admin/admin_payments.html')">2. 匯款對帳審核</button>
+      <button class="tab-btn" onclick="switchAdminTab(2, 'admin/admin_credits.html')">3. 成員抵用金管理</button>
+      <button class="tab-btn" onclick="switchAdminTab(3, 'admin/admin_events.html')">4. 活動單價與成本設定</button>
+      <button class="tab-btn" onclick="switchAdminTab(4, 'admin/admin_progress.html')">5. 發圖進度更新</button>
     </div>
 
-    <!-- iFrame 載入獨立頁面 -->
-    <iframe id="adminFrame" src="admin_orders.html"></iframe>
+    <!-- iFrame 預設載入 admin/admin_orders.html -->
+    <iframe id="adminFrame" src="admin/admin_orders.html"></iframe>
   </div>
 
   <script type="module">
