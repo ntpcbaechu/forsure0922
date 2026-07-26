@@ -93,7 +93,6 @@
     let ordersList = [];
 
     document.addEventListener('DOMContentLoaded', () => {
-      // 修正為從上一層 json 資料夾讀取
       fetch('../json/members.json').then(res => res.json()).then(members => {
         const evMemberSel = document.getElementById('evMember');
         evMemberSel.innerHTML = '<option value="">請選擇成員</option>';
@@ -142,6 +141,9 @@
 
           const estRevenue = totalOrderedPacks * (ev.price || 0);
 
+          // 轉義備註裡的單引號防止語法錯誤
+          const safeNoteParam = (ev.note || '').replace(/'/g, "\\'");
+
           tb.innerHTML += `
             <tr>
               <td><b>${ev.name}</b>${closedBadge}</td>
@@ -154,7 +156,7 @@
               <td>$${ev.cost || 0}</td>
               <td>${ev.actQty || 0} 張</td>
               <td>
-                <button class="btn-edit" onclick="editEvent('${docId}', '${ev.name}', '${ev.rawDate||''}', '${ev.rawName||''}', '${ev.member||''}', '${ev.seller||''}', '${ev.note||''}', ${ev.price||0}, ${ev.cost||0}, ${ev.actQty||0}, ${ev.isClosed||false})">編輯</button>
+                <button class="btn-edit" onclick="editEvent('${docId}', '${ev.name}', '${ev.rawDate||''}', '${ev.rawName||''}', '${ev.member||''}', '${ev.seller||''}', '${safeNoteParam}', ${ev.price||0}, ${ev.cost||0}, ${ev.actQty||0}, ${ev.isClosed||false})">編輯</button>
                 <button class="btn-danger" onclick="deleteEvent('${docId}')">刪除</button>
               </td>
             </tr>
@@ -224,6 +226,7 @@
       const fullName = evDate ? `${evDate} ${evNameRaw}` : evNameRaw;
       const docId = document.getElementById('editEventId').value || `${fullName}_${member || 'all'}_${seller || 'default'}_${Date.now()}`;
 
+      // ⚠️ 正確儲存 note 備註欄位至 Firebase
       await setDoc(doc(db, "event_settings", docId), {
         name: fullName, rawDate: evDate, rawName: evNameRaw, member, seller, note, price, cost, actQty, isClosed
       });
@@ -245,7 +248,7 @@
       document.getElementById('evName').value = rawName || fullName;
       document.getElementById('evMember').value = member || '';
       document.getElementById('evSeller').value = seller || '';
-      document.getElementById('evNote').value = note || '';
+      document.getElementById('evNote').value = note || ''; // 正確填回備註
       document.getElementById('evPrice').value = price || '';
       document.getElementById('evCost').value = cost || '';
       document.getElementById('evActQty').value = actQty || '';
