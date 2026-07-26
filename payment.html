@@ -11,6 +11,16 @@
     input, select, button { width: 100%; padding: 12px; border: 1px solid #dcdfe6; border-radius: 8px; font-size: 14px; box-sizing: border-box; }
     button { background-color: #1989fa; color: white; font-weight: bold; border: none; cursor: pointer; margin-top: 10px; font-size: 16px; border-radius: 8px; }
     button:disabled { background-color: #a0cfff; cursor: not-allowed; }
+    
+    /* 活動多選卡片清單 */
+    .unpaid-list { border: 1px solid #dcdfe6; border-radius: 8px; padding: 10px; background: #fafafa; max-height: 280px; overflow-y: auto; }
+    .unpaid-item { background: #ffffff; border: 1px solid #e4e7ed; border-radius: 8px; padding: 12px; margin-bottom: 8px; display: flex; align-items: center; gap: 10px; cursor: pointer; transition: all 0.2s ease; }
+    .unpaid-item:hover { border-color: #409eff; }
+    .unpaid-item input[type="checkbox"] { width: 18px; height: 18px; margin: 0; cursor: pointer; }
+    .unpaid-info { flex-grow: 1; font-size: 13px; color: #606266; }
+    .unpaid-title { font-weight: bold; font-size: 14px; color: #303133; margin-bottom: 2px; }
+    .unpaid-price { font-weight: bold; color: #f56c6c; font-size: 14px; }
+
     .summary-box { background: #f8f9fa; border: 1px dashed #dcdfe6; border-radius: 8px; padding: 15px; margin-top: 15px; }
     .summary-item { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px; color: #606266; }
     .summary-total { display: flex; justify-content: space-between; font-weight: bold; font-size: 16px; color: #f56c6c; border-top: 1px solid #e4e7ed; padding-top: 10px; margin-top: 10px; }
@@ -34,20 +44,15 @@
     </div>
 
     <div class="form-group">
-      <label>請選擇已登記未匯款的活動 *</label>
-      <select id="payEvent" required disabled>
-        <option value="" disabled selected>請先選擇社群名稱</option>
-      </select>
-    </div>
-
-    <div class="form-group">
-      <label>登記張數 *</label>
-      <input type="number" id="payQty" readonly placeholder="選擇活動後自動帶出" style="background:#f5f7fa;">
+      <label>勾選欲合併匯款的已登記活動 (可複選) *</label>
+      <div id="unpaidListContainer" class="unpaid-list">
+        <div style="color:#909399; font-size:13px; text-align:center; padding:10px;">請先選擇社群名稱</div>
+      </div>
     </div>
 
     <div class="summary-box">
-      <div class="summary-item"><span>單價：</span><span id="txtPrice">$0 / 張</span></div>
-      <div class="summary-item"><span>小計金額：</span><span id="txtSubtotal">$0</span></div>
+      <div class="summary-item"><span>已選擇活動數：</span><span id="txtSelectedCount">0 筆</span></div>
+      <div class="summary-item"><span>小計總金額：</span><span id="txtSubtotal">$0</span></div>
       
       <div id="creditBox" style="display:none;">
         <label class="credit-checkbox">
@@ -65,7 +70,7 @@
       <input type="text" id="payBankLast5" maxlength="5" placeholder="請填寫末 5 碼" required>
     </div>
 
-    <button type="submit" id="submitBtn">送出匯款登記</button>
+    <button type="submit" id="submitBtn" disabled>送出匯款登記</button>
   </form>
 
   <script type="module">
@@ -89,10 +94,10 @@
     let eventPrices = {};
     let userCreditObj = null;
 
-    let selUnitPrice = 0;
-    let selSubtotal = 0;
-    let selCreditUsed = 0;
-    let selFinalPay = 0;
+    let selectedOrders = [];
+    let totalSubtotal = 0;
+    let creditUsed = 0;
+    let finalPay = 0;
 
     initData();
 
@@ -104,7 +109,7 @@
         eventPrices[data.name] = parseFloat(data.price) || 0;
       });
 
-      // 2. 只抓取「已登記且尚未完成對帳 (hasPaid != true)」的訂單紀錄
+      // 2. 抓取「未對帳/未匯款 (hasPaid != true)」的訂單紀錄
       const ordersSnap = await getDocs(collection(db, "orders"));
       unpaidOrders = [];
       const userSet = new Set();
@@ -112,7 +117,6 @@
       ordersSnap.forEach(doc => {
         const d = doc.data();
         if (!d.hasPaid) {
-          // 支援多種活動與張數欄位備援
           const eName = d.eventName || d.event || d.fullEvent || '未命名活動';
           const quantity = d.qty !== undefined ? d.qty : (d.quantity !== undefined ? d.quantity : (d.count || 0));
           unpaidOrders.push({ id: doc.id, ...d, eventName: eName, qty: quantity });
@@ -120,7 +124,7 @@
         }
       });
 
-      // 3. 動態渲染「有填單且未匯款」的社群名稱下拉選單
+      // 3. 渲染社群名稱下拉選單
       const userSelect = document.getElementById('payUser');
       userSelect.innerHTML = '<option value="" disabled selected>請選擇社群名稱</option>';
 
@@ -134,24 +138,49 @@
           userSelect.appendChild(opt);
         });
       }
+
+      notifyHeight();
     }
 
-    // 當選擇社群名稱時，帶出該使用者尚未對帳的活動與抵用金
+    // 當選擇社群名稱時，帶出該使用者的多選清單與抵用金
     document.getElementById('payUser').addEventListener('change', async (e) => {
       const selectedUser = e.target.value;
-      const eventSelect = document.getElementById('payEvent');
-      
-      eventSelect.disabled = false;
-      eventSelect.innerHTML = '<option value="" disabled selected>請選擇已登記未匯款的活動</option>';
+      const listContainer = document.getElementById('unpaidListContainer');
+      listContainer.innerHTML = '';
 
-      // 過濾該使用者的未對帳活動
       const myOrders = unpaidOrders.filter(o => o.user === selectedUser);
+
+      if (myOrders.length === 0) {
+        listContainer.innerHTML = '<div style="color:#909399; font-size:13px; text-align:center; padding:10px;">該使用者目前沒有未匯款項目。</div>';
+        return;
+      }
+
+      // 渲染多選清單
       myOrders.forEach(o => {
-        const opt = document.createElement('option');
-        opt.value = o.id;
-        const displayEvent = o.eventName || o.event || o.fullEvent || '未命名活動';
-        opt.textContent = `${displayEvent} (成員: ${o.member || '未知'})`;
-        eventSelect.appendChild(opt);
+        const uPrice = eventPrices[o.eventName] || 0;
+        const itemSubtotal = o.qty * uPrice;
+
+        const itemDiv = document.createElement('div');
+        itemDiv.className = 'unpaid-item';
+        itemDiv.innerHTML = `
+          <input type="checkbox" class="order-chk" value="${o.id}" data-subtotal="${itemSubtotal}" data-qty="${o.qty}" data-price="${uPrice}">
+          <div class="unpaid-info">
+            <div class="unpaid-title">${o.eventName} (成員: ${o.member || '全體'})</div>
+            <div>登記張數：${o.qty} 張 (單價 $${uPrice})</div>
+          </div>
+          <div class="unpaid-price">$${itemSubtotal}</div>
+        `;
+
+        // 點擊整列皆可勾選
+        itemDiv.addEventListener('click', (evt) => {
+          if (evt.target.tagName !== 'INPUT') {
+            const chk = itemDiv.querySelector('.order-chk');
+            chk.checked = !chk.checked;
+          }
+          calculateTotal();
+        });
+
+        listContainer.appendChild(itemDiv);
       });
 
       // 查詢抵用金
@@ -175,57 +204,52 @@
         document.getElementById('txtCreditRem').textContent = `$${userCreditObj.remaining}`;
       }
 
-      resetCalculation();
-    });
-
-    // 當選擇活動時，帶出張數與計算金額
-    document.getElementById('payEvent').addEventListener('change', (e) => {
-      const orderId = e.target.value;
-      const order = unpaidOrders.find(o => o.id === orderId);
-
-      if (order) {
-        const orderQty = order.qty !== undefined ? order.qty : (order.quantity !== undefined ? order.quantity : (order.count || 0));
-        document.getElementById('payQty').value = orderQty;
-        
-        const displayEvent = order.eventName || order.event || order.fullEvent || '';
-        selUnitPrice = eventPrices[displayEvent] || 0;
-        selSubtotal = orderQty * selUnitPrice;
-        calculateTotal();
-      }
+      calculateTotal();
+      notifyHeight();
     });
 
     document.getElementById('useCreditCheck').addEventListener('change', calculateTotal);
 
     function calculateTotal() {
+      const chks = document.querySelectorAll('.order-chk:checked');
+      selectedOrders = [];
+      totalSubtotal = 0;
+
+      chks.forEach(chk => {
+        const sub = parseFloat(chk.getAttribute('data-subtotal')) || 0;
+        totalSubtotal += sub;
+        selectedOrders.push({
+          orderId: chk.value,
+          subtotal: sub,
+          qty: parseInt(chk.getAttribute('data-qty')) || 0,
+          price: parseFloat(chk.getAttribute('data-price')) || 0
+        });
+      });
+
       const isUseCredit = document.getElementById('useCreditCheck').checked;
       let availCredit = userCreditObj ? userCreditObj.remaining : 0;
 
       if (isUseCredit && availCredit > 0) {
-        selCreditUsed = Math.min(selSubtotal, availCredit);
+        creditUsed = Math.min(totalSubtotal, availCredit);
       } else {
-        selCreditUsed = 0;
+        creditUsed = 0;
       }
 
-      selFinalPay = Math.max(0, selSubtotal - selCreditUsed);
+      finalPay = Math.max(0, totalSubtotal - creditUsed);
 
-      document.getElementById('txtPrice').textContent = `$${selUnitPrice} / 張`;
-      document.getElementById('txtSubtotal').textContent = `$${selSubtotal}`;
-      document.getElementById('txtCreditDiscount').textContent = `-$${selCreditUsed}`;
-      document.getElementById('txtFinalPay').textContent = `$${selFinalPay}`;
+      document.getElementById('txtSelectedCount').textContent = `${selectedOrders.length} 筆`;
+      document.getElementById('txtSubtotal').textContent = `$${totalSubtotal}`;
+      document.getElementById('txtCreditDiscount').textContent = `-$${creditUsed}`;
+      document.getElementById('txtFinalPay').textContent = `$${finalPay}`;
+
+      document.getElementById('submitBtn').disabled = selectedOrders.length === 0;
     }
 
-    function resetCalculation() {
-      document.getElementById('payQty').value = '';
-      selUnitPrice = 0;
-      selSubtotal = 0;
-      selCreditUsed = 0;
-      selFinalPay = 0;
-      calculateTotal();
-    }
-
-    // 提交匯款單
+    // 提交多選匯款單
     document.getElementById('payForm').addEventListener('submit', async (e) => {
       e.preventDefault();
+      if (selectedOrders.length === 0) return alert('請至少勾選一項要匯款的活動！');
+
       const btn = document.getElementById('submitBtn');
       btn.disabled = true;
       btn.textContent = '提交中...';
@@ -233,35 +257,50 @@
       try {
         const user = document.getElementById('payUser').value;
         const social = document.getElementById('paySocial').value.trim();
-        const orderId = document.getElementById('payEvent').value;
         const bankLast5 = document.getElementById('payBankLast5').value.trim();
-        const qty = parseInt(document.getElementById('payQty').value) || 0;
 
-        const order = unpaidOrders.find(o => o.id === orderId);
-        const displayEvent = order.eventName || order.event || order.fullEvent || '未命名活動';
+        // 均分折抵的抵用金給每一筆訂單
+        let remCreditUsed = creditUsed;
 
-        // 1. 新增匯款紀錄至 payments
-        await addDoc(collection(db, "payments"), {
-          user,
-          social,
-          orderId,
-          eventName: `${displayEvent} (${order.member || '未知'})`,
-          qty,
-          unitPrice: selUnitPrice,
-          subtotal: selSubtotal,
-          creditUsed: selCreditUsed,
-          finalPay: selFinalPay,
-          bankLast5,
-          status: 'pending',
-          createdAt: serverTimestamp()
-        });
+        for (let i = 0; i < selectedOrders.length; i++) {
+          const item = selectedOrders[i];
+          const order = unpaidOrders.find(o => o.id === item.orderId);
+          
+          let itemCreditDiscount = 0;
+          if (creditUsed > 0 && totalSubtotal > 0) {
+            if (i === selectedOrders.length - 1) {
+              itemCreditDiscount = remCreditUsed;
+            } else {
+              itemCreditDiscount = Math.round((item.subtotal / totalSubtotal) * creditUsed);
+              remCreditUsed -= itemCreditDiscount;
+            }
+          }
 
-        // 2. 標記訂單為已登記匯款
-        await updateDoc(doc(db, "orders", orderId), { hasPaid: true });
+          const itemFinalPay = Math.max(0, item.subtotal - itemCreditDiscount);
 
-        // 3. 若有使用抵用金，更新抵用金紀錄
-        if (selCreditUsed > 0 && userCreditObj) {
-          const newUsed = (userCreditObj.used || 0) + selCreditUsed;
+          // 1. 批次新增 payments 紀錄
+          await addDoc(collection(db, "payments"), {
+            user,
+            social,
+            orderId: item.orderId,
+            eventName: `${order.eventName} (${order.member || '全體'})`,
+            qty: item.qty,
+            unitPrice: item.price,
+            subtotal: item.subtotal,
+            creditUsed: itemCreditDiscount,
+            finalPay: itemFinalPay,
+            bankLast5,
+            status: 'pending',
+            createdAt: serverTimestamp()
+          });
+
+          // 2. 標記該筆訂單為已登記匯款
+          await updateDoc(doc(db, "orders", item.orderId), { hasPaid: true });
+        }
+
+        // 3. 更新使用者抵用金紀錄
+        if (creditUsed > 0 && userCreditObj) {
+          const newUsed = (userCreditObj.used || 0) + creditUsed;
           const newRem = userCreditObj.credit - newUsed;
           await updateDoc(doc(db, "user_credits", userCreditObj.id), {
             used: newUsed,
@@ -269,7 +308,7 @@
           });
         }
 
-        alert('✅ 匯款登記已成功送出！管理者將儘速核對金額。');
+        alert(`✅ 已成功送出 ${selectedOrders.length} 筆活動的匯款登記！`);
         location.reload();
       } catch (err) {
         alert('提交失敗: ' + err.message);
@@ -277,6 +316,12 @@
         btn.textContent = '送出匯款登記';
       }
     });
+
+    function notifyHeight() {
+      setTimeout(() => {
+        window.parent.postMessage({ frameHeight: document.body.scrollHeight }, '*');
+      }, 100);
+    }
   </script>
 
 </body>
