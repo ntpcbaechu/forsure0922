@@ -54,12 +54,15 @@
         else if (status === '上傳中') badgeClass = 'status-uploading';
         else if (status === '已發圖') badgeClass = 'status-done';
 
+        // 顯示名稱：若包含代拍編號則顯示 (例如: 昇玟 (代拍 1))
+        const displayMember = item.packageLabel ? `${item.member} (${item.packageLabel})` : item.member;
+
         const div = document.createElement('div');
         div.className = 'progress-item';
         div.innerHTML = `
           <div>
             <div style="font-weight:bold; font-size:15px; margin-bottom:4px;">${item.eventName}</div>
-            <div style="font-size:13px; color:#909399;">成員：${item.member}</div>
+            <div style="font-size:13px; color:#909399;">成員：${displayMember}</div>
           </div>
           <span class="status-badge ${badgeClass}">${status}</span>
         `;
