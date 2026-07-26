@@ -50,11 +50,22 @@
 
     let allUsers = [];
 
+    // 修改：改從 Firebase user_credits 資料庫抓取「唯有在後台新增過抵用金的名單」
     async function initData() {
-      fetch('users.json').then(r => r.json()).then(data => {
-        allUsers = data;
+      try {
+        const snap = await getDocs(collection(db, "user_credits"));
+        const uniqueUsers = new Set();
+        snap.forEach(d => {
+          const item = d.data();
+          if (item.user) {
+            uniqueUsers.add(item.user);
+          }
+        });
+        allUsers = Array.from(uniqueUsers).sort();
         setupDropdown();
-      });
+      } catch (err) {
+        console.error("載入抵用金名單失敗:", err);
+      }
     }
 
     function setupDropdown() {
@@ -63,6 +74,15 @@
 
       function render(list) {
         dropdown.innerHTML = '';
+        if (list.length === 0) {
+          const emptyItem = document.createElement('div');
+          emptyItem.className = 'dropdown-item';
+          emptyItem.style.color = '#909399';
+          emptyItem.textContent = '尚無抵用金紀錄成員';
+          dropdown.appendChild(emptyItem);
+          return;
+        }
+
         list.forEach(u => {
           const item = document.createElement('div');
           item.className = 'dropdown-item';
