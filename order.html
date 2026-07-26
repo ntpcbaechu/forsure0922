@@ -5,73 +5,88 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>登記表單</title>
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 5px; margin: 0; background: #fff; color: #333; }
-    .form-group { margin-bottom: 18px; position: relative; }
-    label { display: block; margin-bottom: 6px; font-weight: 600; font-size: 14px; color: #444; }
-    label.required::after { content: " *"; color: #f56c6c; }
-    input, select, textarea, button { width: 100%; padding: 12px; border: 1px solid #dcdfe6; border-radius: 8px; box-sizing: border-box; font-size: 15px; background-color: #fff; }
-    .other-input { margin-top: 10px; display: none; }
-    .custom-dropdown-list { position: absolute; top: 100%; left: 0; right: 0; max-height: 200px; overflow-y: auto; background-color: #ffffff; border: 1px solid #e4e7ed; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); z-index: 1000; display: none; margin-top: 4px; }
-    .dropdown-item { padding: 10px; cursor: pointer; font-size: 14px; border-bottom: 1px solid #f2f6fc; }
-    .dropdown-item:hover { background-color: #f5f7fa; color: #409eff; }
-    button.submit-btn { background-color: #409eff; color: white; border: none; font-weight: 600; font-size: 16px; cursor: pointer; margin-top: 10px; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 10px; margin: 0; background: #fff; color: #333; }
+    .form-group { margin-bottom: 15px; }
+    label { font-weight: bold; font-size: 14px; display: block; margin-bottom: 5px; color: #606266; }
+    input, select { width: 100%; padding: 10px; font-size: 14px; border: 1px solid #dcdfe6; border-radius: 8px; box-sizing: border-box; }
+    input:focus, select:focus { border-color: #409eff; outline: none; }
+    .submit-btn { width: 100%; background: #409eff; color: #fff; border: none; padding: 12px; font-size: 16px; font-weight: bold; border-radius: 8px; cursor: pointer; transition: background 0.2s; }
+    .submit-btn:hover { background: #66b1ff; }
+
+    /* 成功憑證卡片樣式 */
+    .receipt-card { background: #f0f9eb; border: 1px solid #e1f3d8; border-radius: 12px; padding: 20px; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+    .receipt-title { font-size: 18px; font-weight: bold; color: #67c23a; margin-bottom: 15px; }
+    .receipt-body { background: #fff; border-radius: 8px; border: 1px dashed #b3e19d; padding: 15px; text-align: left; font-size: 14px; line-height: 1.8; color: #303133; margin-bottom: 15px; }
+    .receipt-btn-group { display: flex; gap: 10px; justify-content: center; }
+    .btn-secondary { background: #ecf5ff; color: #409eff; border: 1px solid #b3d8ff; padding: 10px 16px; font-size: 14px; font-weight: bold; border-radius: 8px; cursor: pointer; flex: 1; }
+    .btn-secondary:hover { background: #409eff; color: #fff; }
+    .btn-outline { background: #fff; color: #606266; border: 1px solid #dcdfe6; padding: 10px 16px; font-size: 14px; border-radius: 8px; cursor: pointer; flex: 1; }
+    .btn-outline:hover { background: #f4f4f5; }
   </style>
 </head>
 <body>
 
-  <form id="orderForm">
-    <div class="form-group">
-      <label for="usernameInput" class="required">請選擇/輸入社群名稱</label>
-      <input type="text" id="usernameInput" placeholder="點擊選擇或輸入搜尋暱稱..." autocomplete="off" required>
-      <div id="userDropdown" class="custom-dropdown-list"></div>
-      <input type="text" id="userOtherInput" class="other-input" placeholder="請輸入您的社群名稱...">
-    </div>
+  <!-- 表單區塊 -->
+  <div id="formSection">
+    <h3 style="font-size: 17px; margin-top:0; margin-bottom: 15px; color:#303133;">📝 飯拍登記表單</h3>
+    
+    <form id="orderForm">
+      <div class="form-group">
+        <label for="user">社群名稱 / 暱稱 *</label>
+        <input type="text" id="user" required placeholder="請輸入您在 Line 社群或 IG 的名稱">
+      </div>
 
-    <div class="form-group">
-      <label for="socialInput" class="required">請輸入 IG/Threads 帳號</label>
-      <input type="text" id="socialInput" placeholder="例：ntpcbaechu" autocomplete="off" required>
-    </div>
+      <div class="form-group">
+        <label for="event">選擇場次 / 活動 *</label>
+        <select id="event" required>
+          <option value="">載入場次中...</option>
+        </select>
+      </div>
 
-    <div class="form-group">
-      <label for="eventSelect" class="required">活動名稱</label>
-      <select id="eventSelect" required>
-        <option value="" disabled selected>載入活動中...</option>
-      </select>
-      <input type="text" id="eventOtherInput" class="other-input" placeholder="請自行填入活動名稱...">
-    </div>
+      <div class="form-group">
+        <label for="member">成員名稱 *</label>
+        <select id="member" required>
+          <option value="">請選擇成員</option>
+          <option value="方燦">方燦</option>
+          <option value="Lee Know">Lee Know</option>
+          <option value="彰彬">彰彬</option>
+          <option value="鉉辰">鉉辰</option>
+          <option value="Han">Han</option>
+          <option value="Felix">Felix</option>
+          <option value="昇玟">昇玟</option>
+          <option value="I.N">I.N</option>
+          <option value="團體/全體">團體/全體</option>
+        </select>
+      </div>
 
-    <div class="form-group">
-      <label for="memberSelect" class="required">成員</label>
-      <select id="memberSelect" required>
-        <option value="" disabled selected>請選擇成員</option>
-        <option value="方燦">方燦</option>
-        <option value="Lee Know">Lee Know</option>
-        <option value="彰彬">彰彬</option>
-        <option value="鉉辰">鉉辰</option>
-        <option value="Han">Han</option>
-        <option value="Felix">Felix</option>
-        <option value="昇玟">昇玟</option>
-        <option value="I.N">I.N</option>
-        <option value="團體/全體">團體/全體</option>
-      </select>
-    </div>
+      <div class="form-group">
+        <label for="qty">喊單張數 *</label>
+        <input type="number" id="qty" min="1" value="100" required>
+      </div>
 
-    <div class="form-group">
-      <label for="quantityInput" class="required">張數</label>
-      <input type="text" id="quantityInput" placeholder="請輸入數字(例:100)" required autocomplete="off">
-    </div>
+      <button type="submit" class="submit-btn" id="submitBtn">送出登記</button>
+    </form>
+  </div>
 
-    <div class="form-group">
-      <label for="noteInput">備註</label>
-      <textarea id="noteInput" rows="2"></textarea>
-    </div>
+  <!-- 送出成功憑證區塊 (預設隱藏) -->
+  <div id="receiptSection" style="display: none;">
+    <div class="receipt-card">
+      <div class="receipt-title">🎉 請將此畫面截圖存檔</div>
+      
+      <div class="receipt-body" id="receiptContent">
+        <!-- JS 動態帶入資料 -->
+      </div>
 
-    <button type="submit" id="submitBtn" class="submit-btn">送出登記</button>
-  </form>
+      <div class="receipt-btn-group">
+        <button class="btn-secondary" onclick="copyReceiptText()">📋 複製訂單明細</button>
+        <button class="btn-outline" onclick="resetForm()">📝 再填一筆</button>
+      </div>
+    </div>
+  </div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore, collection, addDoc, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, getDocs, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyDF7QySG1Jj4gdZvXwMRaKjRmI-lFKpj7k",
@@ -86,116 +101,97 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    let allUsers = [];
-
+    // 載入活動清單
     async function loadEvents() {
-      const eventSelect = document.getElementById('eventSelect');
-      eventSelect.innerHTML = '<option value="" disabled selected>請選擇活動名稱</option>';
-
-      const snap = await getDocs(collection(db, "event_settings"));
-      let eventList = [];
-
-      snap.forEach(d => {
-        const data = d.data();
-        // 排除已關閉的活動
-        if (data.name && !data.isClosed) {
-          eventList.push(data);
-        }
-      });
-
-      // 依日期升冪排序 (舊到新)
-      eventList.sort((a, b) => (a.rawDate || a.name).localeCompare(b.rawDate || b.name));
-
-      const uniqueEvents = new Set();
-      eventList.forEach(item => {
-        if (!uniqueEvents.has(item.name)) {
-          uniqueEvents.add(item.name);
-          const opt = document.createElement('option');
-          opt.value = item.name;
-          opt.textContent = item.name;
-          eventSelect.appendChild(opt);
-        }
-      });
-
-      const optOther = document.createElement('option');
-      optOther.value = '其他';
-      optOther.textContent = '其他';
-      eventSelect.appendChild(optOther);
-      notifyHeight();
-    }
-
-    fetch('users.json').then(res => res.json()).then(data => {
-      allUsers = [...data, "其他"];
-      setupDropdown('usernameInput', 'userDropdown', 'userOtherInput');
-    });
-
-    function setupDropdown(inputId, dropdownId, otherInputId) {
-      const input = document.getElementById(inputId);
-      const dropdown = document.getElementById(dropdownId);
-      const otherInput = document.getElementById(otherInputId);
-
-      function render(list) {
-        dropdown.innerHTML = '';
-        list.forEach(u => {
-          const item = document.createElement('div');
-          item.className = 'dropdown-item';
-          item.textContent = u;
-          item.onmousedown = (e) => {
-            e.preventDefault();
-            input.value = u;
-            dropdown.style.display = 'none';
-            if (u === '其他') { otherInput.style.display = 'block'; otherInput.required = true; }
-            else { otherInput.style.display = 'none'; otherInput.required = false; }
-            notifyHeight();
-          };
-          dropdown.appendChild(item);
+      const eventSelect = document.getElementById('event');
+      try {
+        const snap = await getDocs(query(collection(db, "events"), orderBy("createdAt", "desc")));
+        eventSelect.innerHTML = '<option value="">-- 請選擇場次 --</option>';
+        snap.forEach(doc => {
+          const d = doc.data();
+          const name = d.name || d.eventName || '未命名活動';
+          eventSelect.innerHTML += `<option value="${name}">${name}</option>`;
         });
+      } catch (err) {
+        eventSelect.innerHTML = '<option value="">載入失敗，請重新整理</option>';
       }
-
-      input.onfocus = () => { dropdown.style.display = 'block'; render(allUsers); };
-      input.onblur = () => { setTimeout(() => dropdown.style.display = 'none', 200); };
-      input.oninput = () => {
-        const val = input.value.toLowerCase();
-        render(allUsers.filter(u => u.toLowerCase().includes(val)));
-        dropdown.style.display = 'block';
-      };
+      notifyHeight();
     }
 
-    const eventOtherInput = document.getElementById('eventOtherInput');
-    document.getElementById('eventSelect').addEventListener('change', (e) => {
-      if (e.target.value === '其他') { eventOtherInput.style.display = 'block'; eventOtherInput.required = true; }
-      else { eventOtherInput.style.display = 'none'; eventOtherInput.required = false; }
-      notifyHeight();
-    });
+    loadEvents();
 
+    let lastReceiptText = '';
+
+    // 送出表單
     document.getElementById('orderForm').addEventListener('submit', async (e) => {
       e.preventDefault();
-      const u = document.getElementById('usernameInput').value.trim();
-      const uOther = document.getElementById('userOtherInput').value.trim();
-      const social = document.getElementById('socialInput').value.trim();
-      const ev = document.getElementById('eventSelect').value;
-      const evOther = eventOtherInput.value.trim();
-      const mem = document.getElementById('memberSelect').value;
-      const qty = document.getElementById('quantityInput').value.trim();
-      const note = document.getElementById('noteInput').value.trim();
+      const btn = document.getElementById('submitBtn');
+      btn.disabled = true;
+      btn.innerText = '處理中...';
 
-      const finalUser = u === '其他' ? uOther : u;
-      const finalEvent = ev === '其他' ? evOther : ev;
+      const user = document.getElementById('user').value.trim();
+      const eventVal = document.getElementById('event').value;
+      const memberVal = document.getElementById('member').value;
+      const qtyVal = parseInt(document.getElementById('qty').value) || 0;
+
+      const now = new Date();
+      const timeStr = now.toLocaleString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
 
       try {
         await addDoc(collection(db, "orders"), {
-          user: finalUser, social, event: finalEvent, member: mem, qty: parseInt(qty), note, hasPaid: false, createdAt: serverTimestamp()
+          user: user,
+          event: eventVal,
+          member: memberVal,
+          qty: qtyVal,
+          time: timeStr,
+          hasPaid: false,
+          createdAt: serverTimestamp()
         });
-        alert(`登記成功！\n社群名稱：${finalUser}\n活動：${finalEvent}\n成員：${mem}\n張數：${qty}`);
-        document.getElementById('orderForm').reset();
-      } catch(err) { alert('提交失敗：' + err.message); }
+
+        // 組成明細內容
+        const receiptHtml = `
+          👤 <b>社群名稱：</b>${user}<br>
+          📸 <b>選擇場次：</b>${eventVal}<br>
+          🐶 <b>成員名稱：</b>${memberVal}<br>
+          🔢 <b>喊單張數：</b>${qtyVal} 張<br>
+          ⏰ <b>填單時間：</b>${timeStr}
+        `;
+
+        lastReceiptText = `🎉【FORSURE 登記憑證】\n👤 社群名稱：${user}\n📸 選擇場次：${eventVal}\n🐶 成員名稱：${memberVal}\n🔢 喊單張數：${qtyVal} 張\n⏰ 填單時間：${timeStr}`;
+
+        document.getElementById('receiptContent').innerHTML = receiptHtml;
+        document.getElementById('formSection').style.display = 'none';
+        document.getElementById('receiptSection').style.display = 'block';
+
+      } catch (err) {
+        alert('登記失敗：' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerText = '送出登記';
+        notifyHeight();
+      }
     });
+
+    // 複製明細
+    window.copyReceiptText = function() {
+      navigator.clipboard.writeText(lastReceiptText).then(() => {
+        alert('明細已複製到剪貼簿！');
+      }).catch(() => {
+        alert('複製失敗，請手動截圖保存。');
+      });
+    };
+
+    // 重置表單
+    window.resetForm = function() {
+      document.getElementById('orderForm').reset();
+      document.getElementById('formSection').style.display = 'block';
+      document.getElementById('receiptSection').style.display = 'none';
+      notifyHeight();
+    };
 
     function notifyHeight() {
       setTimeout(() => { window.parent.postMessage({ frameHeight: document.body.scrollHeight }, '*'); }, 100);
     }
-
-    loadEvents();
   </script>
 
 </body>
