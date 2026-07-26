@@ -7,23 +7,31 @@
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 20px; background: #f5f7fa; color: #333; }
     .container { max-width: 1000px; margin: 0 auto; background: #fff; padding: 20px; border-radius: 16px; box-shadow: 0 4px 16px rgba(0,0,0,0.06); }
+    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #e4e7ed; padding-bottom: 15px; }
     
-    .nav-tabs { display: flex; gap: 10px; border-bottom: 1px solid #e4e7ed; margin-bottom: 20px; padding-bottom: 10px; }
-    .nav-tab { padding: 8px 16px; font-weight: bold; color: #606266; background: #f4f4f5; border-radius: 8px; cursor: pointer; border: none; }
+    .nav-tabs { display: flex; gap: 10px; border-bottom: 1px solid #e4e7ed; margin-bottom: 20px; padding-bottom: 10px; flex-wrap: wrap; }
+    .nav-tab { padding: 10px 18px; font-weight: bold; color: #606266; background: #f4f4f5; border-radius: 8px; cursor: pointer; border: none; font-size: 14px; }
     .nav-tab.active { background: #409eff; color: #fff; }
+
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
 
     table { width: 100%; border-collapse: collapse; margin-top: 15px; }
     th, td { padding: 12px; text-align: left; border-bottom: 1px solid #f0f2f5; font-size: 14px; }
-    th { background: #fafafa; color: #909399; }
+    th { background: #fafafa; color: #909399; font-weight: 600; }
+
+    input, select { padding: 8px 12px; font-size: 14px; border: 1px solid #dcdfe6; border-radius: 6px; box-sizing: border-box; }
+    .form-group { margin-bottom: 15px; }
+    label { font-weight: bold; display: block; margin-bottom: 5px; font-size: 14px; color: #606266; }
+
+    .btn-submit { background: #409eff; color: #fff; border: none; padding: 10px 20px; font-weight: bold; border-radius: 6px; cursor: pointer; }
+    .btn-submit:hover { background: #66b1ff; }
 
     /* 按鈕樣式修復：未點擊時使用高對比深灰色，絕不白字白底 */
     .status-btn-group { display: flex; gap: 6px; }
     .btn-status { padding: 6px 12px; font-size: 12px; font-weight: bold; border-radius: 6px; cursor: pointer; border: 1px solid #dcdfe6; background: #f4f4f5; color: #606266; transition: all 0.2s; }
     .btn-status:hover { background: #e6e8eb; color: #303133; }
-
-    /* 已對帳 (選取時) */
     .btn-status.active-ok { background: #e1f3d8; color: #67c23a; border-color: #b3e19d; }
-    /* 對帳問題 (選取時) */
     .btn-status.active-err { background: #fde2e2; color: #f56c6c; border-color: #fbc4c4; }
 
     .btn-del { background: #fef0f0; color: #f56c6c; border: 1px solid #fde2e2; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; }
@@ -33,34 +41,128 @@
 <body>
 
   <div class="container">
-    <h2>FORSURE🐶📸 管理者控制台</h2>
-
-    <div class="nav-tabs">
-      <button class="nav-tab active">1. 匯款對帳審核</button>
+    <div class="header">
+      <h2 style="margin:0;">FORSURE🐶📸 管理者控制台</h2>
     </div>
 
-    <h3>匯款登記與對帳管理</h3>
+    <!-- 4 個完整頁籤 -->
+    <div class="nav-tabs">
+      <button class="nav-tab active" onclick="switchTab(0)">1. 匯款對帳審核</button>
+      <button class="nav-tab" onclick="switchTab(1)">2. 成員抵用金管理</button>
+      <button class="nav-tab" onclick="switchTab(2)">3. 活動單價與成本設定</button>
+      <button class="nav-tab" onclick="switchTab(3)">4. 發圖進度更新</button>
+    </div>
 
-    <table>
-      <thead>
-        <tr>
-          <th>社群名稱</th>
-          <th>活動 / 成員</th>
-          <th>後五碼</th>
-          <th>填單時間</th>
-          <th>對帳狀態審核</th>
-          <th>操作</th>
-        </tr>
-      </thead>
-      <tbody id="paymentAdminTable">
-        <tr><td colspan="6" style="text-align:center; color:#909399;">載入資料中...</td></tr>
-      </tbody>
-    </table>
+    <!-- 頁籤 1: 匯款對帳審核 -->
+    <div class="tab-content active" id="tab0">
+      <h3>📋 匯款登記與對帳管理</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>社群名稱</th>
+            <th>活動 / 成員</th>
+            <th>後五碼</th>
+            <th>填單時間</th>
+            <th>對帳狀態審核</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody id="paymentAdminTable">
+          <tr><td colspan="6" style="text-align:center; color:#909399;">載入資料中...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 頁籤 2: 成員抵用金管理 -->
+    <div class="tab-content" id="tab1">
+      <h3>💳 成員抵用金設定</h3>
+      <form id="creditForm" style="display:flex; gap:10px; margin-bottom:20px; align-items:flex-end;">
+        <div>
+          <label>成員名稱</label>
+          <select id="creditMember" required>
+            <option value="方燦">方燦</option>
+            <option value="Lee Know">Lee Know</option>
+            <option value="彰彬">彰彬</option>
+            <option value="鉉辰">鉉辰</option>
+            <option value="Han">Han</option>
+            <option value="Felix">Felix</option>
+            <option value="昇玟">昇玟</option>
+            <option value="I.N">I.N</option>
+          </select>
+        </div>
+        <div>
+          <label>抵用金金額 ($)</label>
+          <input type="number" id="creditAmount" placeholder="例: 100" required>
+        </div>
+        <button type="submit" class="btn-submit">儲存金額</button>
+      </form>
+      <table>
+        <thead>
+          <tr>
+            <th>成員名稱</th>
+            <th>當前剩餘抵用金</th>
+            <th>最後更新時間</th>
+          </tr>
+        </thead>
+        <tbody id="creditTable">
+          <tr><td colspan="3" style="text-align:center; color:#909399;">載入中...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 頁籤 3: 活動單價與成本設定 -->
+    <div class="tab-content" id="tab2">
+      <h3>📌 新增 / 管理開團活動</h3>
+      <form id="eventForm" style="max-width: 400px; margin-bottom: 20px;">
+        <div class="form-group">
+          <label>活動 / 場次名稱</label>
+          <input type="text" id="eventNameInput" placeholder="例: 260725 RUN IT SEOUL (Day1)" required>
+        </div>
+        <div class="form-group">
+          <label>每張飯拍單價 ($)</label>
+          <input type="number" id="eventPriceInput" placeholder="例: 15" required>
+        </div>
+        <button type="submit" class="btn-submit">新增場次</button>
+      </form>
+      <table>
+        <thead>
+          <tr>
+            <th>活動 / 場次名稱</th>
+            <th>單價</th>
+            <th>建立時間</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody id="eventTable">
+          <tr><td colspan="4" style="text-align:center; color:#909399;">載入中...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 頁籤 4: 發圖進度更新 -->
+    <div class="tab-content" id="tab3">
+      <h3>📸 展覽 / 飯拍發圖進度</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>活動名稱</th>
+            <th>成員</th>
+            <th>目前進度</th>
+            <th>更新發圖日</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody id="photoProgressTable">
+          <tr><td colspan="5" style="text-align:center; color:#909399;">載入中...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
   </div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore, collection, onSnapshot, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getFirestore, collection, onSnapshot, doc, setDoc, updateDoc, deleteDoc, addDoc, serverTimestamp, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyDF7QySG1Jj4gdZvXwMRaKjRmI-lFKpj7k",
@@ -75,23 +177,28 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
+    // 切換頁籤
+    window.switchTab = function(idx) {
+      document.querySelectorAll('.nav-tab').forEach((tab, i) => {
+        tab.classList.toggle('active', i === idx);
+      });
+      document.querySelectorAll('.tab-content').forEach((content, i) => {
+        content.classList.toggle('active', i === idx);
+      });
+    };
+
+    // 1. 匯款對帳
     onSnapshot(collection(db, "payments"), snap => {
       const tbody = document.getElementById('paymentAdminTable');
       tbody.innerHTML = '';
-
       if (snap.empty) {
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:#909399;">目前沒有待審核的匯款紀錄。</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:#909399;">目前沒有對帳紀錄。</td></tr>';
         return;
       }
-
       snap.forEach(documentSnap => {
         const p = documentSnap.data();
         const id = documentSnap.id;
         const status = p.status || 'pending';
-
-        const isOk = status === 'ok';
-        const isErr = status === 'error';
-
         const tr = document.createElement('tr');
         tr.innerHTML = `
           <td><b>${p.user || '-'}</b></td>
@@ -100,36 +207,64 @@
           <td style="color:#909399; font-size:12px;">${p.time || '-'}</td>
           <td>
             <div class="status-btn-group">
-              <button class="btn-status ${isOk ? 'active-ok' : ''}" onclick="updateStatus('${id}', 'ok')">🟢 已對帳</button>
-              <button class="btn-status ${isErr ? 'active-err' : ''}" onclick="updateStatus('${id}', 'error')">🔴 對帳問題</button>
+              <button class="btn-status ${status === 'ok' ? 'active-ok' : ''}" onclick="updateStatus('${id}', 'ok')">🟢 已對帳</button>
+              <button class="btn-status ${status === 'error' ? 'active-err' : ''}" onclick="updateStatus('${id}', 'error')">🔴 對帳問題</button>
             </div>
           </td>
-          <td>
-            <button class="btn-del" onclick="deletePayment('${id}')">刪除</button>
-          </td>
+          <td><button class="btn-del" onclick="deletePayment('${id}')">刪除</button></td>
         `;
         tbody.appendChild(tr);
       });
     });
 
-    window.updateStatus = async function(id, status) {
-      try {
-        await updateDoc(doc(db, "payments", id), { status: status });
-      } catch (err) {
-        alert('更新失敗：' + err.message);
-      }
-    };
+    window.updateStatus = async (id, status) => { await updateDoc(doc(db, "payments", id), { status }); };
+    window.deletePayment = async (id) => { if(confirm('確定刪除？')) await deleteDoc(doc(db, "payments", id)); };
 
-    window.deletePayment = async function(id) {
-      if (confirm('確定要刪除這筆對帳紀錄嗎？')) {
-        try {
-          await deleteDoc(doc(db, "payments", id));
-        } catch (err) {
-          alert('刪除失敗：' + err.message);
-        }
-      }
-    };
+    // 2. 抵用金
+    document.getElementById('creditForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const member = document.getElementById('creditMember').value;
+      const amount = parseInt(document.getElementById('creditAmount').value) || 0;
+      await setDoc(doc(db, "credits", member), { member, amount, updatedAt: serverTimestamp() });
+      alert('抵用金已更新！');
+    });
+
+    onSnapshot(collection(db, "credits"), snap => {
+      const tbody = document.getElementById('creditTable');
+      tbody.innerHTML = '';
+      snap.forEach(docSnap => {
+        const d = docSnap.data();
+        tbody.innerHTML += `<tr><td><b>${d.member}</b></td><td style="color:#67c23a; font-weight:bold;">$${d.amount}</td><td style="color:#909399; font-size:12px;">已更新</td></tr>`;
+      });
+    });
+
+    // 3. 活動單價設定
+    document.getElementById('eventForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const name = document.getElementById('eventNameInput').value.trim();
+      const price = parseInt(document.getElementById('eventPriceInput').value) || 0;
+      await addDoc(collection(db, "events"), { name, price, createdAt: serverTimestamp() });
+      document.getElementById('eventNameInput').value = '';
+      alert('活動已成功新增！');
+    });
+
+    onSnapshot(query(collection(db, "events"), orderBy("createdAt", "desc")), snap => {
+      const tbody = document.getElementById('eventTable');
+      tbody.innerHTML = '';
+      snap.forEach(docSnap => {
+        const d = docSnap.data();
+        tbody.innerHTML += `
+          <tr>
+            <td><b>${d.name || d.eventName}</b></td>
+            <td>$${d.price || 0}</td>
+            <td style="color:#909399; font-size:12px;">已建立</td>
+            <td><button class="btn-del" onclick="deleteEvent('${docSnap.id}')">刪除</button></td>
+          </tr>`;
+      });
+    });
+
+    window.deleteEvent = async (id) => { if(confirm('確定刪除此場次？')) await deleteDoc(doc(db, "events", id)); };
+
   </script>
-
 </body>
 </html>
