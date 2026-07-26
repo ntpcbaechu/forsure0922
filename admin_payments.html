@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <title>匯款對帳審核</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 0; margin: 0; background: #fff; color: #333; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th, td { padding: 10px; border-bottom: 1px solid #e4e7ed; text-align: left; font-size: 13px; }
+    th { background: #f8f9fa; }
+    input { padding: 4px 6px; border: 1px solid #dcdfe6; border-radius: 4px; font-size: 13px; }
+    .status-err { color: #f56c6c; font-weight: bold; cursor: pointer; text-decoration: underline; margin-top: 4px; }
+    .btn-toggle { padding: 4px 8px; border-radius: 4px; font-size: 12px; cursor: pointer; border: 1px solid #dcdfe6; background: #fff; }
+    .btn-toggle.ok-active { background: #e1f3d8; color: #67c23a; border-color: #67c23a; font-weight: bold; }
+    .btn-toggle.err-active { background: #fef0f0; color: #f56c6c; border-color: #f56c6c; font-weight: bold; }
+    .btn-danger { background-color: #f56c6c; color: white; padding: 4px 8px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; }
+    .btn-edit-pay { background: none; border: none; color: #409eff; cursor: pointer; font-size: 12px; text-decoration: underline; padding: 0; margin-left: 4px; }
+  </style>
+</head>
+<body>
+
+  <h3>匯款登記與對帳管理</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>社群名稱</th>
+        <th>活動/張數</th>
+        <th>應匯金額 (可修正)</th>
+        <th>後五碼</th>
+        <th>對帳金額</th>
+        <th>對帳日期</th>
+        <th>對帳狀態</th>
+        <th>操作</th>
+      </tr>
+    </thead>
+    <tbody id="payTable"></tbody>
+  </table>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getFirestore, collection, doc, deleteDoc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDF7QySG1Jj4gdZvXwMRaKjRmI-lFKpj7k",
+      authDomain: "forsure0922.firebaseapp.com",
+      databaseURL: "https://forsure0922-default-rtdb.firebaseio.com",
+      projectId: "forsure0922",
+      storageBucket: "forsure0922.firebasestorage.app",
+      messagingSenderId: "817449290174",
+      appId: "1:817449290174:web:6b4ec1d36c171ff97011ef"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    onSnapshot(collection(db, "payments"), snap => {
+      const tb = document.getElementById('payTable');
+      tb.innerHTML = '';
+      snap.forEach(d => {
+        const p = d.data();
+        const docId = d.id;
+        const status = p.status || 'pending';
+        const noteErr = p.errorNote || '';
+        const checkDate = p.checkDate || '';
+        const actualAmt = p.actualAmt !== undefined ? p.actualAmt : p.finalPay;
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><b>${p.user}</b><br><small style="color:#909399;">${p.social}</small></td>
+          <td>${p.eventName}<br>${p.qty} 張</td>
+          <td>
+            <b style="color:#f56c6c;">$${p.finalPay}</b>
+            <button class="btn-edit-pay" onclick="editFinalPay('${docId}', ${p.finalPay})">✏️修正</button>
+            ${p.creditUsed > 0 ? `<br><small style="color:#67c23a;">(折抵$${p.creditUsed})</small>` : ''}
+          </td>
+          <td><b>${p.bankLast5}</b></td>
+          <td><input type="number" style="width:70px;" value="${actualAmt}" onchange="updatePayField('${docId}', 'actualAmt', parseInt(this.value))"></td>
+          <td><input type="date" value="${checkDate}" onchange="updatePayField('${docId}', 'checkDate', this.value)"></td>
+          <td>
+            <button class="btn-toggle ${status === 'ok' ? 'ok-active' : ''}" onclick="setPayStatus('${docId}', 'ok')">🟢 已對帳</button>
+            <button class="btn-toggle ${status === 'error' ? 'err-active' : ''}" onclick="setPayStatus('${docId}', 'error')">🔴 有問題</button>
+            ${status === 'error' ? `<div class="status-err" onclick="editErrorNote('${docId}', '${noteErr}')">原因: ${noteErr || '點擊填寫'}</div>` : ''}
+          </td>
+          <td><button class="btn-danger" onclick="deletePayment('${docId}')">刪除</button></td>
+        `;
+        tb.appendChild(tr);
+      });
+      notifyHeight();
+    });
+
+    // 修正團員填錯的應匯金額
+    window.editFinalPay = async (docId, currentPay) => {
+      const newPayStr = prompt(`請輸入修正後的正確應匯金額（目前為 $${currentPay}）：`, currentPay);
+      if (newPayStr === null || newPayStr.trim() === '') return;
+      const newPay = parseFloat(newPayStr) || 0;
+
+      try {
+        await updateDoc(doc(db, "payments", docId), {
+          finalPay: newPay,
+          actualAmt: newPay // 同步預設對帳金額
+        });
+        alert('✅ 應匯金額已成功修正！');
+      } catch (err) {
+        alert('修正失敗: ' + err.message);
+      }
+    };
+
+    window.updatePayField = async (docId, field, val) => { await updateDoc(doc(db, "payments", docId), { [field]: val }); };
+
+    window.setPayStatus = async (docId, newStatus) => {
+      const today = new Date().toISOString().slice(0,10);
+      if (newStatus === 'error') {
+        const reason = prompt("請輸入對帳問題原因：");
+        if (reason !== null) { await updateDoc(doc(db, "payments", docId), { status: 'error', errorNote: reason, checkDate: today }); }
+      } else {
+        await updateDoc(doc(db, "payments", docId), { status: 'ok', errorNote: '', checkDate: today });
+      }
+    };
+
+    window.editErrorNote = async (docId, oldNote) => {
+      const reason = prompt("修改問題原因：", oldNote);
+      if (reason !== null) { await updateDoc(doc(db, "payments", docId), { errorNote: reason }); }
+    };
+
+    window.deletePayment = async (docId) => {
+      if (confirm('確定要刪除這筆匯款審核紀錄嗎？')) { await deleteDoc(doc(db, "payments", docId)); }
+    };
+
+    function notifyHeight() {
+      setTimeout(() => {
+        window.parent.postMessage({ frameHeight: document.body.scrollHeight }, '*');
+      }, 100);
+    }
+  </script>
+
+</body>
+</html>
