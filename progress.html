@@ -12,6 +12,7 @@
     .status-sorting { background: #fdf6ec; color: #e6a23c; }
     .status-uploading { background: #ecf5ff; color: #409eff; }
     .status-done { background: #f0f9eb; color: #67c23a; }
+    .status-closed { background: #e9e9eb; color: #909399; }
   </style>
 </head>
 <body>
@@ -45,16 +46,21 @@
         return;
       }
       
-      snapshot.forEach(doc => {
-        const item = doc.data();
+      let itemsList = [];
+      snapshot.forEach(doc => { itemsList.push(doc.data()); });
+
+      // 按活動名稱/日期升冪排序
+      itemsList.sort((a, b) => a.eventName.localeCompare(b.eventName));
+
+      itemsList.forEach(item => {
         const status = item.status || '等圖中';
         
         let badgeClass = 'status-waiting';
         if (status === '分圖中') badgeClass = 'status-sorting';
         else if (status === '上傳中') badgeClass = 'status-uploading';
         else if (status === '已發圖') badgeClass = 'status-done';
+        else if (status === '已結束') badgeClass = 'status-closed';
 
-        // 顯示名稱：若包含代拍編號則顯示 (例如: 昇玟 (代拍 1))
         const displayMember = item.packageLabel ? `${item.member} (${item.packageLabel})` : item.member;
 
         const div = document.createElement('div');

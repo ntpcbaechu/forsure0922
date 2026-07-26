@@ -93,15 +93,26 @@
       eventSelect.innerHTML = '<option value="" disabled selected>請選擇活動名稱</option>';
 
       const snap = await getDocs(collection(db, "event_settings"));
-      const uniqueEvents = new Set();
+      let eventList = [];
 
       snap.forEach(d => {
-        const evName = d.data().name;
-        if (evName && !uniqueEvents.has(evName)) {
-          uniqueEvents.add(evName);
+        const data = d.data();
+        // 排除已關閉的活動
+        if (data.name && !data.isClosed) {
+          eventList.push(data);
+        }
+      });
+
+      // 依日期升冪排序 (舊到新)
+      eventList.sort((a, b) => (a.rawDate || a.name).localeCompare(b.rawDate || b.name));
+
+      const uniqueEvents = new Set();
+      eventList.forEach(item => {
+        if (!uniqueEvents.has(item.name)) {
+          uniqueEvents.add(item.name);
           const opt = document.createElement('option');
-          opt.value = evName;
-          opt.textContent = evName;
+          opt.value = item.name;
+          opt.textContent = item.name;
           eventSelect.appendChild(opt);
         }
       });
