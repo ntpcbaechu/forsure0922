@@ -28,8 +28,8 @@
     .btn-toggle.err-active { background: #fef0f0; color: #f56c6c; border-color: #f56c6c; font-weight: bold; }
     
     .input-group { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-    .btn-danger { background-color: #f56c6c; padding: 4px 8px; font-size: 12px; border-radius: 4px; }
-    .btn-edit { background-color: #e6a23c; padding: 4px 8px; font-size: 12px; border-radius: 4px; margin-right: 4px; }
+    .btn-danger { background-color: #f56c6c; color: white; padding: 4px 8px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; }
+    .btn-edit { background-color: #e6a23c; color: white; padding: 4px 8px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; margin-right: 4px; }
   </style>
 </head>
 <body>
@@ -62,13 +62,14 @@
             <th>對帳金額</th>
             <th>對帳日期</th>
             <th>對帳狀態</th>
+            <th>操作</th>
           </tr>
         </thead>
         <tbody id="payTable"></tbody>
       </table>
     </div>
 
-    <!-- 2. 抵用金管理 (全欄位: 日期活動合體與剩餘計算) -->
+    <!-- 2. 抵用金管理 -->
     <div class="tab-content">
       <h3>新增/修改成員抵用金紀錄</h3>
       <form id="creditForm" style="background:#f8f9fa; padding:15px; border-radius:8px; margin-bottom:15px;">
@@ -99,14 +100,15 @@
       </table>
     </div>
 
-    <!-- 3. 活動單價與成本設定 (獨立日期與名稱) -->
+    <!-- 3. 活動單價與成本設定 (新增欄位: 代拍) -->
     <div class="tab-content">
       <h3>設定活動單價與利潤分析</h3>
       <form id="eventForm" style="background:#f8f9fa; padding:15px; border-radius:8px; margin-bottom:15px;">
         <input type="hidden" id="editEventId">
-        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap:10px;">
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap:10px;">
           <div><label style="font-size:12px;">日期 (例: 260725)</label><input type="text" id="evDate" placeholder="YYMMDD" style="width:100%;"></div>
-          <div><label style="font-size:12px;">活動名稱 (例: RUN IT (Day1))</label><input type="text" id="evName" placeholder="活動名稱" required style="width:100%;"></div>
+          <div><label style="font-size:12px;">活動名稱 (例: RUN IT)</label><input type="text" id="evName" placeholder="活動名稱" required style="width:100%;"></div>
+          <div><label style="font-size:12px;">代拍 (例: 站姐A)</label><input type="text" id="evSeller" placeholder="代拍名稱/帳號" style="width:100%;"></div>
           <div><label style="font-size:12px;">售出單價 ($)</label><input type="number" id="evPrice" placeholder="販售單價" required style="width:100%;"></div>
           <div><label style="font-size:12px;">總購入價 ($)</label><input type="number" id="evCost" placeholder="總購入成本" required style="width:100%;"></div>
           <div><label style="font-size:12px;">預計張數</label><input type="number" id="evEstQty" placeholder="預計張數" required style="width:100%;"></div>
@@ -120,6 +122,7 @@
         <thead>
           <tr>
             <th>活動全名 (日期+名稱)</th>
+            <th>代拍</th>
             <th>售價/實際單價</th>
             <th>購入價</th>
             <th>預計/實際張數</th>
@@ -131,7 +134,7 @@
       </table>
     </div>
 
-    <!-- 4. 發圖進度更新 -->
+    <!-- 4. 發圖進度更新 (新增編輯與刪除) -->
     <div class="tab-content">
       <h3>發佈與更新發圖進度</h3>
       <div class="input-group">
@@ -163,7 +166,14 @@
       </div>
 
       <table>
-        <thead><tr><th>活動/成員</th><th>目前狀態</th></tr></thead>
+        <thead>
+          <tr>
+            <th>活動全名</th>
+            <th>成員</th>
+            <th>目前狀態</th>
+            <th>操作</th>
+          </tr>
+        </thead>
         <tbody id="progTable"></tbody>
       </table>
     </div>
@@ -198,7 +208,7 @@
       document.querySelectorAll('.tab-content').forEach((c, i) => c.classList.toggle('active', i === idx));
     };
 
-    // --- 1. 匯款對帳審核 (按下已對帳自動更新抵用金使用量) ---
+    // --- 1. 匯款對帳審核 (含刪除按鈕) ---
     onSnapshot(collection(db, "payments"), snap => {
       const tb = document.getElementById('payTable');
       tb.innerHTML = '';
@@ -223,6 +233,7 @@
             <button class="btn-toggle ${status === 'error' ? 'err-active' : ''}" onclick="setPayStatus('${docId}', 'error')">🔴 有問題</button>
             ${status === 'error' ? `<div class="status-err" onclick="editErrorNote('${docId}', '${noteErr}')">原因: ${noteErr || '點擊填寫'}</div>` : ''}
           </td>
+          <td><button class="btn-danger" onclick="deletePayment('${docId}')">刪除</button></td>
         `;
         tb.appendChild(tr);
       });
@@ -240,30 +251,7 @@
           await updateDoc(doc(db, "payments", docId), { status: 'error', errorNote: reason, checkDate: today });
         }
       } else {
-        // 按下已對帳，更新狀態並同步扣抵抵用金紀錄
         await updateDoc(doc(db, "payments", docId), { status: 'ok', errorNote: '', checkDate: today });
-        
-        // 抓取該訂單資料進行抵用金自動扣除
-        const pSnap = await getDocs(collection(db, "payments"));
-        pSnap.forEach(async (pDoc) => {
-          if (pDoc.id === docId && pDoc.data().creditUsed > 0) {
-            const pData = pDoc.data();
-            const q = query(collection(db, "user_credits"), where("user", "==", pData.user));
-            const cSnap = await getDocs(q);
-            let remDeduct = pData.creditUsed;
-            cSnap.forEach(async (cDoc) => {
-              if (remDeduct > 0) {
-                const cData = cDoc.data();
-                const curRem = cData.remaining !== undefined ? cData.remaining : (cData.credit - (cData.used || 0));
-                const deductHere = Math.min(curRem, remDeduct);
-                const newUsed = (cData.used || 0) + deductHere;
-                const newRem = cData.credit - newUsed;
-                await updateDoc(doc(db, "user_credits", cDoc.id), { used: newUsed, remaining: newRem });
-                remDeduct -= deductHere;
-              }
-            });
-          }
-        });
       }
     };
 
@@ -272,7 +260,13 @@
       if (reason !== null) { await updateDoc(doc(db, "payments", docId), { errorNote: reason }); }
     };
 
-    // --- 2. 抵用金管理 (日期+活動合體與自動剩餘計算) ---
+    window.deletePayment = async (docId) => {
+      if (confirm('確定要刪除這筆匯款審核紀錄嗎？')) {
+        await deleteDoc(doc(db, "payments", docId));
+      }
+    };
+
+    // --- 2. 抵用金管理 ---
     document.getElementById('creditForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const user = document.getElementById('cUser').value.trim();
@@ -283,7 +277,7 @@
       
       const fullEvent = cDate ? `${cDate} ${cEvent}` : cEvent;
       const remaining = credit - used;
-      const docId = document.getElementById('editCreditId').value || `${user}_${fullEvent || '通用'}`;
+      const docId = document.getElementById('editCreditId').value || `${user}_${fullEvent || '通用'}_${Date.now()}`;
 
       await setDoc(doc(db, "user_credits", docId), {
         user, rawDate: cDate, rawEvent: cEvent, fullEvent, credit, used, remaining
@@ -340,23 +334,25 @@
       });
     });
 
-    // --- 3. 活動單價與成本設定 ---
+    // --- 3. 活動單價與成本設定 (含「代拍」欄位) ---
     document.getElementById('eventForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const evDate = document.getElementById('evDate').value.trim();
       const evNameRaw = document.getElementById('evName').value.trim();
+      const seller = document.getElementById('evSeller').value.trim();
       const price = parseFloat(document.getElementById('evPrice').value) || 0;
       const cost = parseFloat(document.getElementById('evCost').value) || 0;
       const estQty = parseInt(document.getElementById('evEstQty').value) || 0;
       const actQty = parseInt(document.getElementById('evActQty').value) || 0;
 
       const fullName = evDate ? `${evDate} ${evNameRaw}` : evNameRaw;
+      const docId = document.getElementById('editEventId').value || `${fullName}_${seller || 'default'}`;
 
       const actualUnitCost = actQty > 0 ? (cost / actQty) : 0;
       const profit = (price * actQty) - cost;
 
-      await setDoc(doc(db, "event_settings", fullName), {
-        name: fullName, rawDate: evDate, rawName: evNameRaw, price, cost, estQty, actQty, actualUnitCost, profit
+      await setDoc(doc(db, "event_settings", docId), {
+        name: fullName, rawDate: evDate, rawName: evNameRaw, seller, price, cost, estQty, actQty, actualUnitCost, profit
       });
 
       alert('活動設定已儲存！');
@@ -371,12 +367,11 @@
       document.getElementById('evName').disabled = false;
     };
 
-    window.editEvent = (fullName, rawDate, rawName, price, cost, estQty, actQty) => {
+    window.editEvent = (docId, fullName, rawDate, rawName, seller, price, cost, estQty, actQty) => {
+      document.getElementById('editEventId').value = docId;
       document.getElementById('evDate').value = rawDate || '';
       document.getElementById('evName').value = rawName || fullName;
-      document.getElementById('evDate').disabled = true;
-      document.getElementById('evName').disabled = true;
-      document.getElementById('editEventId').value = fullName;
+      document.getElementById('evSeller').value = seller || '';
       document.getElementById('evPrice').value = price;
       document.getElementById('evCost').value = cost;
       document.getElementById('evEstQty').value = estQty;
@@ -384,9 +379,9 @@
       document.getElementById('cancelEditBtn').style.display = 'inline-block';
     };
 
-    window.deleteEvent = async (fullName) => {
-      if (confirm(`確定要刪除活動「${fullName}」嗎？`)) {
-        await deleteDoc(doc(db, "event_settings", fullName));
+    window.deleteEvent = async (docId) => {
+      if (confirm(`確定要刪除這筆活動設定嗎？`)) {
+        await deleteDoc(doc(db, "event_settings", docId));
         alert('已刪除');
       }
     };
@@ -397,33 +392,39 @@
       
       tb.innerHTML = '';
       progSelect.innerHTML = '<option value="" disabled selected>請選擇活動</option>';
+      const uniqueEvents = new Set();
 
       snap.forEach(d => {
         const ev = d.data();
+        const docId = d.id;
         const actUPrice = ev.actQty > 0 ? (ev.cost / ev.actQty).toFixed(1) : 0;
         
         tb.innerHTML += `
           <tr>
             <td><b>${ev.name}</b></td>
+            <td>${ev.seller || '未填寫'}</td>
             <td>售價: $${ev.price}<br><small style="color:#909399;">實際成本: $${actUPrice}/張</small></td>
             <td>$${ev.cost}</td>
             <td>預計: ${ev.estQty}張<br>實際: ${ev.actQty}張</td>
             <td><b style="color:${ev.profit >= 0 ? '#67c23a' : '#f56c6c'};">$${ev.profit}</b></td>
             <td>
-              <button class="btn-edit" onclick="editEvent('${ev.name}', '${ev.rawDate||''}', '${ev.rawName||''}', ${ev.price}, ${ev.cost}, ${ev.estQty}, ${ev.actQty})">編輯</button>
-              <button class="btn-danger" onclick="deleteEvent('${ev.name}')">刪除</button>
+              <button class="btn-edit" onclick="editEvent('${docId}', '${ev.name}', '${ev.rawDate||''}', '${ev.rawName||''}', '${ev.seller||''}', ${ev.price}, ${ev.cost}, ${ev.estQty}, ${ev.actQty})">編輯</button>
+              <button class="btn-danger" onclick="deleteEvent('${docId}')">刪除</button>
             </td>
           </tr>
         `;
 
-        const opt = document.createElement('option');
-        opt.value = ev.name;
-        opt.textContent = ev.name;
-        progSelect.appendChild(opt);
+        if (!uniqueEvents.has(ev.name)) {
+          uniqueEvents.add(ev.name);
+          const opt = document.createElement('option');
+          opt.value = ev.name;
+          opt.textContent = ev.name;
+          progSelect.appendChild(opt);
+        }
       });
     });
 
-    // --- 4. 發圖進度更新 ---
+    // --- 4. 發圖進度更新 (含編輯與刪除) ---
     document.getElementById('saveProgBtn').onclick = async () => {
       const fullEventName = document.getElementById('progEventSelect').value;
       const member = document.getElementById('progMember').value;
@@ -440,12 +441,35 @@
       alert('發圖進度已更新');
     };
 
+    window.editProg = (docId, eventName, member, status) => {
+      document.getElementById('progEventSelect').value = eventName;
+      document.getElementById('progMember').value = member;
+      document.getElementById('progStatus').value = status;
+    };
+
+    window.deleteProg = async (docId) => {
+      if (confirm('確定要刪除這筆發圖進度嗎？')) {
+        await deleteDoc(doc(db, "photo_progress", docId));
+      }
+    };
+
     onSnapshot(collection(db, "photo_progress"), snap => {
       const tb = document.getElementById('progTable');
       tb.innerHTML = '';
       snap.forEach(d => {
         const item = d.data();
-        tb.innerHTML += `<tr><td>${item.eventName} - ${item.member}</td><td><b>${item.status || '等圖中'}</b></td></tr>`;
+        const docId = d.id;
+        tb.innerHTML += `
+          <tr>
+            <td><b>${item.eventName}</b></td>
+            <td>${item.member}</td>
+            <td><b>${item.status || '等圖中'}</b></td>
+            <td>
+              <button class="btn-edit" onclick="editProg('${docId}', '${item.eventName}', '${item.member}', '${item.status}')">編輯</button>
+              <button class="btn-danger" onclick="deleteProg('${docId}')">刪除</button>
+            </td>
+          </tr>
+        `;
       });
     });
   </script>
