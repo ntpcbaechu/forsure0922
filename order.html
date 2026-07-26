@@ -86,25 +86,33 @@
       <div class="form-group">
         <label for="user">社群名稱 / 暱稱 *</label>
         <select id="user" required>
-          <option value="">載入成員名單中...</option>
+          <option value="">請選擇您的名稱</option>
         </select>
       </div>
 
-      <!-- 2. 選擇商品/活動 -->
+      <!-- 2. 選擇商品/活動 (從 Firebase event_settings 載入) -->
       <div class="form-group">
         <label for="event">品項 / 活動名稱 *</label>
         <select id="event" required>
-          <option value="">載入活動列表中...</option>
+          <option value="">請選擇品項 / 活動</option>
         </select>
       </div>
 
-      <!-- 3. 數量 -->
+      <!-- 3. 選擇成員 (從 members.json 載入) -->
       <div class="form-group">
-        <label for="quantity">數量 *</label>
-        <input type="number" id="quantity" min="1" value="1" required>
+        <label for="member">成員 *</label>
+        <select id="member" required>
+          <option value="">請選擇成員</option>
+        </select>
       </div>
 
-      <!-- 4. 備註 -->
+      <!-- 4. 數量 -->
+      <div class="form-group">
+        <label for="quantity">數量 *</label>
+        <input type="number" id="quantity" placeholder="請輸入數量" required min="1" step="1">
+      </div>
+
+      <!-- 5. 備註 -->
       <div class="form-group">
         <label for="note">備註欄位</label>
         <input type="text" id="note" placeholder="如有其他需求請填寫">
@@ -128,8 +136,8 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    // 載入 users.json 名單
     document.addEventListener('DOMContentLoaded', () => {
+      // 1. 載入 users.json 名單
       fetch('users.json')
         .then(response => {
           if (!response.ok) throw new Error('無法讀取 users.json');
@@ -146,34 +154,53 @@
           });
         })
         .catch(error => {
-          console.error('讀取名單失敗:', error);
+          console.error('讀取社群名單失敗:', error);
           document.getElementById('user').innerHTML = '<option value="">載入名單失敗，請重新整理頁面</option>';
         });
 
+      // 2. 載入 members.json 成員名單
+      fetch('members.json')
+        .then(response => {
+          if (!response.ok) throw new Error('無法讀取 members.json');
+          return response.json();
+        })
+        .then(members => {
+          const memberSelect = document.getElementById('member');
+          memberSelect.innerHTML = '<option value="">請選擇成員</option>';
+          members.forEach(member => {
+            const option = document.createElement('option');
+            option.value = member;
+            option.textContent = member;
+            memberSelect.appendChild(option);
+          });
+        })
+        .catch(error => {
+          console.error('讀取成員名單失敗:', error);
+          document.getElementById('member').innerHTML = '<option value="">載入成員失敗，請重新整理頁面</option>';
+        });
+
+      // 3. 載入活動列表
       loadEvents();
     });
 
-    // 載入 Firebase 活動設定（已加入自動切除代拍檔名邏輯）
+    // 載入 Firebase 活動設定（自動切除代拍檔名與廠商資訊）
     async function loadEvents() {
       const eventSelect = document.getElementById('event');
       try {
         const querySnapshot = await getDocs(collection(db, "event_settings"));
         eventSelect.innerHTML = '<option value="">請選擇品項 / 活動</option>';
         
-        const addedTitles = new Set(); // 避免重複選單選項
+        const addedTitles = new Set();
 
         querySnapshot.forEach((docSnap) => {
           const data = docSnap.data();
 
-          // 1. 優先取資料欄位中的前台標題
           let displayTitle = data.title || data.displayName || data.eventName;
 
-          // 2. 若無欄位名稱，則抓 ID 並切除第一個底線「_」後面的代拍資訊
           if (!displayTitle) {
             displayTitle = docSnap.id.split('_')[0]; 
           }
 
-          // 確保清單乾淨不重複
           if (displayTitle && !addedTitles.has(displayTitle)) {
             addedTitles.add(displayTitle);
             const option = document.createElement('option');
@@ -188,23 +215,33 @@
       }
     }
 
-    // 表單提交邏輯
+    // 表單提交與數量嚴格驗證邏輯
     document.getElementById('orderForm').addEventListener('submit', async (e) => {
       e.preventDefault();
-      const submitBtn = document.getElementById('submitBtn');
-      submitBtn.disabled = true;
-      submitBtn.textContent = '提交中...';
 
       const userName = document.getElementById('user').value;
       const eventName = document.getElementById('event').value;
-      const quantity = parseInt(document.getElementById('quantity').value, 10);
+      const memberName = document.getElementById('member').value;
+      const rawQuantity = document.getElementById('quantity').value.trim();
       const note = document.getElementById('note').value;
+
+      // 嚴格驗證數量：必須為正整數，不允許符號、小數、0 或負數
+      const qtyNum = Number(rawQuantity);
+      if (!rawQuantity || isNaN(qtyNum) || !Number.isInteger(qtyNum) || qtyNum <= 0) {
+        alert('請輸入正確的購買數量（請勿輸入數字以外的符號）');
+        return;
+      }
+
+      const submitBtn = document.getElementById('submitBtn');
+      submitBtn.disabled = true;
+      submitBtn.textContent = '提交中...';
 
       try {
         await addDoc(collection(db, "orders"), {
           user: userName,
           event: eventName,
-          quantity: quantity,
+          member: memberName,
+          quantity: qtyNum,
           note: note,
           status: "pending_payment", // 預設狀態設為「待匯款」
           createdAt: new Date()
