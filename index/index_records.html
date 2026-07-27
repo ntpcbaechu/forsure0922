@@ -13,12 +13,22 @@
     .event-header { font-size: 16px; font-weight: bold; color: #303133; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; }
     .event-meta { font-size: 12px; color: #409eff; background: #ecf5ff; padding: 4px 8px; border-radius: 6px; }
 
-    .order-card { background: #fafafa; border: 1px solid #ebeef5; border-radius: 8px; padding: 10px 12px; margin-top: 8px; font-size: 13px; }
+    /* 雙欄網格容器 (改動點 1) */
+    .cards-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 8px; }
+
+    /* 保留原樣式，僅微調邊距適應網格 (改動點 2) */
+    .order-card { background: #fafafa; border: 1px solid #ebeef5; border-radius: 8px; padding: 10px 12px; font-size: 13px; box-sizing: border-box; }
     .order-top { display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 6px; }
     .order-info { color: #606266; font-size: 12px; line-height: 1.6; }
     .status-badge { padding: 2px 6px; border-radius: 4px; font-size: 11px; }
     .status-paid { background: #f0f9eb; color: #67c23a; }
     .status-pending { background: #fef0f0; color: #f56c6c; }
+
+    /* 手機螢幕自動微調內距 */
+    @media (max-width: 480px) {
+      .order-card { padding: 8px 10px; }
+      .order-info { font-size: 11px; }
+    }
   </style>
 </head>
 <body>
@@ -163,13 +173,16 @@
           `;
         });
 
+        /* 外層加上 <div class="cards-grid"> 包住 cardsHtml (改動點 3) */
         recordsList.innerHTML += `
           <div class="event-section" id="${sectionId}">
             <div class="event-header">
               <span>📌 ${groupTitle}</span>
               <span class="event-meta">共 ${list.length} 筆 / 總計 ${totalPacks} 張</span>
             </div>
-            ${cardsHtml}
+            <div class="cards-grid">
+              ${cardsHtml}
+            </div>
           </div>
         `;
       }
