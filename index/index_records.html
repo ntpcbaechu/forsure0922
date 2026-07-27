@@ -62,22 +62,25 @@
       let orders = [];
       snap.forEach(d => orders.push({ id: d.id, ...d.data() }));
 
-      // 依活動分組
+      // 依「活動名稱 + 成員」進行雙重分組
       const groups = {};
       orders.forEach(o => {
-        const key = o.event || '未分類活動';
+        const eventName = o.event || '未分類活動';
+        const memberName = o.member ? ` - ${o.member}` : '';
+        const key = eventName + memberName;
+
         if (!groups[key]) groups[key] = [];
         groups[key].push(o);
       });
 
       let groupIdx = 0;
-      for (const [eventName, list] of Object.entries(groups)) {
+      for (const [groupTitle, list] of Object.entries(groups)) {
         groupIdx++;
         const sectionId = `event-sec-${groupIdx}`;
         const totalPacks = list.reduce((sum, item) => sum + (Number(item.qty) || 1), 0);
 
         // 生成跳轉按鈕
-        jumpBar.innerHTML += `<button class="jump-btn" onclick="scrollToSection('${sectionId}')">📍 ${eventName}</button>`;
+        jumpBar.innerHTML += `<button class="jump-btn" onclick="scrollToSection('${sectionId}')">📍 ${groupTitle}</button>`;
 
         let cardsHtml = '';
         list.forEach((ord, idx) => {
@@ -86,18 +89,33 @@
             ? '<span class="status-badge status-paid">🟢 已對帳</span>' 
             : '<span class="status-badge status-pending">⏳ 待匯款</span>';
 
-          // 使用 String(ord.createdAt || '') 包裹防爆，確保不管是物件、Timestamp 還是 undefined 都不會報錯
-          const dateFormatted = String(ord.createdAt || '').substring(5, 16).replace('T', ' ');
+          // 時間格式解析處理（支援 Timestamp 物件與字串格式）
+          let dateFormatted = '-';
+          if (ord.createdAt) {
+            if (typeof ord.createdAt.toDate === 'function') {
+              const d = ord.createdAt.toDate();
+              const mm = String(d.getMonth() + 1).padStart(2, '0');
+              const dd = String(d.getDate()).padStart(2, '0');
+              const hh = String(d.getHours()).padStart(2, '0');
+              const min = String(d.getMinutes()).padStart(2, '0');
+              dateFormatted = `${mm}-${dd} ${hh}:${min}`;
+            } else if (typeof ord.createdAt === 'string') {
+              dateFormatted = ord.createdAt.substring(5, 16).replace('T', ' ');
+            }
+          }
+
+          // 買家名稱相容處理
+          const displayName = ord.buyerName || ord.name || ord.buyer || ord.nickname || '未知成員';
 
           cardsHtml += `
             <div class="order-card">
               <div class="order-top">
-                <span>#${idx + 1} ${ord.buyerName || '未知成員'}</span>
+                <span>#${idx + 1} ${displayName}</span>
                 ${badgeHtml}
               </div>
               <div class="order-info">
                 <div>喊單張數：<b>${ord.qty || 1} 包</b></div>
-                <div>填單 / 更新時間：${dateFormatted || '-'}</div>
+                <div>填單 / 更新時間：${dateFormatted}</div>
               </div>
             </div>
           `;
@@ -106,7 +124,7 @@
         recordsList.innerHTML += `
           <div class="event-section" id="${sectionId}">
             <div class="event-header">
-              <span>📌 ${eventName}</span>
+              <span>📌 ${groupTitle}</span>
               <span class="event-meta">共 ${list.length} 筆 / 總計 ${totalPacks} 包</span>
             </div>
             ${cardsHtml}
