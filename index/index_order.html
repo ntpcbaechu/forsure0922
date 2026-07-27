@@ -2,241 +2,122 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>登記表單</title>
   <style>
-    html, body {
-      margin: 0;
-      padding: 10px;
-      background-color: transparent;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-      color: #333;
-      overflow: hidden;
-    }
-    .container {
-      max-width: 600px;
-      margin: 0 auto;
-      background: #ffffff;
-      padding: 30px;
-      border-radius: 16px;
-      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-      box-sizing: border-box;
-    }
-    h1 {
-      text-align: center;
-      margin-top: 0;
-      margin-bottom: 24px;
-      color: #1d1d1f;
-      font-size: 24px;
-    }
-    .form-group {
-      margin-bottom: 20px;
-    }
-    label {
-      display: block;
-      margin-bottom: 8px;
-      font-weight: 600;
-      font-size: 15px;
-    }
-    select, input[type="text"], input[type="number"], textarea {
-      width: 100%;
-      padding: 12px;
-      border: 1px solid #d2d2d7;
-      border-radius: 10px;
-      box-sizing: border-box;
-      font-size: 16px;
-      outline: none;
-      transition: border-color 0.2s;
-    }
-    select:focus, input:focus, textarea:focus {
-      border-color: #0071e3;
-    }
-    button {
-      width: 100%;
-      padding: 14px;
-      background-color: #0071e3;
-      color: white;
-      border: none;
-      border-radius: 10px;
-      font-size: 16px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background 0.2s;
-      margin-top: 10px;
-    }
-    button:hover {
-      background-color: #0077ed;
-    }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 0; margin: 0; background: transparent; color: #333; }
+    .form-group { margin-bottom: 16px; }
+    label { font-size: 14px; font-weight: bold; color: #303133; display: block; margin-bottom: 6px; }
+    input, select, textarea { width: 100%; padding: 12px; border: 1px solid #dcdfe6; border-radius: 10px; font-size: 15px; box-sizing: border-box; background: #fff; }
+    button { width: 100%; padding: 14px; background: #409eff; color: white; border: none; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+    button:disabled { background: #a0cfff; }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>登記表單</h1>
-    <form id="orderForm">
-      <div class="form-group">
-        <label for="user">社群名稱 / 暱稱 *</label>
-        <select id="user" required>
-          <option value="">請選擇您的名稱</option>
-        </select>
-      </div>
 
-      <div class="form-group">
-        <label for="event">品項 / 活動名稱 *</label>
-        <select id="event" required>
-          <option value="">請選擇品項 / 活動</option>
-        </select>
-      </div>
-
-      <div class="form-group">
-        <label for="member">成員 *</label>
-        <select id="member" required>
-          <option value="">請選擇成員</option>
-        </select>
-      </div>
-
-      <div class="form-group">
-        <label for="quantity">數量 *</label>
-        <input type="number" id="quantity" placeholder="請輸入數量" required min="1" step="1">
-      </div>
-
-      <div class="form-group">
-        <label for="note">備註欄位</label>
-        <input type="text" id="note" placeholder="如有其他需求請填寫">
-      </div>
-
-      <button type="submit" id="submitBtn">提交訂單</button>
-    </form>
-  </div>
+  <h3 style="margin-top:0; margin-bottom:20px; text-align:center; font-size:20px;">登記表單</h3>
+  <form id="orderForm">
+    <div class="form-group">
+      <label>社群名稱 / 暱稱 *</label>
+      <select id="buyerName" required><option value="">載入中...</option></select>
+    </div>
+    <div class="form-group">
+      <label>品項 / 活動名稱 *</label>
+      <select id="eventName" required><option value="">載入中...</option></select>
+    </div>
+    <div class="form-group">
+      <label>成員 *</label>
+      <select id="member" required><option value="">載入中...</option></select>
+    </div>
+    <div class="form-group">
+      <label>數量 *</label>
+      <input type="number" id="qty" min="1" placeholder="請輸入數量" required>
+    </div>
+    <div class="form-group">
+      <label>備註欄位</label>
+      <input type="text" id="note" placeholder="如有其他需求請填寫">
+    </div>
+    <button type="submit" id="submitBtn">提交訂單</button>
+  </form>
 
   <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getFirestore, collection, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyDF7QySG1Jj4gdZvXwMRaKjRmI-lFKpj7k",
-      projectId: "forsure0922",
       authDomain: "forsure0922.firebaseapp.com",
-      storageBucket: "forsure0922.appspot.com"
+      databaseURL: "https://forsure0922-default-rtdb.firebaseio.com",
+      projectId: "forsure0922",
+      storageBucket: "forsure0922.firebasestorage.app",
+      messagingSenderId: "817449290174",
+      appId: "1:817449290174:web:6b4ec1d36c171ff97011ef"
     };
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    document.addEventListener('DOMContentLoaded', () => {
-      // 改為從上一層的 json 資料夾讀取
-      fetch('../json/users.json')
-        .then(response => {
-          if (!response.ok) throw new Error('無法讀取 users.json');
-          return response.json();
-        })
-        .then(users => {
-          const userSelect = document.getElementById('user');
-          userSelect.innerHTML = '<option value="">請選擇您的名稱</option>';
-          users.forEach(user => {
-            const option = document.createElement('option');
-            option.value = user;
-            option.textContent = user;
-            userSelect.appendChild(option);
-          });
-        })
-        .catch(error => {
-          console.error('讀取社群名單失敗:', error);
-          document.getElementById('user').innerHTML = '<option value="">載入名單失敗，請重新整理頁面</option>';
-        });
+    document.addEventListener('DOMContentLoaded', async () => {
+      const [buyersRes, membersRes] = await Promise.all([
+        fetch('../json/buyers.json'),
+        fetch('../json/members.json')
+      ]);
+      const buyers = await buyersRes.json();
+      const members = await membersRes.json();
 
-      fetch('../json/members.json')
-        .then(response => {
-          if (!response.ok) throw new Error('無法讀取 members.json');
-          return response.json();
-        })
-        .then(members => {
-          const memberSelect = document.getElementById('member');
-          memberSelect.innerHTML = '<option value="">請選擇成員</option>';
-          members.forEach(member => {
-            const option = document.createElement('option');
-            option.value = member;
-            option.textContent = member;
-            memberSelect.appendChild(option);
-          });
-        })
-        .catch(error => {
-          console.error('讀取成員名單失敗:', error);
-          document.getElementById('member').innerHTML = '<option value="">載入成員失敗，請重新整理頁面</option>';
-        });
+      const buyerSel = document.getElementById('buyerName');
+      buyerSel.innerHTML = '<option value="">請選擇您的名稱</option>';
+      buyers.forEach(b => { buyerSel.innerHTML += `<option value="${b}">${b}</option>`; });
 
-      loadEvents();
+      const memberSel = document.getElementById('member');
+      memberSel.innerHTML = '<option value="">請選擇成員</option>';
+      members.forEach(m => { memberSel.innerHTML += `<option value="${m}">${m}</option>`; });
+
+      onSnapshot(collection(db, "event_settings"), snap => {
+        const eventSel = document.getElementById('eventName');
+        eventSel.innerHTML = '<option value="">請選擇品項 / 活動</option>';
+        snap.forEach(d => {
+          const data = d.data();
+          if (!data.isClosed) {
+            eventSel.innerHTML += `<option value="${data.name}">${data.name} (${data.member || '全體'})</option>`;
+          }
+        });
+        notifyHeight();
+      });
     });
-
-    async function loadEvents() {
-      const eventSelect = document.getElementById('event');
-      try {
-        const querySnapshot = await getDocs(collection(db, "event_settings"));
-        eventSelect.innerHTML = '<option value="">請選擇品項 / 活動</option>';
-        
-        const addedTitles = new Set();
-
-        querySnapshot.forEach((docSnap) => {
-          const data = docSnap.data();
-          let displayTitle = data.title || data.displayName || data.eventName || data.name;
-
-          if (!displayTitle) {
-            displayTitle = docSnap.id.split('_')[0]; 
-          }
-
-          if (displayTitle && !addedTitles.has(displayTitle)) {
-            addedTitles.add(displayTitle);
-            const option = document.createElement('option');
-            option.value = displayTitle;
-            option.textContent = displayTitle;
-            eventSelect.appendChild(option);
-          }
-        });
-      } catch (e) {
-        console.error("載入活動失敗:", e);
-        eventSelect.innerHTML = '<option value="">請選擇品項 / 活動</option>';
-      }
-    }
 
     document.getElementById('orderForm').addEventListener('submit', async (e) => {
       e.preventDefault();
+      const btn = document.getElementById('submitBtn');
+      btn.disabled = true;
+      btn.textContent = '提交中...';
 
-      const userName = document.getElementById('user').value;
-      const eventName = document.getElementById('event').value;
-      const memberName = document.getElementById('member').value;
-      const rawQuantity = document.getElementById('quantity').value.trim();
-      const note = document.getElementById('note').value;
-
-      const qtyNum = Number(rawQuantity);
-      if (!rawQuantity || isNaN(qtyNum) || !Number.isInteger(qtyNum) || qtyNum <= 0) {
-        alert('請輸入正確的購買數量（請勿輸入數字以外的符號）');
-        return;
-      }
-
-      const submitBtn = document.getElementById('submitBtn');
-      submitBtn.disabled = true;
-      submitBtn.textContent = '提交中...';
+      const data = {
+        buyerName: document.getElementById('buyerName').value,
+        event: document.getElementById('eventName').value,
+        member: document.getElementById('member').value,
+        qty: parseInt(document.getElementById('qty').value) || 1,
+        note: document.getElementById('note').value.trim(),
+        createdAt: new Date().toISOString(),
+        paymentStatus: '待匯款'
+      };
 
       try {
-        await addDoc(collection(db, "orders"), {
-          user: userName,
-          event: eventName,
-          member: memberName,
-          quantity: qtyNum,
-          note: note,
-          hasPaid: false,
-          createdAt: new Date()
-        });
-
-        alert('提交成功！');
+        await addDoc(collection(db, "orders"), data);
+        alert('🎉 登記成功！');
         document.getElementById('orderForm').reset();
-      } catch (error) {
-        console.error("提交錯誤:", error);
-        alert('提交失敗：' + error.message);
+      } catch (err) {
+        alert('提交失敗：' + err.message);
       } finally {
-        submitBtn.disabled = false;
-        submitBtn.textContent = '提交訂單';
+        btn.disabled = false;
+        btn.textContent = '提交訂單';
       }
     });
+
+    function notifyHeight() {
+      setTimeout(() => {
+        window.parent.postMessage({ frameHeight: document.body.scrollHeight }, '*');
+      }, 100);
+    }
   </script>
 </body>
 </html>

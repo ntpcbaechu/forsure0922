@@ -2,28 +2,26 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>發圖進度</title>
+  <title>目前開團與飯拍發放進度</title>
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 5px; margin: 0; background: #fff; color: #333; }
-    .progress-item { border: 1px solid #e4e7ed; border-radius: 12px; padding: 16px; margin-bottom: 12px; background: #fff; display: flex; justify-content: space-between; align-items: center; }
-    .status-badge { padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: bold; }
-    .status-reserved { background: #f3e5f5; color: #8e24aa; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 0; margin: 0; background: transparent; color: #333; }
+    .event-card { background: #fff; border: 1px solid #e4e7ed; border-radius: 12px; padding: 16px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 8px rgba(0,0,0,0.03); }
+    .event-title { font-weight: bold; font-size: 16px; color: #303133; margin-bottom: 4px; }
+    .event-sub { font-size: 13px; color: #909399; }
+    .status-badge { padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; white-space: nowrap; }
     .status-waiting { background: #f4f4f5; color: #909399; }
     .status-sorting { background: #fdf6ec; color: #e6a23c; }
-    .status-uploading { background: #ecf5ff; color: #409eff; }
     .status-done { background: #f0f9eb; color: #67c23a; }
-    .status-closed { background: #e9e9eb; color: #909399; }
   </style>
 </head>
 <body>
 
-  <h3 style="font-size: 16px; margin-top:0;">目前開團與飯拍發放進度</h3>
-  <div id="progressList">載入進度中...</div>
+  <h3 style="margin-top:0; margin-bottom:15px; font-size:18px;">目前開團與飯拍發放進度</h3>
+  <div id="progressList">載入中...</div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore, collection, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getFirestore, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyDF7QySG1Jj4gdZvXwMRaKjRmI-lFKpj7k",
@@ -38,66 +36,44 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    onSnapshot(query(collection(db, "photo_progress"), orderBy("updatedAt", "desc")), (snapshot) => {
+    onSnapshot(collection(db, "event_progress"), snap => {
       const container = document.getElementById('progressList');
       container.innerHTML = '';
-      if (snapshot.empty) {
-        container.innerHTML = '<div style="text-align:center; padding:20px; color:#909399;">目前尚無開團進度。</div>';
+
+      if (snap.empty) {
+        container.innerHTML = '<p style="color:#909399; font-size:14px;">目前尚無開團進度公告。</p>';
         notifyHeight();
         return;
       }
-      
-      let itemsList = [];
-      snapshot.forEach(doc => { itemsList.push(doc.data()); });
 
-      const sellerMapping = {};
-      itemsList.forEach(item => {
-        const eventName = item.eventName;
-        const realSeller = item.seller || 'default';
-        if (!sellerMapping[eventName]) { sellerMapping[eventName] = []; }
-        if (!sellerMapping[eventName].includes(realSeller)) {
-          sellerMapping[eventName].push(realSeller);
-        }
-      });
+      let list = [];
+      snap.forEach(d => list.push({ id: d.id, ...d.data() }));
+      list.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
 
-      itemsList.forEach(item => {
-        const eventName = item.eventName;
-        const realSeller = item.seller || 'default';
-        
-        let anonLabel = '';
-        if (sellerMapping[eventName] && sellerMapping[eventName].length > 1) {
-          const sellerIndex = sellerMapping[eventName].indexOf(realSeller) + 1;
-          anonLabel = ` (代拍 ${sellerIndex})`;
-        }
-
-        const status = item.status || '等圖中';
+      list.forEach(item => {
         let badgeClass = 'status-waiting';
-        if (status === '已預約') badgeClass = 'status-reserved';
-        else if (status === '分圖中') badgeClass = 'status-sorting';
-        else if (status === '上傳中') badgeClass = 'status-uploading';
-        else if (status === '已發圖') badgeClass = 'status-done';
-        else if (status === '已結束') badgeClass = 'status-closed';
+        if (item.status === '分圖中') badgeClass = 'status-sorting';
+        if (item.status === '已發圖' || item.status === '發圖完成') badgeClass = 'status-done';
 
-        const displayMember = `${item.member}${anonLabel}`;
-
-        const div = document.createElement('div');
-        div.className = 'progress-item';
-        div.innerHTML = `
-          <div>
-            <div style="font-weight:bold; font-size:15px; margin-bottom:4px;">${item.eventName}</div>
-            <div style="font-size:13px; color:#909399;">成員：${displayMember}</div>
+        container.innerHTML += `
+          <div class="event-card">
+            <div>
+              <div class="event-title">${item.eventName || item.name || '未命名活動'}</div>
+              <div class="event-sub">成員：${item.member || '全體'} ${item.seller ? '(' + item.seller + ')' : ''}</div>
+            </div>
+            <div class="status-badge ${badgeClass}">${item.status || '等圖中'}</div>
           </div>
-          <span class="status-badge ${badgeClass}">${status}</span>
         `;
-        container.appendChild(div);
       });
+
       notifyHeight();
     });
 
     function notifyHeight() {
-      setTimeout(() => { window.parent.postMessage({ frameHeight: document.body.scrollHeight }, '*'); }, 100);
+      setTimeout(() => {
+        window.parent.postMessage({ frameHeight: document.body.scrollHeight }, '*');
+      }, 100);
     }
   </script>
-
 </body>
 </html>

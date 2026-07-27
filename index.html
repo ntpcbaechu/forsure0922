@@ -3,77 +3,94 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>FORSURE🐶📸</title>
+  <title>FORSURE🐶📸 - 團員服務中心</title>
   <style>
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-      margin: 0;
-      padding: 40px 20px;
-      background-color: #f5f5f7;
-      color: #333;
-    }
-
-    .main-card {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      padding: 20px;
       max-width: 900px;
       margin: 0 auto;
-      background: #ffffff;
-      border-radius: 20px;
-      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.05);
-      padding: 30px;
-      box-sizing: border-box;
+      background-color: #f4f6f8;
+      color: #333;
     }
-
+    .main-card {
+      background: #ffffff;
+      padding: 24px;
+      border-radius: 20px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+    }
     .header-title {
       text-align: center;
-      font-size: 28px;
-      font-weight: 700;
-      margin-bottom: 24px;
-      color: #1d1d1f;
+      font-size: 26px;
+      font-weight: 800;
+      margin-bottom: 20px;
+      color: #1a1a1a;
+      letter-spacing: 0.5px;
+    }
+    
+    /* 手機端按鈕 3 - 2 網格佈局 */
+    .nav-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+    .nav-grid-row2 {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+      margin-bottom: 20px;
     }
 
-    .nav-tabs {
-      display: flex;
-      justify-content: center;
-      gap: 10px;
-      flex-wrap: wrap;
-      margin-bottom: 30px;
-    }
-
-    .tab-btn {
-      padding: 10px 18px;
-      border: none;
-      background-color: #f2f2f7;
-      color: #1d1d1f;
-      border-radius: 20px;
-      font-size: 15px;
-      font-weight: 600;
+    .nav-btn {
+      padding: 10px 6px;
+      font-size: 13px;
+      font-weight: bold;
+      border: 1px solid #e4e7ed;
+      background: #ffffff;
+      color: #606266;
+      border-radius: 12px;
       cursor: pointer;
+      text-align: center;
       transition: all 0.2s ease;
+      white-space: nowrap;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.02);
     }
-
-    .tab-btn:hover {
-      background-color: #e5e5ea;
+    .nav-btn:hover {
+      background: #f0f7ff;
+      color: #409eff;
+      border-color: #c6e2ff;
     }
-
-    .tab-btn.active {
-      background-color: #0071e3;
+    .nav-btn.active {
+      background: #409eff;
       color: #ffffff;
-    }
-
-    .tab-content {
-      display: none;
-      width: 100%;
-    }
-
-    .tab-content.active {
-      display: block;
+      border-color: #409eff;
+      box-shadow: 0 4px 12px rgba(64,158,255,0.3);
     }
 
     iframe {
       width: 100%;
       border: none;
-      overflow: hidden;
+      min-height: 500px;
       transition: height 0.2s ease;
+    }
+
+    @media (max-width: 600px) {
+      body {
+        padding: 8px 4px;
+      }
+      .main-card {
+        padding: 14px 10px;
+        border-radius: 16px;
+      }
+      .header-title {
+        font-size: 22px;
+        margin-bottom: 15px;
+      }
+      .nav-btn {
+        font-size: 12px;
+        padding: 9px 4px;
+      }
     }
   </style>
 </head>
@@ -82,98 +99,36 @@
   <div class="main-card">
     <div class="header-title">FORSURE🐶📸</div>
 
-    <div class="nav-tabs">
-      <button class="tab-btn active" onclick="switchTab(0, 'progress')">🔥 開團與進度</button>
-      <button class="tab-btn" onclick="switchTab(1, 'order')">📝 登記表單</button>
-      <button class="tab-btn" onclick="switchTab(2, 'pay')">💰 匯款表單</button>
-      <button class="tab-btn" onclick="switchTab(3, 'query')">🔍 查詢登記與對帳</button>
-      <button class="tab-btn" onclick="switchTab(4, 'credit')">💳 抵用金查詢</button>
+    <!-- 第一排：3 個常用按鈕 -->
+    <div class="nav-grid">
+      <button class="nav-btn active" onclick="switchTab(0, 'index/index_progress.html')">🔥 開團與進度</button>
+      <button class="nav-btn" onclick="switchTab(1, 'index/index_order.html')">📝 登記表單</button>
+      <button class="nav-btn" onclick="switchTab(2, 'index/index_payment.html')">💰 匯款表單</button>
     </div>
 
-    <div id="progress" class="tab-content active">
-      <iframe src="index/index_progress.html" id="iframe-progress" scrolling="no"></iframe>
+    <!-- 第二排：2 個查詢按鈕 -->
+    <div class="nav-grid-row2">
+      <button class="nav-btn" onclick="switchTab(3, 'index/index_records.html')">🔍 查詢登記與對帳</button>
+      <button class="nav-btn" onclick="switchTab(4, 'index/index_credit.html')">💳 抵用金查詢</button>
     </div>
 
-    <div id="order" class="tab-content">
-      <iframe src="index/index_order.html" id="iframe-order" scrolling="no"></iframe>
-    </div>
-
-    <div id="pay" class="tab-content">
-      <iframe src="index/index_payment.html" id="iframe-pay" scrolling="no"></iframe>
-    </div>
-
-    <div id="query" class="tab-content">
-      <iframe src="index/index_records.html" id="iframe-query" scrolling="no"></iframe>
-    </div>
-
-    <div id="credit" class="tab-content">
-      <iframe src="index/index_credit.html" id="iframe-credit" scrolling="no"></iframe>
-    </div>
+    <iframe id="contentFrame" src="index/index_progress.html"></iframe>
   </div>
 
   <script>
-    function switchTab(index, tabId) {
-      const buttons = document.querySelectorAll('.tab-btn');
-      const contents = document.querySelectorAll('.tab-content');
-
-      buttons.forEach((btn, idx) => {
-        btn.classList.toggle('active', idx === index);
+    function switchTab(idx, pageUrl) {
+      document.querySelectorAll('.nav-btn').forEach((btn, index) => {
+        btn.classList.toggle('active', index === idx);
       });
-
-      contents.forEach(content => {
-        content.classList.remove('active');
-      });
-
-      const targetContent = document.getElementById(tabId);
-      if (targetContent) {
-        targetContent.classList.add('active');
-        const iframe = targetContent.querySelector('iframe');
-        if (iframe) {
-          autoResizeIframe(iframe);
-        }
-      }
+      document.getElementById('contentFrame').src = pageUrl;
     }
 
-    function autoResizeIframe(iframe) {
-      try {
-        if (iframe && iframe.contentWindow && iframe.contentWindow.document) {
-          const body = iframe.contentWindow.document.body;
-          const html = iframe.contentWindow.document.documentElement;
-
-          if (body && html) {
-            const contentHeight = Math.max(
-              body.scrollHeight, body.offsetHeight,
-              html.clientHeight, html.scrollHeight, html.offsetHeight
-            );
-            
-            iframe.style.height = (contentHeight + 30) + 'px';
-          }
-        }
-      } catch (e) {
-        console.warn("無法取得 iframe 高度:", e);
-        iframe.style.height = '1000px';
+    window.addEventListener('message', (e) => {
+      if (e.data && e.data.frameHeight) {
+        document.getElementById('contentFrame').style.height = (e.data.frameHeight + 20) + 'px';
       }
-    }
-
-    window.addEventListener('message', (event) => {
-      if (event.data && event.data.frameHeight) {
-        const activeIframe = document.querySelector('.tab-content.active iframe');
-        if (activeIframe) {
-          activeIframe.style.height = (event.data.frameHeight + 40) + 'px';
-        }
-      }
-    });
-
-    document.addEventListener('DOMContentLoaded', () => {
-      const iframes = document.querySelectorAll('iframe');
-
-      iframes.forEach(iframe => {
-        iframe.addEventListener('load', () => {
-          autoResizeIframe(iframe);
-          setTimeout(() => autoResizeIframe(iframe), 400);
-        });
-      });
     });
   </script>
+
 </body>
 </html>

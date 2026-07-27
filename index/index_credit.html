@@ -2,38 +2,35 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>抵用金查詢</title>
+  <title>個人抵用金餘額查詢</title>
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 10px; margin: 0; background: #fff; color: #333; min-height: 280px; }
-    .form-group { margin-bottom: 18px; position: relative; }
-    label { display: block; margin-bottom: 6px; font-weight: 600; font-size: 14px; color: #444; }
-    input { width: 100%; padding: 12px; border: 1px solid #dcdfe6; border-radius: 8px; box-sizing: border-box; font-size: 15px; }
-    .custom-dropdown-list { position: absolute; top: 100%; left: 0; right: 0; max-height: 220px; overflow-y: auto; background-color: #ffffff; border: 1px solid #e4e7ed; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 1000; display: none; margin-top: 4px; }
-    .dropdown-item { padding: 12px; cursor: pointer; font-size: 14px; border-bottom: 1px solid #f2f6fc; }
-    .dropdown-item:hover { background-color: #f5f7fa; color: #409eff; }
-    .credit-card { text-align: center; background: #f0f9eb; border: 1px solid #e1f3d8; border-radius: 12px; padding: 25px; margin-top: 20px; display: none; }
-    .credit-amount { font-size: 32px; font-weight: bold; color: #67c23a; margin-top: 10px; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 0; margin: 0; background: transparent; color: #333; }
+    .search-box { margin-bottom: 16px; }
+    label { font-size: 14px; font-weight: bold; color: #303133; display: block; margin-bottom: 6px; }
+    select { width: 100%; padding: 12px; border: 1px solid #dcdfe6; border-radius: 10px; font-size: 15px; box-sizing: border-box; background: #fff; }
+    
+    .credit-card { background: #fff; border: 1px solid #e4e7ed; border-radius: 12px; padding: 14px; margin-bottom: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); }
+    .credit-title { font-weight: bold; font-size: 15px; color: #303133; margin-bottom: 8px; border-bottom: 1px dashed #ebeef5; padding-bottom: 6px; }
+    .credit-row { display: flex; justify-content: space-between; font-size: 13px; color: #606266; margin-bottom: 4px; }
+    .credit-balance { font-size: 15px; font-weight: bold; color: #67c23a; text-align: right; margin-top: 6px; }
   </style>
 </head>
 <body>
 
-  <h3 style="font-size: 16px; margin-top:0;">個人抵用金餘額查詢</h3>
-
-  <div class="form-group">
-    <label for="usernameInput">請選擇/搜尋您的社群暱稱</label>
-    <input type="text" id="usernameInput" placeholder="點擊搜尋社群名稱..." autocomplete="off">
-    <div id="userDropdown" class="custom-dropdown-list"></div>
+  <h3 style="margin-top:0; margin-bottom:15px; font-size:18px;">💳 個人抵用金餘額查詢</h3>
+  
+  <div class="search-box">
+    <label>請選擇您的社群暱稱：</label>
+    <select id="buyerFilter">
+      <option value="">全體社群成員 (顯示全部)</option>
+    </select>
   </div>
 
-  <div id="creditBox" class="credit-card">
-    <div style="font-size:14px; color:#606266;"><span id="targetUser"></span> 的剩餘抵用金</div>
-    <div class="credit-amount" id="targetCredit">$0</div>
-  </div>
+  <div id="creditsList">載入中...</div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getFirestore, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyDF7QySG1Jj4gdZvXwMRaKjRmI-lFKpj7k",
@@ -48,109 +45,73 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    let allUsers = [];
+    let allCredits = [];
 
-    async function initData() {
-      try {
-        const snap = await getDocs(collection(db, "user_credits"));
-        const uniqueUsers = new Set();
-        snap.forEach(d => {
-          const item = d.data();
-          if (item.user) {
-            uniqueUsers.add(item.user);
-          }
+    document.addEventListener('DOMContentLoaded', async () => {
+      // 載入社群暱選單
+      fetch('../json/buyers.json').then(res => res.json()).then(buyers => {
+        const sel = document.getElementById('buyerFilter');
+        buyers.forEach(b => {
+          sel.innerHTML += `<option value="${b}">${b}</option>`;
         });
-        allUsers = Array.from(uniqueUsers).sort();
-        setupDropdown();
-      } catch (err) {
-        console.error("載入抵用金名單失敗:", err);
-      }
-    }
-
-    function setupDropdown() {
-      const input = document.getElementById('usernameInput');
-      const dropdown = document.getElementById('userDropdown');
-
-      function render(list) {
-        dropdown.innerHTML = '';
-        if (list.length === 0) {
-          const emptyItem = document.createElement('div');
-          emptyItem.className = 'dropdown-item';
-          emptyItem.style.color = '#909399';
-          emptyItem.textContent = '尚無抵用金紀錄成員';
-          dropdown.appendChild(emptyItem);
-          return;
-        }
-
-        list.forEach(u => {
-          const item = document.createElement('div');
-          item.className = 'dropdown-item';
-          item.textContent = u;
-          item.onmousedown = (e) => {
-            e.preventDefault();
-            input.value = u;
-            dropdown.style.display = 'none';
-            fetchUserCredit(u);
-          };
-          dropdown.appendChild(item);
-        });
-      }
-
-      input.onfocus = () => { 
-        dropdown.style.display = 'block'; 
-        render(allUsers); 
-        notifyHeightWithMenu();
-      };
-      
-      input.onblur = () => { 
-        setTimeout(() => { 
-          dropdown.style.display = 'none'; 
-          notifyHeight(); 
-        }, 200); 
-      };
-
-      input.oninput = () => {
-        const val = input.value.toLowerCase();
-        render(allUsers.filter(u => u.toLowerCase().includes(val)));
-        dropdown.style.display = 'block';
-        notifyHeightWithMenu();
-      };
-    }
-
-    async function fetchUserCredit(user) {
-      let totalRemaining = 0;
-      const q = query(collection(db, "user_credits"), where("user", "==", user));
-      const snap = await getDocs(q);
-      snap.forEach(d => {
-        const item = d.data();
-        totalRemaining += (item.remaining !== undefined ? item.remaining : (item.credit || 0));
       });
 
-      document.getElementById('targetUser').textContent = user;
-      document.getElementById('targetCredit').textContent = `$${totalRemaining}`;
-      document.getElementById('creditBox').style.display = 'block';
-      setTimeout(notifyHeight, 50);
+      document.getElementById('buyerFilter').addEventListener('change', renderCredits);
+    });
+
+    onSnapshot(collection(db, "credits"), snap => {
+      allCredits = [];
+      snap.forEach(d => {
+        allCredits.push({ id: d.id, ...d.data() });
+      });
+
+      // 依日期或建立時間倒序排序 (最新在最上)
+      allCredits.sort((a, b) => (b.eventDate || b.createdAt || '').localeCompare(a.eventDate || a.createdAt || ''));
+
+      renderCredits();
+    });
+
+    function renderCredits() {
+      const selectedBuyer = document.getElementById('buyerFilter').value;
+      const container = document.getElementById('creditsList');
+      container.innerHTML = '';
+
+      // 篩選暱稱，且自動隱藏剩餘 $0 者
+      const filtered = allCredits.filter(c => {
+        const matchBuyer = !selectedBuyer || c.buyerName === selectedBuyer;
+        const remaining = (c.amount || 0) - (c.used || 0);
+        return matchBuyer && remaining > 0;
+      });
+
+      if (filtered.length === 0) {
+        container.innerHTML = '<p style="color:#909399; font-size:14px; text-align:center; padding:20px 0;">目前無可用的抵用金餘額。</p>';
+        notifyHeight();
+        return;
+      }
+
+      filtered.forEach(c => {
+        const total = c.amount || 0;
+        const used = c.used || 0;
+        const remain = total - used;
+
+        container.innerHTML += `
+          <div class="credit-card">
+            <div class="credit-title">📌 ${c.eventName || '抵用金紀錄'} (${c.buyerName || '未知'})</div>
+            <div class="credit-row"><span>轉抵用金金額：</span><span>$${total}</span></div>
+            <div class="credit-row"><span>已使用金額：</span><span>$${used}</span></div>
+            <div class="credit-balance">💰 剩餘抵用金：$${remain}</div>
+          </div>
+        `;
+      });
+
+      notifyHeight();
     }
 
     function notifyHeight() {
-      const h = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight, 280);
-      window.parent.postMessage({ frameHeight: h }, '*');
+      setTimeout(() => {
+        window.parent.postMessage({ frameHeight: document.body.scrollHeight }, '*');
+      }, 100);
     }
-
-    function notifyHeightWithMenu() {
-      const dropdown = document.getElementById('userDropdown');
-      const dropdownHeight = dropdown ? dropdown.offsetHeight : 0;
-      const totalH = Math.max(document.body.scrollHeight + dropdownHeight + 20, 320);
-      window.parent.postMessage({ frameHeight: totalH }, '*');
-    }
-
-    const resizeObserver = new ResizeObserver(() => {
-      notifyHeight();
-    });
-    resizeObserver.observe(document.body);
-
-    initData();
   </script>
-
 </body>
 </html>
