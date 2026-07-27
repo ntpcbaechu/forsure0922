@@ -25,9 +25,7 @@
 
   <h3 style="margin-top:0; margin-bottom:12px; font-size:18px;">📌 登記與對帳進度查詢</h3>
   
-  <!-- 活動快速跳轉膠囊按鈕列 -->
   <div class="jump-bar" id="jumpBar"></div>
-
   <div id="recordsList">載入中...</div>
 
   <script type="module">
@@ -79,7 +77,6 @@
         const sectionId = `event-sec-${groupIdx}`;
         const totalPacks = list.reduce((sum, item) => sum + (Number(item.qty) || 1), 0);
 
-        // 生成跳轉按鈕
         jumpBar.innerHTML += `<button class="jump-btn" onclick="scrollToSection('${sectionId}')">📍 ${groupTitle}</button>`;
 
         let cardsHtml = '';
@@ -89,7 +86,7 @@
             ? '<span class="status-badge status-paid">🟢 已對帳</span>' 
             : '<span class="status-badge status-pending">⏳ 待匯款</span>';
 
-          // 時間格式解析處理（支援 Timestamp 物件與字串格式）
+          // 時間解析
           let dateFormatted = '-';
           if (ord.createdAt) {
             if (typeof ord.createdAt.toDate === 'function') {
@@ -104,8 +101,9 @@
             }
           }
 
-          // 買家名稱相容處理
-          const displayName = ord.buyerName || ord.name || ord.buyer || ord.nickname || '未知成員';
+          // 準確抓取 buyerName
+          const rawName = ord.buyerName || ord.name || ord.buyer || ord.nickname;
+          const displayName = (rawName && String(rawName).trim() !== '') ? rawName : '未知成員';
 
           cardsHtml += `
             <div class="order-card">
