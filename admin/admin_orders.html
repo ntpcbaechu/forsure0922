@@ -4,33 +4,53 @@
   <meta charset="UTF-8">
   <title>團員登記管理</title>
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 0; margin: 0; background: #fff; color: #333; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 15px; margin: 0; background: #fff; color: #333; }
     table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-    th, td { padding: 10px; border-bottom: 1px solid #e4e7ed; text-align: left; font-size: 13px; }
-    th { background: #f8f9fa; }
-    input { padding: 8px 10px; border: 1px solid #dcdfe6; border-radius: 6px; font-size: 14px; box-sizing: border-box; }
-    .btn-danger { background-color: #f56c6c; color: white; padding: 4px 8px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; }
-    .btn-edit { background-color: #e6a23c; color: white; padding: 4px 8px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; margin-right: 4px; }
-    /* 新增切換狀態按鈕樣式 */
-    .status-clickable { cursor: pointer; user-select: none; }
+    th, td { padding: 8px 10px; border-bottom: 1px solid #e4e7ed; text-align: left; font-size: 13px; vertical-align: middle; }
+    th { background: #f8f9fa; white-space: nowrap; }
+    
+    /* 讓格內的輸入框融入表格 */
+    input[type="text"], input[type="number"], select {
+      width: 100%;
+      padding: 6px 8px;
+      border: 1px solid #dcdfe6;
+      border-radius: 4px;
+      font-size: 13px;
+      box-sizing: border-box;
+      background-color: #fff;
+    }
+    input:focus, select:focus {
+      border-color: #409eff;
+      outline: none;
+    }
+
+    .btn-save { background-color: #67c23a; color: white; padding: 6px 12px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; margin-right: 4px; }
+    .btn-save:hover { background-color: #5daf34; }
+    .btn-danger { background-color: #f56c6c; color: white; padding: 6px 12px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; }
+    .btn-danger:hover { background-color: #e64242; }
+    
+    .status-select { font-weight: bold; }
+    .status-pending { color: #e6a23c; }
+    .status-paid { color: #67c23a; }
   </style>
 </head>
 <body>
 
-  <h3>團員填單紀錄管理 (修正登記錯成員/張數)</h3>
+  <h3>團員填單紀錄管理 (全欄位可直接編輯)</h3>
   <div style="margin-bottom:12px; display:flex; gap:10px;">
     <input type="text" id="searchOrderInput" placeholder="搜尋社群名稱或活動/成員..." style="max-width:300px;">
   </div>
+
   <table>
     <thead>
       <tr>
-        <th>社群暱稱</th>
-        <th>活動名稱</th>
-        <th>登記成員</th>
-        <th>登記張數</th>
-        <th>登記時間</th>
-        <th>匯款狀態 (點擊可切換)</th>
-        <th>操作</th>
+        <th style="width: 15%;">社群暱稱</th>
+        <th style="width: 20%;">活動名稱</th>
+        <th style="width: 15%;">登記成員</th>
+        <th style="width: 10%;">登記張數</th>
+        <th style="width: 18%;">登記時間</th>
+        <th style="width: 12%;">匯款狀態</th>
+        <th style="width: 10%;">操作</th>
       </tr>
     </thead>
     <tbody id="ordersAdminTable"></tbody>
@@ -55,31 +75,47 @@
 
     onSnapshot(collection(db, "orders"), snap => {
       const tb = document.getElementById('ordersAdminTable');
+      
+      // 避免編輯到一半被即時監聽刷新，只在沒人在輸入時渲染（或重繪）
+      if (document.activeElement && document.activeElement.tagName === 'INPUT') return;
+
       tb.innerHTML = '';
 
       snap.forEach(d => {
         const item = d.data();
         const docId = d.id;
-        const eName = item.event || item.eventName || item.fullEvent || '未命名';
-        const qty = item.qty !== undefined ? item.qty : (item.quantity !== undefined ? item.quantity : (item.count || 0));
-        const timeStr = item.time || (item.createdAt ? new Date(item.createdAt.seconds * 1000).toLocaleString('zh-TW', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false }) : '-');
+        
+        const user = item.user && item.user !== '-' ? item.user : '';
+        const eName = item.event || item.eventName || item.fullEvent || '';
+        const member = item.member || '';
+        const qty = item.qty !== undefined ? item.qty : (item.quantity !== undefined ? item.quantity : 0);
+        
+        let timeStr = item.time || '';
+        if (!timeStr && item.createdAt) {
+          try {
+            timeStr = new Date(item.createdAt.seconds * 1000).toLocaleString('zh-TW', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false });
+          } catch(e) { timeStr = ''; }
+        }
 
-        // 同步相容三種狀態判斷
         const isPaid = item.hasPaid || item.paymentStatus === '已對帳' || item.status === '已對帳';
 
         const tr = document.createElement('tr');
+        tr.id = `row-${docId}`;
         tr.innerHTML = `
-          <td><b>${item.user || '-'}</b></td>
-          <td>${eName}</td>
-          <td><b style="color:#409eff;">${item.member || '未設定'}</b></td>
-          <td>${qty} 張</td>
-          <td><small style="color:#909399;">${timeStr}</small></td>
-          <td class="status-clickable" onclick="togglePayStatus('${docId}', ${isPaid})">
-            ${isPaid ? '<span style="color:#67c23a; font-weight:bold;">🟢 已匯款 (點擊切換)</span>' : '<span style="color:#909399;">📝 登記待匯 (點擊切換)</span>'}
+          <td><input type="text" value="${user}" placeholder="手動補上暱稱" id="user-${docId}"></td>
+          <td><input type="text" value="${eName}" placeholder="活動名稱" id="event-${docId}"></td>
+          <td><input type="text" value="${member}" placeholder="成員" id="member-${docId}" style="color:#409eff; font-weight:bold;"></td>
+          <td><input type="number" value="${qty}" id="qty-${docId}" style="width:70px;"></td>
+          <td><input type="text" value="${timeStr}" placeholder="如 7/27 02:15" id="time-${docId}"></td>
+          <td>
+            <select id="status-${docId}" class="status-select ${isPaid ? 'status-paid' : 'status-pending'}">
+              <option value="pending" ${!isPaid ? 'selected' : ''}>⏳ 待匯款</option>
+              <option value="paid" ${isPaid ? 'selected' : ''}>🟢 已匯款</option>
+            </select>
           </td>
           <td>
-            <button class="btn-edit" onclick="editUserOrder('${docId}', '${item.member||''}', ${qty})">修改成員/張數</button>
-            <button class="btn-danger" onclick="deleteUserOrder('${docId}', '${item.user}', '${item.member}')">刪除</button>
+            <button class="btn-save" onclick="saveOrder('${docId}')">儲存</button>
+            <button class="btn-danger" onclick="deleteUserOrder('${docId}')">刪除</button>
           </td>
         `;
         tb.appendChild(tr);
@@ -87,52 +123,57 @@
       notifyHeight();
     });
 
-    // 切換匯款/對帳狀態：同時把三個關鍵欄位一次寫入，徹底解決前後台同步問題
-    window.togglePayStatus = async (docId, currentStatus) => {
-      const nextStatus = !currentStatus;
-      try {
-        await updateDoc(doc(db, "orders", docId), {
-          hasPaid: nextStatus,
-          paymentStatus: nextStatus ? '已對帳' : 'pending_payment',
-          status: nextStatus ? '已對帳' : 'pending_payment'
-        });
-      } catch (err) {
-        alert('修改狀態失敗: ' + err.message);
-      }
-    };
-
-    window.editUserOrder = async (docId, oldMember, oldQty) => {
-      const newMember = prompt(`請輸入要修正的成員名稱（目前為 ${oldMember}）：\n可填寫例如：方燦, Lee Know, 彰彬, 鉉辰, Han, Felix, 昇玟, I.N, 團體/全體`, oldMember);
-      if (newMember === null || newMember.trim() === '') return;
-
-      const newQtyStr = prompt(`請確認或修改張數（目前為 ${oldQty} 張）：`, oldQty);
-      if (newQtyStr === null) return;
-      const newQty = parseInt(newQtyStr) || 0;
+    // 儲存整列單筆資料
+    window.saveOrder = async (docId) => {
+      const user = document.getElementById(`user-${docId}`).value.trim();
+      const eventName = document.getElementById(`event-${docId}`).value.trim();
+      const member = document.getElementById(`member-${docId}`).value.trim();
+      const qty = parseInt(document.getElementById(`qty-${docId}`).value) || 0;
+      const timeStr = document.getElementById(`time-${docId}`).value.trim();
+      const statusVal = document.getElementById(`status-${docId}`).value;
+      const isPaid = statusVal === 'paid';
 
       try {
         await updateDoc(doc(db, "orders", docId), {
-          member: newMember.trim(),
-          qty: newQty,
-          quantity: newQty
+          user: user || '-',
+          event: eventName,
+          eventName: eventName,
+          member: member,
+          qty: qty,
+          quantity: qty,
+          time: timeStr,
+          hasPaid: isPaid,
+          paymentStatus: isPaid ? '已對帳' : 'pending_payment',
+          status: isPaid ? '已對帳' : 'pending_payment'
         });
-        alert('✅ 登記成員與張數已成功修改！');
+        alert('✅ 更新成功！');
       } catch (err) {
-        alert('修改失敗: ' + err.message);
+        alert('儲存失敗: ' + err.message);
       }
     };
 
-    window.deleteUserOrder = async (docId, user, member) => {
-      if (confirm(`確定要刪除 [${user}] 登記的 [${member}] 紀錄嗎？`)) {
-        await deleteDoc(doc(db, "orders", docId));
-        alert('已成功刪除該筆登記。');
+    window.deleteUserOrder = async (docId) => {
+      if (confirm('確定要刪除這筆紀錄嗎？')) {
+        try {
+          await deleteDoc(doc(db, "orders", docId));
+          alert('已成功刪除。');
+        } catch (err) {
+          alert('刪除失敗: ' + err.message);
+        }
       }
     };
 
+    // 搜尋過濾
     document.getElementById('searchOrderInput').addEventListener('input', (e) => {
       const kw = e.target.value.toLowerCase();
       const rows = document.querySelectorAll('#ordersAdminTable tr');
       rows.forEach(r => {
-        r.style.display = r.textContent.toLowerCase().includes(kw) ? '' : 'none';
+        const inputs = r.querySelectorAll('input');
+        let textMatch = false;
+        inputs.forEach(input => {
+          if (input.value.toLowerCase().includes(kw)) textMatch = true;
+        });
+        r.style.display = textMatch ? '' : 'none';
       });
     });
 
