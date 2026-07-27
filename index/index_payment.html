@@ -92,11 +92,23 @@
 
     let allCredits = [];
     let allOrders = [];
+    let eventSettings = {}; // 儲存 event_settings 的單價對照表
 
     document.addEventListener('DOMContentLoaded', () => {
       // 預設匯款日期為今天 (YYYY-MM-DD)
       const today = new Date().toISOString().split('T')[0];
       document.getElementById('payDate').value = today;
+
+      // 監聽 event_settings 資料庫取得活動單價
+      onSnapshot(collection(db, "event_settings"), snap => {
+        eventSettings = {};
+        snap.forEach(d => {
+          const data = d.data();
+          const key = `${data.eventName || data.event}_${data.member || ''}`;
+          eventSettings[key] = Number(data.price) || Number(data.unitPrice) || Number(data.sellPrice) || 0;
+        });
+        renderBuyerDetails();
+      });
 
       // 監聽 user_credits 資料庫 (連動 admin_credits)
       onSnapshot(collection(db, "user_credits"), snap => {
@@ -177,11 +189,16 @@
         document.getElementById('pendingTotal').textContent = '$0';
       } else {
         userOrders.forEach(ord => {
-          const price = Number(ord.price) || Number(ord.total) || 0;
+          // 精準計算訂單金額：數量 (quantity/qty) * 單價 (event_settings/price)
+          const qty = Number(ord.quantity) || Number(ord.qty) || 1;
+          const settingKey = `${ord.event}_${ord.member}`;
+          const unitPrice = Number(ord.price) || Number(ord.unitPrice) || eventSettings[settingKey] || 0;
+          const calculatedPrice = (unitPrice > 0) ? (qty * unitPrice) : (Number(ord.total) || Number(ord.amount) || 0);
+
           ordersList.innerHTML += `
             <div class="order-item">
-              <input type="checkbox" class="order-chk" value="${ord.id}" data-price="${price}" checked>
-              <span>📌 ${ord.event || '未命名活動'} (${ord.member || '全體'}) - $${price}</span>
+              <input type="checkbox" class="order-chk" value="${ord.id}" data-price="${calculatedPrice}" checked>
+              <span>📌 ${ord.event || '未命名活動'} (${ord.member || '全體'}) - $${calculatedPrice}</span>
             </div>
           `;
         });
@@ -201,7 +218,7 @@
       chks.forEach(chk => {
         total += Number(chk.getAttribute('data-price')) || 0;
       });
-      document.getElementById('pendingTotal').textContent = `$${total}`;
+      document.getElementById('pendingTotal').textContent = `$${total.toFixed(1).replace(/\.0$/, '')}`;
     }
 
     document.getElementById('paymentForm').addEventListener('submit', async (e) => {
