@@ -48,13 +48,12 @@
     let allCredits = [];
 
     document.addEventListener('DOMContentLoaded', async () => {
-      // 載入社群暱選單 (自動容錯路徑)
-      fetch('../json/buyers.json').catch(() => fetch('./json/buyers.json')).then(res => res.json()).then(buyers => {
-        const sel = document.getElementById('buyerFilter');
-        buyers.forEach(b => {
-          sel.innerHTML += `<option value="${b}">${b}</option>`;
-        });
-      }).catch(err => console.error(err));
+      const res = await fetch('../json/buyers.json');
+      const buyers = await res.json();
+      const sel = document.getElementById('buyerFilter');
+      buyers.forEach(b => {
+        sel.innerHTML += `<option value="${b}">${b}</option>`;
+      });
 
       document.getElementById('buyerFilter').addEventListener('change', renderCredits);
     });
@@ -65,9 +64,7 @@
         allCredits.push({ id: d.id, ...d.data() });
       });
 
-      // 依日期或建立時間倒序排序 (最新在最上)
       allCredits.sort((a, b) => (b.eventDate || b.createdAt || '').localeCompare(a.eventDate || a.createdAt || ''));
-
       renderCredits();
     });
 
@@ -76,7 +73,6 @@
       const container = document.getElementById('creditsList');
       container.innerHTML = '';
 
-      // 篩選暱稱，且自動隱藏剩餘 $0 者
       const filtered = allCredits.filter(c => {
         const matchBuyer = !selectedBuyer || c.buyerName === selectedBuyer;
         const remaining = (c.amount || 0) - (c.used || 0);
