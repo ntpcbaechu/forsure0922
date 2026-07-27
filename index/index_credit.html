@@ -48,7 +48,8 @@
     let allCredits = [];
 
     document.addEventListener('DOMContentLoaded', async () => {
-      const res = await fetch('../json/buyers.json');
+      // 這裡修正抓取檔案名稱為 users.json
+      const res = await fetch('../json/users.json');
       const buyers = await res.json();
       const sel = document.getElementById('buyerFilter');
       buyers.forEach(b => {

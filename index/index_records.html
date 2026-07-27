@@ -86,6 +86,9 @@
             ? '<span class="status-badge status-paid">🟢 已對帳</span>' 
             : '<span class="status-badge status-pending">⏳ 待匯款</span>';
 
+          // 使用 String(ord.createdAt || '') 包裹防爆，確保不管是物件、Timestamp 還是 undefined 都不會報錯
+          const dateFormatted = String(ord.createdAt || '').substring(5, 16).replace('T', ' ');
+
           cardsHtml += `
             <div class="order-card">
               <div class="order-top">
@@ -94,7 +97,7 @@
               </div>
               <div class="order-info">
                 <div>喊單張數：<b>${ord.qty || 1} 包</b></div>
-                <div>填單 / 更新時間：${ord.createdAt ? ord.createdAt.substring(5, 16).replace('T', ' ') : '-'}</div>
+                <div>填單 / 更新時間：${dateFormatted || '-'}</div>
               </div>
             </div>
           `;
