@@ -13,10 +13,14 @@
 
     /* 抵用金與待匯款訂單卡片樣式 */
     .info-card { background: #f4f4f5; border-radius: 10px; padding: 12px; margin-bottom: 16px; font-size: 13px; color: #606266; border: 1px solid #e4e7ed; }
-    .info-row { display: flex; justify-content: space-between; margin-bottom: 6px; }
+    .info-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
     .orders-select-box { background: #fff; border: 1px solid #dcdfe6; border-radius: 8px; padding: 10px; max-height: 150px; overflow-y: auto; margin-top: 6px; }
-    .order-item { display: flex; align-items: center; gap: 8px; font-size: 13px; padding: 6px 0; border-bottom: 1px dashed #ebeef5; }
+    
+    /* 修正勾選框與清單樣式 */
+    .order-item { display: flex; align-items: center; justify-content: space-between; font-size: 13px; padding: 6px 0; border-bottom: 1px dashed #ebeef5; }
     .order-item:last-child { border-bottom: none; }
+    .order-left { display: flex; align-items: center; gap: 8px; }
+    .order-chk, .credit-chk { width: 16px; height: 16px; margin: 0; cursor: pointer; }
   </style>
 </head>
 <body>
@@ -25,27 +29,41 @@
   <form id="paymentForm">
     <!-- 1. 社群名稱選單 (只顯示有登記的人) -->
     <div class="form-group">
-      <label>社群名稱 / 暱稱 *</label>
+      <label>社群名稱 *</label>
       <select id="buyerName" required><option value="">載入中...</option></select>
     </div>
+	
+	<!-- IG / Threads 帳號 (必填) -->
+	<div class="form-group">
+	  <label>IG / Threads 帳號 *</label>
+	  <input type="text" id="socialAccount" placeholder="例: ntpcbaechu" required>
+	</div>
 
     <!-- 2. 選取暱稱後才展開的區域 -->
     <div id="formContent" style="display: none;">
       <!-- 抵用金與待匯款訂單選擇卡片 -->
       <div class="info-card">
         <div class="info-row">
-          <span>可用抵用金餘額：</span>
-          <b style="color:#67c23a;" id="creditBalance">$0</b>
+          <label style="font-weight:normal; font-size:13px; margin:0; cursor:pointer; display:flex; align-items:center; gap:6px;">
+            <input type="checkbox" id="useCreditChk" class="credit-chk">
+            <span>勾選折抵可用抵用金 (餘額: <b style="color:#67c23a;" id="creditBalance">$0</b>)</span>
+          </label>
+          <b style="color:#f56c6c;" id="creditDeduct">-$0</b>
         </div>
-        <div class="info-row">
-          <span>勾選訂單合算金額：</span>
-          <b style="color:#f56c6c;" id="pendingTotal">$0</b>
+        <div class="info-row" style="margin-top:8px;">
+          <span>勾選訂單小計：</span>
+          <b style="color:#606266;" id="pendingTotal">$0</b>
         </div>
-        <div style="font-weight:bold; margin-top:8px;">選擇要一起對帳的待匯款訂單：</div>
+        <div class="info-row" style="border-top: 1px dashed #dcdfe6; padding-top:6px; margin-top:6px;">
+          <span style="font-weight:bold; color:#303133;">本次應匯款總金額：</span>
+          <b style="color:#f56c6c; font-size:15px;" id="finalPayTotal">$0</b>
+        </div>
+
+        <div style="font-weight:bold; margin-top:12px; color:#303133;">選擇要一起匯款的訂單：</div>
         <div class="orders-select-box" id="ordersList">無待匯款訂單</div>
       </div>
 
-      <!-- 匯款日期 (預設今天, 必填) -->
+      <!-- 匯款日期 (預設不自動帶入日期) -->
       <div class="form-group">
         <label>匯款日期 *</label>
         <input type="date" id="payDate" required>
@@ -54,7 +72,7 @@
       <!-- 匯款金額 (必填) -->
       <div class="form-group">
         <label>匯款金額 ($) *</label>
-        <input type="number" id="amount" min="1" placeholder="請輸入實際匯款金額" required>
+        <input type="number" id="amount" min="1" placeholder="請輸入匯款金額" required>
       </div>
 
       <!-- 匯款帳號末 5 碼 (必填) -->
@@ -66,7 +84,7 @@
       <!-- 備註說明 (選填) -->
       <div class="form-group">
         <label>備註說明</label>
-        <input type="text" id="note" placeholder="如需使用抵用金扣抵請在此備註">
+        <input type="text" id="note" placeholder="#">
       </div>
 
       <button type="submit" id="submitBtn">提交對帳資料</button>
@@ -93,12 +111,9 @@
     let allCredits = [];
     let allOrders = [];
     let eventSettings = {}; // 儲存 event_settings 的單價對照表
+    let currentAvailableCredit = 0; // 紀錄目前使用者的可用抵用金
 
     document.addEventListener('DOMContentLoaded', () => {
-      // 預設匯款日期為今天 (YYYY-MM-DD)
-      const today = new Date().toISOString().split('T')[0];
-      document.getElementById('payDate').value = today;
-
       // 監聽 event_settings 資料庫取得活動單價
       onSnapshot(collection(db, "event_settings"), snap => {
         eventSettings = {};
@@ -148,6 +163,7 @@
       });
 
       document.getElementById('buyerName').addEventListener('change', renderBuyerDetails);
+      document.getElementById('useCreditChk').addEventListener('change', calcSelectedTotal);
       notifyHeight();
     });
 
@@ -167,12 +183,14 @@
 
       // 1. 計算可用抵用金 (連動 user_credits 集合欄位 user 與 credit)
       const userCredits = allCredits.filter(c => (c.user === selectedBuyer || c.buyerName === selectedBuyer || c.name === selectedBuyer));
-      const totalCredit = userCredits.reduce((sum, c) => {
+      currentAvailableCredit = userCredits.reduce((sum, c) => {
         const amt = Number(c.credit) || Number(c.amount) || 0;
         const used = Number(c.used) || 0;
         return sum + (amt - used);
       }, 0);
-      document.getElementById('creditBalance').textContent = `$${totalCredit}`;
+      
+      document.getElementById('creditBalance').textContent = `$${currentAvailableCredit}`;
+      document.getElementById('useCreditChk').checked = false; // 預設不勾選折抵
 
       // 2. 抓取待匯款訂單 (相容 pending_payment 狀態與 user 欄位)
       const userOrders = allOrders.filter(o => {
@@ -187,6 +205,7 @@
       if (userOrders.length === 0) {
         ordersList.innerHTML = '<span style="color:#909399;">目前無待匯款訂單</span>';
         document.getElementById('pendingTotal').textContent = '$0';
+        document.getElementById('finalPayTotal').textContent = '$0';
       } else {
         userOrders.forEach(ord => {
           // 精準計算訂單金額：數量 (quantity/qty) * 單價 (event_settings/price)
@@ -197,8 +216,11 @@
 
           ordersList.innerHTML += `
             <div class="order-item">
-              <input type="checkbox" class="order-chk" value="${ord.id}" data-price="${calculatedPrice}" checked>
-              <span>📌 ${ord.event || '未命名活動'} (${ord.member || '全體'}) - $${calculatedPrice}</span>
+              <div class="order-left">
+                <input type="checkbox" class="order-chk" value="${ord.id}" data-price="${calculatedPrice}">
+                <span>📌 ${ord.event || '未命名活動'} (${ord.member || '全體'}) - ${qty} 包</span>
+              </div>
+              <b style="color:#f56c6c;">$${calculatedPrice}</b>
             </div>
           `;
         });
@@ -214,27 +236,46 @@
 
     function calcSelectedTotal() {
       const chks = document.querySelectorAll('.order-chk:checked');
-      let total = 0;
+      let orderSubtotal = 0;
       chks.forEach(chk => {
-        total += Number(chk.getAttribute('data-price')) || 0;
+        orderSubtotal += Number(chk.getAttribute('data-price')) || 0;
       });
-      document.getElementById('pendingTotal').textContent = `$${total.toFixed(1).replace(/\.0$/, '')}`;
+
+      // 是否勾選折抵抵用金
+      const useCredit = document.getElementById('useCreditChk').checked;
+      let creditDeduction = 0;
+
+      if (useCredit && currentAvailableCredit > 0) {
+        // 折抵金額不能超過訂單小計，也不能超過可用抵用金
+        creditDeduction = Math.min(orderSubtotal, currentAvailableCredit);
+      }
+
+      const finalTotal = Math.max(0, orderSubtotal - creditDeduction);
+
+      document.getElementById('pendingTotal').textContent = `$${orderSubtotal.toFixed(1).replace(/\.0$/, '')}`;
+      document.getElementById('creditDeduct').textContent = `-$${creditDeduction.toFixed(1).replace(/\.0$/, '')}`;
+      document.getElementById('finalPayTotal').textContent = `$${finalTotal.toFixed(1).replace(/\.0$/, '')}`;
+      
+      // 自動同步更新匯款金額欄位
+      document.getElementById('amount').value = finalTotal > 0 ? finalTotal : '';
     }
 
     document.getElementById('paymentForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const btn = document.getElementById('submitBtn');
       btn.disabled = true;
-      btn.textContent = '提交中...';
+      btn.textContent = '送出中...';
 
       const selectedOrderIds = Array.from(document.querySelectorAll('.order-chk:checked')).map(cb => cb.value);
 
       const data = {
         buyerName: document.getElementById('buyerName').value,
+		socialAccount: document.getElementById('socialAccount').value.trim(),
         payDate: document.getElementById('payDate').value,
         amount: parseFloat(document.getElementById('amount').value) || 0,
         last5: document.getElementById('last5').value.trim(),
         note: document.getElementById('note').value.trim(),
+        useCredit: document.getElementById('useCreditChk').checked,
         relatedOrderIds: selectedOrderIds,
         createdAt: new Date().toISOString(),
         status: '待對帳'
@@ -257,10 +298,10 @@
         document.getElementById('paymentForm').reset();
         document.getElementById('formContent').style.display = 'none';
       } catch (err) {
-        alert('提交失敗：' + err.message);
+        alert('送出失敗：' + err.message);
       } finally {
         btn.disabled = false;
-        btn.textContent = '提交對帳資料';
+        btn.textContent = '送出';
       }
     });
 
