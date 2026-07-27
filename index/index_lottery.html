@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <title>抽獎結果公告</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 0; margin: 0; background: transparent; color: #333; }
+    
+    .lottery-card { background: #fff; border: 1px solid #e4e7ed; border-radius: 12px; padding: 16px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); }
+    .lottery-title { font-size: 18px; font-weight: bold; color: #303133; margin-bottom: 12px; border-bottom: 2px solid #409eff; padding-bottom: 8px; display: flex; align-items: center; justify-content: space-between; }
+    .lottery-date { font-size: 12px; color: #909399; font-weight: normal; }
+
+    .section-block { background: #f8f9fa; border-radius: 8px; padding: 12px; margin-bottom: 12px; font-size: 13px; color: #606266; }
+    .section-subtitle { font-weight: bold; color: #303133; margin-bottom: 6px; font-size: 14px; }
+    
+    .rules-list, .prizes-list { margin: 0; padding-left: 18px; line-height: 1.6; }
+    .members-tag { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+    .member-badge { background: #eef5fe; color: #409eff; padding: 3px 8px; border-radius: 12px; font-size: 12px; }
+
+    .winner-box { background: #f0f9eb; border: 1px solid #e1f3d8; border-radius: 8px; padding: 12px; margin-top: 12px; }
+    .winner-title { font-weight: bold; color: #67c23a; font-size: 15px; margin-bottom: 8px; border-bottom: 1px dashed #c2e7b0; padding-bottom: 4px; }
+    .winner-item { padding: 6px 0; border-bottom: 1px dashed #e1f3d8; font-size: 13px; }
+    .winner-item:last-child { border-bottom: none; }
+    .winner-name { font-weight: bold; color: #303133; }
+    .winner-prize { color: #e6a23c; font-weight: bold; margin-top: 2px; }
+    .winner-special { color: #f56c6c; font-weight: bold; margin-top: 2px; }
+  </style>
+</head>
+<body>
+
+  <h3 style="margin-top:0; margin-bottom:15px; font-size:18px;">🎉 抽獎結果公告</h3>
+
+  <!-- 第一場抽獎 -->
+  <div class="lottery-card">
+    <div class="lottery-title">
+      <span>🎁 幸運抽獎（五位得主）</span>
+    </div>
+
+    <!-- 規則 -->
+    <div class="section-block">
+      <div class="section-subtitle">📋 抽獎規則與說明</div>
+      <ul class="rules-list">
+        <li>每位參與者僅有一次中獎機會（不重複中獎）。</li>
+        <li>前四位得主採「先抽人，隨即抽獎項」的模式隨機配對。</li>
+        <li>第五位得主獲得專屬「特別獎：下一次飯拍折 $50」。</li>
+        <li>飯拍僅供個人收藏，請勿二次轉載或商業使用。</li>
+      </ul>
+    </div>
+
+    <!-- 獎項 -->
+    <div class="section-block">
+      <div class="section-subtitle">🎁 獎項列表</div>
+      <ul class="prizes-list">
+        <li>📷 240721 歌謠大戰 Ending (30P)（共 2 份）</li>
+        <li>✈️ 240731 出境 (20P)（共 1 份）</li>
+        <li>🌙 251015 WKorea 下班 (20P)（共 1 份）</li>
+        <li>💎 特別獎：下一次飯拍折 $50（共 1 份）</li>
+      </ul>
+    </div>
+
+    <!-- 參與名單 -->
+    <div class="section-block">
+      <div class="section-subtitle">👥 參與名單 (共 15 位)</div>
+      <div class="members-tag">
+        <span class="member-badge">@江</span>
+        <span class="member-badge">@摳摳</span>
+        <span class="member-badge">@Emily_1230</span>
+        <span class="member-badge">@무무</span>
+        <span class="member-badge">@Hannah</span>
+        <span class="member-badge">@skrothy.z</span>
+        <span class="member-badge">@祐庭</span>
+        <span class="member-badge">@Nicole</span>
+        <span class="member-badge">@Cynthiya</span>
+        <span class="member-badge">@zhen wei</span>
+        <span class="member-badge">@Akari</span>
+        <span class="member-badge">@Lll ◝‿◜</span>
+        <span class="member-badge">@LC</span>
+        <span class="member-badge">@이정이🍀</span>
+        <span class="member-badge">@NN</span>
+      </div>
+    </div>
+
+    <!-- 中獎結果 -->
+    <div class="winner-box">
+      <div class="winner-title">🎉 抽獎結果揭曉</div>
+      
+      <div class="winner-item">
+        <div>👤 第 1 位幸運兒：<span class="winner-name">@zhen wei</span></div>
+        <div class="winner-prize">➔ 抽中獎項：✈️ 240731 出境 (20P)</div>
+      </div>
+
+      <div class="winner-item">
+        <div>👤 第 2 位幸運兒：<span class="winner-name">@Hannah</span></div>
+        <div class="winner-prize">➔ 抽中獎項：📷 240721 歌謠大戰 Ending (30P)</div>
+      </div>
+
+      <div class="winner-item">
+        <div>👤 第 3 位幸運兒：<span class="winner-name">@江</span></div>
+        <div class="winner-prize">➔ 抽中獎項：🌙 251015 WKorea 下班 (20P)</div>
+      </div>
+
+      <div class="winner-item">
+        <div>👤 第 4 位幸運兒：<span class="winner-name">@Lll ◝‿◜</span></div>
+        <div class="winner-prize">➔ 抽中獎項：📷 240721 歌謠大戰 Ending (30P)</div>
+      </div>
+
+      <div class="winner-item" style="border-top: 1px dashed #a6e289; margin-top: 6px; padding-top: 6px;">
+        <div>👤 第 5 位幸運兒：<span class="winner-name">@Emily_1230</span></div>
+        <div class="winner-special">➔ 獲得特別獎：💎 下一次飯拍折 $50</div>
+      </div>
+
+      <div style="margin-top: 10px; font-weight: bold; color: #67c23a; text-align: center; font-size: 13px;">
+        恭喜以上 5 位中獎者！請私訊領取！
+      </div>
+    </div>
+  </div>
+
+
+  <!-- 第二場抽獎 -->
+  <div class="lottery-card">
+    <div class="lottery-title">
+      <span>🎁 加碼飯拍抽獎</span>
+    </div>
+
+    <!-- 規則 -->
+    <div class="section-block">
+      <div class="section-subtitle">📋 抽獎規則與說明</div>
+      <ul class="rules-list">
+        <li>每一位參與者僅有一次中獎機會（不重複中獎）。</li>
+        <li>抽出 1 位幸運得主獲得專屬加碼飯拍。</li>
+        <li>飯拍僅供個人收藏，請勿二次轉載或商業使用。</li>
+      </ul>
+    </div>
+
+    <!-- 獎項 -->
+    <div class="section-block">
+      <div class="section-subtitle">🎁 加碼獎項</div>
+      <ul class="prizes-list">
+        <li>📷 0726 D2 I.N Fo（共 1 份）</li>
+      </ul>
+    </div>
+
+    <!-- 參與名單 -->
+    <div class="section-block">
+      <div class="section-subtitle">👥 參與名單 (共 11 位)</div>
+      <div class="members-tag">
+        <span class="member-badge">@N.I.</span>
+        <span class="member-badge">@芋頭</span>
+        <span class="member-badge">@康</span>
+        <span class="member-badge">@zhen wei</span>
+        <span class="member-badge">@riko</span>
+        <span class="member-badge">@渡田飲</span>
+        <span class="member-badge">@빵야</span>
+        <span class="member-badge">@Tacet</span>
+        <span class="member-badge">@莎莉💚</span>
+        <span class="member-badge">@NALA</span>
+        <span class="member-badge">@starria</span>
+      </div>
+    </div>
+
+    <!-- 中獎結果 -->
+    <div class="winner-box">
+      <div class="winner-title">🎉 抽獎結果揭曉</div>
+      
+      <div class="winner-item">
+        <div>👤 幸運兒：<span class="winner-name">@빵야</span></div>
+        <div class="winner-prize">➔ 抽中獎項：📷 0726 D2 I.N Fo</div>
+      </div>
+
+      <div style="margin-top: 10px; font-weight: bold; color: #67c23a; text-align: center; font-size: 13px;">
+        恭喜中獎者！請私訊領取！
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function notifyHeight() {
+      setTimeout(() => {
+        window.parent.postMessage({ frameHeight: document.body.scrollHeight }, '*');
+      }, 100);
+    }
+    window.addEventListener('load', notifyHeight);
+  </script>
+</body>
+</html>
