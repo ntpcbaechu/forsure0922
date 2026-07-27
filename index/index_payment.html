@@ -57,7 +57,7 @@
             <input type="checkbox" id="useCreditChk" class="credit-chk">
             <span>勾選折抵可用抵用金 (餘額: <b style="color:#67c23a;" id="creditBalance">$0</b>)</span>
           </label>
-          <b style="color:#f56c6c;" id="creditDeduct">-$0</b>
+          <b style="color:#909399;" id="creditDeduct">-</b>
         </div>
 
         <!-- 3. 右下角：小計與本次應匯款總金額 (放大清晰) -->
@@ -120,22 +120,35 @@
 
     let allCredits = [];
     let allOrders = [];
+    let photoProgressMap = {}; // 紀錄各活動成員的發圖進度
     let eventSettings = {}; // 儲存 event_settings 的單價對照表
     let currentAvailableCredit = 0; // 紀錄目前使用者的可用抵用金
 
     document.addEventListener('DOMContentLoaded', () => {
+      // 監聽 photo_progress 取得發圖進度，排除「等圖中」
+      onSnapshot(collection(db, "photo_progress"), snap => {
+        photoProgressMap = {};
+        snap.forEach(d => {
+          const data = d.data();
+          const evName = data.eventName || data.event || '';
+          const mem = data.member || '';
+          if (evName && mem) {
+            photoProgressMap[`${evName}_${mem}`] = data.status || '等圖中';
+          }
+        });
+        renderBuyerDetails();
+      });
+
       // 監聽 event_settings 資料庫取得活動單價
       onSnapshot(collection(db, "event_settings"), snap => {
         eventSettings = {};
         snap.forEach(d => {
           const data = d.data();
-          // 相容 name, rawName, eventName 等多種開團欄位存法
           const evName = data.name || data.rawName || data.eventName || data.event || '';
           const mem = data.member || '';
           const price = Number(data.price) || Number(data.unitPrice) || Number(data.sellPrice) || 0;
 
           if (evName) {
-            // 存全名與裸名的對照
             eventSettings[`${evName}_${mem}`] = price;
             if (data.rawName) {
               eventSettings[`${data.rawName}_${mem}`] = price;
@@ -145,14 +158,14 @@
         renderBuyerDetails();
       });
 
-      // 監聽 user_credits 資料庫 (連動 admin_credits)
+      // 監聽 user_credits 資料庫
       onSnapshot(collection(db, "user_credits"), snap => {
         allCredits = [];
         snap.forEach(d => allCredits.push({ id: d.id, ...d.data() }));
         renderBuyerDetails();
       });
 
-      // 監聽 orders 資料庫，並自動提取「有登記過的人」填充選單
+      // 監聽 orders 資料庫
       onSnapshot(collection(db, "orders"), snap => {
         allOrders = [];
         const registeredBuyers = new Set();
@@ -161,12 +174,10 @@
           const data = d.data();
           allOrders.push({ id: d.id, ...data });
           
-          // 相容 user, buyerName, name, buyer
           const name = data.user || data.buyerName || data.name || data.buyer;
           if (name) registeredBuyers.add(String(name).trim());
         });
 
-        // 填入社群名稱下拉選單
         const buyerSel = document.getElementById('buyerName');
         const currentSelected = buyerSel.value;
         buyerSel.innerHTML = '<option value="">請選擇您的名稱</option>';
@@ -192,7 +203,6 @@
       const selectedBuyer = document.getElementById('buyerName').value;
       const formContent = document.getElementById('formContent');
 
-      // 未選擇暱稱時隱藏其餘欄位
       if (!selectedBuyer) {
         formContent.style.display = 'none';
         notifyHeight();
@@ -201,7 +211,7 @@
 
       formContent.style.display = 'block';
 
-      // 1. 計算可用抵用金 (連動 user_credits 集合欄位 user 與 credit)
+      // 1. 計算可用抵用金
       const userCredits = allCredits.filter(c => (c.user === selectedBuyer || c.buyerName === selectedBuyer || c.name === selectedBuyer));
       currentAvailableCredit = userCredits.reduce((sum, c) => {
         const amt = Number(c.credit) || Number(c.amount) || 0;
@@ -210,13 +220,19 @@
       }, 0);
       
       document.getElementById('creditBalance').textContent = `$${currentAvailableCredit}`;
-      document.getElementById('useCreditChk').checked = false; // 預設不勾選折抵
+      document.getElementById('useCreditChk').checked = false;
 
-      // 2. 抓取待匯款訂單 (相容 pending_payment 狀態與 user 欄位)
+      // 2. 抓取待匯款訂單 (排除狀態為「等圖中」的訂單)
       const userOrders = allOrders.filter(o => {
         const nameMatch = (o.user === selectedBuyer || o.buyerName === selectedBuyer || o.name === selectedBuyer || o.buyer === selectedBuyer);
         const pendingMatch = (o.paymentStatus === 'pending_payment' || o.paymentStatus === '待匯款' || o.status === 'pending_payment' || o.status === '待匯款' || !o.paymentStatus);
-        return nameMatch && pendingMatch;
+        
+        const ordEvent = o.event || o.fullEvent || o.eventName || '';
+        const ordMember = o.member || '';
+        const progressStatus = photoProgressMap[`${ordEvent}_${ordMember}`];
+        const isNotWaitingPhoto = progressStatus !== '等圖中';
+
+        return nameMatch && pendingMatch && isNotWaitingPhoto;
       });
 
       const ordersList = document.getElementById('ordersList');
@@ -228,7 +244,6 @@
         document.getElementById('finalPayTotal').textContent = '$0';
       } else {
         userOrders.forEach(ord => {
-          // 精準計算訂單金額：數量 (quantity/qty/count) * 單價 (event_settings/price)
           const qty = Number(ord.quantity !== undefined ? ord.quantity : (ord.qty !== undefined ? ord.qty : ord.count)) || 1;
           const ordEvent = ord.event || ord.fullEvent || ord.eventName || '';
           const ordMember = ord.member || '';
@@ -241,7 +256,7 @@
             <div class="order-item">
               <div class="order-left">
                 <input type="checkbox" class="order-chk" value="${ord.id}" data-price="${calculatedPrice}">
-                <span>📌 ${ordEvent || '未命名活動'} (${ordMember || '全體'}) - ${qty} 包</span>
+                <span>📌 ${ordEvent || '未命名活動'} (${ordMember || '全體'}) - ${qty} 張</span>
               </div>
               <b style="color:#f56c6c;">$${calculatedPrice}</b>
             </div>
@@ -264,22 +279,28 @@
         orderSubtotal += Number(chk.getAttribute('data-price')) || 0;
       });
 
-      // 是否勾選折抵抵用金
       const useCredit = document.getElementById('useCreditChk').checked;
       let creditDeduction = 0;
 
       if (useCredit && currentAvailableCredit > 0) {
-        // 折抵金額不能超過訂單小計，也不能超過可用抵用金
         creditDeduction = Math.min(orderSubtotal, currentAvailableCredit);
       }
 
       const finalTotal = Math.max(0, orderSubtotal - creditDeduction);
 
       document.getElementById('pendingTotal').textContent = `$${orderSubtotal.toFixed(1).replace(/\.0$/, '')}`;
-      document.getElementById('creditDeduct').textContent = `-$${creditDeduction.toFixed(1).replace(/\.0$/, '')}`;
+      
+      const deductElem = document.getElementById('creditDeduct');
+      if (creditDeduction > 0) {
+        deductElem.textContent = `-$${creditDeduction.toFixed(1).replace(/\.0$/, '')}`;
+        deductElem.style.color = '#f56c6c';
+      } else {
+        deductElem.textContent = '-';
+        deductElem.style.color = '#909399';
+      }
+
       document.getElementById('finalPayTotal').textContent = `$${finalTotal.toFixed(1).replace(/\.0$/, '')}`;
       
-      // 自動同步更新匯款金額欄位
       document.getElementById('amount').value = finalTotal > 0 ? finalTotal : '';
     }
 
@@ -305,10 +326,8 @@
       };
 
       try {
-        // 1. 寫入匯款紀錄
         await addDoc(collection(db, "payments"), data);
 
-        // 2. 將被勾選的訂單狀態同步更新為「對帳中」
         const updatePromises = selectedOrderIds.map(orderId => {
           return updateDoc(doc(db, "orders", orderId), {
             paymentStatus: '對帳中',
