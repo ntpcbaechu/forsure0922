@@ -135,7 +135,8 @@
 
         let cardsHtml = '';
         list.forEach((ord, idx) => {
-          const isPaid = ord.paymentStatus === '已對帳' || ord.status === '已對帳';
+          // 精準補齊 hasPaid 判斷，確保後台更新時前台同步變亮綠燈
+          const isPaid = ord.hasPaid || ord.paymentStatus === '已對帳' || ord.status === '已對帳';
           const badgeHtml = isPaid 
             ? '<span class="status-badge status-paid">🟢 已對帳</span>' 
             : '<span class="status-badge status-pending">⏳ 待匯款</span>';

@@ -38,7 +38,7 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore, collection, doc, deleteDoc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getFirestore, collection, doc, deleteDoc, updateDoc, onSnapshot, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyDF7QySG1Jj4gdZvXwMRaKjRmI-lFKpj7k",
@@ -53,27 +53,39 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
+    let paymentDataMap = {}; // 快取 payments 資料
+
     onSnapshot(collection(db, "payments"), snap => {
       const tb = document.getElementById('payTable');
       tb.innerHTML = '';
+      paymentDataMap = {};
+
       snap.forEach(d => {
         const p = d.data();
         const docId = d.id;
+        paymentDataMap[docId] = p;
+
         const status = p.status || 'pending';
         const noteErr = p.errorNote || '';
         const checkDate = p.checkDate || '';
-        const actualAmt = p.actualAmt !== undefined ? p.actualAmt : p.finalPay;
+        const actualAmt = p.actualAmt !== undefined ? p.actualAmt : (p.finalPay || p.amount || 0);
+
+        const userName = p.user || p.buyerName || '-';
+        const socialName = p.social || p.socialAccount || '-';
+        const eventInfo = p.eventName || p.event || '多筆關聯訂單';
+        const qtyInfo = p.qty !== undefined ? `${p.qty} 張` : '';
+        const finalPayAmt = p.finalPay !== undefined ? p.finalPay : (p.amount || 0);
 
         const tr = document.createElement('tr');
         tr.innerHTML = `
-          <td><b>${p.user}</b><br><small style="color:#909399;">${p.social}</small></td>
-          <td>${p.eventName}<br>${p.qty} 張</td>
+          <td><b>${userName}</b><br><small style="color:#909399;">${socialName}</small></td>
+          <td>${eventInfo}<br>${qtyInfo}</td>
           <td>
-            <b style="color:#f56c6c;">$${p.finalPay}</b>
-            <button class="btn-edit-pay" onclick="editFinalPay('${docId}', ${p.finalPay})">✏️修正</button>
+            <b style="color:#f56c6c;">$${finalPayAmt}</b>
+            <button class="btn-edit-pay" onclick="editFinalPay('${docId}', ${finalPayAmt})">✏️修正</button>
             ${p.creditUsed > 0 ? `<br><small style="color:#67c23a;">(折抵$${p.creditUsed})</small>` : ''}
           </td>
-          <td><b>${p.bankLast5}</b></td>
+          <td><b>${p.bankLast5 || p.last5 || '-'}</b></td>
           <td><input type="number" style="width:70px;" value="${actualAmt}" onchange="updatePayField('${docId}', 'actualAmt', parseInt(this.value))"></td>
           <td><input type="date" value="${checkDate}" onchange="updatePayField('${docId}', 'checkDate', this.value)"></td>
           <td>
@@ -97,7 +109,8 @@
       try {
         await updateDoc(doc(db, "payments", docId), {
           finalPay: newPay,
-          actualAmt: newPay // 同步預設對帳金額
+          amount: newPay,
+          actualAmt: newPay
         });
         alert('✅ 應匯金額已成功修正！');
       } catch (err) {
@@ -107,13 +120,26 @@
 
     window.updatePayField = async (docId, field, val) => { await updateDoc(doc(db, "payments", docId), { [field]: val }); };
 
+    // 關鍵修復：改對帳狀態時同步更新 orders 集合！
     window.setPayStatus = async (docId, newStatus) => {
       const today = new Date().toISOString().slice(0,10);
-      if (newStatus === 'error') {
-        const reason = prompt("請輸入對帳問題原因：");
-        if (reason !== null) { await updateDoc(doc(db, "payments", docId), { status: 'error', errorNote: reason, checkDate: today }); }
-      } else {
-        await updateDoc(doc(db, "payments", docId), { status: 'ok', errorNote: '', checkDate: today });
+      const pData = paymentDataMap[docId] || {};
+      const relatedIds = pData.relatedOrderIds || [];
+      const buyerName = pData.user || pData.buyerName;
+
+      try {
+        if (newStatus === 'error') {
+          const reason = prompt("請輸入對帳問題原因：");
+          if (reason !== null) { 
+            await updateDoc(doc(db, "payments", docId), { status: 'error', errorNote: reason, checkDate: today });
+            await syncOrdersStatus(relatedIds, buyerName, false, 'pending_payment');
+          }
+        } else {
+          await updateDoc(doc(db, "payments", docId), { status: 'ok', errorNote: '', checkDate: today });
+          await syncOrdersStatus(relatedIds, buyerName, true, '已對帳');
+        }
+      } catch (err) {
+        alert('更新失敗: ' + err.message);
       }
     };
 
@@ -122,9 +148,48 @@
       if (reason !== null) { await updateDoc(doc(db, "payments", docId), { errorNote: reason }); }
     };
 
+    // 關鍵修復：刪除審核紀錄時，同步將 orders 集合還原為待匯款！
     window.deletePayment = async (docId) => {
-      if (confirm('確定要刪除這筆匯款審核紀錄嗎？')) { await deleteDoc(doc(db, "payments", docId)); }
+      if (confirm('確定要刪除這筆匯款審核紀錄嗎？刪除後對應訂單將還原為待匯款。')) { 
+        const pData = paymentDataMap[docId] || {};
+        const relatedIds = pData.relatedOrderIds || [];
+        const buyerName = pData.user || pData.buyerName;
+
+        try {
+          await deleteDoc(doc(db, "payments", docId));
+          await syncOrdersStatus(relatedIds, buyerName, false, 'pending_payment');
+          alert('已刪除審核紀錄並還原訂單狀態。');
+        } catch (err) {
+          alert('刪除失敗: ' + err.message);
+        }
+      }
     };
+
+    // 同步 orders 資料庫狀態的輔助函式
+    async function syncOrdersStatus(relatedIds, buyerName, isPaid, statusText) {
+      if (relatedIds && relatedIds.length > 0) {
+        // 若有明確關聯的 order ID，直接更新
+        const updatePromises = relatedIds.map(id => updateDoc(doc(db, "orders", id), {
+          hasPaid: isPaid,
+          paymentStatus: statusText,
+          status: statusText
+        }));
+        await Promise.all(updatePromises);
+      } else if (buyerName) {
+        // 若無 ID，依照 buyerName 搜尋更新
+        const q = query(collection(db, "orders"), where("user", "==", buyerName));
+        const snap = await getDocs(q);
+        const updatePromises = [];
+        snap.forEach(d => {
+          updatePromises.push(updateDoc(doc(db, "orders", d.id), {
+            hasPaid: isPaid,
+            paymentStatus: statusText,
+            status: statusText
+          }));
+        });
+        await Promise.all(updatePromises);
+      }
+    }
 
     function notifyHeight() {
       setTimeout(() => {
