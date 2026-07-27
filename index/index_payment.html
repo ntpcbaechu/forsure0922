@@ -300,8 +300,6 @@
       }
 
       document.getElementById('finalPayTotal').textContent = `$${finalTotal.toFixed(1).replace(/\.0$/, '')}`;
-      
-      document.getElementById('amount').value = finalTotal > 0 ? finalTotal : '';
     }
 
     document.getElementById('paymentForm').addEventListener('submit', async (e) => {

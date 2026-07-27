@@ -54,19 +54,11 @@
 
     let allCredits = [];
 
-    document.addEventListener('DOMContentLoaded', async () => {
-      // 這裡修正抓取檔案名稱為 users.json
-      const res = await fetch('../json/users.json');
-      const buyers = await res.json();
-      const sel = document.getElementById('buyerFilter');
-      buyers.forEach(b => {
-        sel.innerHTML += `<option value="${b}">${b}</option>`;
-      });
-
+    document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('buyerFilter').addEventListener('change', renderCredits);
     });
 
-    // 修正為連動 user_credits 集合
+    // 連動 user_credits 集合
     onSnapshot(collection(db, "user_credits"), snap => {
       allCredits = [];
       snap.forEach(d => {
@@ -74,8 +66,36 @@
       });
 
       allCredits.sort((a, b) => (b.fullEvent || b.rawDate || '').localeCompare(a.fullEvent || a.rawDate || ''));
+      updateUserOptions();
       renderCredits();
     });
+
+    // 動態更新下拉選單（僅顯示在 admin-3 有填寫且剩餘抵用金 > 0 的成員）
+    function updateUserOptions() {
+      const activeUsers = new Set();
+      allCredits.forEach(c => {
+        const buyerName = c.user || c.buyerName;
+        const creditAmt = Number(c.credit) || Number(c.amount) || 0;
+        const usedAmt = Number(c.used) || 0;
+        const remain = c.remaining !== undefined ? Number(c.remaining) : (creditAmt - usedAmt);
+
+        if (buyerName && remain > 0) {
+          activeUsers.add(buyerName);
+        }
+      });
+
+      const sel = document.getElementById('buyerFilter');
+      const currentSelected = sel.value;
+      sel.innerHTML = '<option value="">全體社群成員 (顯示全部)</option>';
+
+      Array.from(activeUsers).sort().forEach(u => {
+        sel.innerHTML += `<option value="${u}">${u}</option>`;
+      });
+
+      if (currentSelected && activeUsers.has(currentSelected)) {
+        sel.value = currentSelected;
+      }
+    }
 
     function renderCredits() {
       const selectedBuyer = document.getElementById('buyerFilter').value;
