@@ -112,7 +112,7 @@
                 ${badgeHtml}
               </div>
               <div class="order-info">
-                <div>喊單張數：<b>${ord.quantity || ord.qty || 1} 包</b></div>
+                <div>喊單張數：<b>${ord.quantity || ord.qty || 1} 張</b></div>
                 <div>填單 / 更新時間：${dateFormatted}</div>
               </div>
             </div>
@@ -123,7 +123,7 @@
           <div class="event-section" id="${sectionId}">
             <div class="event-header">
               <span>📌 ${groupTitle}</span>
-              <span class="event-meta">共 ${list.length} 筆 / 總計 ${totalPacks} 包</span>
+              <span class="event-meta">共 ${list.length} 筆 / 總計 ${totalPacks} 張</span>
             </div>
             ${cardsHtml}
           </div>
