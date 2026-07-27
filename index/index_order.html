@@ -59,7 +59,7 @@
     document.addEventListener('DOMContentLoaded', async () => {
       // 直連 GitHub Pages 根目錄 json 檔案
       const [buyersRes, membersRes] = await Promise.all([
-        fetch('../json/buyers.json'),
+        fetch('../json/users.json'),
         fetch('../json/members.json')
       ]);
       const buyers = await buyersRes.json();
