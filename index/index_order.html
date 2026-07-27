@@ -57,20 +57,25 @@
     const db = getFirestore(app);
 
     document.addEventListener('DOMContentLoaded', async () => {
-      const [buyersRes, membersRes] = await Promise.all([
-        fetch('../json/buyers.json'),
-        fetch('../json/members.json')
-      ]);
-      const buyers = await buyersRes.json();
-      const members = await membersRes.json();
+      try {
+        // 修復 fetch 相對路徑
+        const [buyersRes, membersRes] = await Promise.all([
+          fetch('../json/buyers.json').catch(() => fetch('./json/buyers.json')),
+          fetch('../json/members.json').catch(() => fetch('./json/members.json'))
+        ]);
+        const buyers = await buyersRes.json();
+        const members = await membersRes.json();
 
-      const buyerSel = document.getElementById('buyerName');
-      buyerSel.innerHTML = '<option value="">請選擇您的名稱</option>';
-      buyers.forEach(b => { buyerSel.innerHTML += `<option value="${b}">${b}</option>`; });
+        const buyerSel = document.getElementById('buyerName');
+        buyerSel.innerHTML = '<option value="">請選擇您的名稱</option>';
+        buyers.forEach(b => { buyerSel.innerHTML += `<option value="${b}">${b}</option>`; });
 
-      const memberSel = document.getElementById('member');
-      memberSel.innerHTML = '<option value="">請選擇成員</option>';
-      members.forEach(m => { memberSel.innerHTML += `<option value="${m}">${m}</option>`; });
+        const memberSel = document.getElementById('member');
+        memberSel.innerHTML = '<option value="">請選擇成員</option>';
+        members.forEach(m => { memberSel.innerHTML += `<option value="${m}">${m}</option>`; });
+      } catch (err) {
+        console.error("JSON 載入失敗:", err);
+      }
 
       onSnapshot(collection(db, "event_settings"), snap => {
         const eventSel = document.getElementById('eventName');

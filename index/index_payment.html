@@ -53,11 +53,15 @@
     const db = getFirestore(app);
 
     document.addEventListener('DOMContentLoaded', async () => {
-      const res = await fetch('../json/buyers.json');
-      const buyers = await res.json();
-      const buyerSel = document.getElementById('buyerName');
-      buyerSel.innerHTML = '<option value="">請選擇您的名稱</option>';
-      buyers.forEach(b => { buyerSel.innerHTML += `<option value="${b}">${b}</option>`; });
+      try {
+        const res = await fetch('../json/buyers.json').catch(() => fetch('./json/buyers.json'));
+        const buyers = await res.json();
+        const buyerSel = document.getElementById('buyerName');
+        buyerSel.innerHTML = '<option value="">請選擇您的名稱</option>';
+        buyers.forEach(b => { buyerSel.innerHTML += `<option value="${b}">${b}</option>`; });
+      } catch(err) {
+        console.error(err);
+      }
       notifyHeight();
     });
 

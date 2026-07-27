@@ -48,13 +48,13 @@
     let allCredits = [];
 
     document.addEventListener('DOMContentLoaded', async () => {
-      // 載入社群暱選單
-      fetch('../json/buyers.json').then(res => res.json()).then(buyers => {
+      // 載入社群暱選單 (自動容錯路徑)
+      fetch('../json/buyers.json').catch(() => fetch('./json/buyers.json')).then(res => res.json()).then(buyers => {
         const sel = document.getElementById('buyerFilter');
         buyers.forEach(b => {
           sel.innerHTML += `<option value="${b}">${b}</option>`;
         });
-      });
+      }).catch(err => console.error(err));
 
       document.getElementById('buyerFilter').addEventListener('change', renderCredits);
     });
