@@ -91,7 +91,7 @@
     const db = getFirestore(app);
 
     let ordersList = [];
-    let eventsDataMap = {}; // 用於精準暫存快照資料
+    let eventsDataMap = {}; 
 
     document.addEventListener('DOMContentLoaded', () => {
       fetch('../json/members.json').then(res => res.json()).then(members => {
@@ -124,7 +124,7 @@
         snap.forEach(d => { 
           const data = { id: d.id, ...d.data() };
           eventsList.push(data);
-          eventsDataMap[d.id] = data; // 鎖定快照
+          eventsDataMap[d.id] = data; 
         });
 
         eventsList.sort((a, b) => (a.rawDate || a.name).localeCompare(b.rawDate || b.name));
@@ -165,7 +165,6 @@
             </td>
           `;
 
-          // 事件綁定，防止單引號/特殊字元轉義爆掉
           tr.querySelector('.btn-edit').onclick = () => editEventById(docId);
           tr.querySelector('.btn-danger').onclick = () => deleteEvent(docId);
 
@@ -239,11 +238,11 @@
 
         const fullName = evDate ? `${evDate} ${evNameRaw}` : evNameRaw;
         
-        // 關鍵修復：嚴格判斷是否有編輯中的 editEventId，有的話直接鎖死覆蓋
         const editId = document.getElementById('editEventId').value;
         const docId = editId ? editId : `${fullName}_${member || 'all'}_${seller || 'default'}_${Date.now()}`;
 
-        await setDoc(doc(doc(db, "event_settings", docId)), {
+        // 🔥 關鍵修正：去掉多餘的 doc()
+        await setDoc(doc(db, "event_settings", docId), {
           name: fullName, rawDate: evDate, rawName: evNameRaw, member, seller, note, price, cost, actQty, isClosed
         });
 
