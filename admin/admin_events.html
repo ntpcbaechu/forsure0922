@@ -91,6 +91,7 @@
     const db = getFirestore(app);
 
     let ordersList = [];
+    let eventsDataMap = {}; // 用於精準暫存快照資料
 
     document.addEventListener('DOMContentLoaded', () => {
       fetch('../json/members.json').then(res => res.json()).then(members => {
@@ -118,8 +119,14 @@
         tb.innerHTML = '';
         summaryBox.innerHTML = '';
 
+        eventsDataMap = {};
         let eventsList = [];
-        snap.forEach(d => { eventsList.push({ id: d.id, ...d.data() }); });
+        snap.forEach(d => { 
+          const data = { id: d.id, ...d.data() };
+          eventsList.push(data);
+          eventsDataMap[d.id] = data; // 鎖定快照
+        });
+
         eventsList.sort((a, b) => (a.rawDate || a.name).localeCompare(b.rawDate || b.name));
 
         const memberGroups = {};
@@ -141,26 +148,28 @@
 
           const estRevenue = totalOrderedPacks * (ev.price || 0);
 
-          // 轉義備註裡的單引號防止語法錯誤
-          const safeNoteParam = (ev.note || '').replace(/'/g, "\\'");
-
-          tb.innerHTML += `
-            <tr>
-              <td><b>${ev.name}</b>${closedBadge}</td>
-              <td><b>${mName}</b></td>
-              <td>${ev.seller || '未填寫'}</td>
-              <td>${ev.note || '-'}</td>
-              <td>$${ev.price || 0}/包</td>
-              <td><b>${totalOrderedPacks} 包</b></td>
-              <td><b style="color:#409eff;">$${estRevenue}</b></td>
-              <td>$${ev.cost || 0}</td>
-              <td>${ev.actQty || 0} 張</td>
-              <td>
-                <button class="btn-edit" onclick="editEvent('${docId}', '${ev.name}', '${ev.rawDate||''}', '${ev.rawName||''}', '${ev.member||''}', '${ev.seller||''}', '${safeNoteParam}', ${ev.price||0}, ${ev.cost||0}, ${ev.actQty||0}, ${ev.isClosed||false})">編輯</button>
-                <button class="btn-danger" onclick="deleteEvent('${docId}')">刪除</button>
-              </td>
-            </tr>
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td><b>${ev.name}</b>${closedBadge}</td>
+            <td><b>${mName}</b></td>
+            <td>${ev.seller || '未填寫'}</td>
+            <td>${ev.note || '-'}</td>
+            <td>$${ev.price || 0}/包</td>
+            <td><b>${totalOrderedPacks} 包</b></td>
+            <td><b style="color:#409eff;">$${estRevenue}</b></td>
+            <td>$${ev.cost || 0}</td>
+            <td>${ev.actQty || 0} 張</td>
+            <td>
+              <button class="btn-edit" data-id="${docId}">編輯</button>
+              <button class="btn-danger" data-id="${docId}">刪除</button>
+            </td>
           `;
+
+          // 事件綁定，防止單引號/特殊字元轉義爆掉
+          tr.querySelector('.btn-edit').onclick = () => editEventById(docId);
+          tr.querySelector('.btn-danger').onclick = () => deleteEvent(docId);
+
+          tb.appendChild(tr);
 
           const groupKey = `${ev.name}__${mName}`;
           if (!memberGroups[groupKey]) {
@@ -213,26 +222,39 @@
 
     document.getElementById('eventForm').addEventListener('submit', async (e) => {
       e.preventDefault();
-      const evDate = document.getElementById('evDate').value.trim();
-      const evNameRaw = document.getElementById('evName').value.trim();
-      const member = document.getElementById('evMember').value;
-      const seller = document.getElementById('evSeller').value.trim();
-      const note = document.getElementById('evNote').value.trim();
-      const price = parseFloat(document.getElementById('evPrice').value) || 0;
-      const cost = parseFloat(document.getElementById('evCost').value) || 0;
-      const actQty = parseInt(document.getElementById('evActQty').value) || 0;
-      const isClosed = document.getElementById('evIsClosed').checked;
+      const saveBtn = document.getElementById('saveEventBtn');
+      saveBtn.disabled = true;
+      saveBtn.textContent = '儲存中...';
 
-      const fullName = evDate ? `${evDate} ${evNameRaw}` : evNameRaw;
-      const docId = document.getElementById('editEventId').value || `${fullName}_${member || 'all'}_${seller || 'default'}_${Date.now()}`;
+      try {
+        const evDate = document.getElementById('evDate').value.trim();
+        const evNameRaw = document.getElementById('evName').value.trim();
+        const member = document.getElementById('evMember').value;
+        const seller = document.getElementById('evSeller').value.trim();
+        const note = document.getElementById('evNote').value.trim();
+        const price = parseFloat(document.getElementById('evPrice').value) || 0;
+        const cost = parseFloat(document.getElementById('evCost').value) || 0;
+        const actQty = parseInt(document.getElementById('evActQty').value) || 0;
+        const isClosed = document.getElementById('evIsClosed').checked;
 
-      // ⚠️ 正確儲存 note 備註欄位至 Firebase
-      await setDoc(doc(db, "event_settings", docId), {
-        name: fullName, rawDate: evDate, rawName: evNameRaw, member, seller, note, price, cost, actQty, isClosed
-      });
+        const fullName = evDate ? `${evDate} ${evNameRaw}` : evNameRaw;
+        
+        // 關鍵修復：嚴格判斷是否有編輯中的 editEventId，有的話直接鎖死覆蓋
+        const editId = document.getElementById('editEventId').value;
+        const docId = editId ? editId : `${fullName}_${member || 'all'}_${seller || 'default'}_${Date.now()}`;
 
-      alert('活動設定已儲存！');
-      resetEventForm();
+        await setDoc(doc(doc(db, "event_settings", docId)), {
+          name: fullName, rawDate: evDate, rawName: evNameRaw, member, seller, note, price, cost, actQty, isClosed
+        });
+
+        alert('✅ 活動設定與金額張數已成功更新！');
+        resetEventForm();
+      } catch (err) {
+        alert('儲存失敗：' + err.message);
+      } finally {
+        saveBtn.disabled = false;
+        saveBtn.textContent = '儲存活動設定';
+      }
     });
 
     window.resetEventForm = () => {
@@ -240,28 +262,36 @@
       document.getElementById('editEventId').value = '';
       document.getElementById('evIsClosed').checked = false;
       document.getElementById('cancelEditBtn').style.display = 'none';
+      document.getElementById('saveEventBtn').textContent = '儲存活動設定';
     };
 
-    window.editEvent = (docId, fullName, rawDate, rawName, member, seller, note, price, cost, actQty, isClosed) => {
+    function editEventById(docId) {
+      const ev = eventsDataMap[docId];
+      if (!ev) return alert('找不到該筆活動資料！');
+
       document.getElementById('editEventId').value = docId;
-      document.getElementById('evDate').value = rawDate || '';
-      document.getElementById('evName').value = rawName || fullName;
-      document.getElementById('evMember').value = member || '';
-      document.getElementById('evSeller').value = seller || '';
-      document.getElementById('evNote').value = note || ''; // 正確填回備註
-      document.getElementById('evPrice').value = price || '';
-      document.getElementById('evCost').value = cost || '';
-      document.getElementById('evActQty').value = actQty || '';
-      document.getElementById('evIsClosed').checked = isClosed === true || isClosed === 'true';
+      document.getElementById('evDate').value = ev.rawDate || '';
+      document.getElementById('evName').value = ev.rawName || ev.name;
+      document.getElementById('evMember').value = ev.member || '';
+      document.getElementById('evSeller').value = ev.seller || '';
+      document.getElementById('evNote').value = ev.note || '';
+      document.getElementById('evPrice').value = ev.price !== undefined ? ev.price : '';
+      document.getElementById('evCost').value = ev.cost !== undefined ? ev.cost : '';
+      document.getElementById('evActQty').value = ev.actQty !== undefined ? ev.actQty : '';
+      document.getElementById('evIsClosed').checked = (ev.isClosed === true);
+      
       document.getElementById('cancelEditBtn').style.display = 'inline-block';
-    };
+      document.getElementById('saveEventBtn').textContent = '更新此活動設定';
+      
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
 
-    window.deleteEvent = async (docId) => {
+    async function deleteEvent(docId) {
       if (confirm(`確定要刪除這筆活動設定嗎？`)) {
         await deleteDoc(doc(db, "event_settings", docId));
         alert('已刪除');
       }
-    };
+    }
 
     function notifyHeight() {
       setTimeout(() => {
