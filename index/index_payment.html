@@ -25,6 +25,11 @@
     /* 右下角試算區域樣式 */
     .summary-right-box { text-align: right; border-top: 1px dashed #dcdfe6; padding-top: 8px; margin-top: 10px; }
     .summary-right-row { display: flex; justify-content: flex-end; gap: 12px; align-items: center; margin-bottom: 4px; }
+
+    /* 匯款帳號資訊區塊樣式 */
+    .bank-info-box { background: #fffbe6; border: 1px solid #ffe58f; border-radius: 10px; padding: 12px; margin-bottom: 16px; font-size: 13px; color: #595959; line-height: 1.6; }
+    .bank-info-title { font-weight: bold; color: #d46b08; font-size: 14px; margin-bottom: 6px; }
+    .bank-warning { color: #f56c6c; font-weight: bold; margin-top: 6px; }
   </style>
 </head>
 <body>
@@ -71,6 +76,14 @@
             <b style="color:#f56c6c; font-size:20px;" id="finalPayTotal">$0</b>
           </div>
         </div>
+      </div>
+
+      <!-- 匯款帳號資訊區塊 -->
+      <div class="bank-info-box">
+        <div class="bank-info-title">🔸匯款帳號：提供台銀/樂天賬戶</div>
+        <div> 1️⃣ 台銀(004) 012-0085-86876</div>
+        <div> 2️⃣ 樂天(826) 81201-0028-03081</div>
+        <div class="bank-warning">（⚠️中信帳戶已不提供收款‼️）</div>
       </div>
 
       <!-- 匯款日期 (預設不自動帶入日期) -->
