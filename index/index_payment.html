@@ -21,6 +21,10 @@
     .order-item:last-child { border-bottom: none; }
     .order-left { display: flex; align-items: center; gap: 8px; }
     .order-chk, .credit-chk { width: 16px; height: 16px; margin: 0; cursor: pointer; }
+    
+    /* 右下角試算區域樣式 */
+    .summary-right-box { text-align: right; border-top: 1px dashed #dcdfe6; padding-top: 8px; margin-top: 10px; }
+    .summary-right-row { display: flex; justify-content: flex-end; gap: 12px; align-items: center; margin-bottom: 4px; }
   </style>
 </head>
 <body>
@@ -43,24 +47,30 @@
     <div id="formContent" style="display: none;">
       <!-- 抵用金與待匯款訂單選擇卡片 -->
       <div class="info-card">
-        <div class="info-row">
+        <!-- 1. 最上面：選擇要一起匯款的訂單 -->
+        <div style="font-weight:bold; margin-bottom:6px; color:#303133;">選擇要一起匯款的訂單：</div>
+        <div class="orders-select-box" id="ordersList">無待匯款訂單</div>
+
+        <!-- 2. 中間：折抵抵用金 -->
+        <div class="info-row" style="margin-top:12px; padding-top:8px; border-top: 1px dashed #dcdfe6;">
           <label style="font-weight:normal; font-size:13px; margin:0; cursor:pointer; display:flex; align-items:center; gap:6px;">
             <input type="checkbox" id="useCreditChk" class="credit-chk">
             <span>勾選折抵可用抵用金 (餘額: <b style="color:#67c23a;" id="creditBalance">$0</b>)</span>
           </label>
           <b style="color:#f56c6c;" id="creditDeduct">-$0</b>
         </div>
-        <div class="info-row" style="margin-top:8px;">
-          <span>勾選訂單小計：</span>
-          <b style="color:#606266;" id="pendingTotal">$0</b>
-        </div>
-        <div class="info-row" style="border-top: 1px dashed #dcdfe6; padding-top:6px; margin-top:6px;">
-          <span style="font-weight:bold; color:#303133;">本次應匯款總金額：</span>
-          <b style="color:#f56c6c; font-size:15px;" id="finalPayTotal">$0</b>
-        </div>
 
-        <div style="font-weight:bold; margin-top:12px; color:#303133;">選擇要一起匯款的訂單：</div>
-        <div class="orders-select-box" id="ordersList">無待匯款訂單</div>
+        <!-- 3. 右下角：小計與本次應匯款總金額 (放大清晰) -->
+        <div class="summary-right-box">
+          <div class="summary-right-row">
+            <span>勾選訂單小計：</span>
+            <b style="color:#606266; font-size:14px;" id="pendingTotal">$0</b>
+          </div>
+          <div class="summary-right-row" style="margin-top:4px;">
+            <span style="font-weight:bold; color:#303133; font-size:15px;">【本次應匯款總金額】：</span>
+            <b style="color:#f56c6c; font-size:20px;" id="finalPayTotal">$0</b>
+          </div>
+        </div>
       </div>
 
       <!-- 匯款日期 (預設不自動帶入日期) -->
@@ -119,8 +129,18 @@
         eventSettings = {};
         snap.forEach(d => {
           const data = d.data();
-          const key = `${data.eventName || data.event}_${data.member || ''}`;
-          eventSettings[key] = Number(data.price) || Number(data.unitPrice) || Number(data.sellPrice) || 0;
+          // 相容 name, rawName, eventName 等多種開團欄位存法
+          const evName = data.name || data.rawName || data.eventName || data.event || '';
+          const mem = data.member || '';
+          const price = Number(data.price) || Number(data.unitPrice) || Number(data.sellPrice) || 0;
+
+          if (evName) {
+            // 存全名與裸名的對照
+            eventSettings[`${evName}_${mem}`] = price;
+            if (data.rawName) {
+              eventSettings[`${data.rawName}_${mem}`] = price;
+            }
+          }
         });
         renderBuyerDetails();
       });
@@ -208,9 +228,12 @@
         document.getElementById('finalPayTotal').textContent = '$0';
       } else {
         userOrders.forEach(ord => {
-          // 精準計算訂單金額：數量 (quantity/qty) * 單價 (event_settings/price)
-          const qty = Number(ord.quantity) || Number(ord.qty) || 1;
-          const settingKey = `${ord.event}_${ord.member}`;
+          // 精準計算訂單金額：數量 (quantity/qty/count) * 單價 (event_settings/price)
+          const qty = Number(ord.quantity !== undefined ? ord.quantity : (ord.qty !== undefined ? ord.qty : ord.count)) || 1;
+          const ordEvent = ord.event || ord.fullEvent || ord.eventName || '';
+          const ordMember = ord.member || '';
+          
+          const settingKey = `${ordEvent}_${ordMember}`;
           const unitPrice = Number(ord.price) || Number(ord.unitPrice) || eventSettings[settingKey] || 0;
           const calculatedPrice = (unitPrice > 0) ? (qty * unitPrice) : (Number(ord.total) || Number(ord.amount) || 0);
 
@@ -218,7 +241,7 @@
             <div class="order-item">
               <div class="order-left">
                 <input type="checkbox" class="order-chk" value="${ord.id}" data-price="${calculatedPrice}">
-                <span>📌 ${ord.event || '未命名活動'} (${ord.member || '全體'}) - ${qty} 包</span>
+                <span>📌 ${ordEvent || '未命名活動'} (${ordMember || '全體'}) - ${qty} 包</span>
               </div>
               <b style="color:#f56c6c;">$${calculatedPrice}</b>
             </div>
@@ -270,7 +293,7 @@
 
       const data = {
         buyerName: document.getElementById('buyerName').value,
-		socialAccount: document.getElementById('socialAccount').value.trim(),
+        socialAccount: document.getElementById('socialAccount').value.trim(),
         payDate: document.getElementById('payDate').value,
         amount: parseFloat(document.getElementById('amount').value) || 0,
         last5: document.getElementById('last5').value.trim(),
