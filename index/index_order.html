@@ -17,11 +17,11 @@
   <h3 style="margin-top:0; margin-bottom:20px; text-align:center; font-size:20px;">登記表單</h3>
   <form id="orderForm">
     <div class="form-group">
-      <label>社群名稱 / 暱稱 *</label>
+      <label>社群名稱 *</label>
       <select id="buyerName" required><option value="">載入中...</option></select>
     </div>
     <div class="form-group">
-      <label>品項 / 活動名稱 *</label>
+      <label>活動名稱 *</label>
       <select id="eventName" required><option value="">載入中...</option></select>
     </div>
     <div class="form-group">
@@ -34,7 +34,7 @@
     </div>
     <div class="form-group">
       <label>備註欄位</label>
-      <input type="text" id="note" placeholder="如有其他需求請填寫">
+      <input type="text" id="note" placeholder="#">
     </div>
     <button type="submit" id="submitBtn">提交訂單</button>
   </form>
@@ -75,7 +75,7 @@
       // 監聽活動設定，並自動對活動進行去重，只顯示純活動名稱（不加成員後綴）
       onSnapshot(collection(db, "event_settings"), snap => {
         const eventSel = document.getElementById('eventName');
-        eventSel.innerHTML = '<option value="">請選擇品項 / 活動</option>';
+        eventSel.innerHTML = '<option value="">請選擇活動</option>';
         
         const uniqueEvents = new Set();
         snap.forEach(d => {
