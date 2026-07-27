@@ -59,13 +59,14 @@
       document.getElementById('buyerFilter').addEventListener('change', renderCredits);
     });
 
-    onSnapshot(collection(db, "credits"), snap => {
+    // 修正為連動 user_credits 集合
+    onSnapshot(collection(db, "user_credits"), snap => {
       allCredits = [];
       snap.forEach(d => {
         allCredits.push({ id: d.id, ...d.data() });
       });
 
-      allCredits.sort((a, b) => (b.eventDate || b.createdAt || '').localeCompare(a.eventDate || a.createdAt || ''));
+      allCredits.sort((a, b) => (b.fullEvent || b.rawDate || '').localeCompare(a.fullEvent || a.rawDate || ''));
       renderCredits();
     });
 
@@ -74,9 +75,12 @@
       const container = document.getElementById('creditsList');
       container.innerHTML = '';
 
+      // 修正相容 user 與 credit 欄位
       const filtered = allCredits.filter(c => {
-        const matchBuyer = !selectedBuyer || c.buyerName === selectedBuyer;
-        const remaining = (c.amount || 0) - (c.used || 0);
+        const buyerName = c.user || c.buyerName;
+        const creditAmt = Number(c.credit) || Number(c.amount) || 0;
+        const matchBuyer = !selectedBuyer || buyerName === selectedBuyer;
+        const remaining = c.remaining !== undefined ? Number(c.remaining) : (creditAmt - (c.used || 0));
         return matchBuyer && remaining > 0;
       });
 
@@ -87,13 +91,15 @@
       }
 
       filtered.forEach(c => {
-        const total = c.amount || 0;
-        const used = c.used || 0;
-        const remain = total - used;
+        const total = Number(c.credit) || Number(c.amount) || 0;
+        const used = Number(c.used) || 0;
+        const remain = c.remaining !== undefined ? Number(c.remaining) : (total - used);
+        const buyerName = c.user || c.buyerName || '未知';
+        const eventName = c.fullEvent || c.eventName || '抵用金紀錄';
 
         container.innerHTML += `
           <div class="credit-card">
-            <div class="credit-title">📌 ${c.eventName || '抵用金紀錄'} (${c.buyerName || '未知'})</div>
+            <div class="credit-title">📌 ${eventName} (${buyerName})</div>
             <div class="credit-row"><span>轉抵用金金額：</span><span>$${total}</span></div>
             <div class="credit-row"><span>已使用金額：</span><span>$${used}</span></div>
             <div class="credit-balance">💰 剩餘抵用金：$${remain}</div>

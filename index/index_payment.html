@@ -98,8 +98,8 @@
       const today = new Date().toISOString().split('T')[0];
       document.getElementById('payDate').value = today;
 
-      // 監聽 credits 資料庫
-      onSnapshot(collection(db, "credits"), snap => {
+      // 監聽 user_credits 資料庫 (連動 admin_credits)
+      onSnapshot(collection(db, "user_credits"), snap => {
         allCredits = [];
         snap.forEach(d => allCredits.push({ id: d.id, ...d.data() }));
         renderBuyerDetails();
@@ -114,8 +114,9 @@
           const data = d.data();
           allOrders.push({ id: d.id, ...data });
           
-          const name = data.buyerName || data.name || data.buyer;
-          if (name) registeredBuyers.add(name.trim());
+          // 相容 user, buyerName, name, buyer
+          const name = data.user || data.buyerName || data.name || data.buyer;
+          if (name) registeredBuyers.add(String(name).trim());
         });
 
         // 填入社群名稱下拉選單
@@ -152,15 +153,19 @@
 
       formContent.style.display = 'block';
 
-      // 1. 計算可用抵用金
-      const userCredits = allCredits.filter(c => (c.buyerName === selectedBuyer || c.name === selectedBuyer));
-      const totalCredit = userCredits.reduce((sum, c) => sum + ((Number(c.amount) || 0) - (Number(c.used) || 0)), 0);
+      // 1. 計算可用抵用金 (連動 user_credits 集合欄位 user 與 credit)
+      const userCredits = allCredits.filter(c => (c.user === selectedBuyer || c.buyerName === selectedBuyer || c.name === selectedBuyer));
+      const totalCredit = userCredits.reduce((sum, c) => {
+        const amt = Number(c.credit) || Number(c.amount) || 0;
+        const used = Number(c.used) || 0;
+        return sum + (amt - used);
+      }, 0);
       document.getElementById('creditBalance').textContent = `$${totalCredit}`;
 
-      // 2. 抓取待匯款訂單
+      // 2. 抓取待匯款訂單 (相容 pending_payment 狀態與 user 欄位)
       const userOrders = allOrders.filter(o => {
-        const nameMatch = (o.buyerName === selectedBuyer || o.name === selectedBuyer || o.buyer === selectedBuyer);
-        const pendingMatch = (o.paymentStatus === '待匯款' || o.status === '待匯款' || !o.paymentStatus);
+        const nameMatch = (o.user === selectedBuyer || o.buyerName === selectedBuyer || o.name === selectedBuyer || o.buyer === selectedBuyer);
+        const pendingMatch = (o.paymentStatus === 'pending_payment' || o.paymentStatus === '待匯款' || o.status === 'pending_payment' || o.status === '待匯款' || !o.paymentStatus);
         return nameMatch && pendingMatch;
       });
 
