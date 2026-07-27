@@ -9,7 +9,6 @@
     th, td { padding: 8px 10px; border-bottom: 1px solid #e4e7ed; text-align: left; font-size: 13px; vertical-align: middle; }
     th { background: #f8f9fa; white-space: nowrap; }
     
-    /* 讓格內的輸入框融入表格 */
     input[type="text"], input[type="number"], select {
       width: 100%;
       padding: 6px 8px;
@@ -36,7 +35,7 @@
 </head>
 <body>
 
-  <h3>團員填單紀錄管理 (全欄位可直接編輯)</h3>
+  <h3>團員填單紀錄管理</h3>
   <div style="margin-bottom:12px; display:flex; gap:10px;">
     <input type="text" id="searchOrderInput" placeholder="搜尋社群名稱或活動/成員..." style="max-width:300px;">
   </div>
@@ -76,7 +75,7 @@
     onSnapshot(collection(db, "orders"), snap => {
       const tb = document.getElementById('ordersAdminTable');
       
-      // 避免編輯到一半被即時監聽刷新，只在沒人在輸入時渲染（或重繪）
+      // 避免編輯到一半被即時監聽刷新，只在沒人在輸入時重繪
       if (document.activeElement && document.activeElement.tagName === 'INPUT') return;
 
       tb.innerHTML = '';
@@ -85,18 +84,38 @@
         const item = d.data();
         const docId = d.id;
         
-        const user = item.user && item.user !== '-' ? item.user : '';
-        const eName = item.event || item.eventName || item.fullEvent || '';
+        // 修正：優先抓取前台表單存入的 buyerName，其次才是 user 或 nickname
+        const user = item.buyerName || item.user || item.nickname || '';
+
+        // 修正：活動名稱與成員
+        const eName = item.event || item.eventName || '';
         const member = item.member || '';
         const qty = item.qty !== undefined ? item.qty : (item.quantity !== undefined ? item.quantity : 0);
         
+        // 修正：精準解析 ISO 時間格式（解決 Invalid Date）
         let timeStr = item.time || '';
         if (!timeStr && item.createdAt) {
           try {
-            timeStr = new Date(item.createdAt.seconds * 1000).toLocaleString('zh-TW', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false });
+            let dateObj;
+            if (typeof item.createdAt === 'string') {
+              dateObj = new Date(item.createdAt);
+            } else if (item.createdAt.seconds) {
+              dateObj = new Date(item.createdAt.seconds * 1000);
+            }
+            
+            if (dateObj && !isNaN(dateObj.getTime())) {
+              timeStr = dateObj.toLocaleString('zh-TW', { 
+                month: 'numeric', 
+                day: 'numeric', 
+                hour: '2-digit', 
+                minute: '2-digit', 
+                hour12: false 
+              });
+            }
           } catch(e) { timeStr = ''; }
         }
 
+        // 判斷匯款狀態
         const isPaid = item.hasPaid || item.paymentStatus === '已對帳' || item.status === '已對帳';
 
         const tr = document.createElement('tr');
@@ -123,7 +142,7 @@
       notifyHeight();
     });
 
-    // 儲存整列單筆資料
+    // 儲存整列單筆資料（雙向相容寫入 buyerName 與 user，確保前後台都讀得到）
     window.saveOrder = async (docId) => {
       const user = document.getElementById(`user-${docId}`).value.trim();
       const eventName = document.getElementById(`event-${docId}`).value.trim();
@@ -135,7 +154,8 @@
 
       try {
         await updateDoc(doc(db, "orders", docId), {
-          user: user || '-',
+          buyerName: user,
+          user: user,
           event: eventName,
           eventName: eventName,
           member: member,
@@ -143,8 +163,8 @@
           quantity: qty,
           time: timeStr,
           hasPaid: isPaid,
-          paymentStatus: isPaid ? '已對帳' : 'pending_payment',
-          status: isPaid ? '已對帳' : 'pending_payment'
+          paymentStatus: isPaid ? '已對帳' : '待匯款',
+          status: isPaid ? '已對帳' : '待匯款'
         });
         alert('✅ 更新成功！');
       } catch (err) {
