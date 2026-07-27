@@ -36,7 +36,6 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    // 修正：將 collection 名稱從 event_progress 改為正確的 photo_progress
     onSnapshot(collection(db, "photo_progress"), snap => {
       const container = document.getElementById('progressList');
       container.innerHTML = '';
@@ -47,25 +46,43 @@
         return;
       }
 
-      let list = [];
-      snap.forEach(d => list.push({ id: d.id, ...d.data() }));
+      let rawList = [];
+      snap.forEach(d => rawList.push({ id: d.id, ...d.data() }));
 
-      list.forEach(item => {
-        let badgeClass = 'status-waiting';
-        if (item.status === '分圖中' || item.status === '上傳中') badgeClass = 'status-sorting';
-        if (item.status === '已發圖' || item.status === '已結束') badgeClass = 'status-done';
-
-        container.innerHTML += `
-          <div class="event-card">
-            <div>
-              <div class="event-title">${item.eventName || '未命名活動'}</div>
-              <div class="event-sub">成員：${item.member || '全體'} ${item.seller ? '(' + item.seller + ')' : ''}</div>
-            </div>
-            <div class="status-badge ${badgeClass}">${item.status || '等圖中'}</div>
-          </div>
-        `;
+      // 依據「活動+成員」分組，統計代拍包數以防洩漏真名
+      const groups = {};
+      rawList.forEach(item => {
+        const key = `${item.eventName}__${item.member}`;
+        if (!groups[key]) groups[key] = [];
+        groups[key].push(item);
       });
 
+      let cardsHtml = '';
+
+      for (const [key, items] of Object.entries(groups)) {
+        const isMultipleSellers = items.length > 1;
+
+        items.forEach((item, idx) => {
+          let badgeClass = 'status-waiting';
+          if (item.status === '分圖中' || item.status === '上傳中') badgeClass = 'status-sorting';
+          if (item.status === '已發圖' || item.status === '已結束') badgeClass = 'status-done';
+
+          // 多於 1 包圖顯示「(代拍1)」、「(代拍2)」，只有 1 包圖不顯示代拍字樣
+          const sellerLabel = isMultipleSellers ? ` (代拍${idx + 1})` : '';
+
+          cardsHtml += `
+            <div class="event-card">
+              <div>
+                <div class="event-title">${item.eventName || '未命名活動'}</div>
+                <div class="event-sub">成員：${item.member || '全體'}${sellerLabel}</div>
+              </div>
+              <div class="status-badge ${badgeClass}">${item.status || '等圖中'}</div>
+            </div>
+          `;
+        });
+      }
+
+      container.innerHTML = cardsHtml;
       notifyHeight();
     });
 

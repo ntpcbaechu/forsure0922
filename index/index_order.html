@@ -57,7 +57,6 @@
     const db = getFirestore(app);
 
     document.addEventListener('DOMContentLoaded', async () => {
-      // 直連 GitHub Pages 根目錄 json 檔案
       const [buyersRes, membersRes] = await Promise.all([
         fetch('../json/users.json'),
         fetch('../json/members.json')
@@ -73,15 +72,23 @@
       memberSel.innerHTML = '<option value="">請選擇成員</option>';
       members.forEach(m => { memberSel.innerHTML += `<option value="${m}">${m}</option>`; });
 
+      // 監聽活動設定，並自動對活動進行去重，只顯示純活動名稱（不加成員後綴）
       onSnapshot(collection(db, "event_settings"), snap => {
         const eventSel = document.getElementById('eventName');
         eventSel.innerHTML = '<option value="">請選擇品項 / 活動</option>';
+        
+        const uniqueEvents = new Set();
         snap.forEach(d => {
           const data = d.data();
-          if (!data.isClosed) {
-            eventSel.innerHTML += `<option value="${data.name}">${data.name} (${data.member || '全體'})</option>`;
+          if (!data.isClosed && data.name) {
+            uniqueEvents.add(data.name.trim());
           }
         });
+
+        Array.from(uniqueEvents).sort().forEach(eventName => {
+          eventSel.innerHTML += `<option value="${eventName}">${eventName}</option>`;
+        });
+
         notifyHeight();
       });
     });
