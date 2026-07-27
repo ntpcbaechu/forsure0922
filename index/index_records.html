@@ -2,45 +2,42 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
-  <title>登記與對帳進度查詢</title>
+  <title>團員登記管理</title>
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 0; margin: 0; background: transparent; color: #333; }
-    .jump-bar { display: flex; flex-wrap: wrap; gap: 6px; padding-bottom: 10px; margin-bottom: 15px; }
-    .jump-btn { background: #ecf5ff; color: #409eff; border: 1px solid #d9ecff; padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; white-space: nowrap; cursor: pointer; flex-shrink: 0; }
-    .jump-btn:hover { background: #409eff; color: #fff; }
-    
-    .event-section { background: #fff; border: 1px solid #e4e7ed; border-radius: 12px; padding: 14px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); }
-    .event-header { font-size: 16px; font-weight: bold; color: #303133; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; }
-    .event-meta { font-size: 12px; color: #409eff; background: #ecf5ff; padding: 4px 8px; border-radius: 6px; }
-
-    /* 雙欄網格容器 (改動點 1) */
-    .cards-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 8px; }
-
-    /* 保留原樣式，僅微調邊距適應網格 (改動點 2) */
-    .order-card { background: #fafafa; border: 1px solid #ebeef5; border-radius: 8px; padding: 10px 12px; font-size: 13px; box-sizing: border-box; }
-    .order-top { display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 6px; }
-    .order-info { color: #606266; font-size: 12px; line-height: 1.6; }
-    .status-badge { padding: 2px 6px; border-radius: 4px; font-size: 11px; }
-    .status-paid { background: #f0f9eb; color: #67c23a; }
-    .status-pending { background: #fef0f0; color: #f56c6c; }
-
-    /* 手機螢幕自動微調內距 */
-    @media (max-width: 480px) {
-      .order-card { padding: 8px 10px; }
-      .order-info { font-size: 11px; }
-    }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 0; margin: 0; background: #fff; color: #333; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th, td { padding: 10px; border-bottom: 1px solid #e4e7ed; text-align: left; font-size: 13px; }
+    th { background: #f8f9fa; }
+    input { padding: 8px 10px; border: 1px solid #dcdfe6; border-radius: 6px; font-size: 14px; box-sizing: border-box; }
+    .btn-danger { background-color: #f56c6c; color: white; padding: 4px 8px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; }
+    .btn-edit { background-color: #e6a23c; color: white; padding: 4px 8px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; margin-right: 4px; }
+    .status-clickable { cursor: pointer; user-select: none; }
   </style>
 </head>
 <body>
 
-  <h3 style="margin-top:0; margin-bottom:12px; font-size:18px;">📌 登記與對帳進度查詢</h3>
-  
-  <div class="jump-bar" id="jumpBar"></div>
-  <div id="recordsList">載入中...</div>
+  <h3>團員填單紀錄管理 (修正登記錯成員/張數)</h3>
+  <div style="margin-bottom:12px; display:flex; gap:10px;">
+    <input type="text" id="searchOrderInput" placeholder="搜尋社群名稱或活動/成員..." style="max-width:300px;">
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th>社群暱稱</th>
+        <th>活動名稱</th>
+        <th>登記成員</th>
+        <th>登記張數</th>
+        <th>登記時間</th>
+        <th>匯款狀態 (點擊可切換)</th>
+        <th>操作</th>
+      </tr>
+    </thead>
+    <tbody id="ordersAdminTable"></tbody>
+  </table>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getFirestore, collection, doc, deleteDoc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyDF7QySG1Jj4gdZvXwMRaKjRmI-lFKpj7k",
@@ -55,146 +52,88 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    // 成員順序表
-    const memberOrder = ["方燦", "Lee Know", "彰彬", "鉉辰", "HAN", "Felix", "昇玟", "I.N"];
-
     onSnapshot(collection(db, "orders"), snap => {
-      const recordsList = document.getElementById('recordsList');
-      const jumpBar = document.getElementById('jumpBar');
-      recordsList.innerHTML = '';
-      jumpBar.innerHTML = '';
+      const tb = document.getElementById('ordersAdminTable');
+      tb.innerHTML = '';
 
-      if (snap.empty) {
-        recordsList.innerHTML = '<p style="color:#909399;">目前無登記紀錄。</p>';
-        notifyHeight();
-        return;
-      }
+      snap.forEach(d => {
+        const item = d.data();
+        const docId = d.id;
+        const eName = item.event || item.eventName || item.fullEvent || '未命名';
+        const qty = item.qty !== undefined ? item.qty : (item.quantity !== undefined ? item.quantity : (item.count || 0));
+        const timeStr = item.time || (item.createdAt ? new Date(item.createdAt.seconds * 1000).toLocaleString('zh-TW', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false }) : '-');
 
-      let orders = [];
-      snap.forEach(d => orders.push({ id: d.id, ...d.data() }));
+        // 同步相容三種狀態判斷 (嚴格連動前台)
+        const isPaid = item.hasPaid === true || item.paymentStatus === '已對帳' || item.status === '已對帳';
 
-      // 依「活動名稱 + 成員」進行雙重分組
-      const groups = {};
-      orders.forEach(o => {
-        const eventName = o.event || '未分類活動';
-        const memberName = o.member ? ` - ${o.member}` : '';
-        const key = eventName + memberName;
-
-        if (!groups[key]) groups[key] = [];
-        groups[key].push(o);
-      });
-
-      // 針對活動區塊進行【日期舊到新 + 成員順序】排序
-      const sortedGroupKeys = Object.keys(groups).sort((a, b) => {
-        // 抓取日期 (例如從 260725 RUN IT... 提取 260725)
-        const matchA = a.match(/\d{6}/);
-        const matchB = b.match(/\d{6}/);
-        const dateA = matchA ? parseInt(matchA[0], 10) : 0;
-        const dateB = matchB ? parseInt(matchB[0], 10) : 0;
-
-        if (dateA !== dateB) {
-          return dateA - dateB; // 日期小的排前面 (舊 -> 新)
-        }
-
-        // 若日期相同，比對成員順序
-        const getMemberIndex = (title) => {
-          for (let i = 0; i < memberOrder.length; i++) {
-            if (title.includes(memberOrder[i])) return i;
-          }
-          return 999;
-        };
-
-        const idxA = getMemberIndex(a);
-        const idxB = getMemberIndex(b);
-
-        if (idxA !== idxB) {
-          return idxA - idxB;
-        }
-
-        return a.localeCompare(b, 'zh-TW');
-      });
-
-      let groupIdx = 0;
-      for (const groupTitle of sortedGroupKeys) {
-        const list = groups[groupTitle];
-        groupIdx++;
-        const sectionId = `event-sec-${groupIdx}`;
-        const totalPacks = list.reduce((sum, item) => sum + (Number(item.quantity) || Number(item.qty) || 1), 0);
-
-        jumpBar.innerHTML += `<button class="jump-btn" onclick="scrollToSection('${sectionId}')">📍 ${groupTitle}</button>`;
-
-        // 區塊內部的個人訂單依填單時間由早到晚 (舊 -> 新) 排序
-        list.sort((a, b) => {
-          const getTime = (val) => {
-            if (!val) return 0;
-            if (typeof val.toDate === 'function') return val.toDate().getTime();
-            return new Date(val).getTime() || 0;
-          };
-          return getTime(a.createdAt) - getTime(b.createdAt);
-        });
-
-        let cardsHtml = '';
-        list.forEach((ord, idx) => {
-          // 精準補齊 hasPaid 判斷，確保後台更新時前台同步變亮綠燈
-          const isPaid = ord.hasPaid || ord.paymentStatus === '已對帳' || ord.status === '已對帳';
-          const badgeHtml = isPaid 
-            ? '<span class="status-badge status-paid">🟢 已對帳</span>' 
-            : '<span class="status-badge status-pending">⏳ 待匯款</span>';
-
-          // 時間解析
-          let dateFormatted = '-';
-          if (ord.createdAt) {
-            if (typeof ord.createdAt.toDate === 'function') {
-              const d = ord.createdAt.toDate();
-              const mm = String(d.getMonth() + 1).padStart(2, '0');
-              const dd = String(d.getDate()).padStart(2, '0');
-              const hh = String(d.getHours()).padStart(2, '0');
-              const min = String(d.getMinutes()).padStart(2, '0');
-              dateFormatted = `${mm}-${dd} ${hh}:${min}`;
-            } else if (typeof ord.createdAt === 'string') {
-              dateFormatted = ord.createdAt.substring(5, 16).replace('T', ' ');
-            }
-          }
-
-          // 準確抓取 buyerName (加入 user 欄位)
-          const rawName = ord.user || ord.buyerName || ord.name || ord.buyer || ord.nickname;
-          const displayName = (rawName && String(rawName).trim() !== '') ? rawName : '未知成員';
-
-          cardsHtml += `
-            <div class="order-card">
-              <div class="order-top">
-                <span>#${idx + 1} ${displayName}</span>
-                ${badgeHtml}
-              </div>
-              <div class="order-info">
-                <div>喊單張數：<b>${ord.quantity || ord.qty || 1} 張</b></div>
-                <div>填單 / 更新時間：${dateFormatted}</div>
-              </div>
-            </div>
-          `;
-        });
-
-        /* 外層加上 <div class="cards-grid"> 包住 cardsHtml (改動點 3) */
-        recordsList.innerHTML += `
-          <div class="event-section" id="${sectionId}">
-            <div class="event-header">
-              <span>📌 ${groupTitle}</span>
-              <span class="event-meta">共 ${list.length} 筆 / 總計 ${totalPacks} 張</span>
-            </div>
-            <div class="cards-grid">
-              ${cardsHtml}
-            </div>
-          </div>
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><b>${item.user || '-'}</b></td>
+          <td>${eName}</td>
+          <td><b style="color:#409eff;">${item.member || '未設定'}</b></td>
+          <td>${qty} 張</td>
+          <td><small style="color:#909399;">${timeStr}</small></td>
+          <td class="status-clickable" onclick="togglePayStatus('${docId}', ${isPaid})">
+            ${isPaid ? '<span style="color:#67c23a; font-weight:bold;">🟢 已對帳/已匯款 (點擊切換)</span>' : '<span style="color:#f56c6c; font-weight:bold;">⏳ 待匯款 (點擊切換)</span>'}
+          </td>
+          <td>
+            <button class="btn-edit" onclick="editUserOrder('${docId}', '${item.member||''}', ${qty})">修改成員/張數</button>
+            <button class="btn-danger" onclick="deleteUserOrder('${docId}', '${item.user}', '${item.member}')">刪除</button>
+          </td>
         `;
-      }
-
+        tb.appendChild(tr);
+      });
       notifyHeight();
     });
 
-    window.scrollToSection = (secId) => {
-      const el = document.getElementById(secId);
-      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    // 切換匯款/對帳狀態：同時把三個關鍵欄位一次寫入，徹底解決前後台同步問題
+    window.togglePayStatus = async (docId, currentStatus) => {
+      const nextStatus = !currentStatus;
+      try {
+        await updateDoc(doc(db, "orders", docId), {
+          hasPaid: nextStatus,
+          paymentStatus: nextStatus ? '已對帳' : 'pending_payment',
+          status: nextStatus ? '已對帳' : 'pending_payment'
+        });
+      } catch (err) {
+        alert('修改狀態失敗: ' + err.message);
+      }
     };
+
+    window.editUserOrder = async (docId, oldMember, oldQty) => {
+      const newMember = prompt(`請輸入要修正的成員名稱（目前為 ${oldMember}）：\n可填寫例如：方燦, Lee Know, 彰彬, 鉉辰, Han, Felix, 昇玟, I.N, 團體/全體`, oldMember);
+      if (newMember === null || newMember.trim() === '') return;
+
+      const newQtyStr = prompt(`請確認或修改張數（目前為 ${oldQty} 張）：`, oldQty);
+      if (newQtyStr === null) return;
+      const newQty = parseInt(newQtyStr) || 0;
+
+      try {
+        await updateDoc(doc(db, "orders", docId), {
+          member: newMember.trim(),
+          qty: newQty,
+          quantity: newQty
+        });
+        alert('✅ 登記成員與張數已成功修改！');
+      } catch (err) {
+        alert('修改失敗: ' + err.message);
+      }
+    };
+
+    window.deleteUserOrder = async (docId, user, member) => {
+      if (confirm(`確定要刪除 [${user}] 登記的 [${member}] 紀錄嗎？`)) {
+        await deleteDoc(doc(db, "orders", docId));
+        alert('已成功刪除該筆登記。');
+      }
+    };
+
+    document.getElementById('searchOrderInput').addEventListener('input', (e) => {
+      const kw = e.target.value.toLowerCase();
+      const rows = document.querySelectorAll('#ordersAdminTable tr');
+      rows.forEach(r => {
+        r.style.display = r.textContent.toLowerCase().includes(kw) ? '' : 'none';
+      });
+    });
 
     function notifyHeight() {
       setTimeout(() => {
@@ -202,5 +141,6 @@
       }, 100);
     }
   </script>
+
 </body>
 </html>
