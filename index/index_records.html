@@ -75,7 +75,7 @@
       for (const [groupTitle, list] of Object.entries(groups)) {
         groupIdx++;
         const sectionId = `event-sec-${groupIdx}`;
-        const totalPacks = list.reduce((sum, item) => sum + (Number(item.qty) || 1), 0);
+        const totalPacks = list.reduce((sum, item) => sum + (Number(item.quantity) || Number(item.qty) || 1), 0);
 
         jumpBar.innerHTML += `<button class="jump-btn" onclick="scrollToSection('${sectionId}')">📍 ${groupTitle}</button>`;
 
@@ -101,8 +101,8 @@
             }
           }
 
-          // 準確抓取 buyerName
-          const rawName = ord.buyerName || ord.name || ord.buyer || ord.nickname;
+          // 準確抓取 buyerName (加入 user 欄位)
+          const rawName = ord.user || ord.buyerName || ord.name || ord.buyer || ord.nickname;
           const displayName = (rawName && String(rawName).trim() !== '') ? rawName : '未知成員';
 
           cardsHtml += `
@@ -112,7 +112,7 @@
                 ${badgeHtml}
               </div>
               <div class="order-info">
-                <div>喊單張數：<b>${ord.qty || 1} 包</b></div>
+                <div>喊單張數：<b>${ord.quantity || ord.qty || 1} 包</b></div>
                 <div>填單 / 更新時間：${dateFormatted}</div>
               </div>
             </div>
