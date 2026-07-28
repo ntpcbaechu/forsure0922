@@ -5,7 +5,7 @@
   <title>活動單價與成本設定</title>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 0; margin: 0; background: #fff; color: #333; }
-    table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
     th, td { padding: 10px 8px; border-bottom: 1px solid #e4e7ed; text-align: left; font-size: 13px; vertical-align: top; }
     th { background: #f8f9fa; color: #606266; font-weight: bold; white-space: nowrap; }
     input, select, button, textarea { padding: 8px 10px; border: 1px solid #dcdfe6; border-radius: 6px; font-size: 13px; box-sizing: border-box; transition: border-color 0.2s; }
@@ -14,20 +14,31 @@
     .btn-danger { background-color: #f56c6c; color: white; padding: 4px 8px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; }
     .btn-edit { background-color: #e6a23c; color: white; padding: 4px 8px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; margin-right: 4px; }
 
-    /* 表單卡片分區美化 */
+    /* 表單區塊（無大標題，潔淨卡片版面） */
     .form-section { background: #f8f9fa; border: 1px solid #ebeef5; border-radius: 8px; padding: 12px 15px; margin-bottom: 10px; }
-    .form-section-title { font-size: 13px; font-weight: bold; color: #409eff; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; }
     .form-row { display: grid; gap: 10px; margin-bottom: 8px; }
     .row-5 { grid-template-columns: 1fr 1.5fr 1.5fr 1.5fr 1.5fr; }
     .row-3 { grid-template-columns: 1fr 1fr 1fr; }
     .row-discount { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
 
-    /* 方案二新增：活動場次開頭標籤列 (區分活動起點) */
+    /* 篩選工具列 */
+    .filter-bar {
+      background: #f8f9fa;
+      border: 1px solid #e4e7ed;
+      border-radius: 6px;
+      padding: 10px 14px;
+      margin: 15px 0 10px 0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* 活動場次標籤列 (字體加大至 16px) */
     .event-group-header {
       background: #eef5fe;
       border-left: 4px solid #409eff;
-      color: #2c3e50;
-      font-size: 14px;
+      color: #1a252f;
+      font-size: 16px;
       font-weight: bold;
       padding: 10px 12px;
       margin-top: 25px;
@@ -41,24 +52,24 @@
     .divider-line { border-top: 1px dashed #dcdfe6; margin: 3px 0; }
     .closed-tag { background: #f4f4f5; color: #909399; padding: 2px 6px; border-radius: 4px; font-size: 11px; margin-left: 6px; }
 
-    /* 備註框：標題第一行，內容第二行縮排 */
+    /* 備註框：優化為淺藍色調，標題獨立第一行 */
     .minimal-note-box { 
-      border-left: 3px solid #e6a23c; 
-      padding: 6px 12px; 
+      border-left: 3px solid #409eff; 
+      padding: 8px 12px; 
       font-size: 13px; 
-      color: #606266; 
+      color: #303133; 
       margin: 6px 0 12px 0; 
       line-height: 1.6; 
-      background: #fdf6ec;
+      background: #ecf5ff;
       border-radius: 0 6px 6px 0;
     }
-    .minimal-note-title { font-weight: bold; color: #e6a23c; margin-bottom: 2px; }
+    .minimal-note-title { font-weight: bold; color: #409eff; margin-bottom: 2px; }
     .minimal-note-content { white-space: pre-wrap; word-break: break-all; }
 
     /* 自動高 textarea 樣式 */
     .auto-textarea { width: 100%; min-height: 70px; resize: none; overflow-y: hidden; line-height: 1.5; }
 
-    /* 結算卡片：移除混淆底部綠線，拉大下留白 (50px) 區隔下一場 */
+    /* 結算卡片：下留白 50px */
     .summary-card { 
       background: #f0f9eb; 
       border: 1px solid #e1f3d8; 
@@ -86,7 +97,6 @@
 
     <!-- 卡片 1: 基本資料 -->
     <div class="form-section">
-      <div class="form-section-title">📝 1. 活動與代拍基本資料</div>
       <div class="form-row row-5">
         <div><label style="font-size:12px;">日期 (例: 260725)</label><input type="text" id="evDate" placeholder="260725" style="width:100%;"></div>
         <div><label style="font-size:12px;">活動名稱 (例: RUN IT)</label><input type="text" id="evName" placeholder="RUN IT (Day1)" required style="width:100%;"></div>
@@ -99,16 +109,11 @@
         <div><label style="font-size:12px;">代拍 (例: 站姐A)</label><input type="text" id="evSeller" placeholder="代拍名稱" style="width:100%;"></div>
         <div><label style="font-size:12px;">單筆備註</label><input type="text" id="evNote" placeholder="單筆備註..." style="width:100%;"></div>
       </div>
-      <div>
-        <label style="font-size:12px;">備註 / 特別注意事項</label>
-        <textarea id="evBigNote" class="auto-textarea" placeholder="在此輸入備註 (打字或換行時框框會自動向下展延)..."></textarea>
-      </div>
     </div>
 
     <!-- 卡片 2: 販售規格與折扣設定 -->
     <div class="form-section">
-      <div class="form-section-title">
-        <span>🏷️ 2. 販售規格與折扣售價設定</span>
+      <div style="display:flex; justify-content:flex-end; margin-bottom:8px;">
         <button type="button" id="addDiscountBtn" style="background:#67c23a; font-size:12px; padding:4px 8px;">+ 新增折扣售價</button>
       </div>
       <div class="form-row row-3">
@@ -121,7 +126,6 @@
 
     <!-- 卡片 3: 購入成本與收到檔案 -->
     <div class="form-section">
-      <div class="form-section-title">💸 3. 購入成本與收到檔案</div>
       <div class="form-row row-3">
         <div><label style="font-size:12px;">購入訂金 ($)</label><input type="number" id="evDeposit" placeholder="訂金" style="width:100%;"></div>
         <div><label style="font-size:12px;">購入尾款 ($)</label><input type="number" id="evBalance" placeholder="尾款" style="width:100%;"></div>
@@ -137,9 +141,23 @@
       </div>
     </div>
 
+    <!-- 卡片 4: 備註 (移至最下方) -->
+    <div class="form-section">
+      <label style="font-size:12px; font-weight:bold;">備註 / 特別注意事項</label>
+      <textarea id="evBigNote" class="auto-textarea" style="margin-top:6px;" placeholder="在此輸入備註 (打字或換行時框框會自動向下展延)..."></textarea>
+    </div>
+
     <button type="submit" id="saveEventBtn" style="width:100%; padding:10px; font-size:15px;">儲存活動設定</button>
     <button type="button" id="cancelEditBtn" style="background:#909399; width:100%; padding:10px; margin-top:5px; display:none;" onclick="resetEventForm()">取消編輯</button>
   </form>
+
+  <!-- 篩選列：只顯示有未關閉活動的成員 -->
+  <div class="filter-bar">
+    <span style="font-size:13px; font-weight:bold; color:#606266;">🔍 列表快速篩選成員：</span>
+    <select id="memberFilterSelect" style="margin:0; padding:6px 12px; width:auto; min-width:180px;">
+      <option value="ALL">顯示全部成員</option>
+    </select>
+  </div>
 
   <table>
     <thead>
@@ -181,6 +199,7 @@
 
     let ordersList = [];
     let eventsDataMap = {};
+    let currentSelectedMemberFilter = 'ALL';
 
     const bigNoteArea = document.getElementById('evBigNote');
     function adjustTextareaHeight(el) {
@@ -233,6 +252,12 @@
       });
     });
 
+    const filterSelectEl = document.getElementById('memberFilterSelect');
+    filterSelectEl.addEventListener('change', (e) => {
+      currentSelectedMemberFilter = e.target.value;
+      loadEvents();
+    });
+
     onSnapshot(collection(db, "orders"), snap => {
       ordersList = [];
       snap.forEach(d => ordersList.push(d.data()));
@@ -246,11 +271,43 @@
 
         eventsDataMap = {};
         let eventsList = [];
+        let activeMembersSet = new Set();
+
         snap.forEach(d => {
           const data = { id: d.id, ...d.data() };
           eventsList.push(data);
           eventsDataMap[d.id] = data;
+
+          // 抓出「有新增event且尚未close (isClosed !== true)」的成員
+          if (!data.isClosed && data.member) {
+            activeMembersSet.add(data.member);
+          }
         });
+
+        // 動態更新篩選選單
+        const prevSelected = currentSelectedMemberFilter;
+        filterSelectEl.innerHTML = '<option value="ALL">顯示全部成員</option>';
+        
+        // 按照固定成員順序排序選單
+        const sortedActiveMembers = Array.from(activeMembersSet).sort((a, b) => {
+          const idxA = MEMBER_ORDER.indexOf(a);
+          const idxB = MEMBER_ORDER.indexOf(b);
+          return (idxA === -1 ? 99 : idxA) - (idxB === -1 ? 99 : idxB);
+        });
+
+        sortedActiveMembers.forEach(m => {
+          const opt = document.createElement('option');
+          opt.value = m;
+          opt.textContent = `${m} (進行中)`;
+          filterSelectEl.appendChild(opt);
+        });
+
+        if (Array.from(filterSelectEl.options).some(o => o.value === prevSelected)) {
+          filterSelectEl.value = prevSelected;
+        } else {
+          filterSelectEl.value = 'ALL';
+          currentSelectedMemberFilter = 'ALL';
+        }
 
         eventsList.sort((a, b) => {
           const nameA = a.rawDate || a.name;
@@ -265,6 +322,11 @@
         const groupedEvents = {};
         eventsList.forEach(ev => {
           const mName = ev.member || '全體/無';
+          // 篩選過濾：若有選擇特定成員，則跳過其他成員
+          if (currentSelectedMemberFilter !== 'ALL' && mName !== currentSelectedMemberFilter) {
+            return;
+          }
+
           const groupKey = `${ev.name}__${mName}`;
           if (!groupedEvents[groupKey]) {
             groupedEvents[groupKey] = [];
@@ -281,7 +343,7 @@
           const memberName = evArray[0].member || '全體/無';
           const isClosed = evArray.some(e => e.isClosed);
 
-          // 1. 在活動起點插入「活動場次標籤 Header」
+          // 活動標頭列 (字體 16px 粗體)
           const headerTr = document.createElement('tr');
           headerTr.innerHTML = `
             <td colspan="9" style="padding:0; border-bottom:none;">
@@ -396,7 +458,7 @@
             tr.querySelector('.btn-danger').onclick = () => deleteEvent(docId);
             tb.appendChild(tr);
 
-            // 2. 備註對齊調整：第一行獨立標題，第二行內容換行
+            // 備註框：淡藍色背景
             if (idx === evArray.length - 1 && latestBigNote) {
               const noteTr = document.createElement('tr');
               noteTr.innerHTML = `
@@ -411,7 +473,7 @@
             }
           });
 
-          // 3. 結算卡片（綠框）：移除底部綠線，加大 margin-bottom 留白 50px
+          // 結算卡片
           const estProfit = realTotalRevenue - memberTotalCost;
 
           const summaryTr = document.createElement('tr');
