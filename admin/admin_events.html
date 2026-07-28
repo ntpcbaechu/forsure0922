@@ -6,8 +6,8 @@
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 0; margin: 0; background: #fff; color: #333; }
     table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-    th, td { padding: 10px; border-bottom: 1px solid #e4e7ed; text-align: left; font-size: 13px; }
-    th { background: #f8f9fa; }
+    th, td { padding: 10px 8px; border-bottom: 1px solid #e4e7ed; text-align: left; font-size: 13px; vertical-align: top; }
+    th { background: #f8f9fa; color: #606266; font-weight: bold; white-space: nowrap; }
     input, select, button { padding: 8px 10px; border: 1px solid #dcdfe6; border-radius: 6px; font-size: 14px; margin-bottom: 10px; box-sizing: border-box; }
     button { background-color: #409eff; color: white; border: none; font-weight: bold; cursor: pointer; }
     .btn-danger { background-color: #f56c6c; color: white; padding: 4px 8px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; }
@@ -15,10 +15,23 @@
     .form-row-top { display: grid; grid-template-columns: 1fr 1.5fr 1.5fr 1.5fr 1.5fr; gap: 10px; margin-bottom: 10px; }
     .form-row-mid { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr; gap: 10px; margin-bottom: 10px; }
     .form-row-bottom { display: grid; grid-template-columns: 1fr 1fr auto; gap: 10px; margin-bottom: 10px; align-items: center; }
-    .summary-card { background: #f0f9eb; border: 1px solid #e1f3d8; border-radius: 8px; padding: 12px; font-size: 13px; margin: 5px 0 15px 0; }
-    .summary-title { font-weight: bold; color: #67c23a; margin-bottom: 8px; font-size: 14px; }
+    
+    /* 美化專用小標籤與樣式 */
+    .tag-qty { background: #f4f4f5; color: #909399; padding: 1px 5px; border-radius: 4px; font-size: 11px; display: inline-block; margin-bottom: 2px; }
+    .sub-info { font-size: 12px; color: #606266; line-height: 1.4; }
+    .divider-line { border-top: 1px dashed #dcdfe6; margin: 3px 0; }
     .closed-tag { background: #f4f4f5; color: #909399; padding: 2px 6px; border-radius: 4px; font-size: 11px; margin-left: 6px; }
-    @media (max-width: 768px) { .form-row-top, .form-row-mid, .form-row-bottom { grid-template-columns: 1fr; } }
+
+    /* 結算卡片分區美化 */
+    .summary-card { background: #f0f9eb; border: 1px solid #e1f3d8; border-radius: 8px; padding: 14px; font-size: 13px; margin: 6px 0 16px 0; }
+    .summary-title { font-weight: bold; color: #67c23a; margin-bottom: 10px; font-size: 14px; }
+    .summary-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; border-top: 1px dashed #c0c4cc; padding-top: 10px; }
+    .summary-col { display: flex; flex-direction: column; gap: 4px; }
+
+    @media (max-width: 768px) { 
+      .form-row-top, .form-row-mid, .form-row-bottom { grid-template-columns: 1fr; } 
+      .summary-grid { grid-template-columns: 1fr; }
+    }
   </style>
 </head>
 <body>
@@ -66,15 +79,14 @@
   <table>
     <thead>
       <tr>
-        <th>活動全名 (日期+名稱)</th>
+        <th>活動全名</th>
         <th>成員</th>
-        <th>代拍名稱</th>
-        <th>備註</th>
-        <th>每包(張/價格/拆包)</th>
-        <th>已登記(張/包)</th>
+        <th>代拍/備註</th>
+        <th>每包設定</th>
+        <th>已登記</th>
         <th>預估銷售與利潤</th>
-        <th>購入價 (訂/尾/總)</th>
-        <th>實際收到 (照/影/總)</th>
+        <th>購入成本</th>
+        <th>實際收到</th>
         <th>操作</th>
       </tr>
     </thead>
@@ -175,39 +187,38 @@
           let memberTotalActPhoto = 0;
           let memberTotalActVideo = 0;
           let memberTotalActQty = 0;
-          let memberTotalOrderedPacks = 0;
-          let unitPrice = 0;
           const eventName = evArray[0].name;
           const memberName = evArray[0].member || '全體/無';
           const isClosed = evArray.some(e => e.isClosed);
+
+          // 計算該 [活動+成員] 全團統一的下單數據 (買家只買一次)
+          const sampleEv = evArray[0];
+          const matchedOrders = ordersList.filter(o => {
+            const matchEvent = (o.event === sampleEv.name || o.event === sampleEv.rawName || o.fullEvent === sampleEv.name);
+            const matchMember = !sampleEv.member || o.member === sampleEv.member;
+            return matchEvent && matchMember;
+          });
+
+          const totalOrderedCards = matchedOrders.reduce((sum, o) => {
+            const qty = Number(o.qty !== undefined ? o.qty : (o.quantity !== undefined ? o.quantity : o.count)) || 0;
+            return sum + qty;
+          }, 0);
+
+          const packSize = sampleEv.packQty && sampleEv.packQty > 0 ? sampleEv.packQty : 1;
+          const memberTotalOrderedPacks = totalOrderedCards / packSize;
+          const realTotalRevenue = memberTotalOrderedPacks * (sampleEv.price || 0);
 
           evArray.forEach(ev => {
             const docId = ev.id;
             const closedBadge = ev.isClosed ? '<span class="closed-tag">🚫 已關閉</span>' : '';
             const mName = ev.member || '全體/無';
 
-            const matchedOrders = ordersList.filter(o => {
-              const matchEvent = (o.event === ev.name || o.event === ev.rawName || o.fullEvent === ev.name);
-              const matchMember = !ev.member || o.member === ev.member;
-              return matchEvent && matchMember;
-            });
-
-            // 1. 下單統計金額修正：將 orders 的數字視為「登記張數」
-            const totalOrderedCards = matchedOrders.reduce((sum, o) => {
-              const qty = Number(o.qty !== undefined ? o.qty : (o.quantity !== undefined ? o.quantity : o.count)) || 0;
-              return sum + qty;
-            }, 0);
-
-            // 若有填每包張數(packQty)，計算包數 = 張數 / 每包張數，否則預設為 1
-            const packSize = ev.packQty && ev.packQty > 0 ? ev.packQty : 1;
-            const totalOrderedPacks = totalOrderedCards / packSize;
-            const estRevenue = totalOrderedPacks * (ev.price || 0);
+            const estRevenue = realTotalRevenue; // 每一列共享該成員的銷售金額
 
             const totalCost = (ev.deposit !== undefined || ev.balance !== undefined) 
               ? ((ev.deposit || 0) + (ev.balance || 0)) 
               : (ev.cost || 0);
 
-            // 2. 單筆預估利潤計算
             const singleProfit = estRevenue - totalCost;
             const profitColor = singleProfit >= 0 ? '#67c23a' : '#f56c6c';
 
@@ -221,23 +232,37 @@
             memberTotalActPhoto += actPhoto;
             memberTotalActVideo += actVideo;
             memberTotalActQty += totalAct;
-            memberTotalOrderedPacks += totalOrderedPacks;
-            unitPrice = ev.price || 0;
 
             const tr = document.createElement('tr');
             tr.innerHTML = `
               <td><b>${ev.name}</b>${closedBadge}</td>
               <td><b>${mName}</b></td>
-              <td>${ev.seller || '未填寫'}</td>
-              <td>${ev.note || '-'}</td>
-              <td>${ev.packQty || 0}張 / $${ev.price || 0} / ${ev.packsCount || 0}包</td>
-              <td><b>${totalOrderedCards} 張</b> <span style="font-size:11px; color:#666;">(${totalOrderedPacks}包)</span></td>
+              <td>
+                <div><b>${ev.seller || '未填寫'}</b></div>
+                <div class="sub-info">${ev.note ? '備註: ' + ev.note : '-'}</div>
+              </td>
+              <td>
+                <span class="tag-qty">${ev.packQty || 0}張/包</span>
+                <div class="sub-info">$${ev.price || 0}/包 · 拆${ev.packsCount || 0}包</div>
+              </td>
+              <td>
+                <div style="font-weight:bold;">${totalOrderedCards} 張</div>
+                <div class="sub-info">(${memberTotalOrderedPacks.toFixed(1).replace(/\.0$/, '')} 包)</div>
+              </td>
               <td>
                 <div>銷售: <b style="color:#409eff;">$${estRevenue.toFixed(1).replace(/\.0$/, '')}</b></div>
                 <div>利潤: <b style="color:${profitColor};">$${singleProfit.toFixed(1).replace(/\.0$/, '')}</b></div>
               </td>
-              <td>訂:$${ev.deposit || 0} / 尾:$${ev.balance || 0} / <b>總:$${totalCost}</b></td>
-              <td>照:${actPhoto} / 影:${actVideo} / <b>總:${totalAct}張</b></td>
+              <td>
+                <div class="sub-info">訂: $${ev.deposit || 0} &nbsp; 尾: $${ev.balance || 0}</div>
+                <div class="divider-line"></div>
+                <div><b>總價: $${totalCost}</b></div>
+              </td>
+              <td>
+                <div class="sub-info">📷 ${actPhoto} 照 &nbsp; 🎬 ${actVideo} 影</div>
+                <div class="divider-line"></div>
+                <div><b>總計: ${totalAct} 張</b></div>
+              </td>
               <td>
                 <button class="btn-edit" data-id="${docId}">編輯</button>
                 <button class="btn-danger" data-id="${docId}">刪除</button>
@@ -249,21 +274,30 @@
             tb.appendChild(tr);
           });
 
-          // 成員活動總結算卡片
-          const realTotalRevenue = memberTotalOrderedPacks * unitPrice;
+          // 美化：三欄式成結算卡片（綠框）
           const estProfit = realTotalRevenue - memberTotalCost;
 
           const summaryTr = document.createElement('tr');
           summaryTr.innerHTML = `
-            <td colspan="10" style="padding: 0; border-bottom: 2px solid #67c23a;">
+            <td colspan="9" style="padding: 0; border-bottom: 2px solid #67c23a;">
               <div class="summary-card">
                 <div class="summary-title">📊 成員活動總結算：${eventName} - <span style="color:#409eff;">${memberName}</span> (${evArray.length} 筆代拍紀錄)${isClosed ? ' [已結團關閉]' : ''}</div>
-                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap:10px;">
-                  <div>總購入成本：<b>$${memberTotalCost}</b></div>
-                  <div>總登記售出：<b>${memberTotalOrderedPacks.toFixed(1).replace(/\.0$/, '')} 包</b></div>
-                  <div>收到照片/影片：<b>${memberTotalActPhoto}照 / ${memberTotalActVideo}影 (共${memberTotalActQty}張)</b></div>
-                  <div>預估總銷售額：<b>$${realTotalRevenue.toFixed(1).replace(/\.0$/, '')}</b></div>
-                  <div>🔥 預估全團總利潤：<b style="color:${estProfit >= 0 ? '#67c23a' : '#f56c6c'};">$${estProfit.toFixed(1).replace(/\.0$/, '')}</b></div>
+                <div class="summary-grid">
+                  <div class="summary-col">
+                    <div style="font-weight:bold; color:#409eff;">🛍️ 銷售數據</div>
+                    <div>登記總量：<b>${totalOrderedCards} 張 (${memberTotalOrderedPacks.toFixed(1).replace(/\.0$/, '')} 包)</b></div>
+                    <div>預估總銷售額：<b>$${realTotalRevenue.toFixed(1).replace(/\.0$/, '')}</b></div>
+                  </div>
+                  <div class="summary-col">
+                    <div style="font-weight:bold; color:#e6a23c;">💸 成本與真實利潤</div>
+                    <div>總購入成本：<b>$${memberTotalCost}</b></div>
+                    <div>🔥 預估全團利潤：<b style="color:${estProfit >= 0 ? '#67c23a' : '#f56c6c'};">$${estProfit.toFixed(1).replace(/\.0$/, '')}</b></div>
+                  </div>
+                  <div class="summary-col">
+                    <div style="font-weight:bold; color:#67c23a;">📁 收到檔案資料</div>
+                    <div>收到照片：<b>${memberTotalActPhoto} 張</b></div>
+                    <div>收到影片：<b>${memberTotalActVideo} 檔 (共 ${memberTotalActQty} 張)</b></div>
+                  </div>
                 </div>
               </div>
             </td>
