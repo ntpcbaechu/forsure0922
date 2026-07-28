@@ -8,7 +8,7 @@
     table { width: 100%; border-collapse: collapse; margin-top: 15px; }
     th, td { padding: 10px 8px; border-bottom: 1px solid #e4e7ed; text-align: left; font-size: 13px; vertical-align: top; }
     th { background: #f8f9fa; color: #606266; font-weight: bold; white-space: nowrap; }
-    input, select, button { padding: 8px 10px; border: 1px solid #dcdfe6; border-radius: 6px; font-size: 13px; box-sizing: border-box; }
+    input, select, button, textarea { padding: 8px 10px; border: 1px solid #dcdfe6; border-radius: 6px; font-size: 13px; box-sizing: border-box; }
     button { background-color: #409eff; color: white; border: none; font-weight: bold; cursor: pointer; }
     .btn-danger { background-color: #f56c6c; color: white; padding: 4px 8px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; }
     .btn-edit { background-color: #e6a23c; color: white; padding: 4px 8px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; margin-right: 4px; }
@@ -27,6 +27,9 @@
     .sub-info { font-size: 12px; color: #606266; line-height: 1.4; }
     .divider-line { border-top: 1px dashed #dcdfe6; margin: 3px 0; }
     .closed-tag { background: #f4f4f5; color: #909399; padding: 2px 6px; border-radius: 4px; font-size: 11px; margin-left: 6px; }
+
+    /* 樣式 A：極簡左側細線備註框 */
+    .minimal-note-box { border-left: 3px solid #409eff; padding: 4px 0 4px 10px; font-size: 13px; color: #606266; margin: 4px 0 6px 0; line-height: 1.5; white-space: pre-wrap; }
 
     /* 結算卡片樣式 */
     .summary-card { background: #f0f9eb; border: 1px solid #e1f3d8; border-radius: 8px; padding: 14px; font-size: 13px; margin: 6px 0 16px 0; }
@@ -59,11 +62,15 @@
           </select>
         </div>
         <div><label style="font-size:12px;">代拍 (例: 站姐A)</label><input type="text" id="evSeller" placeholder="代拍名稱" style="width:100%;"></div>
-        <div><label style="font-size:12px;">備註</label><input type="text" id="evNote" placeholder="備註說明..." style="width:100%;"></div>
+        <div><label style="font-size:12px;">單筆備註</label><input type="text" id="evNote" placeholder="單筆備註..." style="width:100%;"></div>
+      </div>
+      <div>
+        <label style="font-size:12px;">備註 / 特別注意事項</label>
+        <textarea id="evBigNote" rows="2" placeholder="在此輸入備註 (換行點 Enter)..." style="width:100%; resize:vertical;"></textarea>
       </div>
     </div>
 
-    <!-- 卡片 2: 販售規格與折扣設定 (方案二動態折扣) -->
+    <!-- 卡片 2: 販售規格與折扣設定 -->
     <div class="form-section">
       <div class="form-section-title">
         <span>🏷️ 2. 販售規格與折扣售價設定</span>
@@ -74,7 +81,6 @@
         <div><label style="font-size:12px;">每包原價 ($)</label><input type="number" step="0.1" min="0" id="evPrice" placeholder="單價" style="width:100%;"></div>
         <div><label style="font-size:12px;">總拆包數</label><input type="number" id="evPacksCount" placeholder="包數" style="width:100%;"></div>
       </div>
-      <!-- 動態新增折扣容器 -->
       <div id="discountContainer"></div>
     </div>
 
@@ -141,7 +147,6 @@
     let ordersList = [];
     let eventsDataMap = {}; 
 
-    // 自動計算總成本
     const depositEl = document.getElementById('evDeposit');
     const balanceEl = document.getElementById('evBalance');
     const costEl = document.getElementById('evCost');
@@ -155,7 +160,6 @@
     depositEl.addEventListener('input', calcTotalCost);
     balanceEl.addEventListener('input', calcTotalCost);
 
-    // 方案二：動態新增折扣輸入列
     const discountContainer = document.getElementById('discountContainer');
     document.getElementById('addDiscountBtn').addEventListener('click', () => {
       addDiscountRow();
@@ -234,7 +238,6 @@
           const memberName = evArray[0].member || '全體/無';
           const isClosed = evArray.some(e => e.isClosed);
 
-          // 計算該 [活動+成員] 的總登記售額 (含折扣邏輯計算)
           const sampleEv = evArray[0];
           const matchedOrders = ordersList.filter(o => {
             const matchEvent = (o.event === sampleEv.name || o.event === sampleEv.rawName || o.fullEvent === sampleEv.name);
@@ -250,7 +253,6 @@
           const packSize = sampleEv.packQty && sampleEv.packQty > 0 ? sampleEv.packQty : 1;
           const totalOrderedPacks = totalOrderedCards / packSize;
 
-          // 計算多階梯折扣銷售額
           let realTotalRevenue = 0;
           let remainingPacks = totalOrderedPacks;
           const discounts = sampleEv.discounts || [];
@@ -268,7 +270,9 @@
             realTotalRevenue += remainingPacks * (sampleEv.price || 0);
           }
 
-          evArray.forEach(ev => {
+          const latestBigNote = evArray.map(e => e.bigNote).filter(Boolean).pop() || '';
+
+          evArray.forEach((ev, idx) => {
             const docId = ev.id;
             const closedBadge = ev.isClosed ? '<span class="closed-tag">🚫 已關閉</span>' : '';
             const mName = ev.member || '全體/無';
@@ -303,7 +307,7 @@
               <td><b>${mName}</b></td>
               <td>
                 <div><b>${ev.seller || '未填寫'}</b></div>
-                <div class="sub-info">${ev.note ? '備註: ' + ev.note : '-'}</div>
+                <div class="sub-info">${ev.note ? '單筆: ' + ev.note : '-'}</div>
               </td>
               <td>
                 <span class="tag-qty">${ev.packQty || 0}張/包</span>
@@ -337,9 +341,20 @@
             tr.querySelector('.btn-edit').onclick = () => editEventById(docId);
             tr.querySelector('.btn-danger').onclick = () => deleteEvent(docId);
             tb.appendChild(tr);
+
+            // 樣式 A：最後一筆代拍下方顯示極簡細線備註
+            if (idx === evArray.length - 1 && latestBigNote) {
+              const noteTr = document.createElement('tr');
+              noteTr.innerHTML = `
+                <td colspan="9" style="padding: 2px 0 6px 0; border-bottom: none;">
+                  <div class="minimal-note-box"><b>備註：</b>${latestBigNote}</div>
+                </td>
+              `;
+              tb.appendChild(noteTr);
+            }
           });
 
-          // 美化：三欄式結算卡片
+          // 三欄式結算卡片
           const estProfit = realTotalRevenue - memberTotalCost;
 
           const summaryTr = document.createElement('tr');
@@ -386,12 +401,12 @@
         const member = document.getElementById('evMember').value;
         const seller = document.getElementById('evSeller').value.trim();
         const note = document.getElementById('evNote').value.trim();
+        const bigNote = document.getElementById('evBigNote').value.trim();
         
         const packQty = parseInt(document.getElementById('evPackQty').value) || 0;
         const price = parseFloat(document.getElementById('evPrice').value) || 0;
         const packsCount = parseInt(document.getElementById('evPacksCount').value) || 0;
 
-        // 收集多筆動態折扣
         const discCounts = document.querySelectorAll('.disc-count');
         const discPrices = document.querySelectorAll('.disc-price');
         let discounts = [];
@@ -419,7 +434,7 @@
         const docId = editId ? editId : `${fullName}_${member || 'all'}_${seller || 'default'}_${Date.now()}`;
 
         await setDoc(doc(db, "event_settings", docId), {
-          name: fullName, rawDate: evDate, rawName: evNameRaw, member, seller, note, 
+          name: fullName, rawDate: evDate, rawName: evNameRaw, member, seller, note, bigNote, 
           packQty, price, packsCount, discounts, deposit, balance, cost, actPhoto, actVideo, actQty, isClosed
         });
 
@@ -452,12 +467,12 @@
       document.getElementById('evMember').value = ev.member || '';
       document.getElementById('evSeller').value = ev.seller || '';
       document.getElementById('evNote').value = ev.note || '';
+      document.getElementById('evBigNote').value = ev.bigNote || '';
       
       document.getElementById('evPackQty').value = ev.packQty !== undefined ? ev.packQty : '';
       document.getElementById('evPrice').value = ev.price !== undefined ? ev.price : '';
       document.getElementById('evPacksCount').value = ev.packsCount !== undefined ? ev.packsCount : '';
       
-      // 帶入折扣設定
       discountContainer.innerHTML = '';
       if (ev.discounts && Array.isArray(ev.discounts)) {
         ev.discounts.forEach(d => addDiscountRow(d.count, d.price));
