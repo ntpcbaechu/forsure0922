@@ -13,7 +13,7 @@
     button { background-color: #409eff; color: white; border: none; font-weight: bold; cursor: pointer; }
     .btn-danger { background-color: #f56c6c; color: white; padding: 4px 8px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; }
     .btn-edit { background-color: #e6a23c; color: white; padding: 4px 8px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; margin-right: 4px; }
-    
+
     /* 表單卡片分區美化 */
     .form-section { background: #f8f9fa; border: 1px solid #ebeef5; border-radius: 8px; padding: 12px 15px; margin-bottom: 10px; }
     .form-section-title { font-size: 13px; font-weight: bold; color: #409eff; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; }
@@ -29,20 +29,45 @@
     .divider-line { border-top: 1px dashed #dcdfe6; margin: 3px 0; }
     .closed-tag { background: #f4f4f5; color: #909399; padding: 2px 6px; border-radius: 4px; font-size: 11px; margin-left: 6px; }
 
-    /* 樣式 A：極簡左側細線備註框 */
-    .minimal-note-box { border-left: 3px solid #409eff; padding: 4px 0 4px 10px; font-size: 13px; color: #606266; margin: 4px 0 6px 0; line-height: 1.5; white-space: pre-wrap; }
+    /* 優化 1：極簡備註框 - 標題獨立第一行，內容第二行縮排靠左 */
+    .minimal-note-box { 
+      border-left: 3px solid #409eff; 
+      padding: 6px 12px; 
+      font-size: 13px; 
+      color: #606266; 
+      margin: 6px 0 10px 0; 
+      line-height: 1.6; 
+      background: #f4f4f5;
+      border-radius: 0 6px 6px 0;
+    }
+    .minimal-note-title {
+      font-weight: bold;
+      color: #303133;
+      margin-bottom: 2px;
+    }
+    .minimal-note-content {
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
 
     /* 自動高 textarea 樣式 */
     .auto-textarea { width: 100%; min-height: 70px; resize: none; overflow-y: hidden; line-height: 1.5; }
 
-    /* 結算卡片樣式 */
-    .summary-card { background: #f0f9eb; border: 1px solid #e1f3d8; border-radius: 8px; padding: 14px; font-size: 13px; margin: 6px 0 16px 0; }
+    /* 優化 2：結算卡片樣式 - 移除混淆的底部綠線，加大下方留白拉開活動距離 */
+    .summary-card { 
+      background: #f0f9eb; 
+      border: 1px solid #e1f3d8; 
+      border-radius: 8px; 
+      padding: 14px; 
+      font-size: 13px; 
+      margin: 8px 0 30px 0; 
+    }
     .summary-title { font-weight: bold; color: #67c23a; margin-bottom: 10px; font-size: 14px; }
     .summary-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; border-top: 1px dashed #c0c4cc; padding-top: 10px; }
     .summary-col { display: flex; flex-direction: column; gap: 4px; }
 
-    @media (max-width: 768px) { 
-      .row-5, .row-3 { grid-template-columns: 1fr; } 
+    @media (max-width: 768px) {
+      .row-5, .row-3 { grid-template-columns: 1fr; }
       .summary-grid { grid-template-columns: 1fr; }
     }
   </style>
@@ -52,7 +77,7 @@
   <h3>設定活動單價與利潤分析</h3>
   <form id="eventForm" style="margin-bottom:15px;">
     <input type="hidden" id="editEventId">
-    
+
     <!-- 卡片 1: 基本資料 -->
     <div class="form-section">
       <div class="form-section-title">📝 1. 活動與代拍基本資料</div>
@@ -149,7 +174,7 @@
     const MEMBER_ORDER = ["方燦", "Lee Know", "彰彬", "鉉辰", "HAN", "Felix", "昇玟", "I.N"];
 
     let ordersList = [];
-    let eventsDataMap = {}; 
+    let eventsDataMap = {};
 
     // 自動展延 textarea 高度
     const bigNoteArea = document.getElementById('evBigNote');
@@ -183,7 +208,7 @@
       div.className = 'row-discount';
       div.innerHTML = `
         <span style="font-size:12px; color:#e6a23c; font-weight:bold;">折扣階梯:</span>
-        <input type="number" class="disc-count" placeholder="折扣包數" value="${count}" style="width:110px;"> 包 × 
+        <input type="number" class="disc-count" placeholder="折扣包數" value="${count}" style="width:110px;"> 包 ×
         <input type="number" step="0.1" class="disc-price" placeholder="折扣單價" value="${price}" style="width:110px;"> 元
         <button type="button" class="btn-danger" style="padding:3px 8px;" onclick="this.parentElement.remove()">移除</button>
       `;
@@ -216,10 +241,10 @@
 
         eventsDataMap = {};
         let eventsList = [];
-        snap.forEach(d => { 
+        snap.forEach(d => {
           const data = { id: d.id, ...d.data() };
           eventsList.push(data);
-          eventsDataMap[d.id] = data; 
+          eventsDataMap[d.id] = data;
         });
 
         eventsList.sort((a, b) => {
@@ -269,7 +294,7 @@
           let realTotalRevenue = 0;
           let remainingPacks = totalOrderedPacks;
           const discounts = sampleEv.discounts || [];
-          
+
           let discountTextList = [];
           discounts.forEach(d => {
             const dCount = Math.min(remainingPacks, Number(d.count) || 0);
@@ -292,8 +317,8 @@
 
             const estRevenue = realTotalRevenue;
 
-            const totalCost = (ev.deposit !== undefined || ev.balance !== undefined) 
-              ? ((ev.deposit || 0) + (ev.balance || 0)) 
+            const totalCost = (ev.deposit !== undefined || ev.balance !== undefined)
+              ? ((ev.deposit || 0) + (ev.balance || 0))
               : (ev.cost || 0);
 
             const singleProfit = estRevenue - totalCost;
@@ -301,8 +326,8 @@
 
             const actPhoto = ev.actPhoto || 0;
             const actVideo = ev.actVideo || 0;
-            const totalAct = (ev.actPhoto !== undefined || ev.actVideo !== undefined) 
-              ? (actPhoto + actVideo) 
+            const totalAct = (ev.actPhoto !== undefined || ev.actVideo !== undefined)
+              ? (actPhoto + actVideo)
               : (ev.actQty || 0);
 
             memberTotalCost += totalCost;
@@ -310,8 +335,8 @@
             memberTotalActVideo += actVideo;
             memberTotalActQty += totalAct;
 
-            const discountDisplay = discountTextList.length > 0 
-              ? `<div class="tag-discount">${discountTextList.join(' · ')}</div>` 
+            const discountDisplay = discountTextList.length > 0
+              ? `<div class="tag-discount">${discountTextList.join(' · ')}</div>`
               : '';
 
             const tr = document.createElement('tr');
@@ -355,24 +380,27 @@
             tr.querySelector('.btn-danger').onclick = () => deleteEvent(docId);
             tb.appendChild(tr);
 
-            // 樣式 A：最後一筆代拍下方顯示極簡細線備註
+            // 修改重點 1：最後一筆代拍下方顯示備註，標題獨立第一行，內容第二行縮排
             if (idx === evArray.length - 1 && latestBigNote) {
               const noteTr = document.createElement('tr');
               noteTr.innerHTML = `
                 <td colspan="9" style="padding: 2px 0 6px 0; border-bottom: none;">
-                  <div class="minimal-note-box"><b>備註：</b>${latestBigNote}</div>
+                  <div class="minimal-note-box">
+                    <div class="minimal-note-title">📌 備註：</div>
+                    <div class="minimal-note-content">${latestBigNote}</div>
+                  </div>
                 </td>
               `;
               tb.appendChild(noteTr);
             }
           });
 
-          // 三欄式結算卡片
+          // 修改重點 2：三欄式結算卡片（拿掉底部的綠線 border-bottom，靠 margin-bottom 30px 自然分開活動）
           const estProfit = realTotalRevenue - memberTotalCost;
 
           const summaryTr = document.createElement('tr');
           summaryTr.innerHTML = `
-            <td colspan="9" style="padding: 0; border-bottom: 2px solid #67c23a;">
+            <td colspan="9" style="padding: 0; border-bottom: none;">
               <div class="summary-card">
                 <div class="summary-title">📊 成員活動總結算：${eventName} - <span style="color:#409eff;">${memberName}</span> (${evArray.length} 筆代拍紀錄)${isClosed ? ' [已結團關閉]' : ''}</div>
                 <div class="summary-grid">
@@ -415,7 +443,7 @@
         const seller = document.getElementById('evSeller').value.trim();
         const note = document.getElementById('evNote').value.trim();
         const bigNote = document.getElementById('evBigNote').value.trim();
-        
+
         const packQty = parseInt(document.getElementById('evPackQty').value) || 0;
         const price = parseFloat(document.getElementById('evPrice').value) || 0;
         const packsCount = parseInt(document.getElementById('evPacksCount').value) || 0;
@@ -447,7 +475,7 @@
         const docId = editId ? editId : `${fullName}_${member || 'all'}_${seller || 'default'}_${Date.now()}`;
 
         await setDoc(doc(db, "event_settings", docId), {
-          name: fullName, rawDate: evDate, rawName: evNameRaw, member, seller, note, bigNote, 
+          name: fullName, rawDate: evDate, rawName: evNameRaw, member, seller, note, bigNote,
           packQty, price, packsCount, discounts, deposit, balance, cost, actPhoto, actVideo, actQty, isClosed
         });
 
@@ -483,11 +511,11 @@
       document.getElementById('evNote').value = ev.note || '';
       document.getElementById('evBigNote').value = ev.bigNote || '';
       adjustTextareaHeight(bigNoteArea);
-      
+
       document.getElementById('evPackQty').value = ev.packQty !== undefined ? ev.packQty : '';
       document.getElementById('evPrice').value = ev.price !== undefined ? ev.price : '';
       document.getElementById('evPacksCount').value = ev.packsCount !== undefined ? ev.packsCount : '';
-      
+
       discountContainer.innerHTML = '';
       if (ev.discounts && Array.isArray(ev.discounts)) {
         ev.discounts.forEach(d => addDiscountRow(d.count, d.price));
@@ -501,10 +529,10 @@
       document.getElementById('evActVideo').value = ev.actVideo !== undefined ? ev.actVideo : '';
 
       document.getElementById('evIsClosed').checked = (ev.isClosed === true);
-      
+
       document.getElementById('cancelEditBtn').style.display = 'inline-block';
       document.getElementById('saveEventBtn').textContent = '更新此活動設定';
-      
+
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
