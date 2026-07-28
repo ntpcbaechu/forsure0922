@@ -22,6 +22,18 @@
     .row-3 { grid-template-columns: 1fr 1fr 1fr; }
     .row-discount { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
 
+    /* 方案二新增：活動場次開頭標籤列 (區分活動起點) */
+    .event-group-header {
+      background: #eef5fe;
+      border-left: 4px solid #409eff;
+      color: #2c3e50;
+      font-size: 14px;
+      font-weight: bold;
+      padding: 10px 12px;
+      margin-top: 25px;
+      border-radius: 0 6px 6px 0;
+    }
+
     /* 美化標籤與表格文字 */
     .tag-qty { background: #f4f4f5; color: #909399; padding: 1px 5px; border-radius: 4px; font-size: 11px; display: inline-block; margin-bottom: 2px; }
     .tag-discount { background: #fdf6ec; color: #e6a23c; border: 1px solid #faebd7; padding: 1px 5px; border-radius: 4px; font-size: 11px; display: inline-block; }
@@ -29,38 +41,32 @@
     .divider-line { border-top: 1px dashed #dcdfe6; margin: 3px 0; }
     .closed-tag { background: #f4f4f5; color: #909399; padding: 2px 6px; border-radius: 4px; font-size: 11px; margin-left: 6px; }
 
-    /* 優化 1：極簡備註框 - 標題獨立第一行，內容第二行縮排靠左 */
+    /* 備註框：標題第一行，內容第二行縮排 */
     .minimal-note-box { 
-      border-left: 3px solid #409eff; 
+      border-left: 3px solid #e6a23c; 
       padding: 6px 12px; 
       font-size: 13px; 
       color: #606266; 
-      margin: 6px 0 10px 0; 
+      margin: 6px 0 12px 0; 
       line-height: 1.6; 
-      background: #f4f4f5;
+      background: #fdf6ec;
       border-radius: 0 6px 6px 0;
     }
-    .minimal-note-title {
-      font-weight: bold;
-      color: #303133;
-      margin-bottom: 2px;
-    }
-    .minimal-note-content {
-      white-space: pre-wrap;
-      word-break: break-all;
-    }
+    .minimal-note-title { font-weight: bold; color: #e6a23c; margin-bottom: 2px; }
+    .minimal-note-content { white-space: pre-wrap; word-break: break-all; }
 
     /* 自動高 textarea 樣式 */
     .auto-textarea { width: 100%; min-height: 70px; resize: none; overflow-y: hidden; line-height: 1.5; }
 
-    /* 優化 2：結算卡片樣式 - 移除混淆的底部綠線，加大下方留白拉開活動距離 */
+    /* 結算卡片：移除混淆底部綠線，拉大下留白 (50px) 區隔下一場 */
     .summary-card { 
       background: #f0f9eb; 
       border: 1px solid #e1f3d8; 
       border-radius: 8px; 
       padding: 14px; 
       font-size: 13px; 
-      margin: 8px 0 30px 0; 
+      margin: 8px 0 50px 0; 
+      box-shadow: 0 2px 8px rgba(0,0,0,0.02);
     }
     .summary-title { font-weight: bold; color: #67c23a; margin-bottom: 10px; font-size: 14px; }
     .summary-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; border-top: 1px dashed #c0c4cc; padding-top: 10px; }
@@ -176,7 +182,6 @@
     let ordersList = [];
     let eventsDataMap = {};
 
-    // 自動展延 textarea 高度
     const bigNoteArea = document.getElementById('evBigNote');
     function adjustTextareaHeight(el) {
       el.style.height = 'auto';
@@ -275,6 +280,17 @@
           const eventName = evArray[0].name;
           const memberName = evArray[0].member || '全體/無';
           const isClosed = evArray.some(e => e.isClosed);
+
+          // 1. 在活動起點插入「活動場次標籤 Header」
+          const headerTr = document.createElement('tr');
+          headerTr.innerHTML = `
+            <td colspan="9" style="padding:0; border-bottom:none;">
+              <div class="event-group-header">
+                🗓️ 活動場次：${eventName} - <span style="color:#409eff;">${memberName}</span> (${evArray.length} 筆代拍紀錄)
+              </div>
+            </td>
+          `;
+          tb.appendChild(headerTr);
 
           const sampleEv = evArray[0];
           const matchedOrders = ordersList.filter(o => {
@@ -380,7 +396,7 @@
             tr.querySelector('.btn-danger').onclick = () => deleteEvent(docId);
             tb.appendChild(tr);
 
-            // 修改重點 1：最後一筆代拍下方顯示備註，標題獨立第一行，內容第二行縮排
+            // 2. 備註對齊調整：第一行獨立標題，第二行內容換行
             if (idx === evArray.length - 1 && latestBigNote) {
               const noteTr = document.createElement('tr');
               noteTr.innerHTML = `
@@ -395,7 +411,7 @@
             }
           });
 
-          // 修改重點 2：三欄式結算卡片（拿掉底部的綠線 border-bottom，靠 margin-bottom 30px 自然分開活動）
+          // 3. 結算卡片（綠框）：移除底部綠線，加大 margin-bottom 留白 50px
           const estProfit = realTotalRevenue - memberTotalCost;
 
           const summaryTr = document.createElement('tr');
