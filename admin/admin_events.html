@@ -8,7 +8,8 @@
     table { width: 100%; border-collapse: collapse; margin-top: 15px; }
     th, td { padding: 10px 8px; border-bottom: 1px solid #e4e7ed; text-align: left; font-size: 13px; vertical-align: top; }
     th { background: #f8f9fa; color: #606266; font-weight: bold; white-space: nowrap; }
-    input, select, button, textarea { padding: 8px 10px; border: 1px solid #dcdfe6; border-radius: 6px; font-size: 13px; box-sizing: border-box; }
+    input, select, button, textarea { padding: 8px 10px; border: 1px solid #dcdfe6; border-radius: 6px; font-size: 13px; box-sizing: border-box; transition: border-color 0.2s; }
+    input:focus, select:focus, textarea:focus { border-color: #409eff; outline: none; }
     button { background-color: #409eff; color: white; border: none; font-weight: bold; cursor: pointer; }
     .btn-danger { background-color: #f56c6c; color: white; padding: 4px 8px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; }
     .btn-edit { background-color: #e6a23c; color: white; padding: 4px 8px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; margin-right: 4px; }
@@ -30,6 +31,9 @@
 
     /* 樣式 A：極簡左側細線備註框 */
     .minimal-note-box { border-left: 3px solid #409eff; padding: 4px 0 4px 10px; font-size: 13px; color: #606266; margin: 4px 0 6px 0; line-height: 1.5; white-space: pre-wrap; }
+
+    /* 自動高 textarea 樣式 */
+    .auto-textarea { width: 100%; min-height: 70px; resize: none; overflow-y: hidden; line-height: 1.5; }
 
     /* 結算卡片樣式 */
     .summary-card { background: #f0f9eb; border: 1px solid #e1f3d8; border-radius: 8px; padding: 14px; font-size: 13px; margin: 6px 0 16px 0; }
@@ -66,7 +70,7 @@
       </div>
       <div>
         <label style="font-size:12px;">備註 / 特別注意事項</label>
-        <textarea id="evBigNote" rows="2" placeholder="在此輸入備註 (換行點 Enter)..." style="width:100%; resize:vertical;"></textarea>
+        <textarea id="evBigNote" class="auto-textarea" placeholder="在此輸入備註 (打字或換行時框框會自動向下展延)..."></textarea>
       </div>
     </div>
 
@@ -146,6 +150,15 @@
 
     let ordersList = [];
     let eventsDataMap = {}; 
+
+    // 自動展延 textarea 高度
+    const bigNoteArea = document.getElementById('evBigNote');
+    function adjustTextareaHeight(el) {
+      el.style.height = 'auto';
+      el.style.height = (el.scrollHeight < 70 ? 70 : el.scrollHeight + 4) + 'px';
+      notifyHeight();
+    }
+    bigNoteArea.addEventListener('input', () => adjustTextareaHeight(bigNoteArea));
 
     const depositEl = document.getElementById('evDeposit');
     const balanceEl = document.getElementById('evBalance');
@@ -455,6 +468,7 @@
       document.getElementById('evIsClosed').checked = false;
       document.getElementById('cancelEditBtn').style.display = 'none';
       document.getElementById('saveEventBtn').textContent = '儲存活動設定';
+      adjustTextareaHeight(bigNoteArea);
     };
 
     function editEventById(docId) {
@@ -468,6 +482,7 @@
       document.getElementById('evSeller').value = ev.seller || '';
       document.getElementById('evNote').value = ev.note || '';
       document.getElementById('evBigNote').value = ev.bigNote || '';
+      adjustTextareaHeight(bigNoteArea);
       
       document.getElementById('evPackQty').value = ev.packQty !== undefined ? ev.packQty : '';
       document.getElementById('evPrice').value = ev.price !== undefined ? ev.price : '';
