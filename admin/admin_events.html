@@ -40,7 +40,6 @@
       <div><label style="font-size:12px;">備註</label><input type="text" id="evNote" placeholder="備註說明..." style="width:100%;"></div>
     </div>
 
-    <!-- 1 & 4. 拆分每包資訊與購入價 (訂金/尾款/總價) -->
     <div class="form-row-mid">
       <div><label style="font-size:12px;">每包數量(張)</label><input type="number" id="evPackQty" placeholder="張數" style="width:100%;"></div>
       <div><label style="font-size:12px;">每包價格 ($)</label><input type="number" step="0.1" min="0" id="evPrice" placeholder="單價" style="width:100%;"></div>
@@ -51,7 +50,6 @@
       <div><label style="font-size:12px;">購入總金額 ($)</label><input type="number" id="evCost" placeholder="自動計算" style="width:100%;"></div>
     </div>
 
-    <!-- 2. 拆分實際收到張數 (照片/影片) -->
     <div class="form-row-bottom">
       <div><label style="font-size:12px;">收到照片(張)</label><input type="number" id="evActPhoto" placeholder="照片張數" style="width:100%;"></div>
       <div><label style="font-size:12px;">收到影片(檔/張)</label><input type="number" id="evActVideo" placeholder="影片張數" style="width:100%;"></div>
@@ -73,10 +71,10 @@
         <th>代拍名稱</th>
         <th>備註</th>
         <th>每包(張/價格/拆包)</th>
-        <th>已登記包數</th>
-        <th>預估銷售額</th>
-        <th>購入價 (訂金/尾款/總價)</th>
-        <th>實際收到 (照片/影片/總數)</th>
+        <th>已登記(張/包)</th>
+        <th>預估銷售與利潤</th>
+        <th>購入價 (訂/尾/總)</th>
+        <th>實際收到 (照/影/總)</th>
         <th>操作</th>
       </tr>
     </thead>
@@ -102,13 +100,11 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    // 5. 成員固定排序
     const MEMBER_ORDER = ["方燦", "Lee Know", "彰彬", "鉉辰", "HAN", "Felix", "昇玟", "I.N"];
 
     let ordersList = [];
     let eventsDataMap = {}; 
 
-    // 自動計算：輸入訂金或尾款時自動加總購入總金額
     const depositEl = document.getElementById('evDeposit');
     const balanceEl = document.getElementById('evBalance');
     const costEl = document.getElementById('evCost');
@@ -154,7 +150,6 @@
           eventsDataMap[d.id] = data; 
         });
 
-        // 5. 先比日期名稱，同活動按照固定成員順序排序
         eventsList.sort((a, b) => {
           const nameA = a.rawDate || a.name;
           const nameB = b.rawDate || b.name;
@@ -165,7 +160,6 @@
           return (idxA === -1 ? 99 : idxA) - (idxB === -1 ? 99 : idxB);
         });
 
-        // 依照 [活動+成員] 進行歸類分組
         const groupedEvents = {};
         eventsList.forEach(ev => {
           const mName = ev.member || '全體/無';
@@ -181,6 +175,7 @@
           let memberTotalActPhoto = 0;
           let memberTotalActVideo = 0;
           let memberTotalActQty = 0;
+          let memberTotalOrderedPacks = 0;
           let unitPrice = 0;
           const eventName = evArray[0].name;
           const memberName = evArray[0].member || '全體/無';
@@ -197,17 +192,24 @@
               return matchEvent && matchMember;
             });
 
-            const totalOrderedPacks = matchedOrders.reduce((sum, o) => {
+            // 1. 下單統計金額修正：將 orders 的數字視為「登記張數」
+            const totalOrderedCards = matchedOrders.reduce((sum, o) => {
               const qty = Number(o.qty !== undefined ? o.qty : (o.quantity !== undefined ? o.quantity : o.count)) || 0;
               return sum + qty;
             }, 0);
 
+            // 若有填每包張數(packQty)，計算包數 = 張數 / 每包張數，否則預設為 1
+            const packSize = ev.packQty && ev.packQty > 0 ? ev.packQty : 1;
+            const totalOrderedPacks = totalOrderedCards / packSize;
             const estRevenue = totalOrderedPacks * (ev.price || 0);
 
-            // 舊資料兼容邏輯：如果有新欄位就用新的，沒有就吃原本舊欄位
             const totalCost = (ev.deposit !== undefined || ev.balance !== undefined) 
               ? ((ev.deposit || 0) + (ev.balance || 0)) 
               : (ev.cost || 0);
+
+            // 2. 單筆預估利潤計算
+            const singleProfit = estRevenue - totalCost;
+            const profitColor = singleProfit >= 0 ? '#67c23a' : '#f56c6c';
 
             const actPhoto = ev.actPhoto || 0;
             const actVideo = ev.actVideo || 0;
@@ -219,6 +221,7 @@
             memberTotalActPhoto += actPhoto;
             memberTotalActVideo += actVideo;
             memberTotalActQty += totalAct;
+            memberTotalOrderedPacks += totalOrderedPacks;
             unitPrice = ev.price || 0;
 
             const tr = document.createElement('tr');
@@ -228,8 +231,11 @@
               <td>${ev.seller || '未填寫'}</td>
               <td>${ev.note || '-'}</td>
               <td>${ev.packQty || 0}張 / $${ev.price || 0} / ${ev.packsCount || 0}包</td>
-              <td><b>${totalOrderedPacks} 包</b></td>
-              <td><b style="color:#409eff;">$${estRevenue}</b></td>
+              <td><b>${totalOrderedCards} 張</b> <span style="font-size:11px; color:#666;">(${totalOrderedPacks}包)</span></td>
+              <td>
+                <div>銷售: <b style="color:#409eff;">$${estRevenue.toFixed(1).replace(/\.0$/, '')}</b></div>
+                <div>利潤: <b style="color:${profitColor};">$${singleProfit.toFixed(1).replace(/\.0$/, '')}</b></div>
+              </td>
               <td>訂:$${ev.deposit || 0} / 尾:$${ev.balance || 0} / <b>總:$${totalCost}</b></td>
               <td>照:${actPhoto} / 影:${actVideo} / <b>總:${totalAct}張</b></td>
               <td>
@@ -243,19 +249,8 @@
             tb.appendChild(tr);
           });
 
-          // 3. 活動結算塞在該活動成員的下方
-          const actOrders = ordersList.filter(o => {
-            const matchEv = (o.event === eventName || o.fullEvent === eventName || o.rawName === eventName);
-            const matchMem = memberName === '全體/無' ? true : (o.member === memberName);
-            return matchEv && matchMem;
-          });
-
-          const realPacks = actOrders.reduce((sum, o) => {
-            const qty = Number(o.qty !== undefined ? o.qty : (o.quantity !== undefined ? o.quantity : o.count)) || 0;
-            return sum + qty;
-          }, 0);
-
-          const realTotalRevenue = realPacks * unitPrice;
+          // 成員活動總結算卡片
+          const realTotalRevenue = memberTotalOrderedPacks * unitPrice;
           const estProfit = realTotalRevenue - memberTotalCost;
 
           const summaryTr = document.createElement('tr');
@@ -265,10 +260,10 @@
                 <div class="summary-title">📊 成員活動總結算：${eventName} - <span style="color:#409eff;">${memberName}</span> (${evArray.length} 筆代拍紀錄)${isClosed ? ' [已結團關閉]' : ''}</div>
                 <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap:10px;">
                   <div>總購入成本：<b>$${memberTotalCost}</b></div>
-                  <div>總登記售出：<b>${realPacks} 包</b></div>
+                  <div>總登記售出：<b>${memberTotalOrderedPacks.toFixed(1).replace(/\.0$/, '')} 包</b></div>
                   <div>收到照片/影片：<b>${memberTotalActPhoto}照 / ${memberTotalActVideo}影 (共${memberTotalActQty}張)</b></div>
-                  <div>預估總銷售額：<b>$${realTotalRevenue}</b></div>
-                  <div>🔥 預估全團總利潤：<b style="color:${estProfit >= 0 ? '#67c23a' : '#f56c6c'};">$${estProfit}</b></div>
+                  <div>預估總銷售額：<b>$${realTotalRevenue.toFixed(1).replace(/\.0$/, '')}</b></div>
+                  <div>🔥 預估全團總利潤：<b style="color:${estProfit >= 0 ? '#67c23a' : '#f56c6c'};">$${estProfit.toFixed(1).replace(/\.0$/, '')}</b></div>
                 </div>
               </div>
             </td>
