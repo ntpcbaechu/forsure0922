@@ -13,11 +13,12 @@
     .btn-danger { background-color: #f56c6c; color: white; padding: 4px 8px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; }
     .btn-edit { background-color: #e6a23c; color: white; padding: 4px 8px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; margin-right: 4px; }
     .form-row-top { display: grid; grid-template-columns: 1fr 1.5fr 1.5fr 1.5fr 1.5fr; gap: 10px; margin-bottom: 10px; }
-    .form-row-bottom { display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 10px; margin-bottom: 10px; align-items: center; }
-    .summary-card { background: #f0f9eb; border: 1px solid #e1f3d8; border-radius: 8px; padding: 15px; margin-top: 20px; font-size: 14px; }
-    .summary-title { font-weight: bold; color: #67c23a; margin-bottom: 8px; font-size: 15px; }
+    .form-row-mid { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+    .form-row-bottom { display: grid; grid-template-columns: 1fr 1fr auto; gap: 10px; margin-bottom: 10px; align-items: center; }
+    .summary-card { background: #f0f9eb; border: 1px solid #e1f3d8; border-radius: 8px; padding: 12px; font-size: 13px; margin: 5px 0 15px 0; }
+    .summary-title { font-weight: bold; color: #67c23a; margin-bottom: 8px; font-size: 14px; }
     .closed-tag { background: #f4f4f5; color: #909399; padding: 2px 6px; border-radius: 4px; font-size: 11px; margin-left: 6px; }
-    @media (max-width: 768px) { .form-row-top, .form-row-bottom { grid-template-columns: 1fr; } }
+    @media (max-width: 768px) { .form-row-top, .form-row-mid, .form-row-bottom { grid-template-columns: 1fr; } }
   </style>
 </head>
 <body>
@@ -39,10 +40,21 @@
       <div><label style="font-size:12px;">備註</label><input type="text" id="evNote" placeholder="備註說明..." style="width:100%;"></div>
     </div>
 
+    <!-- 1 & 4. 拆分每包資訊與購入價 (訂金/尾款/總價) -->
+    <div class="form-row-mid">
+      <div><label style="font-size:12px;">每包數量(張)</label><input type="number" id="evPackQty" placeholder="張數" style="width:100%;"></div>
+      <div><label style="font-size:12px;">每包價格 ($)</label><input type="number" step="0.1" min="0" id="evPrice" placeholder="單價" style="width:100%;"></div>
+      <div><label style="font-size:12px;">拆包數</label><input type="number" id="evPacksCount" placeholder="包數" style="width:100%;"></div>
+      
+      <div><label style="font-size:12px;">購入訂金 ($)</label><input type="number" id="evDeposit" placeholder="訂金" style="width:100%;"></div>
+      <div><label style="font-size:12px;">購入尾款 ($)</label><input type="number" id="evBalance" placeholder="尾款" style="width:100%;"></div>
+      <div><label style="font-size:12px;">購入總金額 ($)</label><input type="number" id="evCost" placeholder="自動計算" style="width:100%;"></div>
+    </div>
+
+    <!-- 2. 拆分實際收到張數 (照片/影片) -->
     <div class="form-row-bottom">
-      <div><label style="font-size:12px;">售出單價/包 ($)</label><input type="number" step="0.1" min="0" id="evPrice" placeholder="販售單價" style="width:100%;"></div>
-      <div><label style="font-size:12px;">總購入價 ($)</label><input type="number" id="evCost" placeholder="總購入成本" style="width:100%;"></div>
-      <div><label style="font-size:12px;">實際收到張數</label><input type="number" id="evActQty" placeholder="收到後填寫" style="width:100%;"></div>
+      <div><label style="font-size:12px;">收到照片(張)</label><input type="number" id="evActPhoto" placeholder="照片張數" style="width:100%;"></div>
+      <div><label style="font-size:12px;">收到影片(檔/張)</label><input type="number" id="evActVideo" placeholder="影片張數" style="width:100%;"></div>
       <div style="display:flex; align-items:center; gap:6px; margin-top:10px;">
         <input type="checkbox" id="evIsClosed" style="width:auto; margin:0;">
         <label for="evIsClosed" style="font-size:13px; font-weight:bold; color:#f56c6c; cursor:pointer;">關閉/結團 (隱藏選單)</label>
@@ -60,11 +72,11 @@
         <th>成員</th>
         <th>代拍名稱</th>
         <th>備註</th>
-        <th>售價 (每包)</th>
+        <th>每包(張/價格/拆包)</th>
         <th>已登記包數</th>
         <th>預估銷售額</th>
-        <th>購入價</th>
-        <th>實際收到張數</th>
+        <th>購入價 (訂金/尾款/總價)</th>
+        <th>實際收到 (照片/影片/總數)</th>
         <th>操作</th>
       </tr>
     </thead>
@@ -90,8 +102,25 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
+    // 5. 成員固定排序
+    const MEMBER_ORDER = ["方燦", "Lee Know", "彰彬", "鉉辰", "HAN", "Felix", "昇玟", "I.N"];
+
     let ordersList = [];
     let eventsDataMap = {}; 
+
+    // 自動計算：輸入訂金或尾款時自動加總購入總金額
+    const depositEl = document.getElementById('evDeposit');
+    const balanceEl = document.getElementById('evBalance');
+    const costEl = document.getElementById('evCost');
+    function calcTotalCost() {
+      const dep = Number(depositEl.value) || 0;
+      const bal = Number(balanceEl.value) || 0;
+      if (depositEl.value !== '' || balanceEl.value !== '') {
+        costEl.value = dep + bal;
+      }
+    }
+    depositEl.addEventListener('input', calcTotalCost);
+    balanceEl.addEventListener('input', calcTotalCost);
 
     document.addEventListener('DOMContentLoaded', () => {
       fetch('../json/members.json').then(res => res.json()).then(members => {
@@ -115,9 +144,7 @@
     function loadEvents() {
       onSnapshot(collection(db, "event_settings"), snap => {
         const tb = document.getElementById('eventTable');
-        const summaryBox = document.getElementById('eventSummaryBox');
         tb.innerHTML = '';
-        summaryBox.innerHTML = '';
 
         eventsDataMap = {};
         let eventsList = [];
@@ -127,70 +154,99 @@
           eventsDataMap[d.id] = data; 
         });
 
-        eventsList.sort((a, b) => (a.rawDate || a.name).localeCompare(b.rawDate || b.name));
+        // 5. 先比日期名稱，同活動按照固定成員順序排序
+        eventsList.sort((a, b) => {
+          const nameA = a.rawDate || a.name;
+          const nameB = b.rawDate || b.name;
+          if (nameA !== nameB) return nameA.localeCompare(nameB);
 
-        const memberGroups = {};
-
-        eventsList.forEach(ev => {
-          const docId = ev.id;
-          const closedBadge = ev.isClosed ? '<span class="closed-tag">🚫 已關閉</span>' : '';
-          const mName = ev.member || '全體/無';
-
-          const matchedOrders = ordersList.filter(o => {
-            const matchEvent = (o.event === ev.name || o.event === ev.rawName || o.fullEvent === ev.name);
-            const matchMember = !ev.member || o.member === ev.member;
-            return matchEvent && matchMember;
-          });
-          const totalOrderedPacks = matchedOrders.reduce((sum, o) => {
-            const qty = Number(o.qty !== undefined ? o.qty : (o.quantity !== undefined ? o.quantity : o.count)) || 0;
-            return sum + qty;
-          }, 0);
-
-          const estRevenue = totalOrderedPacks * (ev.price || 0);
-
-          const tr = document.createElement('tr');
-          tr.innerHTML = `
-            <td><b>${ev.name}</b>${closedBadge}</td>
-            <td><b>${mName}</b></td>
-            <td>${ev.seller || '未填寫'}</td>
-            <td>${ev.note || '-'}</td>
-            <td>$${ev.price || 0}/包</td>
-            <td><b>${totalOrderedPacks} 包</b></td>
-            <td><b style="color:#409eff;">$${estRevenue}</b></td>
-            <td>$${ev.cost || 0}</td>
-            <td>${ev.actQty || 0} 張</td>
-            <td>
-              <button class="btn-edit" data-id="${docId}">編輯</button>
-              <button class="btn-danger" data-id="${docId}">刪除</button>
-            </td>
-          `;
-
-          tr.querySelector('.btn-edit').onclick = () => editEventById(docId);
-          tr.querySelector('.btn-danger').onclick = () => deleteEvent(docId);
-
-          tb.appendChild(tr);
-
-          const groupKey = `${ev.name}__${mName}`;
-          if (!memberGroups[groupKey]) {
-            memberGroups[groupKey] = { 
-              eventName: ev.name,
-              member: mName,
-              unitPrice: ev.price || 0,
-              totalCost: 0, 
-              totalActQty: 0, 
-              count: 0, 
-              isClosed: ev.isClosed 
-            };
-          }
-          memberGroups[groupKey].totalCost += (ev.cost || 0);
-          memberGroups[groupKey].totalActQty += (ev.actQty || 0);
-          memberGroups[groupKey].count += 1;
+          const idxA = MEMBER_ORDER.indexOf(a.member);
+          const idxB = MEMBER_ORDER.indexOf(b.member);
+          return (idxA === -1 ? 99 : idxA) - (idxB === -1 ? 99 : idxB);
         });
 
-        for (const [groupKey, g] of Object.entries(memberGroups)) {
+        // 依照 [活動+成員] 進行歸類分組
+        const groupedEvents = {};
+        eventsList.forEach(ev => {
+          const mName = ev.member || '全體/無';
+          const groupKey = `${ev.name}__${mName}`;
+          if (!groupedEvents[groupKey]) {
+            groupedEvents[groupKey] = [];
+          }
+          groupedEvents[groupKey].push(ev);
+        });
+
+        for (const [groupKey, evArray] of Object.entries(groupedEvents)) {
+          let memberTotalCost = 0;
+          let memberTotalActPhoto = 0;
+          let memberTotalActVideo = 0;
+          let memberTotalActQty = 0;
+          let unitPrice = 0;
+          const eventName = evArray[0].name;
+          const memberName = evArray[0].member || '全體/無';
+          const isClosed = evArray.some(e => e.isClosed);
+
+          evArray.forEach(ev => {
+            const docId = ev.id;
+            const closedBadge = ev.isClosed ? '<span class="closed-tag">🚫 已關閉</span>' : '';
+            const mName = ev.member || '全體/無';
+
+            const matchedOrders = ordersList.filter(o => {
+              const matchEvent = (o.event === ev.name || o.event === ev.rawName || o.fullEvent === ev.name);
+              const matchMember = !ev.member || o.member === ev.member;
+              return matchEvent && matchMember;
+            });
+
+            const totalOrderedPacks = matchedOrders.reduce((sum, o) => {
+              const qty = Number(o.qty !== undefined ? o.qty : (o.quantity !== undefined ? o.quantity : o.count)) || 0;
+              return sum + qty;
+            }, 0);
+
+            const estRevenue = totalOrderedPacks * (ev.price || 0);
+
+            // 舊資料兼容邏輯：如果有新欄位就用新的，沒有就吃原本舊欄位
+            const totalCost = (ev.deposit !== undefined || ev.balance !== undefined) 
+              ? ((ev.deposit || 0) + (ev.balance || 0)) 
+              : (ev.cost || 0);
+
+            const actPhoto = ev.actPhoto || 0;
+            const actVideo = ev.actVideo || 0;
+            const totalAct = (ev.actPhoto !== undefined || ev.actVideo !== undefined) 
+              ? (actPhoto + actVideo) 
+              : (ev.actQty || 0);
+
+            memberTotalCost += totalCost;
+            memberTotalActPhoto += actPhoto;
+            memberTotalActVideo += actVideo;
+            memberTotalActQty += totalAct;
+            unitPrice = ev.price || 0;
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+              <td><b>${ev.name}</b>${closedBadge}</td>
+              <td><b>${mName}</b></td>
+              <td>${ev.seller || '未填寫'}</td>
+              <td>${ev.note || '-'}</td>
+              <td>${ev.packQty || 0}張 / $${ev.price || 0} / ${ev.packsCount || 0}包</td>
+              <td><b>${totalOrderedPacks} 包</b></td>
+              <td><b style="color:#409eff;">$${estRevenue}</b></td>
+              <td>訂:$${ev.deposit || 0} / 尾:$${ev.balance || 0} / <b>總:$${totalCost}</b></td>
+              <td>照:${actPhoto} / 影:${actVideo} / <b>總:${totalAct}張</b></td>
+              <td>
+                <button class="btn-edit" data-id="${docId}">編輯</button>
+                <button class="btn-danger" data-id="${docId}">刪除</button>
+              </td>
+            `;
+
+            tr.querySelector('.btn-edit').onclick = () => editEventById(docId);
+            tr.querySelector('.btn-danger').onclick = () => deleteEvent(docId);
+            tb.appendChild(tr);
+          });
+
+          // 3. 活動結算塞在該活動成員的下方
           const actOrders = ordersList.filter(o => {
-            const matchEv = (o.event === g.eventName || o.fullEvent === g.eventName || o.rawName === g.eventName);
-            const matchMem = g.member === '全體/無' ? true : (o.member === g.member);
+            const matchEv = (o.event === eventName || o.fullEvent === eventName || o.rawName === eventName);
+            const matchMem = memberName === '全體/無' ? true : (o.member === memberName);
             return matchEv && matchMem;
           });
 
@@ -199,22 +255,27 @@
             return sum + qty;
           }, 0);
 
-          const realTotalRevenue = realPacks * g.unitPrice;
-          const estProfit = realTotalRevenue - g.totalCost;
+          const realTotalRevenue = realPacks * unitPrice;
+          const estProfit = realTotalRevenue - memberTotalCost;
 
-          summaryBox.innerHTML += `
-            <div class="summary-card">
-              <div class="summary-title">📊 成員活動總結算：${g.eventName} - <span style="color:#409eff;">${g.member}</span> (${g.count} 筆代拍紀錄)${g.isClosed ? ' [已結團關閉]' : ''}</div>
-              <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap:10px;">
-                <div>總購入成本：<b>$${g.totalCost}</b></div>
-                <div>總登記售出：<b>${realPacks} 包</b></div>
-                <div>實際收到圖檔：<b>${g.totalActQty} 張</b></div>
-                <div>預估總銷售額：<b>$${realTotalRevenue}</b></div>
-                <div>🔥 預估全團總利潤：<b style="color:${estProfit >= 0 ? '#67c23a' : '#f56c6c'};">$${estProfit}</b></div>
+          const summaryTr = document.createElement('tr');
+          summaryTr.innerHTML = `
+            <td colspan="10" style="padding: 0; border-bottom: 2px solid #67c23a;">
+              <div class="summary-card">
+                <div class="summary-title">📊 成員活動總結算：${eventName} - <span style="color:#409eff;">${memberName}</span> (${evArray.length} 筆代拍紀錄)${isClosed ? ' [已結團關閉]' : ''}</div>
+                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap:10px;">
+                  <div>總購入成本：<b>$${memberTotalCost}</b></div>
+                  <div>總登記售出：<b>${realPacks} 包</b></div>
+                  <div>收到照片/影片：<b>${memberTotalActPhoto}照 / ${memberTotalActVideo}影 (共${memberTotalActQty}張)</b></div>
+                  <div>預估總銷售額：<b>$${realTotalRevenue}</b></div>
+                  <div>🔥 預估全團總利潤：<b style="color:${estProfit >= 0 ? '#67c23a' : '#f56c6c'};">$${estProfit}</b></div>
+                </div>
               </div>
-            </div>
+            </td>
           `;
+          tb.appendChild(summaryTr);
         }
+
         notifyHeight();
       });
     }
@@ -231,19 +292,29 @@
         const member = document.getElementById('evMember').value;
         const seller = document.getElementById('evSeller').value.trim();
         const note = document.getElementById('evNote').value.trim();
+        
+        const packQty = parseInt(document.getElementById('evPackQty').value) || 0;
         const price = parseFloat(document.getElementById('evPrice').value) || 0;
-        const cost = parseFloat(document.getElementById('evCost').value) || 0;
-        const actQty = parseInt(document.getElementById('evActQty').value) || 0;
+        const packsCount = parseInt(document.getElementById('evPacksCount').value) || 0;
+
+        const deposit = parseFloat(document.getElementById('evDeposit').value) || 0;
+        const balance = parseFloat(document.getElementById('evBalance').value) || 0;
+        const inputCost = parseFloat(document.getElementById('evCost').value);
+        const cost = !isNaN(inputCost) ? inputCost : (deposit + balance);
+
+        const actPhoto = parseInt(document.getElementById('evActPhoto').value) || 0;
+        const actVideo = parseInt(document.getElementById('evActVideo').value) || 0;
+        const actQty = actPhoto + actVideo;
+
         const isClosed = document.getElementById('evIsClosed').checked;
 
         const fullName = evDate ? `${evDate} ${evNameRaw}` : evNameRaw;
-        
         const editId = document.getElementById('editEventId').value;
         const docId = editId ? editId : `${fullName}_${member || 'all'}_${seller || 'default'}_${Date.now()}`;
 
-        // 🔥 關鍵修正：去掉多餘的 doc()
         await setDoc(doc(db, "event_settings", docId), {
-          name: fullName, rawDate: evDate, rawName: evNameRaw, member, seller, note, price, cost, actQty, isClosed
+          name: fullName, rawDate: evDate, rawName: evNameRaw, member, seller, note, 
+          packQty, price, packsCount, deposit, balance, cost, actPhoto, actVideo, actQty, isClosed
         });
 
         alert('✅ 活動設定與金額張數已成功更新！');
@@ -274,9 +345,18 @@
       document.getElementById('evMember').value = ev.member || '';
       document.getElementById('evSeller').value = ev.seller || '';
       document.getElementById('evNote').value = ev.note || '';
+      
+      document.getElementById('evPackQty').value = ev.packQty !== undefined ? ev.packQty : '';
       document.getElementById('evPrice').value = ev.price !== undefined ? ev.price : '';
+      document.getElementById('evPacksCount').value = ev.packsCount !== undefined ? ev.packsCount : '';
+      
+      document.getElementById('evDeposit').value = ev.deposit !== undefined ? ev.deposit : '';
+      document.getElementById('evBalance').value = ev.balance !== undefined ? ev.balance : '';
       document.getElementById('evCost').value = ev.cost !== undefined ? ev.cost : '';
-      document.getElementById('evActQty').value = ev.actQty !== undefined ? ev.actQty : '';
+
+      document.getElementById('evActPhoto').value = ev.actPhoto !== undefined ? ev.actPhoto : '';
+      document.getElementById('evActVideo').value = ev.actVideo !== undefined ? ev.actVideo : '';
+
       document.getElementById('evIsClosed').checked = (ev.isClosed === true);
       
       document.getElementById('cancelEditBtn').style.display = 'inline-block';
