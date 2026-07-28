@@ -5,31 +5,37 @@
   <title>活動單價與成本設定</title>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 0; margin: 0; background: #fff; color: #333; }
-    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 15px; }
     th, td { padding: 10px 8px; border-bottom: 1px solid #e4e7ed; text-align: left; font-size: 13px; vertical-align: top; }
     th { background: #f8f9fa; color: #606266; font-weight: bold; white-space: nowrap; }
-    input, select, button { padding: 8px 10px; border: 1px solid #dcdfe6; border-radius: 6px; font-size: 14px; margin-bottom: 10px; box-sizing: border-box; }
+    input, select, button { padding: 8px 10px; border: 1px solid #dcdfe6; border-radius: 6px; font-size: 13px; box-sizing: border-box; }
     button { background-color: #409eff; color: white; border: none; font-weight: bold; cursor: pointer; }
     .btn-danger { background-color: #f56c6c; color: white; padding: 4px 8px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; }
     .btn-edit { background-color: #e6a23c; color: white; padding: 4px 8px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; margin-right: 4px; }
-    .form-row-top { display: grid; grid-template-columns: 1fr 1.5fr 1.5fr 1.5fr 1.5fr; gap: 10px; margin-bottom: 10px; }
-    .form-row-mid { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr; gap: 10px; margin-bottom: 10px; }
-    .form-row-bottom { display: grid; grid-template-columns: 1fr 1fr auto; gap: 10px; margin-bottom: 10px; align-items: center; }
     
-    /* 美化專用小標籤與樣式 */
+    /* 表單卡片分區美化 */
+    .form-section { background: #f8f9fa; border: 1px solid #ebeef5; border-radius: 8px; padding: 12px 15px; margin-bottom: 10px; }
+    .form-section-title { font-size: 13px; font-weight: bold; color: #409eff; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; }
+    .form-row { display: grid; gap: 10px; margin-bottom: 8px; }
+    .row-5 { grid-template-columns: 1fr 1.5fr 1.5fr 1.5fr 1.5fr; }
+    .row-3 { grid-template-columns: 1fr 1fr 1fr; }
+    .row-discount { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+
+    /* 美化標籤與表格文字 */
     .tag-qty { background: #f4f4f5; color: #909399; padding: 1px 5px; border-radius: 4px; font-size: 11px; display: inline-block; margin-bottom: 2px; }
+    .tag-discount { background: #fdf6ec; color: #e6a23c; border: 1px solid #faebd7; padding: 1px 5px; border-radius: 4px; font-size: 11px; display: inline-block; }
     .sub-info { font-size: 12px; color: #606266; line-height: 1.4; }
     .divider-line { border-top: 1px dashed #dcdfe6; margin: 3px 0; }
     .closed-tag { background: #f4f4f5; color: #909399; padding: 2px 6px; border-radius: 4px; font-size: 11px; margin-left: 6px; }
 
-    /* 結算卡片分區美化 */
+    /* 結算卡片樣式 */
     .summary-card { background: #f0f9eb; border: 1px solid #e1f3d8; border-radius: 8px; padding: 14px; font-size: 13px; margin: 6px 0 16px 0; }
     .summary-title { font-weight: bold; color: #67c23a; margin-bottom: 10px; font-size: 14px; }
     .summary-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; border-top: 1px dashed #c0c4cc; padding-top: 10px; }
     .summary-col { display: flex; flex-direction: column; gap: 4px; }
 
     @media (max-width: 768px) { 
-      .form-row-top, .form-row-mid, .form-row-bottom { grid-template-columns: 1fr; } 
+      .row-5, .row-3 { grid-template-columns: 1fr; } 
       .summary-grid { grid-template-columns: 1fr; }
     }
   </style>
@@ -37,43 +43,61 @@
 <body>
 
   <h3>設定活動單價與利潤分析</h3>
-  <form id="eventForm" style="background:#f8f9fa; padding:15px; border-radius:8px; margin-bottom:15px;">
+  <form id="eventForm" style="margin-bottom:15px;">
     <input type="hidden" id="editEventId">
     
-    <div class="form-row-top">
-      <div><label style="font-size:12px;">日期 (例: 260725)</label><input type="text" id="evDate" placeholder="260725" style="width:100%;"></div>
-      <div><label style="font-size:12px;">活動名稱 (例: RUN IT)</label><input type="text" id="evName" placeholder="RUN IT (Day1)" required style="width:100%;"></div>
-      <div>
-        <label style="font-size:12px;">成員</label>
-        <select id="evMember" required style="width:100%;">
-          <option value="">載入成員中...</option>
-        </select>
-      </div>
-      <div><label style="font-size:12px;">代拍 (例: 站姐A)</label><input type="text" id="evSeller" placeholder="代拍名稱" style="width:100%;"></div>
-      <div><label style="font-size:12px;">備註</label><input type="text" id="evNote" placeholder="備註說明..." style="width:100%;"></div>
-    </div>
-
-    <div class="form-row-mid">
-      <div><label style="font-size:12px;">每包數量(張)</label><input type="number" id="evPackQty" placeholder="張數" style="width:100%;"></div>
-      <div><label style="font-size:12px;">每包價格 ($)</label><input type="number" step="0.1" min="0" id="evPrice" placeholder="單價" style="width:100%;"></div>
-      <div><label style="font-size:12px;">拆包數</label><input type="number" id="evPacksCount" placeholder="包數" style="width:100%;"></div>
-      
-      <div><label style="font-size:12px;">購入訂金 ($)</label><input type="number" id="evDeposit" placeholder="訂金" style="width:100%;"></div>
-      <div><label style="font-size:12px;">購入尾款 ($)</label><input type="number" id="evBalance" placeholder="尾款" style="width:100%;"></div>
-      <div><label style="font-size:12px;">購入總金額 ($)</label><input type="number" id="evCost" placeholder="自動計算" style="width:100%;"></div>
-    </div>
-
-    <div class="form-row-bottom">
-      <div><label style="font-size:12px;">收到照片(張)</label><input type="number" id="evActPhoto" placeholder="照片張數" style="width:100%;"></div>
-      <div><label style="font-size:12px;">收到影片(檔/張)</label><input type="number" id="evActVideo" placeholder="影片張數" style="width:100%;"></div>
-      <div style="display:flex; align-items:center; gap:6px; margin-top:10px;">
-        <input type="checkbox" id="evIsClosed" style="width:auto; margin:0;">
-        <label for="evIsClosed" style="font-size:13px; font-weight:bold; color:#f56c6c; cursor:pointer;">關閉/結團 (隱藏選單)</label>
+    <!-- 卡片 1: 基本資料 -->
+    <div class="form-section">
+      <div class="form-section-title">📝 1. 活動與代拍基本資料</div>
+      <div class="form-row row-5">
+        <div><label style="font-size:12px;">日期 (例: 260725)</label><input type="text" id="evDate" placeholder="260725" style="width:100%;"></div>
+        <div><label style="font-size:12px;">活動名稱 (例: RUN IT)</label><input type="text" id="evName" placeholder="RUN IT (Day1)" required style="width:100%;"></div>
+        <div>
+          <label style="font-size:12px;">成員</label>
+          <select id="evMember" required style="width:100%;">
+            <option value="">載入成員中...</option>
+          </select>
+        </div>
+        <div><label style="font-size:12px;">代拍 (例: 站姐A)</label><input type="text" id="evSeller" placeholder="代拍名稱" style="width:100%;"></div>
+        <div><label style="font-size:12px;">備註</label><input type="text" id="evNote" placeholder="備註說明..." style="width:100%;"></div>
       </div>
     </div>
 
-    <button type="submit" id="saveEventBtn">儲存活動設定</button>
-    <button type="button" id="cancelEditBtn" style="background:#909399; display:none;" onclick="resetEventForm()">取消編輯</button>
+    <!-- 卡片 2: 販售規格與折扣設定 (方案二動態折扣) -->
+    <div class="form-section">
+      <div class="form-section-title">
+        <span>🏷️ 2. 販售規格與折扣售價設定</span>
+        <button type="button" id="addDiscountBtn" style="background:#67c23a; font-size:12px; padding:4px 8px;">+ 新增折扣售價</button>
+      </div>
+      <div class="form-row row-3">
+        <div><label style="font-size:12px;">每包數量(張)</label><input type="number" id="evPackQty" placeholder="張數" style="width:100%;"></div>
+        <div><label style="font-size:12px;">每包原價 ($)</label><input type="number" step="0.1" min="0" id="evPrice" placeholder="單價" style="width:100%;"></div>
+        <div><label style="font-size:12px;">總拆包數</label><input type="number" id="evPacksCount" placeholder="包數" style="width:100%;"></div>
+      </div>
+      <!-- 動態新增折扣容器 -->
+      <div id="discountContainer"></div>
+    </div>
+
+    <!-- 卡片 3: 購入成本與收到檔案 -->
+    <div class="form-section">
+      <div class="form-section-title">💸 3. 購入成本與收到檔案</div>
+      <div class="form-row row-3">
+        <div><label style="font-size:12px;">購入訂金 ($)</label><input type="number" id="evDeposit" placeholder="訂金" style="width:100%;"></div>
+        <div><label style="font-size:12px;">購入尾款 ($)</label><input type="number" id="evBalance" placeholder="尾款" style="width:100%;"></div>
+        <div><label style="font-size:12px;">購入總金額 ($)</label><input type="number" id="evCost" placeholder="自動計算" style="width:100%;"></div>
+      </div>
+      <div class="form-row row-3" style="margin-bottom:0; align-items:center;">
+        <div><label style="font-size:12px;">收到照片(張)</label><input type="number" id="evActPhoto" placeholder="照片張數" style="width:100%;"></div>
+        <div><label style="font-size:12px;">收到影片(檔/張)</label><input type="number" id="evActVideo" placeholder="影片張數" style="width:100%;"></div>
+        <div style="display:flex; align-items:center; gap:6px; margin-top:12px;">
+          <input type="checkbox" id="evIsClosed" style="width:auto; margin:0;">
+          <label for="evIsClosed" style="font-size:13px; font-weight:bold; color:#f56c6c; cursor:pointer;">關閉/結團 (隱藏選單)</label>
+        </div>
+      </div>
+    </div>
+
+    <button type="submit" id="saveEventBtn" style="width:100%; padding:10px; font-size:15px;">儲存活動設定</button>
+    <button type="button" id="cancelEditBtn" style="background:#909399; width:100%; padding:10px; margin-top:5px; display:none;" onclick="resetEventForm()">取消編輯</button>
   </form>
 
   <table>
@@ -82,7 +106,7 @@
         <th>活動全名</th>
         <th>成員</th>
         <th>代拍/備註</th>
-        <th>每包設定</th>
+        <th>每包與折扣規格</th>
         <th>已登記</th>
         <th>預估銷售與利潤</th>
         <th>購入成本</th>
@@ -117,6 +141,7 @@
     let ordersList = [];
     let eventsDataMap = {}; 
 
+    // 自動計算總成本
     const depositEl = document.getElementById('evDeposit');
     const balanceEl = document.getElementById('evBalance');
     const costEl = document.getElementById('evCost');
@@ -129,6 +154,24 @@
     }
     depositEl.addEventListener('input', calcTotalCost);
     balanceEl.addEventListener('input', calcTotalCost);
+
+    // 方案二：動態新增折扣輸入列
+    const discountContainer = document.getElementById('discountContainer');
+    document.getElementById('addDiscountBtn').addEventListener('click', () => {
+      addDiscountRow();
+    });
+
+    function addDiscountRow(count = '', price = '') {
+      const div = document.createElement('div');
+      div.className = 'row-discount';
+      div.innerHTML = `
+        <span style="font-size:12px; color:#e6a23c; font-weight:bold;">折扣階梯:</span>
+        <input type="number" class="disc-count" placeholder="折扣包數" value="${count}" style="width:110px;"> 包 × 
+        <input type="number" step="0.1" class="disc-price" placeholder="折扣單價" value="${price}" style="width:110px;"> 元
+        <button type="button" class="btn-danger" style="padding:3px 8px;" onclick="this.parentElement.remove()">移除</button>
+      `;
+      discountContainer.appendChild(div);
+    }
 
     document.addEventListener('DOMContentLoaded', () => {
       fetch('../json/members.json').then(res => res.json()).then(members => {
@@ -191,7 +234,7 @@
           const memberName = evArray[0].member || '全體/無';
           const isClosed = evArray.some(e => e.isClosed);
 
-          // 計算該 [活動+成員] 全團統一的下單數據 (買家只買一次)
+          // 計算該 [活動+成員] 的總登記售額 (含折扣邏輯計算)
           const sampleEv = evArray[0];
           const matchedOrders = ordersList.filter(o => {
             const matchEvent = (o.event === sampleEv.name || o.event === sampleEv.rawName || o.fullEvent === sampleEv.name);
@@ -205,15 +248,32 @@
           }, 0);
 
           const packSize = sampleEv.packQty && sampleEv.packQty > 0 ? sampleEv.packQty : 1;
-          const memberTotalOrderedPacks = totalOrderedCards / packSize;
-          const realTotalRevenue = memberTotalOrderedPacks * (sampleEv.price || 0);
+          const totalOrderedPacks = totalOrderedCards / packSize;
+
+          // 計算多階梯折扣銷售額
+          let realTotalRevenue = 0;
+          let remainingPacks = totalOrderedPacks;
+          const discounts = sampleEv.discounts || [];
+          
+          let discountTextList = [];
+          discounts.forEach(d => {
+            const dCount = Math.min(remainingPacks, Number(d.count) || 0);
+            if (dCount > 0) {
+              realTotalRevenue += dCount * (Number(d.price) || 0);
+              remainingPacks -= dCount;
+              discountTextList.push(`折扣:${d.count}包($${d.price})`);
+            }
+          });
+          if (remainingPacks > 0) {
+            realTotalRevenue += remainingPacks * (sampleEv.price || 0);
+          }
 
           evArray.forEach(ev => {
             const docId = ev.id;
             const closedBadge = ev.isClosed ? '<span class="closed-tag">🚫 已關閉</span>' : '';
             const mName = ev.member || '全體/無';
 
-            const estRevenue = realTotalRevenue; // 每一列共享該成員的銷售金額
+            const estRevenue = realTotalRevenue;
 
             const totalCost = (ev.deposit !== undefined || ev.balance !== undefined) 
               ? ((ev.deposit || 0) + (ev.balance || 0)) 
@@ -233,6 +293,10 @@
             memberTotalActVideo += actVideo;
             memberTotalActQty += totalAct;
 
+            const discountDisplay = discountTextList.length > 0 
+              ? `<div class="tag-discount">${discountTextList.join(' · ')}</div>` 
+              : '';
+
             const tr = document.createElement('tr');
             tr.innerHTML = `
               <td><b>${ev.name}</b>${closedBadge}</td>
@@ -243,11 +307,12 @@
               </td>
               <td>
                 <span class="tag-qty">${ev.packQty || 0}張/包</span>
-                <div class="sub-info">$${ev.price || 0}/包 · 拆${ev.packsCount || 0}包</div>
+                <div class="sub-info">原價: $${ev.price || 0}/包 (拆${ev.packsCount || 0}包)</div>
+                ${discountDisplay}
               </td>
               <td>
                 <div style="font-weight:bold;">${totalOrderedCards} 張</div>
-                <div class="sub-info">(${memberTotalOrderedPacks.toFixed(1).replace(/\.0$/, '')} 包)</div>
+                <div class="sub-info">(${totalOrderedPacks.toFixed(1).replace(/\.0$/, '')} 包)</div>
               </td>
               <td>
                 <div>銷售: <b style="color:#409eff;">$${estRevenue.toFixed(1).replace(/\.0$/, '')}</b></div>
@@ -274,7 +339,7 @@
             tb.appendChild(tr);
           });
 
-          // 美化：三欄式成結算卡片（綠框）
+          // 美化：三欄式結算卡片
           const estProfit = realTotalRevenue - memberTotalCost;
 
           const summaryTr = document.createElement('tr');
@@ -285,7 +350,7 @@
                 <div class="summary-grid">
                   <div class="summary-col">
                     <div style="font-weight:bold; color:#409eff;">🛍️ 銷售數據</div>
-                    <div>登記總量：<b>${totalOrderedCards} 張 (${memberTotalOrderedPacks.toFixed(1).replace(/\.0$/, '')} 包)</b></div>
+                    <div>登記總量：<b>${totalOrderedCards} 張 (${totalOrderedPacks.toFixed(1).replace(/\.0$/, '')} 包)</b></div>
                     <div>預估總銷售額：<b>$${realTotalRevenue.toFixed(1).replace(/\.0$/, '')}</b></div>
                   </div>
                   <div class="summary-col">
@@ -326,6 +391,18 @@
         const price = parseFloat(document.getElementById('evPrice').value) || 0;
         const packsCount = parseInt(document.getElementById('evPacksCount').value) || 0;
 
+        // 收集多筆動態折扣
+        const discCounts = document.querySelectorAll('.disc-count');
+        const discPrices = document.querySelectorAll('.disc-price');
+        let discounts = [];
+        discCounts.forEach((el, i) => {
+          const count = parseInt(el.value) || 0;
+          const p = parseFloat(discPrices[i].value) || 0;
+          if (count > 0) {
+            discounts.push({ count, price: p });
+          }
+        });
+
         const deposit = parseFloat(document.getElementById('evDeposit').value) || 0;
         const balance = parseFloat(document.getElementById('evBalance').value) || 0;
         const inputCost = parseFloat(document.getElementById('evCost').value);
@@ -343,7 +420,7 @@
 
         await setDoc(doc(db, "event_settings", docId), {
           name: fullName, rawDate: evDate, rawName: evNameRaw, member, seller, note, 
-          packQty, price, packsCount, deposit, balance, cost, actPhoto, actVideo, actQty, isClosed
+          packQty, price, packsCount, discounts, deposit, balance, cost, actPhoto, actVideo, actQty, isClosed
         });
 
         alert('✅ 活動設定與金額張數已成功更新！');
@@ -359,6 +436,7 @@
     window.resetEventForm = () => {
       document.getElementById('eventForm').reset();
       document.getElementById('editEventId').value = '';
+      discountContainer.innerHTML = '';
       document.getElementById('evIsClosed').checked = false;
       document.getElementById('cancelEditBtn').style.display = 'none';
       document.getElementById('saveEventBtn').textContent = '儲存活動設定';
@@ -379,6 +457,12 @@
       document.getElementById('evPrice').value = ev.price !== undefined ? ev.price : '';
       document.getElementById('evPacksCount').value = ev.packsCount !== undefined ? ev.packsCount : '';
       
+      // 帶入折扣設定
+      discountContainer.innerHTML = '';
+      if (ev.discounts && Array.isArray(ev.discounts)) {
+        ev.discounts.forEach(d => addDiscountRow(d.count, d.price));
+      }
+
       document.getElementById('evDeposit').value = ev.deposit !== undefined ? ev.deposit : '';
       document.getElementById('evBalance').value = ev.balance !== undefined ? ev.balance : '';
       document.getElementById('evCost').value = ev.cost !== undefined ? ev.cost : '';
