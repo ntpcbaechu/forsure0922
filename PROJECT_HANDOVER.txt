@@ -1,0 +1,75 @@
+==============================================================================
+                    FORSURE0922 專案開發與 AI 協作交接紀錄
+==============================================================================
+更新時間：2026-07-28
+專案名稱：forsure0922
+專案路徑：C:/Users/user/Desktop/project/forsure0922
+GitHub 倉庫：https://github.com/ntpcbaechu/forsure0922.git
+目前分支：main
+主要維護檔案：admin/admin_events.html (管理者控制台 - 活動單價與利潤分析)
+
+------------------------------------------------------------------------------
+【使用者協作習慣與溝通鐵律 (User Preferences)】
+------------------------------------------------------------------------------
+1. 嚴格溝通流程 (Strict Workflow)：
+   - 先討論 -> 畫出/說明視覺示意圖 -> 使用者確認並說「好，給我指令」才提供 Bash/代码指令。
+   - 討論期間「絕對不可」主動給出程式碼或 Git 指令。
+2. 語言規範 (Language Standard)：
+   - 100% 使用繁體中文溝通與說明，嚴禁夾雜英文開場白或不必要的英文回應。
+   - 態度保持專業、親切、簡潔，嚴禁使用髒話或過度輕浮的用語。
+3. 代碼提交習慣：
+   - 習慣使用 Git Bash 中的 `cat << 'EOF' > [filePath]` 方式直接覆蓋更新整份檔案。
+
+------------------------------------------------------------------------------
+【專案架構與核心技術 Stack】
+------------------------------------------------------------------------------
+- 前端：原生 HTML5 / CSS3 / Vanilla JavaScript (ES6 Modules)
+- 後端/資料庫：Firebase Firestore & Realtime Database
+- 部署：GitHub Pages
+- 成員固定排序 (MEMBER_ORDER)：
+  ["方燦", "Lee Know", "彰彬", "鉉辰", "HAN", "Felix", "昇玟", "I.N"]
+
+------------------------------------------------------------------------------
+【迄今完成的 UI / 功能更新紀錄 (Git Commit Log Summary)】
+------------------------------------------------------------------------------
+1. [Commit: 7352c4d] - Update event settings, layout and order
+   - 拆分購入價 (訂金/尾款/總價) 與實收檔案 (照片/影片)。
+   - 實作活動依日期與成員固定順序排序。
+
+2. [Commit: 75900da] - Fix card count to pack calculation and add single row profit
+   - 修正 orders 登記張數轉包數計算邏輯 (包數 = 張數 / 每包張數)。
+   - 新增單列預估銷售與利潤計算顯示。
+
+3. [Commit: 0a1c498] - UI beauty upgrade and fix multi-seller revenue calculation
+   - 升級為三欄式綠色總結算卡片 (🛍️ 銷售數據 | 💸 成本與利潤 | 📁 收到檔案)。
+   - 修復多代拍賣家共享銷售額計算問題。
+
+4. [Commit: 3b6ce93] - Add dynamic discount tiers and UI card layout
+   - 新增多階梯動態折扣售價功能 (+ 新增折扣售價按鈕)。
+   - 將輸入表單改為卡片式分區。
+
+5. [Commit: 1cd22f7] - Update minimal note style A and dynamic discount layout
+   - 實作單筆代拍備註與總備註 (bigNote) 區隔。
+
+6. [Commit: c827d3a] - Add auto grow textarea and improve note input UI
+   - 備註輸入框 (textarea) 加入打字/換行自動展延高度功能。
+
+7. [Commit: 50cce1a] - style: separate note header and improve event summary card spacing
+   - 備註顯示欄位排版優化：標題「📌 備註：」獨立第一行，內容第二行縮排對齊。
+   - 移除結算卡片底部會混淆視覺的綠色底線，加大 margin-bottom 留白。
+
+8. [Commit: 52de35a] - style: apply Option 2 with event header bar and large spacing between events
+   - 在每組活動開頭插入藍底活動場次 Header，明確標示活動起點。
+
+9. [Commit: e8d5a77] - feat: add active member filter, enlarge event title font, update note box style to soft blue
+   - 輸入表單優化：移除區塊標題（1.活動... 2.販售... 3.購入...），將備註 (textarea) 移至表單最底部。
+   - 活動場次 Header：字體加大至 16px 粗體，提升視覺階層感。
+   - 快速篩選列：表格上方新增「列表快速篩選成員」下拉選單，動態抓取有建立 Event 且「尚未結團 (isClosed !== true)」的成員。
+   - 備註配色優化：備註框調改為清爽淺藍底 (`#ecf5ff`) + 藍邊 (`#409eff`)，擺脫突兀橘底。
+
+------------------------------------------------------------------------------
+【下一步可續作或待觀察項目】
+------------------------------------------------------------------------------
+- 目前所有 admin/admin_events.html 的 UI 與邏輯修改皆已完成並推送到 GitHub main 分支。
+- 換窗後，請 AI 直接基於最新版的 admin/admin_events.html 繼續進行後續其他頁面或功能的開發。
+==============================================================================
