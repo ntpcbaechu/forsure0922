@@ -6,7 +6,7 @@
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 0; margin: 0; background: #fff; color: #333; }
     table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-    th, td { padding: 10px 8px; border-bottom: 1px solid #e4e7ed; text-align: left; font-size: 13px; vertical-align: top; }
+    th, td { padding: 10px 8px; border-bottom: 1px solid #e4e7ed; text-align: left; font-size: 13px; vertical-align: middle; }
     th { background: #f8f9fa; color: #606266; font-weight: bold; white-space: nowrap; }
     input, select, button, textarea { padding: 8px 10px; border: 1px solid #dcdfe6; border-radius: 6px; font-size: 13px; box-sizing: border-box; transition: border-color 0.2s; }
     input:focus, select:focus, textarea:focus { border-color: #409eff; outline: none; }
@@ -14,11 +14,12 @@
     .btn-danger { background-color: #f56c6c; color: white; padding: 4px 8px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; }
     .btn-edit { background-color: #e6a23c; color: white; padding: 4px 8px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; margin-right: 4px; }
 
-    /* 表單區塊 */
+    /* 表單區塊（潔淨卡片版面） */
     .form-section { background: #f8f9fa; border: 1px solid #ebeef5; border-radius: 8px; padding: 12px 15px; margin-bottom: 10px; }
-    .form-row { display: grid; gap: 10px; margin-bottom: 8px; }
-    .row-5 { grid-template-columns: 1fr 1.5fr 1.5fr 1.5fr 1.5fr; }
+    .form-row { display: grid; gap: 10px; margin-bottom: 8px; align-items: end; }
+    .row-4 { grid-template-columns: 1fr 1.5fr 1.5fr 1.5fr; }
     .row-3 { grid-template-columns: 1fr 1fr 1fr; }
+    .row-pack-spec { grid-template-columns: 1fr 1fr 1fr auto; }
     .row-discount { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
 
     /* 篩選工具列 */
@@ -84,7 +85,7 @@
     .summary-col { display: flex; flex-direction: column; gap: 4px; }
 
     @media (max-width: 768px) {
-      .row-5, .row-3 { grid-template-columns: 1fr; }
+      .row-4, .row-3, .row-pack-spec { grid-template-columns: 1fr; }
       .summary-grid { grid-template-columns: 1fr; }
     }
   </style>
@@ -95,9 +96,9 @@
   <form id="eventForm" style="margin-bottom:15px;">
     <input type="hidden" id="editEventId">
 
-    <!-- 卡片 1: 基本資料 -->
+    <!-- 卡片 1: 基本資料 (移除單筆備註，改為 4 欄) -->
     <div class="form-section">
-      <div class="form-row row-5">
+      <div class="form-row row-4">
         <div><label style="font-size:12px;">日期 (例: 260725)</label><input type="text" id="evDate" placeholder="260725" style="width:100%;"></div>
         <div><label style="font-size:12px;">活動名稱 (例: RUN IT)</label><input type="text" id="evName" placeholder="RUN IT (Day1)" required style="width:100%;"></div>
         <div>
@@ -107,24 +108,23 @@
           </select>
         </div>
         <div><label style="font-size:12px;">代拍 (例: 站姐A)</label><input type="text" id="evSeller" placeholder="代拍名稱" style="width:100%;"></div>
-        <div><label style="font-size:12px;">單筆備註</label><input type="text" id="evNote" placeholder="單筆備註..." style="width:100%;"></div>
       </div>
     </div>
 
-    <!-- 卡片 2: 販售規格與折扣設定 -->
+    <!-- 卡片 2: 販售規格與折扣設定 (+新增折扣售價按鈕併排在右側) -->
     <div class="form-section">
-      <div style="display:flex; justify-content:flex-end; margin-bottom:8px;">
-        <button type="button" id="addDiscountBtn" style="background:#67c23a; font-size:12px; padding:4px 8px;">+ 新增折扣售價</button>
-      </div>
-      <div class="form-row row-3">
+      <div class="form-row row-pack-spec">
         <div><label style="font-size:12px;">每包數量(張)</label><input type="number" id="evPackQty" placeholder="張數" style="width:100%;"></div>
         <div><label style="font-size:12px;">每包原價 ($)</label><input type="number" step="0.1" min="0" id="evPrice" placeholder="單價" style="width:100%;"></div>
         <div><label style="font-size:12px;">總拆包數</label><input type="number" id="evPacksCount" placeholder="包數" style="width:100%;"></div>
+        <div>
+          <button type="button" id="addDiscountBtn" style="background:#67c23a; font-size:12px; padding:9px 12px; margin-bottom:10px;">+ 新增折扣售價</button>
+        </div>
       </div>
       <div id="discountContainer"></div>
     </div>
 
-    <!-- 卡片 3: 購入成本與收到檔案 -->
+    <!-- 卡片 3: 購入成本與收到檔案 (修正標籤為 實收照片數 / 實收影片數) -->
     <div class="form-section">
       <div class="form-row row-3">
         <div><label style="font-size:12px;">購入訂金 ($)</label><input type="number" id="evDeposit" placeholder="訂金" style="width:100%;"></div>
@@ -132,8 +132,8 @@
         <div><label style="font-size:12px;">購入總金額 ($)</label><input type="number" id="evCost" placeholder="自動計算" style="width:100%;"></div>
       </div>
       <div class="form-row row-3" style="margin-bottom:0; align-items:center;">
-        <div><label style="font-size:12px;">收到照片(張)</label><input type="number" id="evActPhoto" placeholder="照片張數" style="width:100%;"></div>
-        <div><label style="font-size:12px;">收到影片(檔/張)</label><input type="number" id="evActVideo" placeholder="影片張數" style="width:100%;"></div>
+        <div><label style="font-size:12px;">實收照片數</label><input type="number" id="evActPhoto" placeholder="照片張數" style="width:100%;"></div>
+        <div><label style="font-size:12px;">實收影片數</label><input type="number" id="evActVideo" placeholder="影片張數" style="width:100%;"></div>
         <div style="display:flex; align-items:center; gap:6px; margin-top:12px;">
           <input type="checkbox" id="evIsClosed" style="width:auto; margin:0;">
           <label for="evIsClosed" style="font-size:13px; font-weight:bold; color:#f56c6c; cursor:pointer;">關閉/結團 (隱藏選單)</label>
@@ -141,10 +141,10 @@
       </div>
     </div>
 
-    <!-- 卡片 4: 備註 -->
+    <!-- 卡片 4: 備註 (簡化 placeholder) -->
     <div class="form-section">
       <label style="font-size:12px; font-weight:bold;">備註 / 特別注意事項</label>
-      <textarea id="evBigNote" class="auto-textarea" style="margin-top:6px;" placeholder="在此輸入備註 (打字或換行時框框會自動向下展延)..."></textarea>
+      <textarea id="evBigNote" class="auto-textarea" style="margin-top:6px;" placeholder="在此輸入備註..."></textarea>
     </div>
 
     <button type="submit" id="saveEventBtn" style="width:100%; padding:10px; font-size:15px;">儲存活動設定</button>
@@ -163,7 +163,7 @@
   <table>
     <thead>
       <tr>
-        <th>代拍 / 備註</th>
+        <th>代拍名稱</th>
         <th>每包規格</th>
         <th>已登記</th>
         <th>購入成本</th>
@@ -381,6 +381,11 @@
           }
 
           const latestBigNote = evArray.map(e => e.bigNote).filter(Boolean).pop() || '';
+          const discountDisplay = discountTextList.length > 0
+            ? `<div class="tag-discount">${discountTextList.join(' · ')}</div>`
+            : '';
+
+          const groupRowCount = evArray.length;
 
           evArray.forEach((ev, idx) => {
             const docId = ev.id;
@@ -401,25 +406,29 @@
             memberTotalActVideo += actVideo;
             memberTotalActQty += totalAct;
 
-            const discountDisplay = discountTextList.length > 0
-              ? `<div class="tag-discount">${discountTextList.join(' · ')}</div>`
-              : '';
-
             const tr = document.createElement('tr');
+
+            // 實作跨行合併 (rowspan) 邏輯：第一行負責渲染每包規格與已登記張數，其餘列不重複渲染
+            let mergedCellsHtml = '';
+            if (idx === 0) {
+              mergedCellsHtml = `
+                <td rowspan="${groupRowCount}" style="vertical-align:middle;">
+                  <span class="tag-qty">${sampleEv.packQty || 0}張/包</span>
+                  <div class="sub-info">原價: $${sampleEv.price || 0}/包 (拆${sampleEv.packsCount || 0}包)</div>
+                  ${discountDisplay}
+                </td>
+                <td rowspan="${groupRowCount}" style="vertical-align:middle;">
+                  <div style="font-weight:bold;">${totalOrderedCards} 張</div>
+                  <div class="sub-info">(${totalOrderedPacks.toFixed(1).replace(/\.0$/, '')} 包)</div>
+                </td>
+              `;
+            }
+
             tr.innerHTML = `
               <td>
                 <div><b>${ev.seller || '未填寫'}</b>${closedBadge}</div>
-                <div class="sub-info">${ev.note ? '單筆: ' + ev.note : '-'}</div>
               </td>
-              <td>
-                <span class="tag-qty">${ev.packQty || 0}張/包</span>
-                <div class="sub-info">原價: $${ev.price || 0}/包 (拆${ev.packsCount || 0}包)</div>
-                ${discountDisplay}
-              </td>
-              <td>
-                <div style="font-weight:bold;">${totalOrderedCards} 張</div>
-                <div class="sub-info">(${totalOrderedPacks.toFixed(1).replace(/\.0$/, '')} 包)</div>
-              </td>
+              ${mergedCellsHtml}
               <td>
                 <div class="sub-info">訂: $${ev.deposit || 0} &nbsp; 尾: $${ev.balance || 0}</div>
                 <div class="divider-line"></div>
@@ -455,7 +464,7 @@
             }
           });
 
-          // 結算卡片（簡化標題與統籌呈現銷售/利潤）
+          // 結算卡片
           const estProfit = realTotalRevenue - memberTotalCost;
 
           const summaryTr = document.createElement('tr');
@@ -501,7 +510,6 @@
         const evNameRaw = document.getElementById('evName').value.trim();
         const member = document.getElementById('evMember').value;
         const seller = document.getElementById('evSeller').value.trim();
-        const note = document.getElementById('evNote').value.trim();
         const bigNote = document.getElementById('evBigNote').value.trim();
 
         const packQty = parseInt(document.getElementById('evPackQty').value) || 0;
@@ -535,7 +543,7 @@
         const docId = editId ? editId : `${fullName}_${member || 'all'}_${seller || 'default'}_${Date.now()}`;
 
         await setDoc(doc(db, "event_settings", docId), {
-          name: fullName, rawDate: evDate, rawName: evNameRaw, member, seller, note, bigNote,
+          name: fullName, rawDate: evDate, rawName: evNameRaw, member, seller, bigNote,
           packQty, price, packsCount, discounts, deposit, balance, cost, actPhoto, actVideo, actQty, isClosed
         });
 
@@ -568,7 +576,6 @@
       document.getElementById('evName').value = ev.rawName || ev.name;
       document.getElementById('evMember').value = ev.member || '';
       document.getElementById('evSeller').value = ev.seller || '';
-      document.getElementById('evNote').value = ev.note || '';
       document.getElementById('evBigNote').value = ev.bigNote || '';
       adjustTextareaHeight(bigNoteArea);
 
