@@ -14,7 +14,7 @@
     .btn-danger { background-color: #f56c6c; color: white; padding: 4px 8px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; }
     .btn-edit { background-color: #e6a23c; color: white; padding: 4px 8px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; margin-right: 4px; }
 
-    /* 表單區塊（無大標題，潔淨卡片版面） */
+    /* 表單區塊 */
     .form-section { background: #f8f9fa; border: 1px solid #ebeef5; border-radius: 8px; padding: 12px 15px; margin-bottom: 10px; }
     .form-row { display: grid; gap: 10px; margin-bottom: 8px; }
     .row-5 { grid-template-columns: 1fr 1.5fr 1.5fr 1.5fr 1.5fr; }
@@ -33,7 +33,7 @@
       gap: 10px;
     }
 
-    /* 活動場次標籤列 (字體加大至 16px) */
+    /* 活動場次標籤列 (16px 粗體) */
     .event-group-header {
       background: #eef5fe;
       border-left: 4px solid #409eff;
@@ -52,7 +52,7 @@
     .divider-line { border-top: 1px dashed #dcdfe6; margin: 3px 0; }
     .closed-tag { background: #f4f4f5; color: #909399; padding: 2px 6px; border-radius: 4px; font-size: 11px; margin-left: 6px; }
 
-    /* 備註框：優化為淺藍色調，標題獨立第一行 */
+    /* 備註框：淺藍色調 */
     .minimal-note-box { 
       border-left: 3px solid #409eff; 
       padding: 8px 12px; 
@@ -141,7 +141,7 @@
       </div>
     </div>
 
-    <!-- 卡片 4: 備註 (移至最下方) -->
+    <!-- 卡片 4: 備註 -->
     <div class="form-section">
       <label style="font-size:12px; font-weight:bold;">備註 / 特別注意事項</label>
       <textarea id="evBigNote" class="auto-textarea" style="margin-top:6px;" placeholder="在此輸入備註 (打字或換行時框框會自動向下展延)..."></textarea>
@@ -151,7 +151,7 @@
     <button type="button" id="cancelEditBtn" style="background:#909399; width:100%; padding:10px; margin-top:5px; display:none;" onclick="resetEventForm()">取消編輯</button>
   </form>
 
-  <!-- 篩選列：只顯示有未關閉活動的成員 -->
+  <!-- 篩選列 -->
   <div class="filter-bar">
     <span style="font-size:13px; font-weight:bold; color:#606266;">🔍 列表快速篩選成員：</span>
     <select id="memberFilterSelect" style="margin:0; padding:6px 12px; width:auto; min-width:180px;">
@@ -159,15 +159,13 @@
     </select>
   </div>
 
+  <!-- 精簡後改為 6 欄的表格 -->
   <table>
     <thead>
       <tr>
-        <th>活動全名</th>
-        <th>成員</th>
-        <th>代拍/備註</th>
-        <th>每包與折扣規格</th>
+        <th>代拍 / 備註</th>
+        <th>每包規格</th>
         <th>已登記</th>
-        <th>預估銷售與利潤</th>
         <th>購入成本</th>
         <th>實際收到</th>
         <th>操作</th>
@@ -278,17 +276,14 @@
           eventsList.push(data);
           eventsDataMap[d.id] = data;
 
-          // 抓出「有新增event且尚未close (isClosed !== true)」的成員
           if (!data.isClosed && data.member) {
             activeMembersSet.add(data.member);
           }
         });
 
-        // 動態更新篩選選單
         const prevSelected = currentSelectedMemberFilter;
         filterSelectEl.innerHTML = '<option value="ALL">顯示全部成員</option>';
         
-        // 按照固定成員順序排序選單
         const sortedActiveMembers = Array.from(activeMembersSet).sort((a, b) => {
           const idxA = MEMBER_ORDER.indexOf(a);
           const idxB = MEMBER_ORDER.indexOf(b);
@@ -322,7 +317,6 @@
         const groupedEvents = {};
         eventsList.forEach(ev => {
           const mName = ev.member || '全體/無';
-          // 篩選過濾：若有選擇特定成員，則跳過其他成員
           if (currentSelectedMemberFilter !== 'ALL' && mName !== currentSelectedMemberFilter) {
             return;
           }
@@ -343,10 +337,10 @@
           const memberName = evArray[0].member || '全體/無';
           const isClosed = evArray.some(e => e.isClosed);
 
-          // 活動標頭列 (字體 16px 粗體)
+          // 活動場次大標題 Header (涵蓋活動與成員)
           const headerTr = document.createElement('tr');
           headerTr.innerHTML = `
-            <td colspan="9" style="padding:0; border-bottom:none;">
+            <td colspan="6" style="padding:0; border-bottom:none;">
               <div class="event-group-header">
                 🗓️ 活動場次：${eventName} - <span style="color:#409eff;">${memberName}</span> (${evArray.length} 筆代拍紀錄)
               </div>
@@ -391,16 +385,10 @@
           evArray.forEach((ev, idx) => {
             const docId = ev.id;
             const closedBadge = ev.isClosed ? '<span class="closed-tag">🚫 已關閉</span>' : '';
-            const mName = ev.member || '全體/無';
-
-            const estRevenue = realTotalRevenue;
 
             const totalCost = (ev.deposit !== undefined || ev.balance !== undefined)
               ? ((ev.deposit || 0) + (ev.balance || 0))
               : (ev.cost || 0);
-
-            const singleProfit = estRevenue - totalCost;
-            const profitColor = singleProfit >= 0 ? '#67c23a' : '#f56c6c';
 
             const actPhoto = ev.actPhoto || 0;
             const actVideo = ev.actVideo || 0;
@@ -419,10 +407,8 @@
 
             const tr = document.createElement('tr');
             tr.innerHTML = `
-              <td><b>${ev.name}</b>${closedBadge}</td>
-              <td><b>${mName}</b></td>
               <td>
-                <div><b>${ev.seller || '未填寫'}</b></div>
+                <div><b>${ev.seller || '未填寫'}</b>${closedBadge}</div>
                 <div class="sub-info">${ev.note ? '單筆: ' + ev.note : '-'}</div>
               </td>
               <td>
@@ -433,10 +419,6 @@
               <td>
                 <div style="font-weight:bold;">${totalOrderedCards} 張</div>
                 <div class="sub-info">(${totalOrderedPacks.toFixed(1).replace(/\.0$/, '')} 包)</div>
-              </td>
-              <td>
-                <div>銷售: <b style="color:#409eff;">$${estRevenue.toFixed(1).replace(/\.0$/, '')}</b></div>
-                <div>利潤: <b style="color:${profitColor};">$${singleProfit.toFixed(1).replace(/\.0$/, '')}</b></div>
               </td>
               <td>
                 <div class="sub-info">訂: $${ev.deposit || 0} &nbsp; 尾: $${ev.balance || 0}</div>
@@ -458,11 +440,11 @@
             tr.querySelector('.btn-danger').onclick = () => deleteEvent(docId);
             tb.appendChild(tr);
 
-            // 備註框：淡藍色背景
+            // 備註區塊
             if (idx === evArray.length - 1 && latestBigNote) {
               const noteTr = document.createElement('tr');
               noteTr.innerHTML = `
-                <td colspan="9" style="padding: 2px 0 6px 0; border-bottom: none;">
+                <td colspan="6" style="padding: 2px 0 6px 0; border-bottom: none;">
                   <div class="minimal-note-box">
                     <div class="minimal-note-title">📌 備註：</div>
                     <div class="minimal-note-content">${latestBigNote}</div>
@@ -473,14 +455,14 @@
             }
           });
 
-          // 結算卡片
+          // 結算卡片（簡化標題與統籌呈現銷售/利潤）
           const estProfit = realTotalRevenue - memberTotalCost;
 
           const summaryTr = document.createElement('tr');
           summaryTr.innerHTML = `
-            <td colspan="9" style="padding: 0; border-bottom: none;">
+            <td colspan="6" style="padding: 0; border-bottom: none;">
               <div class="summary-card">
-                <div class="summary-title">📊 成員活動總結算：${eventName} - <span style="color:#409eff;">${memberName}</span> (${evArray.length} 筆代拍紀錄)${isClosed ? ' [已結團關閉]' : ''}</div>
+                <div class="summary-title">📊 本場數據總結算${isClosed ? ' [已結團關閉]' : ''}</div>
                 <div class="summary-grid">
                   <div class="summary-col">
                     <div style="font-weight:bold; color:#409eff;">🛍️ 銷售數據</div>
@@ -493,7 +475,7 @@
                     <div>🔥 預估全團利潤：<b style="color:${estProfit >= 0 ? '#67c23a' : '#f56c6c'};">$${estProfit.toFixed(1).replace(/\.0$/, '')}</b></div>
                   </div>
                   <div class="summary-col">
-                    <div style="font-weight:bold; color:#67c23a;">📁 收到檔案資料</div>
+                    <div style="font-weight:bold; color:#67c23a;">📁 總收到檔案</div>
                     <div>收到照片：<b>${memberTotalActPhoto} 張</b></div>
                     <div>收到影片：<b>${memberTotalActVideo} 檔 (共 ${memberTotalActQty} 張)</b></div>
                   </div>
