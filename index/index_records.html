@@ -42,21 +42,21 @@
   <div class="filter-card">
     <div class="filter-title">🔍 請選擇篩選模式：</div>
     <div class="filter-options">
-      <label class="filter-label"><input type="radio" name="filterMode" value="user" checked> 依社群暱稱查詢 (個人喊單總覽)</label>
-      <label class="filter-label"><input type="radio" name="filterMode" value="event"> 依活動日期與場次查詢</label>
+      <label class="filter-label"><input type="radio" name="filterMode" value="event" checked> 依活動日期與場次查詢 (預設全部)</label>
+      <label class="filter-label"><input type="radio" name="filterMode" value="user"> 依社群暱稱查詢 (個人喊單總覽)</label>
     </div>
 
-    <!-- 模式 A：暱稱選單 -->
-    <div id="userSelectBox">
-      <select id="userDropdown">
-        <option value="">載入中...</option>
+    <!-- 模式 A：場次選單 (預設顯示) -->
+    <div id="eventSelectBox">
+      <select id="eventDropdown">
+        <option value="ALL">📍 顯示全部活動場次</option>
       </select>
     </div>
 
-    <!-- 模式 B：場次選單 -->
-    <div id="eventSelectBox" style="display:none;">
-      <select id="eventDropdown">
-        <option value="ALL">📍 顯示全部活動場次</option>
+    <!-- 模式 B：暱稱選單 -->
+    <div id="userSelectBox" style="display:none;">
+      <select id="userDropdown">
+        <option value="">載入中...</option>
       </select>
     </div>
   </div>
@@ -175,7 +175,6 @@
           return;
         }
 
-        // 計算個人統計 (包含三大狀態: 已對帳 / 待匯款 / 對帳有問題)
         const eventsSet = new Set();
         let paidCount = 0, pendingCount = 0, issueCount = 0, grandTotal = 0;
 
@@ -192,7 +191,6 @@
           grandTotal += info.totalPrice;
         });
 
-        // 多行獨立視覺呈現
         summary.innerHTML = `
           <div class="summary-card">
             <b>👤 ${selectedUser} 的喊單個人統計：</b><br>
