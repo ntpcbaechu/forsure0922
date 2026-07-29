@@ -26,15 +26,22 @@
 
     .cards-list { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
     .order-card { background: #fafafa; border: 1px solid #ebeef5; border-radius: 8px; padding: 12px 14px; font-size: 13px; }
-    .order-top { display: flex; justify-content: space-between; align-items: center; font-weight: bold; margin-bottom: 6px; }
+    .order-top { display: flex; justify-content: space-between; align-items: flex-start; font-weight: bold; margin-bottom: 6px; }
     .order-info { display: flex; flex-wrap: wrap; gap: 15px; color: #606266; font-size: 13px; margin-top: 4px; }
     
-    .status-badge { padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; }
+    .status-badges-container { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+    
+    .status-badge { padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; display: inline-block; }
     .status-paid { background: #f0f9eb; color: #67c23a; }
     .status-checking { background: #fdf6ec; color: #e6a23c; border: 1px solid #faebd7; }
     .status-pending { background: #fef0f0; color: #f56c6c; }
     .status-issue { background: #fef0f0; color: #f56c6c; border: 1px solid #fde2e2; }
     
+    .photo-badge-pending { background: #f4f4f5; color: #909399; }
+    .photo-badge-sent { background: #ecf5ff; color: #409eff; border: 1px solid #b3d8ff; }
+    
+    .photo-dates-box { font-size: 11px; color: #606266; margin-top: 2px; text-align: right; line-height: 1.3; }
+
     .type-badge { font-size: 11px; padding: 1px 5px; border-radius: 4px; background: #f4f4f5; color: #909399; margin-left: 4px; }
     .type-add { background: #fdf6ec; color: #e6a23c; border: 1px solid #faebd7; }
   </style>
@@ -53,7 +60,6 @@
       </select>
     </div>
 
-    <!-- 動態膠囊按鈕容器 -->
     <div id="capsuleContainer" class="capsule-bar"></div>
   </div>
 
@@ -85,7 +91,7 @@
       eventPricesMap = {};
       snap.forEach(d => {
         const data = d.data();
-        const key = `${data.name || data.rawName}_${data.member || ''}`;
+        const key = (data.name || data.rawName) + '_' + (data.member || '');
         eventPricesMap[key] = {
           price: Number(data.actualPrice || data.price || data.estimatedPrice || data.unitPrice) || 0,
           packQty: Number(data.packQty) || 1
@@ -107,7 +113,7 @@
     function getItemPriceInfo(item) {
       const eventName = item.event || item.eventName || '';
       const member = item.member || '';
-      const key = `${eventName}_${member}`;
+      const key = eventName + '_' + member;
       const setting = eventPricesMap[key] || {};
       
       const pricePerPack = setting.price || Number(item.price) || 0;
@@ -148,15 +154,15 @@
         const sortedUsers = Array.from(usersSet).sort((a, b) => a.localeCompare(b, 'zh-TW'));
 
         const allBtn = document.createElement('button');
-        allBtn.className = `capsule-btn ${activeFilterValue === 'ALL' ? 'active' : ''}`;
+        allBtn.className = 'capsule-btn ' + (activeFilterValue === 'ALL' ? 'active' : '');
         allBtn.textContent = '👤 全部';
         allBtn.onclick = () => { activeFilterValue = 'ALL'; renderCapsulesAndRecords(); };
         container.appendChild(allBtn);
 
         sortedUsers.forEach(userName => {
           const btn = document.createElement('button');
-          btn.className = `capsule-btn ${activeFilterValue === userName ? 'active' : ''}`;
-          btn.textContent = `👤 ${userName}`;
+          btn.className = 'capsule-btn ' + (activeFilterValue === userName ? 'active' : '');
+          btn.textContent = '👤 ' + userName;
           btn.onclick = () => { activeFilterValue = userName; renderCapsulesAndRecords(); };
           container.appendChild(btn);
         });
@@ -170,7 +176,7 @@
           let paidCount = 0, checkingCount = 0, pendingCount = 0, issueCount = 0, grandTotal = 0;
 
           userOrders.forEach(o => {
-            const key = `${o.event || o.eventName}_${o.member}`;
+            const key = (o.event || o.eventName) + '_' + o.member;
             userEventsSet.add(key);
 
             const status = o.paymentStatus || o.status || (o.hasPaid ? '已對帳' : '待匯款');
@@ -183,21 +189,19 @@
             grandTotal += info.totalPrice;
           });
 
-          summary.innerHTML = `
-            <div class="summary-card">
-              <b>👤 ${activeFilterValue} 的喊單個人統計：</b><br>
-              • 已登記場次：<b>${userEventsSet.size}</b> 場<br>
-              • 對帳狀態：🟢 已對帳 <b>${paidCount}</b> 筆 ｜ ⏳ 待對帳 <b>${checkingCount}</b> 筆 ｜ ⏳ 待匯款 <b>${pendingCount}</b> 筆 ｜ ⚠️ 對帳有問題 <b>${issueCount}</b> 筆<br>
-              • 喊單總金額：<b>$${grandTotal.toLocaleString()}</b>
-            </div>
-          `;
+          summary.innerHTML = '<div class="summary-card">' +
+            '<b>👤 ' + activeFilterValue + ' 的喊單個人統計：</b><br>' +
+            '• 已登記場次：<b>' + userEventsSet.size + '</b> 場<br>' +
+            '• 對帳狀態：🟢 已對帳 <b>' + paidCount + '</b> 筆 ｜ ⏳ 待對帳 <b>' + checkingCount + '</b> 筆 ｜ ⏳ 待匯款 <b>' + pendingCount + '</b> 筆 ｜ ⚠️ 對帳有問題 <b>' + issueCount + '</b> 筆<br>' +
+            '• 喊單總金額：<b>$' + grandTotal.toLocaleString() + '</b>' +
+          '</div>';
 
           renderCardsGrouped(userOrders);
         }
       } else if (mode === 'event') {
         const eventsSet = new Set();
         allOrders.forEach(o => {
-          const key = (o.event || o.eventName || '未分類活動') + (o.member ? ` - ${o.member}` : '');
+          const key = (o.event || o.eventName || '未分類活動') + (o.member ? ' - ' + o.member : '');
           eventsSet.add(key);
         });
 
@@ -210,15 +214,15 @@
         });
 
         const allBtn = document.createElement('button');
-        allBtn.className = `capsule-btn ${activeFilterValue === 'ALL' ? 'active' : ''}`;
+        allBtn.className = 'capsule-btn ' + (activeFilterValue === 'ALL' ? 'active' : '');
         allBtn.textContent = '📍 全部';
         allBtn.onclick = () => { activeFilterValue = 'ALL'; renderCapsulesAndRecords(); };
         container.appendChild(allBtn);
 
         sortedEvents.forEach(evTitle => {
           const btn = document.createElement('button');
-          btn.className = `capsule-btn ${activeFilterValue === evTitle ? 'active' : ''}`;
-          btn.textContent = `📍 ${evTitle}`;
+          btn.className = 'capsule-btn ' + (activeFilterValue === evTitle ? 'active' : '');
+          btn.textContent = '📍 ' + evTitle;
           btn.onclick = () => { activeFilterValue = evTitle; renderCapsulesAndRecords(); };
           container.appendChild(btn);
         });
@@ -226,7 +230,7 @@
         let filteredOrders = allOrders;
         if (activeFilterValue !== 'ALL') {
           filteredOrders = allOrders.filter(o => {
-            const key = (o.event || o.eventName || '未分類活動') + (o.member ? ` - ${o.member}` : '');
+            const key = (o.event || o.eventName || '未分類活動') + (o.member ? ' - ' + o.member : '');
             return key === activeFilterValue;
           });
         }
@@ -240,7 +244,7 @@
 
       const groups = {};
       orders.forEach(o => {
-        const key = (o.event || o.eventName || '未分類活動') + (o.member ? ` - ${o.member}` : '');
+        const key = (o.event || o.eventName || '未分類活動') + (o.member ? ' - ' + o.member : '');
         if (!groups[key]) groups[key] = [];
         groups[key].push(o);
       });
@@ -261,45 +265,60 @@
         list.forEach((ord, idx) => {
           const status = ord.paymentStatus || ord.status || (ord.hasPaid ? '已對帳' : '待匯款');
           
-          let badgeHtml = '<span class="status-badge status-pending">⏳ 待匯款</span>';
+          let payBadgeHtml = '<span class="status-badge status-pending">⏳ 待匯款</span>';
           if (status === '已對帳') {
-            badgeHtml = '<span class="status-badge status-paid">🟢 已對帳</span>';
+            payBadgeHtml = '<span class="status-badge status-paid">🟢 已對帳</span>';
           } else if (status === '待對帳' || status === '對帳中') {
-            badgeHtml = '<span class="status-badge status-checking">⏳ 待對帳</span>';
+            payBadgeHtml = '<span class="status-badge status-checking">⏳ 待對帳</span>';
           } else if (status === '對帳有問題' || status === '有問題') {
-            const reason = ord.errorNote ? ` : ${ord.errorNote}` : '';
-            badgeHtml = `<span class="status-badge status-issue">⚠️ 對帳有問題${reason}</span>`;
+            const reason = ord.errorNote ? ' : ' + ord.errorNote : '';
+            payBadgeHtml = '<span class="status-badge status-issue">⚠️ 對帳有問題' + reason + '</span>';
+          }
+
+          const isPhotoSent = ord.isPhotoSent === true || status === '已發圖';
+          let photoBadgeHtml = '';
+          let photoDatesHtml = '';
+
+          if (isPhotoSent) {
+            photoBadgeHtml = '<span class="status-badge photo-badge-sent">🔵 已發圖</span>';
+            if (ord.photoSentAt) {
+              photoDatesHtml = '<div class="photo-dates-box">' +
+                '📅 發圖日：' + ord.photoSentAt + '<br>' +
+                '⏳ 刪除日：' + (ord.photoExpireAt || '-') +
+              '</div>';
+            }
+          } else {
+            photoBadgeHtml = '<span class="status-badge photo-badge-pending">📷 待發圖</span>';
           }
 
           const typeBadge = (ord.orderType === '追加') ? '<span class="type-badge type-add">追加</span>' : '<span class="type-badge">一般</span>';
-
           const name = ord.user || ord.buyerName || ord.nickname || '未知';
           const info = getItemPriceInfo(ord);
 
-          cardsHtml += `
-            <div class="order-card">
-              <div class="order-top">
-                <span>#${idx + 1} ${name} ${typeBadge}</span>
-                ${badgeHtml}
-              </div>
-              <div class="order-info">
-                <span>喊單張數：<b>${info.qty} 張</b></span>
-                <span>每包金額：<b>$${info.pricePerPack}</b></span>
-                <span style="color:#409eff;">總金額：<b>$${info.totalPrice.toLocaleString()}</b></span>
-              </div>
-            </div>
-          `;
+          cardsHtml += '<div class="order-card">' +
+            '<div class="order-top">' +
+              '<span>#' + (idx + 1) + ' ' + name + ' ' + typeBadge + '</span>' +
+              '<div class="status-badges-container">' +
+                payBadgeHtml +
+                photoBadgeHtml +
+                photoDatesHtml +
+              '</div>' +
+            '</div>' +
+            '<div class="order-info">' +
+              '<span>喊單張數：<b>' + info.qty + ' 張</b></span>' +
+              '<span>每包金額：<b>$' + info.pricePerPack + '</b></span>' +
+              '<span style="color:#409eff;">總金額：<b>$' + info.totalPrice.toLocaleString() + '</b></span>' +
+            '</div>' +
+          '</div>';
         });
 
-        recordsList.innerHTML += `
-          <div class="event-section">
-            <div class="event-header">
-              <span>📌 ${title}</span>
-              <span class="event-meta">共 ${list.length} 筆 / ${totalPacks} 張</span>
-            </div>
-            <div class="cards-list">${cardsHtml}</div>
-          </div>
-        `;
+        recordsList.innerHTML += '<div class="event-section">' +
+          '<div class="event-header">' +
+            '<span>📌 ' + title + '</span>' +
+            '<span class="event-meta">共 ' + list.length + ' 筆 / ' + totalPacks + ' 張</span>' +
+          '</div>' +
+          '<div class="cards-list">' + cardsHtml + '</div>' +
+        '</div>';
       }
     }
 
