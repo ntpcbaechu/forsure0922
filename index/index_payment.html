@@ -120,10 +120,31 @@
     let allCredits = [];
     let allOrders = [];
     let photoProgressMap = {};
+    let eventPricesMap = {}; // 存放活動單價對照表
     let currentAvailableCredit = 0;
 
     document.addEventListener('DOMContentLoaded', () => {
-      fetch('json/members.json').then(r => r.json()).then(arr => { MEMBER_ORDER.length = 0; MEMBER_ORDER.push(...arr); }).catch(() => {});
+      // 確保路徑正確指向 json 資料夾
+      fetch('../json/members.json').then(r => r.json()).then(arr => { MEMBER_ORDER.length = 0; MEMBER_ORDER.push(...arr); }).catch(() => {});
+
+      // 1. 監聽 event_settings 建立單價字典
+      onSnapshot(collection(db, "event_settings"), snap => {
+        eventPricesMap = {};
+        snap.forEach(d => {
+          const data = d.data();
+          const key = `${data.name || data.rawName}_${data.member || ''}`;
+          const actPrice = Number(data.actualPrice) || 0;
+          const estPrice = Number(data.estimatedPrice) || 0;
+          // 實際金額優先，沒有再抓預估金額
+          const finalPrice = actPrice > 0 ? actPrice : estPrice;
+          
+          eventPricesMap[key] = {
+            price: finalPrice,
+            packQty: Number(data.packQty) || 1
+          };
+        });
+        renderBuyerDetails();
+      });
 
       onSnapshot(collection(db, "photo_progress"), snap => {
         photoProgressMap = {};
@@ -175,6 +196,23 @@
       document.getElementById('useCreditChk').addEventListener('change', calcSelectedTotal);
       notifyHeight();
     });
+
+    // 取得單筆訂單價格資訊 (邏輯同 index_records.html)
+    function getItemPriceInfo(ord) {
+      const ordEvent = ord.eventName || ord.event || '';
+      const ordMember = ord.member || '';
+      const key = `${ordEvent}_${ordMember}`;
+      const setting = eventPricesMap[key] || { price: 0, packQty: 1 };
+      
+      const pricePerPack = setting.price;
+      const packQty = setting.packQty;
+      const qty = Number(ord.qty !== undefined ? ord.qty : ord.quantity) || 1;
+      
+      const numPacks = (packQty > 0) ? (qty / packQty) : 1;
+      const totalPrice = Math.round(numPacks * pricePerPack);
+
+      return { pricePerPack, totalPrice, qty };
+    }
 
     function renderBuyerDetails() {
       const selectedBuyer = document.getElementById('buyerName').value;
@@ -234,19 +272,20 @@
         document.getElementById('finalPayTotal').textContent = '$0';
       } else {
         userOrders.forEach(ord => {
-          const qty = Number(ord.qty !== undefined ? ord.qty : ord.quantity) || 1;
           const ordEvent = ord.eventName || ord.event || '';
           const ordMember = ord.member || '';
           
-          const calculatedPrice = Number(ord.total !== undefined ? ord.total : (ord.amount !== undefined ? ord.amount : (ord.price || 0)));
+          // 透過對應表取得最終金額
+          const info = getItemPriceInfo(ord);
+          const calculatedPrice = info.totalPrice;
 
           ordersList.innerHTML += `
             <div class="order-item">
               <div class="order-left">
                 <input type="checkbox" class="order-chk" value="${ord.id}" data-price="${calculatedPrice}">
-                <span>📌 ${ordEvent || '未命名活動'} (${ordMember || '全體'}) - ${qty} 張</span>
+                <span>📌 ${ordEvent || '未命名活動'} (${ordMember || '全體'}) - ${info.qty} 張</span>
               </div>
-              <b style="color:#f56c6c;">$${calculatedPrice.toFixed(1).replace(/\.0$/, '')}</b>
+              <b style="color:#f56c6c;">$${calculatedPrice.toLocaleString()}</b>
             </div>
           `;
         });
@@ -276,18 +315,18 @@
 
       const finalTotal = Math.max(0, orderSubtotal - creditDeduction);
 
-      document.getElementById('pendingTotal').textContent = `$${orderSubtotal.toFixed(1).replace(/\.0$/, '')}`;
+      document.getElementById('pendingTotal').textContent = `$${orderSubtotal.toLocaleString()}`;
       
       const deductElem = document.getElementById('creditDeduct');
       if (creditDeduction > 0) {
-        deductElem.textContent = `-$${creditDeduction.toFixed(1).replace(/\.0$/, '')}`;
+        deductElem.textContent = `-$${creditDeduction.toLocaleString()}`;
         deductElem.style.color = '#f56c6c';
       } else {
         deductElem.textContent = '-';
         deductElem.style.color = '#909399';
       }
 
-      document.getElementById('finalPayTotal').textContent = `$${finalTotal.toFixed(1).replace(/\.0$/, '')}`;
+      document.getElementById('finalPayTotal').textContent = `$${finalTotal.toLocaleString()}`;
     }
 
     document.getElementById('paymentForm').addEventListener('submit', async (e) => {
