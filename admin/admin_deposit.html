@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <title>買家預存儲值金管理</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 15px; margin: 0; background: #fff; color: #333; }
+    h3 { margin-top: 0; margin-bottom: 15px; font-size: 18px; }
+
+    .unified-form-box {
+      background: #f8f9fa;
+      border: 1px solid #e4e7ed;
+      border-radius: 10px;
+      padding: 14px 16px;
+      margin-bottom: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .form-row { display: grid; gap: 10px; align-items: end; grid-template-columns: 1.5fr 1fr 1.2fr 2fr auto; }
+    @media (max-width: 768px) { .form-row { grid-template-columns: 1fr; } }
+
+    label { font-size: 12px; font-weight: bold; color: #606266; margin-bottom: 4px; display: block; }
+    input, select, button, textarea { padding: 8px 10px; border: 1px solid #dcdfe6; border-radius: 6px; font-size: 13px; box-sizing: border-box; transition: border-color 0.2s; outline: none; }
+    input:focus, select:focus, textarea:focus { border-color: #409eff; }
+
+    button { background-color: #409eff; color: white; border: none; font-weight: bold; cursor: pointer; }
+    .btn-edit { background-color: #e6a23c; color: white; padding: 4px 8px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; }
+    .btn-danger { background-color: #f56c6c; color: white; padding: 4px 8px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; }
+
+    .capsule-bar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 15px; background: #f8f9fa; padding: 10px; border-radius: 8px; border: 1px solid #ebeef5; }
+    .capsule-btn { background: #ecf5ff; color: #409eff; border: 1px solid #d9ecff; padding: 5px 12px; border-radius: 16px; font-size: 12px; font-weight: bold; cursor: pointer; transition: all 0.2s; }
+    .capsule-btn:hover, .capsule-btn.active { background: #409eff; color: #fff; border-color: #409eff; }
+
+    .summary-card { background: #f0f9eb; border: 1px solid #e1f3d8; border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; }
+    .summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }
+    @media (max-width: 600px) { .summary-grid { grid-template-columns: 1fr; } }
+    .stat-col { display: flex; flex-direction: column; gap: 2px; }
+    .stat-title { font-size: 12px; color: #606266; font-weight: bold; }
+    .stat-num { font-size: 18px; font-weight: bold; }
+
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 10px 8px; border-bottom: 1px solid #e4e7ed; text-align: left; font-size: 13px; vertical-align: middle; }
+    th { background: #f8f9fa; color: #606266; font-weight: bold; white-space: nowrap; }
+
+    .badge-type { padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: bold; display: inline-block; }
+    .badge-deposit { background: #f0f9eb; color: #67c23a; border: 1px solid #c2e7b0; }
+    .badge-usage { background: #fef0f0; color: #f56c6c; border: 1px solid #fde2e2; }
+  </style>
+</head>
+<body>
+
+  <h3>買家預存儲值金管理 (Deposits)</h3>
+
+  <form id="depositForm" class="unified-form-box">
+    <input type="hidden" id="editDepositId">
+    
+    <div class="form-row">
+      <div>
+        <label>社群暱稱 *</label>
+        <select id="userSelect" required>
+          <option value="">載入買家名單中...</option>
+        </select>
+      </div>
+
+      <div>
+        <label>異動類型 *</label>
+        <select id="typeSelect" required>
+          <option value="deposit">➕ 現金儲值入帳</option>
+          <option value="usage">➖ 扣款/消費折抵</option>
+        </select>
+      </div>
+
+      <div>
+        <label>金額 ($) *</label>
+        <input type="number" id="depositAmt" placeholder="請輸入金額" min="1" required style="width:100%;">
+      </div>
+
+      <div>
+        <label>備註說明</label>
+        <input type="text" id="depositNote" placeholder="例: 私訊預存轉帳 / 7月儲值優惠" style="width:100%;">
+      </div>
+
+      <div>
+        <button type="submit" id="saveBtn" style="padding:8px 16px; min-width:90px;">新增紀錄</button>
+        <button type="button" id="cancelBtn" style="background:#909399; padding:8px 12px; display:none;" onclick="resetDepositForm()">取消</button>
+      </div>
+    </div>
+  </form>
+
+  <div class="summary-card">
+    <div class="summary-grid">
+      <div class="stat-col">
+        <span class="stat-title">📥 累積儲值總額</span>
+        <span class="stat-num" style="color:#409eff;" id="statTotalDeposit">$0</span>
+      </div>
+      <div class="stat-col">
+        <span class="stat-title">📤 累積已扣款金額</span>
+        <span class="stat-num" style="color:#e6a23c;" id="statTotalUsed">$0</span>
+      </div>
+      <div class="stat-col">
+        <span class="stat-title">🟢 目前剩餘儲值金總額</span>
+        <span class="stat-num" style="color:#67c23a;" id="statTotalBalance">$0</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="capsule-bar" id="buyerCapsules">
+    <button class="capsule-btn active" onclick="filterByUser('ALL', this)">👤 顯示全部買家</button>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 15%;">日期</th>
+        <th style="width: 18%;">社群暱稱</th>
+        <th style="width: 12%;">類型</th>
+        <th style="width: 15%;">變動金額</th>
+        <th style="width: 25%;">備註說明</th>
+        <th style="width: 15%;">操作</th>
+      </tr>
+    </thead>
+    <tbody id="depositTableBody">
+      <tr><td colspan="6" style="text-align:center; color:#909399; padding:20px;">載入中...</td></tr>
+    </tbody>
+  </table>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDF7QySG1Jj4gdZvXwMRaKjRmI-lFKpj7k",
+      authDomain: "forsure0922.firebaseapp.com",
+      databaseURL: "https://forsure0922-default-rtdb.firebaseio.com",
+      projectId: "forsure0922",
+      storageBucket: "forsure0922.firebasestorage.app",
+      messagingSenderId: "817449290174",
+      appId: "1:817449290174:web:6b4ec1d36c171ff97011ef"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    let depositsMap = {};
+    let usersSet = new Set();
+    let activeFilterUser = 'ALL';
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      try {
+        const res = await fetch('../json/users.json');
+        const defaultUsers = await res.json();
+        defaultUsers.forEach(u => usersSet.add(u));
+      } catch (e) {}
+
+      onSnapshot(collection(db, "orders"), snap => {
+        snap.forEach(d => {
+          const u = d.data().user || d.data().buyerName;
+          if (u) usersSet.add(u);
+        });
+        updateUserDropdown();
+      });
+
+      onSnapshot(collection(db, "user_deposits"), snap => {
+        depositsMap = {};
+        snap.forEach(d => {
+          const data = { id: d.id, ...d.data() };
+          depositsMap[d.id] = data;
+          const u = data.user || data.buyerName || data.name;
+          if (u) usersSet.add(u);
+        });
+        updateUserDropdown();
+        renderTable();
+      });
+    });
+
+    function updateUserDropdown() {
+      const userSel = document.getElementById('userSelect');
+      const curVal = userSel.value;
+      const sortedUsers = Array.from(usersSet).sort((a, b) => a.localeCompare(b, 'zh-TW'));
+
+      userSel.innerHTML = '<option value="">請選擇買家暱稱</option>';
+      sortedUsers.forEach(u => {
+        userSel.innerHTML += `<option value="${u}">${u}</option>`;
+      });
+
+      if (curVal && sortedUsers.includes(curVal)) userSel.value = curVal;
+
+      const capsuleBox = document.getElementById('buyerCapsules');
+      capsuleBox.innerHTML = `<button class="capsule-btn ${activeFilterUser === 'ALL' ? 'active' : ''}" onclick="filterByUser('ALL', this)">👤 顯示全部買家</button>`;
+      
+      sortedUsers.forEach(u => {
+        capsuleBox.innerHTML += `<button class="capsule-btn ${activeFilterUser === u ? 'active' : ''}" onclick="filterByUser('${u}', this)">👤 ${u}</button>`;
+      });
+    }
+
+    window.filterByUser = (uName, btnElem) => {
+      activeFilterUser = uName;
+      document.querySelectorAll('.capsule-btn').forEach(b => b.classList.remove('active'));
+      if (btnElem) btnElem.classList.add('active');
+      renderTable();
+    };
+
+    function renderTable() {
+      const tb = document.getElementById('depositTableBody');
+      tb.innerHTML = '';
+
+      let list = Object.values(depositsMap);
+
+      if (activeFilterUser !== 'ALL') {
+        list = list.filter(c => (c.user === activeFilterUser || c.buyerName === activeFilterUser || c.name === activeFilterUser));
+      }
+
+      let totalDep = 0;
+      let totalU = 0;
+      
+      Object.values(depositsMap).forEach(c => {
+        if (activeFilterUser === 'ALL' || (c.user === activeFilterUser || c.buyerName === activeFilterUser || c.name === activeFilterUser)) {
+          const amt = Number(c.amount) || 0;
+          if (c.type !== 'usage') totalDep += amt;
+          else totalU += amt;
+        }
+      });
+
+      document.getElementById('statTotalDeposit').textContent = `$${totalDep.toLocaleString()}`;
+      document.getElementById('statTotalUsed').textContent = `$${totalU.toLocaleString()}`;
+      document.getElementById('statTotalBalance').textContent = `$${(totalDep - totalU).toLocaleString()}`;
+
+      if (list.length === 0) {
+        tb.innerHTML = '<tr><td colspan="6" style="text-align:center; color:#909399; padding:30px;">目前尚無儲值金紀錄</td></tr>';
+        notifyHeight();
+        return;
+      }
+
+      list.sort((a, b) => {
+        const tA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const tB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return tB - tA;
+      });
+
+      list.forEach(item => {
+        const uName = item.user || item.buyerName || item.name || '-';
+        const amt = Number(item.amount) || 0;
+        const isDeposit = (item.type !== 'usage');
+
+        let dateStr = item.date || item.createdAt || '-';
+        if (typeof dateStr === 'object' && dateStr.seconds) {
+          dateStr = new Date(dateStr.seconds * 1000).toLocaleString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+        } else if (typeof dateStr === 'string' && dateStr.length > 16) {
+          dateStr = dateStr.slice(0, 16).replace('T', ' ');
+        }
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${dateStr}</td>
+          <td><b>${uName}</b></td>
+          <td><span class="badge-type ${isDeposit ? 'badge-deposit' : 'badge-usage'}">${isDeposit ? '➕ 儲值' : '➖ 扣款'}</span></td>
+          <td><b style="color:${isDeposit ? '#67c23a' : '#f56c6c'};">${isDeposit ? '+' : '-'}$${amt}</b></td>
+          <td>${item.note || '-'}</td>
+          <td>
+            <button class="btn-edit" onclick="editDeposit('${item.id}')">✏️ 編輯</button>
+            <button class="btn-danger" onclick="deleteDeposit('${item.id}')">🗑️ 刪除</button>
+          </td>
+        `;
+        tb.appendChild(tr);
+      });
+
+      notifyHeight();
+    }
+
+    document.getElementById('depositForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const saveBtn = document.getElementById('saveBtn');
+      saveBtn.disabled = true;
+
+      const editId = document.getElementById('editDepositId').value;
+      const user = document.getElementById('userSelect').value;
+      const type = document.getElementById('typeSelect').value;
+      const amt = parseFloat(document.getElementById('depositAmt').value) || 0;
+      const note = document.getElementById('depositNote').value.trim();
+
+      const docId = editId ? editId : `dep_${Date.now()}`;
+
+      try {
+        await setDoc(doc(db, "user_deposits", docId), {
+          user: user,
+          buyerName: user,
+          amount: amt,
+          type: type,
+          note: note,
+          createdAt: new Date().toISOString()
+        }, { merge: true });
+
+        alert('✅ 儲值紀錄已成功更新！');
+        resetDepositForm();
+      } catch (err) {
+        alert('儲存失敗：' + err.message);
+      } finally {
+        saveBtn.disabled = false;
+      }
+    });
+
+    window.editDeposit = (docId) => {
+      const item = depositsMap[docId];
+      if (!item) return;
+
+      document.getElementById('editDepositId').value = docId;
+      document.getElementById('userSelect').value = item.user || item.buyerName || '';
+      document.getElementById('typeSelect').value = item.type || 'deposit';
+      document.getElementById('depositAmt').value = item.amount || '';
+      document.getElementById('depositNote').value = item.note || '';
+
+      document.getElementById('saveBtn').textContent = '更新紀錄';
+      document.getElementById('cancelBtn').style.display = 'inline-block';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    window.deleteDeposit = async (docId) => {
+      if (confirm('確定要刪除這筆儲值紀錄嗎？')) {
+        await deleteDoc(doc(db, "user_deposits", docId));
+        alert('已刪除');
+      }
+    };
+
+    window.resetDepositForm = () => {
+      document.getElementById('depositForm').reset();
+      document.getElementById('editDepositId').value = '';
+      document.getElementById('saveBtn').textContent = '新增紀錄';
+      document.getElementById('cancelBtn').style.display = 'none';
+    };
+
+    function notifyHeight() {
+      setTimeout(() => {
+        window.parent.postMessage({ frameHeight: document.body.scrollHeight }, '*');
+      }, 100);
+    }
+  </script>
+</body>
+</html>

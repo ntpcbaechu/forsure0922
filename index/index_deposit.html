@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <title>儲值金餘額查詢</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 0; margin: 0; background: transparent; color: #333; }
+    
+    .search-card { background: #fff; border: 1px solid #e4e7ed; border-radius: 12px; padding: 16px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); }
+    .search-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .search-title { font-size: 15px; font-weight: bold; color: #303133; white-space: nowrap; }
+
+    select { flex: 1; min-width: 200px; padding: 10px 12px; border: 1px solid #dcdfe6; border-radius: 8px; font-size: 14px; background: #fff; outline: none; }
+    select:focus { border-color: #409eff; }
+
+    .summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
+    @media (max-width: 600px) { .summary-grid { grid-template-columns: 1fr; } }
+
+    .stat-box { background: #fff; border: 1px solid #ebeef5; border-radius: 10px; padding: 14px; text-align: center; box-shadow: 0 2px 6px rgba(0,0,0,0.02); }
+    .stat-box.highlight { background: #f0f9eb; border-color: #e1f3d8; }
+    .stat-label { font-size: 12px; color: #909399; font-weight: bold; margin-bottom: 6px; }
+    .stat-val { font-size: 20px; font-weight: bold; color: #303133; }
+    .stat-val.green { color: #67c23a; font-size: 24px; }
+    .stat-val.blue { color: #409eff; }
+    .stat-val.orange { color: #e6a23c; }
+
+    .history-card { background: #fff; border: 1px solid #e4e7ed; border-radius: 12px; padding: 16px; }
+    .history-title { font-size: 15px; font-weight: bold; color: #303133; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px dashed #dcdfe6; display: flex; justify-content: space-between; align-items: center; }
+
+    .history-list { display: flex; flex-direction: column; gap: 8px; }
+    .history-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; background: #fafafa; border: 1px solid #ebeef5; border-radius: 8px; font-size: 13px; }
+    .history-item.deposit { border-left: 4px solid #67c23a; }
+    .history-item.usage { border-left: 4px solid #f56c6c; }
+
+    .item-left { display: flex; flex-direction: column; gap: 3px; }
+    .item-note { font-weight: bold; color: #303133; font-size: 14px; }
+    .item-date { font-size: 11px; color: #909399; }
+    
+    .item-amt { font-size: 15px; font-weight: bold; }
+    .amt-plus { color: #67c23a; }
+    .amt-minus { color: #f56c6c; }
+
+    .empty-tip { text-align: center; color: #909399; padding: 30px 0; font-size: 14px; }
+  </style>
+</head>
+<body>
+
+  <h3 style="margin-top:0; margin-bottom:12px; font-size:18px;">💵 預存儲值金查詢</h3>
+
+  <div class="search-card">
+    <div class="search-row">
+      <span class="search-title">👤 請選擇您的社群名稱：</span>
+      <select id="userSelect">
+        <option value="">載入買家名單中...</option>
+      </select>
+    </div>
+  </div>
+
+  <div id="contentArea" style="display:none;">
+    <div class="summary-grid">
+      <div class="stat-box highlight">
+        <div class="stat-label">🟢 目前可用儲值金餘額</div>
+        <div class="stat-val green" id="availableDeposit">$0</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">📥 累積儲值金額</div>
+        <div class="stat-val blue" id="totalDeposit">$0</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">📤 累積已扣款/使用</div>
+        <div class="stat-val orange" id="totalUsed">$0</div>
+      </div>
+    </div>
+
+    <div class="history-card">
+      <div class="history-title">
+        <span>📜 儲值金異動紀錄</span>
+        <span style="font-size:12px; font-weight:normal; color:#909399;" id="recordCount">共 0 筆</span>
+      </div>
+      <div id="historyList" class="history-list"></div>
+    </div>
+  </div>
+
+  <div id="emptyArea" class="search-card empty-tip">
+    請在上方選擇您的社群暱稱以查詢儲值金餘額 🔍
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getFirestore, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDF7QySG1Jj4gdZvXwMRaKjRmI-lFKpj7k",
+      authDomain: "forsure0922.firebaseapp.com",
+      databaseURL: "https://forsure0922-default-rtdb.firebaseio.com",
+      projectId: "forsure0922",
+      storageBucket: "forsure0922.firebasestorage.app",
+      messagingSenderId: "817449290174",
+      appId: "1:817449290174:web:6b4ec1d36c171ff97011ef"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    let allDeposits = [];
+    let activeUser = '';
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      let defaultUsers = [];
+      try {
+        const res = await fetch('../json/users.json');
+        defaultUsers = await res.json();
+      } catch (e) {}
+
+      onSnapshot(collection(db, "user_deposits"), snap => {
+        allDeposits = [];
+        const depositUsers = new Set(defaultUsers);
+
+        snap.forEach(d => {
+          const data = { id: d.id, ...d.data() };
+          allDeposits.push(data);
+          const uName = data.user || data.buyerName || data.name;
+          if (uName) depositUsers.add(uName);
+        });
+
+        updateUserDropdown(Array.from(depositUsers));
+        if (activeUser) renderUserDeposit(activeUser);
+      });
+
+      document.getElementById('userSelect').addEventListener('change', (e) => {
+        activeUser = e.target.value;
+        renderUserDeposit(activeUser);
+      });
+    });
+
+    function updateUserDropdown(usersList) {
+      const sel = document.getElementById('userSelect');
+      const cur = sel.value;
+      sel.innerHTML = '<option value="">請選擇您的社群名稱</option>';
+
+      usersList.sort((a, b) => a.localeCompare(b, 'zh-TW')).forEach(u => {
+        sel.innerHTML += `<option value="${u}">${u}</option>`;
+      });
+
+      if (cur && usersList.includes(cur)) sel.value = cur;
+    }
+
+    function renderUserDeposit(userName) {
+      const contentArea = document.getElementById('contentArea');
+      const emptyArea = document.getElementById('emptyArea');
+
+      if (!userName) {
+        contentArea.style.display = 'none';
+        emptyArea.style.display = 'block';
+        notifyHeight();
+        return;
+      }
+
+      emptyArea.style.display = 'none';
+      contentArea.style.display = 'block';
+
+      const userRecords = allDeposits.filter(c => (c.user === userName || c.buyerName === userName || c.name === userName));
+      
+      let totalDep = 0;
+      let totalU = 0;
+      let historyItems = [];
+
+      userRecords.forEach(c => {
+        const amt = Number(c.amount) || Number(c.credit) || 0;
+        const isDeposit = (c.type !== 'usage');
+
+        if (isDeposit) totalDep += amt;
+        else totalU += amt;
+
+        let dateStr = c.date || c.createdAt || '-';
+        if (typeof dateStr === 'object' && dateStr.seconds) {
+          dateStr = new Date(dateStr.seconds * 1000).toISOString().slice(0,10);
+        } else if (typeof dateStr === 'string' && dateStr.length > 10) {
+          dateStr = dateStr.slice(0, 10);
+        }
+
+        historyItems.push({
+          type: isDeposit ? 'deposit' : 'usage',
+          title: c.note || (isDeposit ? '現金儲值入帳' : '扣款/消費折抵'),
+          date: dateStr,
+          amount: amt
+        });
+      });
+
+      const available = totalDep - totalU;
+
+      document.getElementById('availableDeposit').textContent = `$${available.toLocaleString()}`;
+      document.getElementById('totalDeposit').textContent = `$${totalDep.toLocaleString()}`;
+      document.getElementById('totalUsed').textContent = `$${totalU.toLocaleString()}`;
+
+      historyItems.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+      const listContainer = document.getElementById('historyList');
+      document.getElementById('recordCount').textContent = `共 ${historyItems.length} 筆紀錄`;
+      listContainer.innerHTML = '';
+
+      if (historyItems.length === 0) {
+        listContainer.innerHTML = '<div class="empty-tip">目前尚無儲值金紀錄</div>';
+      } else {
+        historyItems.forEach(item => {
+          const isDep = item.type === 'deposit';
+          listContainer.innerHTML += `
+            <div class="history-item ${isDep ? 'deposit' : 'usage'}">
+              <div class="item-left">
+                <span class="item-note">${isDep ? '➕' : '➖'} ${item.title}</span>
+                <span class="item-date">⏱️ 日期：${item.date}</span>
+              </div>
+              <div class="item-amt ${isDep ? 'amt-plus' : 'amt-minus'}">
+                ${isDep ? '+' : '-'}$${item.amount.toLocaleString()}
+              </div>
+            </div>
+          `;
+        });
+      }
+
+      notifyHeight();
+    }
+
+    function notifyHeight() {
+      setTimeout(() => {
+        const h = Math.max(document.body.scrollHeight, 500);
+        window.parent.postMessage({ frameHeight: h }, '*');
+      }, 150);
+    }
+  </script>
+</body>
+</html>
