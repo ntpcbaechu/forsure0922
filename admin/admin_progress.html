@@ -14,6 +14,9 @@
     .btn-danger { background-color: #f56c6c; color: white; padding: 4px 8px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; }
     .btn-edit { background-color: #e6a23c; color: white; padding: 4px 8px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; margin-right: 4px; }
     .form-row { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 15px; align-items: center; background: #f8f9fa; padding: 12px; border-radius: 8px; }
+    
+    /* 加粗活動與成員間的分隔線 */
+    .group-divider-row td { border-bottom: 2px solid #c0c4cc !important; }
   </style>
 </head>
 <body>
@@ -81,7 +84,7 @@
 
     let rawEventSettings = [];
     let progressMap = {};
-    let memberOrderList = ["方燦", "Lee Know", "彰彬", "鉉辰", "Han", "Felix", "昇玟", "I.N"];
+    let memberOrderList = ["方燦", "Lee Know", "彰彬", "鉉辰", "HAN", "Felix", "昇玟", "I.N"];
 
     fetch('../json/members.json').then(r => r.json()).then(arr => { memberOrderList = arr; }).catch(() => {});
 
@@ -154,7 +157,7 @@
       });
     });
 
-    // 實作同一天同成員 rowspan 跨行垂直合併
+    // 監聽與繪製：1.活動日期排序 2.成員排序 + rowspan跨行合併與加粗分隔線
     onSnapshot(collection(db, "photo_progress"), snap => {
       const tb = document.getElementById('progressTable');
       tb.innerHTML = '';
@@ -170,20 +173,44 @@
           list.push(item);
         });
 
-        // 按「活動名稱 + 成員」進行分組
+        // 按 1.活動日期/名稱 2.成員順序 進行雙重排序
+        list.sort((a, b) => {
+          const eA = a.event || a.eventName || a.rawName || '';
+          const eB = b.event || b.eventName || b.rawName || '';
+          if (eA !== eB) return eA.localeCompare(eB);
+
+          const mA = a.member || '';
+          const mB = b.member || '';
+          let idxA = memberOrderList.indexOf(mA);
+          let idxB = memberOrderList.indexOf(mB);
+          if (idxA === -1) idxA = 99;
+          if (idxB === -1) idxB = 99;
+          return idxA - idxB;
+        });
+
+        // 分組歸類
+        const groupKeys = [];
         const groups = {};
         list.forEach(item => {
           const eName = item.event || item.eventName || item.rawName || '-';
           const mName = item.member || '-';
           const key = `${eName}__${mName}`;
-          if (!groups[key]) groups[key] = [];
+          if (!groups[key]) {
+            groups[key] = [];
+            groupKeys.push(key);
+          }
           groups[key].push(item);
         });
 
-        for (const [key, items] of Object.entries(groups)) {
+        groupKeys.forEach(key => {
+          const items = groups[key];
           const rowCount = items.length;
+
           items.forEach((item, idx) => {
             const tr = document.createElement('tr');
+            if (idx === rowCount - 1) {
+              tr.className = 'group-divider-row'; // 各活動/成員分組的最後一行加上加粗邊框
+            }
 
             const eventTitle = item.event || item.eventName || item.rawName || '-';
             const memberName = item.member || '-';
@@ -194,7 +221,7 @@
             if (idx === 0) {
               mergedCells = `
                 <td rowspan="${rowCount}" style="vertical-align:middle;"><b>${eventTitle}</b></td>
-                <td rowspan="${rowCount}" style="vertical-align:middle;">${memberName}</td>
+                <td rowspan="${rowCount}" style="vertical-align:middle;"><b>${memberName}</b></td>
               `;
             }
 
@@ -209,7 +236,7 @@
             `;
             tb.appendChild(tr);
           });
-        }
+        });
       }
       notifyHeight();
     });
