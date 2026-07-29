@@ -17,6 +17,7 @@
     .group-header.pending { background: #fdf6ec; color: #e6a23c; border-color: #faecd8; }
     .group-header.error { background: #fef0f0; color: #f56c6c; border-color: #fde2e2; }
     .group-header.ok { background: #f0f9eb; color: #67c23a; border-color: #e1f3d8; }
+    .group-header.photo_sent { background: #ecf5ff; color: #409eff; border-color: #d9ecff; }
 
     .group-badge { font-size: 11px; padding: 2px 8px; border-radius: 10px; background: rgba(255,255,255,0.8); }
 
@@ -93,7 +94,7 @@
     const GROUP_CONFIGS = [
       { key: 'pending', title: '🟡 未對帳', class: 'pending' },
       { key: 'error', title: '🔴 帳有問題', class: 'error' },
-      { key: 'ok', title: '🟢 已對帳', class: 'ok' }
+      { key: 'ok', title: '🟢 已對帳 (未發圖)', class: 'ok' }
     ];
 
     let paymentDataMap = {};
@@ -165,7 +166,11 @@
       GROUP_CONFIGS.forEach(group => {
         if (currentFilter !== 'all' && currentFilter !== group.key) return;
 
-        const groupItems = list.filter(p => getNormalizedPayStatus(p) === group.key);
+        // 當篩選【已對帳】時，過濾掉已發圖的資料
+        let groupItems = list.filter(p => getNormalizedPayStatus(p) === group.key);
+        if (group.key === 'ok' && currentFilter === 'ok') {
+          groupItems = groupItems.filter(p => !(p.isPhotoSent === true || p.status === 'photo_sent'));
+        }
 
         if (groupItems.length === 0 && currentFilter !== 'all') {
           container.innerHTML = '<div style="text-align:center; color:#909399; padding:30px;">目前尚無此狀態的對帳紀錄</div>';
@@ -273,9 +278,11 @@
       }
 
       let photoDatesHtml = '';
-      if (isPhotoSent && p.photoSentAt) {
-        photoDatesHtml = '<div style="margin-top:4px; color:#409eff; font-size:11px; background:#f4f9ff; padding:4px 6px; border-radius:4px; border:1px solid #d9ecff;">' +
-          '🔵 發圖日: <b>' + p.photoSentAt + '</b><br>⏳ 刪除日: <b style="color:#f56c6c;">' + (p.photoExpireAt || '-') + '</b>' +
+      if (isPhotoSent) {
+        const curPhotoDate = p.photoSentAt || new Date().toISOString().slice(0,10);
+        photoDatesHtml = '<div style="margin-top:4px; color:#409eff; font-size:11px; background:#f4f9ff; padding:6px; border-radius:4px; border:1px solid #d9ecff;">' +
+          '🔵 發圖日: <input type="date" value="' + curPhotoDate + '" onchange="updatePhotoSentDate(\'' + docId + '\', this.value)" style="font-size:11px; padding:1px 3px;"><br>' +
+          '<div style="margin-top:2px;">⏳ 刪除日: <b style="color:#f56c6c;">' + (p.photoExpireAt || '-') + '</b></div>' +
         '</div>';
       }
 
@@ -453,6 +460,27 @@
         });
         await syncPhotoStatusToOrders(relatedIds, buyerName, true, todayStr, expireStr);
       } catch (err) { alert('更新失敗: ' + err.message); }
+    };
+
+    window.updatePhotoSentDate = async (docId, newDateStr) => {
+      if (!newDateStr) return;
+      const pData = paymentDataMap[docId] || {};
+      const relatedIds = pData.relatedOrderIds || [];
+      const buyerName = pData.user || pData.buyerName;
+
+      const dateObj = new Date(newDateStr);
+      if (isNaN(dateObj.getTime())) return;
+
+      const expireObj = new Date(dateObj.getTime() + 8 * 24 * 60 * 60 * 1000);
+      const expireStr = expireObj.toISOString().slice(0,10);
+
+      try {
+        await updateDoc(doc(db, "payments", docId), {
+          photoSentAt: newDateStr,
+          photoExpireAt: expireStr
+        });
+        await syncPhotoStatusToOrders(relatedIds, buyerName, true, newDateStr, expireStr);
+      } catch (err) { alert('更新發圖日失敗: ' + err.message); }
     };
 
     window.editErrorNote = async (docId, oldNote) => {
