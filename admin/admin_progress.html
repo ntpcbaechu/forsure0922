@@ -181,8 +181,8 @@
         });
 
         list.sort((a, b) => {
-          const eA = a.eventName || '';
-          const eB = b.eventName || '';
+          const eA = a.eventName || a.event || '';
+          const eB = b.eventName || b.event || '';
           if (eA !== eB) return eA.localeCompare(eB);
 
           const mA = a.member || '';
@@ -196,7 +196,7 @@
 
         const eventGroups = {};
         list.forEach(item => {
-          const eName = item.eventName || '未命名活動';
+          const eName = item.eventName || item.event || '未命名活動';
           if (!eventGroups[eName]) eventGroups[eName] = [];
           eventGroups[eName].push(item);
         });
@@ -270,23 +270,23 @@
       const saveBtn = document.getElementById('saveProgressBtn');
       saveBtn.disabled = true;
 
-      const editId = document.getElementById('editProgressId').value;
       const eventName = document.getElementById('eventSelect').value;
       const member = document.getElementById('memberSelect').value;
       const seller = document.getElementById('sellerSelect').value;
       const status = document.getElementById('statusSelect').value;
 
-      const docId = editId || `prog_${Date.now()}`;
+      // 🔥 強制固定格式：文件 ID 自動組成 活動名稱_成員_代拍
+      const cleanSeller = seller ? seller.trim() : 'default';
+      const docId = `${eventName}_${member}_${cleanSeller}`;
 
       try {
-        // 🔥 這裡強迫只寫入純淨的 eventName 欄位，徹底拋棄舊欄位名稱
         await setDoc(doc(db, "photo_progress", docId), {
           eventName: eventName,
           member: member,
           seller: seller,
           status: status,
           updatedAt: new Date()
-        });
+        }, { merge: true });
 
         alert('✅ 進度發佈成功！');
         resetForm();
@@ -304,7 +304,7 @@
       document.getElementById('editProgressId').value = docId;
       
       const evSel = document.getElementById('eventSelect');
-      evSel.value = item.eventName || '';
+      evSel.value = item.eventName || item.event || '';
       evSel.dispatchEvent(new Event('change'));
 
       setTimeout(() => {
