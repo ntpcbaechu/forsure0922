@@ -320,11 +320,11 @@
           const reason = prompt("請輸入對帳問題原因：");
           if (reason !== null) { 
             await updateDoc(doc(db, "payments", docId), { status: 'error', errorNote: reason, checkDate: today });
-            await syncOrdersStatus(relatedIds, buyerName, false, '對帳有問題');
+            await syncOrdersStatus(relatedIds, buyerName, false, '對帳有問題', reason);
           }
         } else {
           await updateDoc(doc(db, "payments", docId), { status: 'ok', errorNote: '', checkDate: today });
-          await syncOrdersStatus(relatedIds, buyerName, true, '已對帳');
+          await syncOrdersStatus(relatedIds, buyerName, true, '已對帳', '');
         }
       } catch (err) {
         alert('更新失敗: ' + err.message);
@@ -335,6 +335,8 @@
       const reason = prompt("修改問題原因：", oldNote);
       if (reason !== null) { 
         await updateDoc(doc(db, "payments", docId), { errorNote: reason });
+        const pData = paymentDataMap[docId] || {};
+        await syncOrdersStatus(pData.relatedOrderIds || [], pData.user || pData.buyerName, false, '對帳有問題', reason);
       }
     };
 
@@ -346,7 +348,7 @@
 
         try {
           await deleteDoc(doc(db, "payments", docId));
-          await syncOrdersStatus(relatedIds, buyerName, false, '待匯款');
+          await syncOrdersStatus(relatedIds, buyerName, false, '待匯款', '');
           alert('已刪除審核紀錄並還原訂單狀態。');
         } catch (err) {
           alert('刪除失敗: ' + err.message);
@@ -354,24 +356,23 @@
       }
     };
 
-    async function syncOrdersStatus(relatedIds, buyerName, isPaid, statusText) {
+    async function syncOrdersStatus(relatedIds, buyerName, isPaid, statusText, errorNote = '') {
+      const updateData = {
+        hasPaid: isPaid,
+        paymentStatus: statusText,
+        status: statusText,
+        errorNote: errorNote
+      };
+
       if (relatedIds && relatedIds.length > 0) {
-        const updatePromises = relatedIds.map(id => updateDoc(doc(db, "orders", id), {
-          hasPaid: isPaid,
-          paymentStatus: statusText,
-          status: statusText
-        }));
+        const updatePromises = relatedIds.map(id => updateDoc(doc(db, "orders", id), updateData));
         await Promise.all(updatePromises);
       } else if (buyerName) {
         const q = query(collection(db, "orders"), where("user", "==", buyerName));
         const snap = await getDocs(q);
         const updatePromises = [];
         snap.forEach(d => {
-          updatePromises.push(updateDoc(doc(db, "orders", d.id), {
-            hasPaid: isPaid,
-            paymentStatus: statusText,
-            status: statusText
-          }));
+          updatePromises.push(updateDoc(doc(db, "orders", d.id), updateData));
         });
         await Promise.all(updatePromises);
       }
