@@ -297,8 +297,9 @@
 
     function notifyHeight() {
       setTimeout(() => {
-        window.parent.postMessage({ frameHeight: document.body.scrollHeight }, '*');
-      }, 100);
+        const h = Math.max(document.body.scrollHeight, 500);
+        window.parent.postMessage({ frameHeight: h }, '*');
+      }, 200);
     }
   </script>
 </body>
