@@ -44,14 +44,13 @@
 
   <h3>團員填單紀錄管理</h3>
 
-  <!-- 仿照 index_records 的篩選面板 -->
   <div class="filter-card">
     <div class="filter-row">
       <span class="filter-title">🔍 篩選模式：</span>
       <select id="modeSelect">
         <option value="ALL">全部顯示</option>
         <option value="user">依社群暱稱</option>
-        <option value="event">依活動名稱</option>
+        <option value="event">依活動與成員</option>
       </select>
       <input type="text" id="searchOrderInput" placeholder="直接關鍵字搜尋..." style="flex:1; min-width:180px;">
     </div>
@@ -92,19 +91,21 @@
     const db = getFirestore(app);
 
     let usersList = [];
-    let membersList = [];
+    let membersList = ["方燦", "Lee Know", "彰彬", "鉉辰", "HAN", "Felix", "昇玟", "I.N"];
     let eventList = [];
     let ordersCache = {};
     let editingRows = new Set();
     let activeFilterValue = 'ALL';
 
     document.addEventListener('DOMContentLoaded', async () => {
-      const [uRes, mRes] = await Promise.all([
-        fetch('../json/users.json'),
-        fetch('../json/members.json')
-      ]);
-      usersList = await uRes.json();
-      membersList = await mRes.json();
+      try {
+        const [uRes, mRes] = await Promise.all([
+          fetch('../json/users.json'),
+          fetch('../json/members.json')
+        ]);
+        usersList = await uRes.json();
+        membersList = await mRes.json();
+      } catch(e) {}
 
       onSnapshot(collection(db, "event_settings"), snap => {
         const eventsSet = new Set();
@@ -160,17 +161,29 @@
           container.appendChild(btn);
         });
       } else if (mode === 'event') {
-        const eventsSet = new Set();
+        // 收集 「活動名稱__成員」 組合
+        const eventMemberSet = new Set();
         allOrders.forEach(o => {
           const ev = o.event || o.eventName || '未分類活動';
-          if (ev) eventsSet.add(ev);
+          const mem = o.member || '全體';
+          if (ev) eventMemberSet.add(`${ev}__${mem}`);
         });
-        const sortedEvents = Array.from(eventsSet).sort((a, b) => {
-          const matchA = a.match(/\d{6}/); const matchB = b.match(/\d{6}/);
+
+        const sortedEventMembers = Array.from(eventMemberSet).sort((a, b) => {
+          const [evA, memA] = a.split('__');
+          const [evB, memB] = b.split('__');
+
+          const matchA = evA.match(/\d{6}/); const matchB = evB.match(/\d{6}/);
           const dateA = matchA ? parseInt(matchA[0], 10) : 0;
           const dateB = matchB ? parseInt(matchB[0], 10) : 0;
           if (dateA !== dateB) return dateA - dateB;
-          return a.localeCompare(b, 'zh-TW');
+          if (evA !== evB) return evA.localeCompare(evB, 'zh-TW');
+
+          let idxA = membersList.indexOf(memA);
+          let idxB = membersList.indexOf(memB);
+          if (idxA === -1) idxA = 99;
+          if (idxB === -1) idxB = 99;
+          return idxA - idxB;
         });
 
         const allBtn = document.createElement('button');
@@ -179,11 +192,12 @@
         allBtn.onclick = () => { activeFilterValue = 'ALL'; renderCapsulesAndTable(); };
         container.appendChild(allBtn);
 
-        sortedEvents.forEach(evTitle => {
+        sortedEventMembers.forEach(key => {
+          const [evTitle, memName] = key.split('__');
           const btn = document.createElement('button');
-          btn.className = `capsule-btn ${activeFilterValue === evTitle ? 'active' : ''}`;
-          btn.textContent = `📍 ${evTitle}`;
-          btn.onclick = () => { activeFilterValue = evTitle; renderCapsulesAndTable(); };
+          btn.className = `capsule-btn ${activeFilterValue === key ? 'active' : ''}`;
+          btn.textContent = `📍 ${evTitle} - ${memName}`;
+          btn.onclick = () => { activeFilterValue = key; renderCapsulesAndTable(); };
           container.appendChild(btn);
         });
       }
@@ -202,14 +216,16 @@
       const filtered = allOrders.filter(item => {
         const user = String(item.buyerName || item.user || item.nickname || '');
         const eName = String(item.event || item.eventName || '');
+        const member = String(item.member || '');
 
-        // 膠囊篩選判斷
         if (mode === 'user' && activeFilterValue !== 'ALL' && user !== activeFilterValue) return false;
-        if (mode === 'event' && activeFilterValue !== 'ALL' && eName !== activeFilterValue) return false;
+        if (mode === 'event' && activeFilterValue !== 'ALL') {
+          const targetKey = `${eName}__${member}`;
+          if (targetKey !== activeFilterValue) return false;
+        }
 
-        // 文字搜尋框判斷
         if (kw) {
-          const rowText = `${user} ${eName} ${item.member || ''} ${item.orderType || ''}`.toLowerCase();
+          const rowText = `${user} ${eName} ${member} ${item.orderType || ''}`.toLowerCase();
           if (!rowText.includes(kw)) return false;
         }
         return true;
