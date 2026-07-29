@@ -64,6 +64,7 @@
       <option value="分圖中">分圖中</option>
       <option value="整理中">整理中</option>
       <option value="已完工">已完工</option>
+      <option value="已預約">已預約</option>
     </select>
 
     <button type="submit" id="saveProgressBtn">發佈進度</button>
@@ -275,7 +276,6 @@
       const seller = document.getElementById('sellerSelect').value;
       const status = document.getElementById('statusSelect').value;
 
-      // 🔥 強制固定格式：文件 ID 自動組成 活動名稱_成員_代拍
       const cleanSeller = seller ? seller.trim() : 'default';
       const docId = `${eventName}_${member}_${cleanSeller}`;
 

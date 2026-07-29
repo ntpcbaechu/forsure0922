@@ -8,7 +8,6 @@
     
     .event-group-card { background: #fff; border: 1px solid #e4e7ed; border-radius: 12px; overflow: hidden; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); }
     
-    /* 仿照後台高質感標題列 */
     .event-group-header {
       background: #eef5fe;
       border-left: 4px solid #409eff;
@@ -21,18 +20,35 @@
       gap: 6px;
     }
 
-    .progress-list-box { padding: 4px 14px 10px 14px; }
-    .progress-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 4px; border-bottom: 1px solid #f2f6fc; }
-    .progress-row:last-child { border-bottom: none; }
+    .progress-grid-box { 
+      padding: 12px; 
+      display: grid; 
+      grid-template-columns: repeat(2, 1fr); 
+      gap: 10px; 
+    }
+
+    .progress-item { 
+      background: #fcfcfc; 
+      border: 1px solid #ebeef5; 
+      border-radius: 8px; 
+      padding: 10px 12px; 
+      display: flex; 
+      justify-content: space-between; 
+      align-items: center; 
+    }
     
     .member-info { font-size: 13px; color: #606266; display: flex; align-items: center; gap: 8px; }
     .member-name { font-weight: bold; color: #303133; font-size: 14px; }
     .seller-tag { font-size: 11px; color: #909399; background: #f4f4f5; padding: 2px 6px; border-radius: 4px; font-weight: normal; }
 
-    .status-badge { padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; white-space: nowrap; }
+    .status-badge { padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: bold; white-space: nowrap; }
     .status-waiting { background: #f4f4f5; color: #909399; }
     .status-sorting { background: #fdf6ec; color: #e6a23c; }
     .status-done { background: #f0f9eb; color: #67c23a; }
+
+    @media (max-width: 600px) {
+      .progress-grid-box { grid-template-columns: 1fr; }
+    }
   </style>
 </head>
 <body>
@@ -112,13 +128,13 @@
         });
 
         const memberIndexTracker = {};
-        let rowsHtml = '';
+        let itemsHtml = '';
 
         items.forEach((item) => {
           let badgeClass = 'status-waiting';
           const st = item.status || '等圖中';
           if (['分圖中', '整理中', '上傳中'].includes(st)) badgeClass = 'status-sorting';
-          if (['已完工', '已發圖', '已結束'].includes(st)) badgeClass = 'status-done';
+          if (['已完工', '已發圖', '已結束', '已預約'].includes(st)) badgeClass = 'status-done';
 
           const memberName = item.member || '全體';
           let sellerText = '';
@@ -128,8 +144,8 @@
             sellerText = `<span class="seller-tag">代拍${memberIndexTracker[memberName]++}</span>`;
           }
 
-          rowsHtml += `
-            <div class="progress-row">
+          itemsHtml += `
+            <div class="progress-item">
               <div class="member-info">
                 <span class="member-name">👤 ${memberName}</span>
                 ${sellerText}
@@ -142,8 +158,8 @@
         htmlContent += `
           <div class="event-group-card">
             <div class="event-group-header">📅 ${eventName}</div>
-            <div class="progress-list-box">
-              ${rowsHtml}
+            <div class="progress-grid-box">
+              ${itemsHtml}
             </div>
           </div>
         `;
