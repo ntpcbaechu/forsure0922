@@ -123,6 +123,17 @@
         <input type="date" id="payDate" required>
       </div>
 
+      <!-- 匯款銀行 (必選) -->
+      <div class="form-group">
+        <label>匯款銀行 *</label>
+        <select id="bankName" required>
+          <option value="">請選擇匯款銀行</option>
+          <option value="台銀">台銀</option>
+          <option value="樂天">樂天</option>
+          <option value="中信">中信</option>
+        </select>
+      </div>
+
       <!-- 匯款金額 -->
       <div class="form-group">
         <label>匯款金額 ($) *</label>
@@ -484,6 +495,12 @@
     document.getElementById('paymentForm').addEventListener('submit', async (e) => {
       e.preventDefault();
 
+      const bankNameVal = document.getElementById('bankName').value;
+      if (!bankNameVal) {
+        alert('請選擇匯款銀行！');
+        return;
+      }
+
       const inputAmount = parseFloat(document.getElementById('amount').value) || 0;
       if (inputAmount !== currentCalculatedFinalTotal) {
         alert(`⚠️ 金額不一致！\n\n您填寫的匯款金額是：$${inputAmount}\n本次應匯款總金額是：$${currentCalculatedFinalTotal}\n\n請重新確認匯款金額或勾選項目後再試一次！`);
@@ -536,6 +553,8 @@
           user: buyerNameVal,
           socialAccount: document.getElementById('socialAccount').value.trim(),
           payDate: document.getElementById('payDate').value,
+          bankName: bankNameVal,
+          bank: bankNameVal,
           amount: inputAmount,
           finalPay: inputAmount,
           last5: document.getElementById('last5').value.trim(),
