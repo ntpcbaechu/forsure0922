@@ -49,10 +49,11 @@
       let rawList = [];
       snap.forEach(d => rawList.push({ id: d.id, ...d.data() }));
 
-      // 依據「活動+成員」分組，統計代拍包數以防洩漏真名
       const groups = {};
       rawList.forEach(item => {
-        const key = `${item.eventName}__${item.member}`;
+        // 只精準對接全站統一的 eventName 欄位
+        const eTitle = item.eventName || '未命名活動';
+        const key = `${eTitle}__${item.member}`;
         if (!groups[key]) groups[key] = [];
         groups[key].push(item);
       });
@@ -64,19 +65,20 @@
 
         items.forEach((item, idx) => {
           let badgeClass = 'status-waiting';
-          if (item.status === '分圖中' || item.status === '上傳中') badgeClass = 'status-sorting';
-          if (item.status === '已發圖' || item.status === '已結束') badgeClass = 'status-done';
+          const st = item.status || '等圖中';
+          if (st === '分圖中' || st === '整理中' || st === '上傳中') badgeClass = 'status-sorting';
+          if (st === '已完工' || st === '已發圖' || st === '已結束') badgeClass = 'status-done';
 
-          // 多於 1 包圖顯示「(代拍1)」、「(代拍2)」，只有 1 包圖不顯示代拍字樣
           const sellerLabel = isMultipleSellers ? ` (代拍${idx + 1})` : '';
+          const displayTitle = item.eventName || '未命名活動';
 
           cardsHtml += `
             <div class="event-card">
               <div>
-                <div class="event-title">${item.eventName || '未命名活動'}</div>
+                <div class="event-title">${displayTitle}</div>
                 <div class="event-sub">成員：${item.member || '全體'}${sellerLabel}</div>
               </div>
-              <div class="status-badge ${badgeClass}">${item.status || '等圖中'}</div>
+              <div class="status-badge ${badgeClass}">${st}</div>
             </div>
           `;
         });
