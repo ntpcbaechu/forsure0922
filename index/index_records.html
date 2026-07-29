@@ -24,7 +24,6 @@
     .event-header { font-size: 15px; font-weight: bold; color: #303133; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
     .event-meta { font-size: 12px; color: #409eff; background: #ecf5ff; padding: 4px 8px; border-radius: 6px; }
 
-    /* 改為兩兩一排的網格佈局 */
     .cards-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 8px; }
     @media (max-width: 680px) {
       .cards-list { grid-template-columns: 1fr; }
@@ -34,6 +33,9 @@
     .order-top { display: flex; justify-content: space-between; align-items: flex-start; font-weight: bold; margin-bottom: 6px; }
     .order-info { display: flex; flex-direction: column; gap: 4px; color: #606266; font-size: 13px; margin-top: 4px; }
     
+    /* 下方左右對齊的金額列 */
+    .order-bottom-row { display: flex; justify-content: space-between; align-items: center; margin-top: 2px; }
+
     .status-badges-container { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
     
     .status-badge { padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; display: inline-block; }
@@ -130,7 +132,6 @@
 
       let totalPrice = packs * pricePerPack;
 
-      // 專屬指定折扣計算 (純靜默計算不顯示備註)
       if (setting.discounts && Array.isArray(setting.discounts)) {
         const userDisc = setting.discounts.find(d => d.targetUser === userName);
         if (userDisc) {
@@ -323,8 +324,10 @@
             '</div>' +
             '<div class="order-info">' +
               '<span>喊單內容：<b>' + info.packs + ' 包 / ' + info.qty + ' 張</b></span>' +
-              '<span>每包金額：<b>$' + info.pricePerPack + '</b></span>' +
-              '<span style="color:#409eff;">總金額：<b>$' + info.totalPrice.toLocaleString() + '</b></span>' +
+              '<div class="order-bottom-row">' +
+                '<span>每包金額：<b>$' + info.pricePerPack + '</b></span>' +
+                '<span style="color:#409eff;">總金額：<b>$' + info.totalPrice.toLocaleString() + '</b></span>' +
+              '</div>' +
             '</div>' +
           '</div>';
         });
