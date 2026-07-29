@@ -5,38 +5,42 @@
   <title>抽獎活動管理</title>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 15px; margin: 0; background: #fff; color: #333; }
-    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-    th, td { padding: 10px 8px; border-bottom: 1px solid #e4e7ed; text-align: left; font-size: 13px; vertical-align: middle; }
-    th { background: #f8f9fa; color: #606266; font-weight: bold; white-space: nowrap; }
-    input, select, button, textarea { padding: 8px 10px; border: 1px solid #dcdfe6; border-radius: 6px; font-size: 13px; box-sizing: border-box; transition: border-color 0.2s; outline: none; }
+    h3 { margin-top: 0; margin-bottom: 15px; font-size: 18px; }
+
+    input, select, button, textarea { padding: 8px 10px; border: 1px solid #dcdfe6; border-radius: 6px; font-size: 13px; box-sizing: border-box; outline: none; }
     input:focus, select:focus, textarea:focus { border-color: #409eff; }
     
     button { background-color: #409eff; color: white; border: none; font-weight: bold; cursor: pointer; }
     .btn-danger { background-color: #f56c6c; color: white; padding: 4px 8px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; }
-    .btn-edit { background-color: #e6a23c; color: white; padding: 4px 8px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; margin-right: 4px; }
+    .btn-edit { background-color: #e6a23c; color: white; padding: 4px 8px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; margin-bottom: 4px; display: block; width: 100%; text-align: center; }
 
     .form-section { background: #f8f9fa; border: 1px solid #ebeef5; border-radius: 8px; padding: 14px; margin-bottom: 12px; }
     .form-row { display: grid; gap: 10px; margin-bottom: 8px; align-items: end; }
     .row-2 { grid-template-columns: 1fr 1fr; }
-    .row-3 { grid-template-columns: 1fr 1fr 1.2fr; }
     .dynamic-row { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
 
     .auto-textarea { width: 100%; min-height: 50px; resize: none; overflow-y: hidden; line-height: 1.5; }
-    .info-rule-box { background: #ecf5ff; border-left: 4px solid #409eff; padding: 10px; border-radius: 0 6px 6px 0; font-size: 12px; color: #606266; line-height: 1.6; margin-bottom: 10px; }
-    
-    .status-badge { padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: bold; display: inline-block; }
-    .badge-sent { background: #ecf5ff; color: #409eff; border: 1px solid #b3d8ff; }
-    .badge-pending { background: #f4f4f5; color: #909399; border: 1px solid #e4e7ed; }
 
-    @media (max-width: 768px) {
-      .row-2, .row-3 { grid-template-columns: 1fr; }
-    }
+    /* 表格與按鈕樣式 */
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th, td { padding: 10px 8px; border-bottom: 1px solid #e4e7ed; text-align: left; font-size: 13px; vertical-align: top; }
+    th { background: #f8f9fa; color: #606266; font-weight: bold; white-space: nowrap; }
+
+    .btn-toggle-photo { padding: 6px 10px; border-radius: 6px; font-size: 12px; cursor: pointer; border: 1px solid #dcdfe6; background: #fff; transition: all 0.2s; width: 100%; text-align: center; font-weight: bold; }
+    .btn-toggle-photo.photo-active { background: #d9ecff; color: #409eff; border-color: #409eff; }
+
+    .winner-tag-box { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+    .winner-tag { background: #fdf6ec; border: 1px solid #faebd7; padding: 4px 8px; border-radius: 6px; font-size: 12px; color: #e6a23c; }
+    .winner-tag.special { background: #fef0f0; border-color: #fde2e2; color: #f56c6c; }
+
+    @media (max-width: 768px) { .row-2 { grid-template-columns: 1fr; } }
   </style>
 </head>
 <body>
 
-  <h3>🎁 抽獎活動管理與發圖進度</h3>
+  <h3>🎁 抽獎活動管理與結果發佈</h3>
 
+  <!-- 建立/編輯表單 -->
   <form id="lotteryForm" style="margin-bottom:20px;">
     <input type="hidden" id="editLotteryId">
 
@@ -67,28 +71,8 @@
           <select id="lotteryMember" style="width:100%;"><option value="">請選擇成員</option></select>
         </div>
       </div>
-
-      <!-- 新增：發圖狀態與日期設定 -->
-      <div class="form-row row-3" style="margin-top:10px; padding-top:10px; border-top:1px dashed #dcdfe6;">
-        <div>
-          <label style="font-size:12px; font-weight:bold;">📷 發圖狀態 *</label>
-          <select id="photoStatus" style="width:100%;">
-            <option value="待發圖">📷 待發圖</option>
-            <option value="已發圖">🔵 已發圖</option>
-          </select>
-        </div>
-        <div id="sentDateBox" style="display:none;">
-          <label style="font-size:12px; font-weight:bold;">📅 發圖日期</label>
-          <input type="date" id="photoSentAt" style="width:100%;">
-        </div>
-        <div id="expireDateBox" style="display:none;">
-          <label style="font-size:12px; font-weight:bold; color:#f56c6c;">⏳ 刪除日期 (+8天)</label>
-          <input type="date" id="photoExpireAt" readonly style="width:100%; background:#f5f7fa;">
-        </div>
-      </div>
     </div>
 
-    <!-- 動態獎項與中獎者列表 (同原本邏輯) -->
     <div class="form-section">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
         <label style="font-size:12px; font-weight:bold; color:#409eff;">🎁 獎項列表設定</label>
@@ -114,17 +98,16 @@
     <button type="button" id="cancelLotteryBtn" style="background:#909399; width:100%; padding:10px; margin-top:5px; display:none;" onclick="resetLotteryForm()">取消編輯</button>
   </form>
 
-  <!-- 歷史清單列表 -->
-  <h3>📜 歷史抽獎公告列表</h3>
+  <!-- 直覺化歷史清單 -->
+  <h3>📜 歷史抽獎公告與發圖進度</h3>
   <table>
     <thead>
       <tr>
-        <th style="width:15%;">發佈時間</th>
-        <th style="width:28%;">抽獎活動標題</th>
-        <th style="width:10%;">成員</th>
-        <th style="width:18%;">發圖狀態 / 日期</th>
-        <th style="width:15%;">參與籤數 / 中獎</th>
-        <th style="width:14%;">操作</th>
+        <th style="width:12%;">發佈日期</th>
+        <th style="width:48%;">抽獎主題 & 得獎名單明細</th>
+        <th style="width:12%;">成員/籤數</th>
+        <th style="width:16%;">發圖進度切換</th>
+        <th style="width:12%;">操作</th>
       </tr>
     </thead>
     <tbody id="lotteryTable"></tbody>
@@ -132,7 +115,7 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getFirestore, collection, doc, setDoc, deleteDoc, updateDoc, onSnapshot, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyDF7QySG1Jj4gdZvXwMRaKjRmI-lFKpj7k",
@@ -148,33 +131,151 @@
     const db = getFirestore(app);
 
     let lotteryMap = {};
+    let eventSettingsMap = {};
 
-    // 發圖狀態連動顯示日期
-    document.getElementById('photoStatus').addEventListener('change', (e) => {
-      const isSent = e.target.value === '已發圖';
-      document.getElementById('sentDateBox').style.display = isSent ? 'block' : 'none';
-      document.getElementById('expireDateBox').style.display = isSent ? 'block' : 'none';
+    document.addEventListener('DOMContentLoaded', () => {
+      fetch('../json/members.json').then(res => res.json()).then(members => {
+        const memSel = document.getElementById('lotteryMember');
+        memSel.innerHTML = '<option value="">請選擇成員</option>';
+        members.forEach(m => memSel.innerHTML += `<option value="${m}">${m}</option>`);
+        memSel.innerHTML += '<option value="團體/全體">團體/全體</option>';
+      });
+    });
 
-      if (isSent && !document.getElementById('photoSentAt').value) {
-        const todayStr = new Date().toISOString().slice(0,10);
-        document.getElementById('photoSentAt').value = todayStr;
-        calcExpireDate(todayStr);
+    document.querySelectorAll('input[name="modeType"]').forEach(r => {
+      r.addEventListener('change', (e) => {
+        document.getElementById('autoSection').style.display = e.target.value === 'auto' ? 'block' : 'none';
+      });
+    });
+
+    onSnapshot(collection(db, "event_settings"), snap => {
+      const eventSel = document.getElementById('eventSelect');
+      eventSel.innerHTML = '<option value="">請選擇活動與成員</option>';
+      eventSettingsMap = {};
+
+      snap.forEach(d => {
+        const data = d.data();
+        const key = `${data.name || data.rawName}_${data.member || ''}`;
+        eventSettingsMap[key] = data;
+        eventSel.innerHTML += `<option value="${key}">${data.name} - ${data.member || '全體'}</option>`;
+      });
+    });
+
+    document.getElementById('importBtn').onclick = async () => {
+      const selectedKey = document.getElementById('eventSelect').value;
+      if (!selectedKey) return alert('請先選擇活動場次與成員！');
+
+      const evData = eventSettingsMap[selectedKey];
+      const packQty = Number(evData?.packQty) || 1;
+      const targetEventName = evData?.name || evData?.rawName;
+      const targetMember = evData?.member;
+
+      const snap = await getDocs(collection(db, "orders"));
+      const userQtyMap = {};
+
+      snap.forEach(d => {
+        const ord = d.data();
+        if ((ord.event || ord.eventName) === targetEventName && ord.member === targetMember && (ord.orderType || '一般') === '一般') {
+          const userName = ord.buyerName || ord.user || ord.nickname || '未知';
+          userQtyMap[userName] = (userQtyMap[userName] || 0) + (Number(ord.qty !== undefined ? ord.qty : ord.quantity) || 0);
+        }
+      });
+
+      let participantList = [];
+      for (const [user, totalQty] of Object.entries(userQtyMap)) {
+        const packs = Math.floor(totalQty / packQty) || 1;
+        for (let i = 0; i < packs; i++) participantList.push(user.startsWith('@') ? user : `@${user}`);
       }
-    });
 
-    // 手動選發圖日 -> 自動連動 +8天 刪圖日
-    document.getElementById('photoSentAt').addEventListener('change', (e) => {
-      calcExpireDate(e.target.value);
-    });
+      if (participantList.length === 0) {
+        alert('⚠️ 該活動在「一般」類別中查無喊單紀錄！');
+      } else {
+        document.getElementById('lotteryParticipants').value = participantList.join(', ');
+        if (!document.getElementById('lotteryTitle').value) document.getElementById('lotteryTitle').value = `🎁 ${targetEventName} - ${targetMember} 喊單專屬抽獎`;
+        if (targetMember) document.getElementById('lotteryMember').value = targetMember;
+        alert(`✅ 成功匯入 ${Object.keys(userQtyMap).length} 位成員，共生成 ${participantList.length} 張抽獎籤！`);
+      }
+    };
 
-    function calcExpireDate(sentDateStr) {
-      if (!sentDateStr) return;
-      const dateObj = new Date(sentDateStr);
-      const expireObj = new Date(dateObj.getTime() + 8 * 24 * 60 * 60 * 1000);
-      document.getElementById('photoExpireAt').value = expireObj.toISOString().slice(0,10);
+    const prizesContainer = document.getElementById('prizesContainer');
+    document.getElementById('addPrizeBtn').onclick = () => addPrizeRow();
+
+    function addPrizeRow(text = '') {
+      const div = document.createElement('div');
+      div.className = 'dynamic-row';
+      div.innerHTML = `<input type="text" class="prize-input" placeholder="獎項名稱/描述" value="${text}" style="flex:1;">
+        <button type="button" class="btn-danger" onclick="this.parentElement.remove()">移除</button>`;
+      prizesContainer.appendChild(div);
+      updatePrizeDropdowns();
     }
 
-    // 歷史清單監聽與渲染
+    const winnersContainer = document.getElementById('winnersContainer');
+    document.getElementById('addWinnerBtn').onclick = () => addWinnerRow();
+
+    function addWinnerRow(name = '', prize = '', isSpecial = false) {
+      const div = document.createElement('div');
+      div.className = 'dynamic-row';
+      div.innerHTML = `<input type="text" class="w-name" placeholder="中獎者暱稱" value="${name}" style="flex:1;">
+        <select class="w-prize" style="flex:1.5;"><option value="">選擇獲獎項目</option></select>
+        <select class="w-type" style="width:90px;">
+          <option value="normal" ${!isSpecial ? 'selected' : ''}>一般獎</option>
+          <option value="special" ${isSpecial ? 'selected' : ''}>特別獎</option>
+        </select>
+        <button type="button" class="btn-danger" onclick="this.parentElement.remove()">移除</button>`;
+      winnersContainer.appendChild(div);
+      updatePrizeDropdowns();
+      if (prize) div.querySelector('.w-prize').value = prize;
+    }
+
+    function updatePrizeDropdowns() {
+      const prizeInputs = document.querySelectorAll('.prize-input');
+      const prizeOptions = Array.from(prizeInputs).map(i => i.value.trim()).filter(Boolean);
+
+      document.querySelectorAll('.w-prize').forEach(sel => {
+        const currentVal = sel.value;
+        sel.innerHTML = '<option value="">選擇獲獎項目</option>';
+        prizeOptions.forEach(p => sel.innerHTML += `<option value="${p}">${p}</option>`);
+        if (currentVal) sel.value = currentVal;
+      });
+    }
+
+    document.getElementById('lotteryForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const saveBtn = document.getElementById('saveLotteryBtn');
+      saveBtn.disabled = true;
+
+      try {
+        const title = document.getElementById('lotteryTitle').value.trim();
+        const member = document.getElementById('lotteryMember').value;
+        const prizes = Array.from(document.querySelectorAll('.prize-input')).map(el => el.value.trim()).filter(Boolean);
+        const participants = document.getElementById('lotteryParticipants').value.split(',').map(s => s.trim()).filter(Boolean);
+
+        const wNames = document.querySelectorAll('.w-name');
+        const wPrizes = document.querySelectorAll('.w-prize');
+        const wTypes = document.querySelectorAll('.w-type');
+
+        let winners = [];
+        wNames.forEach((el, i) => {
+          const name = el.value.trim();
+          const prize = wPrizes[i].value.trim();
+          const isSpecial = wTypes[i].value === 'special';
+          if (name) winners.push({ name, prize, isSpecial });
+        });
+
+        const editId = document.getElementById('editLotteryId').value;
+        const docId = editId || `lottery_${Date.now()}`;
+
+        await setDoc(doc(db, "lottery_events", docId), {
+          title, member, prizes, participants, winners,
+          updatedAt: serverTimestamp(),
+          createdAt: editId ? (lotteryMap[editId]?.createdAt || serverTimestamp()) : serverTimestamp()
+        }, { merge: true });
+
+        alert('✅ 抽獎公告已發佈成功！');
+        resetLotteryForm();
+      } catch (err) { alert('儲存失敗：' + err.message); } finally { saveBtn.disabled = false; }
+    });
+
     onSnapshot(collection(db, "lottery_events"), snap => {
       const tb = document.getElementById('lotteryTable');
       tb.innerHTML = '';
@@ -196,32 +297,118 @@
           dateStr = dt.toLocaleDateString('zh-TW');
         }
 
-        const isSent = item.photoStatus === '已發圖';
-        let statusHtml = '<span class="status-badge badge-pending">📷 待發圖</span>';
+        const isSent = item.isPhotoSent === true || item.photoStatus === '已發圖';
+
+        let winnersTagsHtml = '';
+        if (item.winners && item.winners.length > 0) {
+          item.winners.forEach(w => {
+            winnersTagsHtml += `<span class="winner-tag ${w.isSpecial ? 'special' : ''}">
+              🎁 <b>${w.name}</b> (${w.prize || '專屬獎'})
+            </span>`;
+          });
+        } else {
+          winnersTagsHtml = '<span style="color:#909399; font-size:12px;">尚未新增中獎者</span>';
+        }
+
+        let photoDatesBox = '';
         if (isSent) {
-          statusHtml = `<span class="status-badge badge-sent">🔵 已發圖</span>
-            <div style="font-size:11px; color:#606266; margin-top:2px;">
-              發：${item.photoSentAt || '-'}<br>刪：<b style="color:#f56c6c;">${item.photoExpireAt || '-'}</b>
-            </div>`;
+          photoDatesBox = `<div style="margin-top:6px; background:#f4f9ff; padding:6px; border-radius:4px; border:1px solid #d9ecff; font-size:11px;">
+            🔵 發圖日: <input type="date" value="${item.photoSentAt || ''}" onchange="updateLotteryPhotoDate('${item.id}', this.value)" style="font-size:11px; padding:1px 3px;"><br>
+            <div style="margin-top:2px;">⏳ 刪除日: <b style="color:#f56c6c;">${item.photoExpireAt || '-'}</b></div>
+          </div>`;
         }
 
         const tr = document.createElement('tr');
         tr.innerHTML = `
           <td>${dateStr}</td>
-          <td><b>${item.title}</b></td>
-          <td>${item.member || '-'}</td>
-          <td>${statusHtml}</td>
-          <td>${item.participants?.length || 0} 籤 / ${item.winners?.length || 0} 人</td>
           <td>
-            <button class="btn-edit" onclick="editLottery('${item.id}')">編輯</button>
-            <button class="btn-danger" onclick="deleteLottery('${item.id}')">刪除</button>
+            <b style="font-size:14px; color:#303133;">${item.title}</b>
+            <div class="winner-tag-box">${winnersTagsHtml}</div>
+          </td>
+          <td><b>${item.member || '全體'}</b><br><small style="color:#909399;">${item.participants?.length || 0} 籤 / ${item.winners?.length || 0} 人</small></td>
+          <td>
+            <button class="btn-toggle-photo ${isSent ? 'photo-active' : ''}" onclick="toggleLotteryPhotoSent('${item.id}', ${!isSent})">
+              ${isSent ? '🔵 已發圖' : '📷 設為已發圖'}
+            </button>
+            ${photoDatesBox}
+          </td>
+          <td>
+            <button class="btn-edit" onclick="editLottery('${item.id}')">✏️ 編輯</button>
+            <button class="btn-danger" onclick="deleteLottery('${item.id}')" style="width:100%;">🗑️ 刪除</button>
           </td>
         `;
         tb.appendChild(tr);
       });
+      notifyHeight();
     });
 
-    // 儲存表單與編輯邏輯... (其餘邏輯同原本)
+    window.toggleLotteryPhotoSent = async (docId, shouldSetSent) => {
+      if (!shouldSetSent) {
+        await updateDoc(doc(db, "lottery_events", docId), { isPhotoSent: false, photoStatus: '待發圖', photoSentAt: '', photoExpireAt: '' });
+        return;
+      }
+      const todayObj = new Date();
+      const todayStr = todayObj.toISOString().slice(0,10);
+      const expireObj = new Date(todayObj.getTime() + 8 * 24 * 60 * 60 * 1000);
+      const expireStr = expireObj.toISOString().slice(0,10);
+
+      await updateDoc(doc(db, "lottery_events", docId), {
+        isPhotoSent: true,
+        photoStatus: '已發圖',
+        photoSentAt: todayStr,
+        photoExpireAt: expireStr
+      });
+    };
+
+    window.updateLotteryPhotoDate = async (docId, newDateStr) => {
+      if (!newDateStr) return;
+      const dateObj = new Date(newDateStr);
+      if (isNaN(dateObj.getTime())) return;
+      const expireObj = new Date(dateObj.getTime() + 8 * 24 * 60 * 60 * 1000);
+      const expireStr = expireObj.toISOString().slice(0,10);
+
+      await updateDoc(doc(db, "lottery_events", docId), {
+        photoSentAt: newDateStr,
+        photoExpireAt: expireStr
+      });
+    };
+
+    window.editLottery = (docId) => {
+      const item = lotteryMap[docId];
+      if (!item) return;
+
+      document.getElementById('editLotteryId').value = docId;
+      document.getElementById('lotteryTitle').value = item.title || '';
+      document.getElementById('lotteryMember').value = item.member || '';
+      document.getElementById('lotteryParticipants').value = (item.participants || []).join(', ');
+
+      prizesContainer.innerHTML = '';
+      if (item.prizes && item.prizes.length > 0) item.prizes.forEach(p => addPrizeRow(p));
+
+      winnersContainer.innerHTML = '';
+      if (item.winners && item.winners.length > 0) item.winners.forEach(w => addWinnerRow(w.name, w.prize, w.isSpecial));
+
+      document.getElementById('saveLotteryBtn').textContent = '更新此抽獎公告';
+      document.getElementById('cancelLotteryBtn').style.display = 'inline-block';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    window.deleteLottery = async (docId) => {
+      if (confirm('確定要刪除這筆抽獎公告嗎？')) await deleteDoc(doc(db, "lottery_events", docId));
+    };
+
+    window.resetLotteryForm = () => {
+      document.getElementById('lotteryForm').reset();
+      document.getElementById('editLotteryId').value = '';
+      prizesContainer.innerHTML = '';
+      winnersContainer.innerHTML = '';
+      document.getElementById('saveLotteryBtn').textContent = '儲存並發佈抽獎公告';
+      document.getElementById('cancelLotteryBtn').style.display = 'none';
+    };
+
+    function notifyHeight() {
+      setTimeout(() => { window.parent.postMessage({ frameHeight: document.body.scrollHeight }, '*'); }, 100);
+    }
   </script>
 </body>
 </html>

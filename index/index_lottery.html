@@ -6,39 +6,40 @@
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 0; margin: 0; background: transparent; color: #333; }
     
-    /* 參考 index_records 頂部篩選卡片與膠囊列 */
-    .filter-card { background: #fff; border: 1px solid #e4e7ed; border-radius: 12px; padding: 14px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); }
+    .filter-card { background: #fff; border: 1px solid #e4e7ed; border-radius: 12px; padding: 12px 14px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); }
     .capsule-bar { display: flex; flex-wrap: wrap; gap: 8px; }
-    .capsule-btn { background: #ecf5ff; color: #409eff; border: 1px solid #d9ecff; padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: bold; cursor: pointer; transition: all 0.2s; }
+    .capsule-btn { background: #ecf5ff; color: #409eff; border: 1px solid #d9ecff; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; cursor: pointer; transition: all 0.2s; }
     .capsule-btn:hover, .capsule-btn.active { background: #409eff; color: #fff; border-color: #409eff; }
 
-    /* 抽獎卡片主體 */
     .lottery-card { background: #fff; border: 1px solid #e4e7ed; border-radius: 12px; padding: 16px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); }
     .lottery-top { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid #f0f2f5; padding-bottom: 10px; margin-bottom: 12px; }
     .lottery-title { font-size: 16px; font-weight: bold; color: #303133; }
     .lottery-meta { font-size: 12px; color: #909399; margin-top: 4px; }
 
-    /* 狀態 Badge 容器 (參照 index_records 右上角) */
     .status-badges-container { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
     .status-badge { padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; display: inline-block; }
     .photo-badge-pending { background: #f4f4f5; color: #909399; }
     .photo-badge-sent { background: #ecf5ff; color: #409eff; border: 1px solid #b3d8ff; }
     .photo-dates-box { font-size: 11px; color: #606266; margin-top: 2px; text-align: right; line-height: 1.3; }
 
-    /* 中獎清單樣式 */
-    .winner-list { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
-    .winner-item { background: #fdf6ec; border: 1px solid #faebd7; padding: 10px 12px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; font-size: 13px; }
-    .winner-name { font-weight: bold; color: #e6a23c; }
-    .winner-prize { color: #606266; }
+    /* 雙欄精緻小卡格 (告別死板長黃條) */
+    .winner-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 10px; }
+    @media (max-width: 650px) { .winner-grid { grid-template-columns: 1fr; } }
 
-    .special-badge { background: #fef0f0; color: #f56c6c; border: 1px solid #fde2e2; padding: 2px 6px; border-radius: 4px; font-size: 11px; margin-left: 6px; }
+    .winner-card { background: #fafafa; border: 1px solid #ebeef5; border-radius: 8px; padding: 10px 12px; display: flex; flex-direction: column; gap: 4px; position: relative; }
+    .winner-card.special { background: #fff6f6; border-color: #fde2e2; }
+
+    .winner-card-top { display: flex; justify-content: space-between; align-items: center; }
+    .winner-name { font-size: 14px; font-weight: bold; color: #303133; }
+    .winner-prize { font-size: 12px; color: #606266; word-break: break-all; margin-top: 2px; }
+
+    .special-badge { background: #fef0f0; color: #f56c6c; border: 1px solid #fde2e2; padding: 1px 6px; border-radius: 4px; font-size: 11px; font-weight: bold; }
   </style>
 </head>
 <body>
 
   <h3 style="margin-top:0; margin-bottom:12px; font-size:18px;">🎉 抽獎結果與發圖進度</h3>
 
-  <!-- 頂部成員篩選膠囊 -->
   <div class="filter-card">
     <div class="capsule-bar" id="memberCapsules">
       <button class="capsule-btn active" onclick="filterByMember('ALL', this)">全體成員</button>
@@ -84,7 +85,6 @@
         if (data.member) memberSet.add(data.member);
       });
 
-      // 渲染膠囊按鈕
       const capsuleBox = document.getElementById('memberCapsules');
       capsuleBox.innerHTML = `<button class="capsule-btn ${activeMemberFilter === 'ALL' ? 'active' : ''}" onclick="filterByMember('ALL', this)">全體成員</button>`;
       
@@ -100,9 +100,7 @@
       container.innerHTML = '';
 
       let list = allLotteries;
-      if (activeMemberFilter !== 'ALL') {
-        list = list.filter(l => l.member === activeMemberFilter);
-      }
+      if (activeMemberFilter !== 'ALL') list = list.filter(l => l.member === activeMemberFilter);
 
       if (list.length === 0) {
         container.innerHTML = '<p style="color:#909399; padding:20px 0; text-align:center;">目前尚無相關的抽獎結果公告。</p>';
@@ -119,8 +117,7 @@
           dateStr = dt.toLocaleDateString('zh-TW');
         }
 
-        // 發圖狀態 Badge (參照 index_records)
-        const isPhotoSent = item.photoStatus === '已發圖';
+        const isPhotoSent = item.isPhotoSent === true || item.photoStatus === '已發圖';
         let photoBadgeHtml = '';
         let photoDatesHtml = '';
 
@@ -137,11 +134,13 @@
         let winnersHtml = '';
         if (item.winners && item.winners.length > 0) {
           item.winners.forEach(w => {
-            const specialBadge = w.isSpecial ? '<span class="special-badge">特別獎</span>' : '';
             winnersHtml += `
-              <div class="winner-item">
-                <span><span class="winner-name">🎁 ${w.name}</span> ${specialBadge}</span>
-                <span class="winner-prize">${w.prize || '專屬獎項'}</span>
+              <div class="winner-card ${w.isSpecial ? 'special' : ''}">
+                <div class="winner-card-top">
+                  <span class="winner-name">🎁 ${w.name}</span>
+                  ${w.isSpecial ? '<span class="special-badge">特別獎</span>' : ''}
+                </div>
+                <div class="winner-prize">獲得：${w.prize || '專屬獎項'}</div>
               </div>
             `;
           });
@@ -164,7 +163,7 @@
               </div>
             </div>
             
-            <div class="winner-list">${winnersHtml}</div>
+            <div class="winner-grid">${winnersHtml}</div>
           </div>
         `;
       });
