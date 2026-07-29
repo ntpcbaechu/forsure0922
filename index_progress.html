@@ -51,7 +51,7 @@
 
       const groups = {};
       rawList.forEach(item => {
-        const eTitle = item.eventName || item.event || item.rawName || '未命名活動';
+        const eTitle = item.eventName || '未命名活動';
         const key = `${eTitle}__${item.member}`;
         if (!groups[key]) groups[key] = [];
         groups[key].push(item);
@@ -69,7 +69,7 @@
           if (st === '已完工' || st === '已發圖' || st === '已結束') badgeClass = 'status-done';
 
           const sellerLabel = isMultipleSellers ? ` (代拍${idx + 1})` : '';
-          const displayTitle = item.eventName || item.event || item.rawName || '未命名活動';
+          const displayTitle = item.eventName || '未命名活動';
 
           cardsHtml += `
             <div class="event-card">

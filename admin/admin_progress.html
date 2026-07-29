@@ -6,15 +6,37 @@
   <style>
     html, body { min-height: 500px !important; background: #fff; }
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 15px; margin: 0; color: #333; }
-    table { width: 100%; border-collapse: collapse; margin-top: 15px; min-height: 200px; }
-    th, td { padding: 10px 8px; border-bottom: 1px solid #e4e7ed; text-align: left; font-size: 13px; vertical-align: middle; }
-    th { background: #f8f9fa; color: #606266; font-weight: bold; white-space: nowrap; }
+    
+    .progress-card {
+      background: #f8f9fa;
+      border: 1px solid #e4e7ed;
+      border-radius: 10px;
+      padding: 12px 15px;
+      margin-bottom: 16px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+    }
+    .progress-card-title {
+      font-size: 15px;
+      font-weight: bold;
+      color: #409eff;
+      margin-bottom: 8px;
+      padding-bottom: 6px;
+      border-bottom: 1px dashed #dcdfe6;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    table.card-table { width: 100%; border-collapse: collapse; background: transparent; }
+    table.card-table th, table.card-table td { padding: 8px 6px; border-bottom: 1px solid #ebeef5; text-align: left; font-size: 13px; vertical-align: middle; }
+    table.card-table tr:last-child td { border-bottom: none; }
+    table.card-table th { background: #edf2fc; color: #606266; font-weight: bold; }
+
     select, button, input { padding: 8px 10px; border: 1px solid #dcdfe6; border-radius: 6px; font-size: 13px; box-sizing: border-box; }
     button { background-color: #409eff; color: white; border: none; font-weight: bold; cursor: pointer; }
     .btn-danger { background-color: #f56c6c; color: white; padding: 4px 8px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; }
     .btn-edit { background-color: #e6a23c; color: white; padding: 4px 8px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; margin-right: 4px; }
-    .form-row { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 15px; align-items: center; background: #f8f9fa; padding: 12px; border-radius: 8px; }
-    .group-divider-row td { border-bottom: 2px solid #c0c4cc !important; }
+    .form-row { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 15px; align-items: center; background: #f8f9fa; padding: 12px; border-radius: 8px; border: 1px solid #ebeef5; }
   </style>
 </head>
 <body>
@@ -48,20 +70,9 @@
     <button type="button" id="cancelBtn" style="background:#909399; display:none;" onclick="resetForm()">取消</button>
   </form>
 
-  <table>
-    <thead>
-      <tr>
-        <th style="width: 25%;">活動名稱</th>
-        <th style="width: 15%;">成員</th>
-        <th style="width: 20%;">代拍</th>
-        <th style="width: 20%;">目前狀態</th>
-        <th style="width: 20%;">操作</th>
-      </tr>
-    </thead>
-    <tbody id="progressTable">
-      <tr><td colspan="5" style="text-align:center; color:#909399;">資料載入中...</td></tr>
-    </tbody>
-  </table>
+  <div id="progressContainer">
+    <p style="text-align:center; color:#909399;">資料載入中...</p>
+  </div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -96,7 +107,7 @@
 
       const eventsSet = new Set();
       rawEventSettings.forEach(s => {
-        const eName = s.eventName || s.name || s.rawName;
+        const eName = s.name;
         if (eName) eventsSet.add(eName.trim());
       });
 
@@ -115,7 +126,7 @@
 
       const membersSet = new Set();
       rawEventSettings.forEach(s => {
-        const eName = s.eventName || s.name || s.rawName;
+        const eName = s.name;
         if (eName === selectedEvent && s.member) {
           membersSet.add(s.member.trim());
         }
@@ -143,7 +154,7 @@
 
       const sellerSet = new Set();
       rawEventSettings.forEach(s => {
-        const eName = s.eventName || s.name || s.rawName;
+        const eName = s.name;
         if (eName === selectedEvent && s.member === selectedMember && s.seller) {
           sellerSet.add(s.seller.trim());
         }
@@ -155,12 +166,12 @@
     });
 
     onSnapshot(collection(db, "photo_progress"), snap => {
-      const tb = document.getElementById('progressTable');
-      tb.innerHTML = '';
+      const container = document.getElementById('progressContainer');
+      container.innerHTML = '';
       progressMap = {};
 
       if (snap.empty) {
-        tb.innerHTML = '<tr><td colspan="5" style="text-align:center; color:#909399;">目前無發圖進度紀錄。</td></tr>';
+        container.innerHTML = '<p style="text-align:center; color:#909399;">目前無發圖進度紀錄。</p>';
       } else {
         let list = [];
         snap.forEach(d => {
@@ -170,8 +181,8 @@
         });
 
         list.sort((a, b) => {
-          const eA = a.eventName || a.event || a.rawName || '';
-          const eB = b.eventName || b.event || b.rawName || '';
+          const eA = a.eventName || '';
+          const eB = b.eventName || '';
           if (eA !== eB) return eA.localeCompare(eB);
 
           const mA = a.member || '';
@@ -183,54 +194,73 @@
           return idxA - idxB;
         });
 
-        const groupKeys = [];
-        const groups = {};
+        const eventGroups = {};
         list.forEach(item => {
-          const eName = item.eventName || item.event || item.rawName || '-';
-          const mName = item.member || '-';
-          const key = `${eName}__${mName}`;
-          if (!groups[key]) {
-            groups[key] = [];
-            groupKeys.push(key);
-          }
-          groups[key].push(item);
+          const eName = item.eventName || '未命名活動';
+          if (!eventGroups[eName]) eventGroups[eName] = [];
+          eventGroups[eName].push(item);
         });
 
-        groupKeys.forEach(key => {
-          const items = groups[key];
-          const rowCount = items.length;
+        for (const [eventName, items] of Object.entries(eventGroups)) {
+          const card = document.createElement('div');
+          card.className = 'progress-card';
 
-          items.forEach((item, idx) => {
-            const tr = document.createElement('tr');
-            if (idx === rowCount - 1) {
-              tr.className = 'group-divider-row';
+          let tableHtml = `
+            <div class="progress-card-title">🗓️ ${eventName}</div>
+            <table class="card-table">
+              <thead>
+                <tr>
+                  <th style="width: 20%;">成員</th>
+                  <th style="width: 30%;">代拍名稱</th>
+                  <th style="width: 25%;">目前狀態</th>
+                  <th style="width: 25%;">操作</th>
+                </tr>
+              </thead>
+              <tbody>
+          `;
+
+          const memberGroups = {};
+          const memberKeys = [];
+          items.forEach(item => {
+            const mName = item.member || '全體';
+            if (!memberGroups[mName]) {
+              memberGroups[mName] = [];
+              memberKeys.push(mName);
             }
-
-            const eventTitle = item.eventName || item.event || item.rawName || '-';
-            const memberName = item.member || '-';
-            const sellerName = item.seller || item.photographer || '-';
-            const statusText = item.status || item.progress || '-';
-
-            let mergedCells = '';
-            if (idx === 0) {
-              mergedCells = `
-                <td rowspan="${rowCount}" style="vertical-align:middle;"><b>${eventTitle}</b></td>
-                <td rowspan="${rowCount}" style="vertical-align:middle;"><b>${memberName}</b></td>
-              `;
-            }
-
-            tr.innerHTML = `
-              ${mergedCells}
-              <td>${sellerName}</td>
-              <td><b>${statusText}</b></td>
-              <td>
-                <button class="btn-edit" onclick="editProgress('${item.id}')">編輯</button>
-                <button class="btn-danger" onclick="deleteProgress('${item.id}')">刪除</button>
-              </td>
-            `;
-            tb.appendChild(tr);
+            memberGroups[mName].push(item);
           });
-        });
+
+          memberKeys.forEach(mName => {
+            const mItems = memberGroups[mName];
+            const mRowCount = mItems.length;
+
+            mItems.forEach((item, idx) => {
+              const sellerName = item.seller || '-';
+              const statusText = item.status || '-';
+
+              let memberCell = '';
+              if (idx === 0) {
+                memberCell = `<td rowspan="${mRowCount}" style="vertical-align:middle; font-weight:bold;">${mName}</td>`;
+              }
+
+              tableHtml += `
+                <tr>
+                  ${memberCell}
+                  <td>${sellerName}</td>
+                  <td><b>${statusText}</b></td>
+                  <td>
+                    <button class="btn-edit" onclick="editProgress('${item.id}')">編輯</button>
+                    <button class="btn-danger" onclick="deleteProgress('${item.id}')">刪除</button>
+                  </td>
+                </tr>
+              `;
+            });
+          });
+
+          tableHtml += `</tbody></table>`;
+          card.innerHTML = tableHtml;
+          container.appendChild(card);
+        }
       }
       notifyHeight();
     });
@@ -250,7 +280,7 @@
 
       try {
         await setDoc(doc(db, "photo_progress", docId), {
-          eventName, event: eventName, member, seller, status,
+          eventName, member, seller, status,
           updatedAt: new Date()
         }, { merge: true });
 
@@ -270,7 +300,7 @@
       document.getElementById('editProgressId').value = docId;
       
       const evSel = document.getElementById('eventSelect');
-      evSel.value = item.eventName || item.event || '';
+      evSel.value = item.eventName || '';
       evSel.dispatchEvent(new Event('change'));
 
       setTimeout(() => {
@@ -279,11 +309,11 @@
         memSel.dispatchEvent(new Event('change'));
 
         setTimeout(() => {
-          document.getElementById('sellerSelect').value = item.seller || item.photographer || '';
+          document.getElementById('sellerSelect').value = item.seller || '';
         }, 50);
       }, 50);
 
-      document.getElementById('statusSelect').value = item.status || item.progress || '';
+      document.getElementById('statusSelect').value = item.status || '';
 
       document.getElementById('saveProgressBtn').textContent = '更新進度';
       document.getElementById('cancelBtn').style.display = 'inline-block';

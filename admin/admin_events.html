@@ -291,8 +291,8 @@
         }
 
         eventsList.sort((a, b) => {
-          const nameA = a.rawDate || a.name || a.eventName;
-          const nameB = b.rawDate || b.name || b.eventName;
+          const nameA = a.name || a.rawDate || '';
+          const nameB = b.name || b.rawDate || '';
           if (nameA !== nameB) return nameA.localeCompare(nameB);
 
           const idxA = MEMBER_ORDER.indexOf(a.member);
@@ -307,7 +307,7 @@
             return;
           }
 
-          const groupKey = `${ev.name || ev.eventName}__${mName}`;
+          const groupKey = `${ev.name}__${mName}`;
           if (!groupedEvents[groupKey]) {
             groupedEvents[groupKey] = [];
           }
@@ -319,7 +319,7 @@
           let memberTotalActPhoto = 0;
           let memberTotalActVideo = 0;
           let memberTotalActQty = 0;
-          const eventName = evArray[0].name || evArray[0].eventName;
+          const eventName = evArray[0].name;
           const memberName = evArray[0].member || '全體/無';
           const isClosed = evArray.some(e => e.isClosed);
 
@@ -347,7 +347,7 @@
 
           const sampleEv = evArray[0];
           const matchedOrders = ordersList.filter(o => {
-            const matchEvent = (o.event === sampleEv.name || o.eventName === sampleEv.name || o.rawName === sampleEv.rawName);
+            const matchEvent = (o.eventName === sampleEv.name || o.event === sampleEv.name);
             const matchMember = !sampleEv.member || o.member === sampleEv.member;
             return matchEvent && matchMember;
           });
@@ -539,7 +539,7 @@
         const docId = editId ? editId : `${fullName}_${member || 'all'}_${seller || 'default'}_${Date.now()}`;
 
         await setDoc(doc(db, "event_settings", docId), {
-          name: fullName, eventName: fullName, rawDate: evDate, rawName: evNameRaw, member, seller, bigNote,
+          name: fullName, rawDate: evDate, rawName: evNameRaw, member, seller, bigNote,
           packQty, price, packsCount, discounts, deposit, balance, cost, actPhoto, actVideo, actQty, isClosed
         });
 
@@ -569,7 +569,7 @@
 
       document.getElementById('editEventId').value = docId;
       document.getElementById('evDate').value = ev.rawDate || '';
-      document.getElementById('evName').value = ev.rawName || ev.eventName || ev.name;
+      document.getElementById('evName').value = ev.rawName || ev.name;
       document.getElementById('evMember').value = ev.member || '';
       document.getElementById('evSeller').value = ev.seller || '';
       document.getElementById('evBigNote').value = ev.bigNote || '';

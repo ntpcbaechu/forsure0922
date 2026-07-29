@@ -126,7 +126,7 @@
         photoProgressMap = {};
         snap.forEach(d => {
           const data = d.data();
-          const evName = data.eventName || data.event || '';
+          const evName = data.eventName || '';
           const mem = data.member || '';
           if (evName && mem) {
             photoProgressMap[`${evName}_${mem}`] = data.status || '等圖中';
@@ -139,16 +139,13 @@
         eventSettings = {};
         snap.forEach(d => {
           const data = d.data();
-          const evName = data.eventName || data.name || data.rawName || '';
+          const evName = data.name || '';
           const mem = data.member || '';
-          const price = Number(data.price) || Number(data.unitPrice) || Number(data.sellPrice) || 0;
+          const price = Number(data.price) || 0;
           const packQty = Number(data.packQty) || 1;
 
           if (evName) {
             eventSettings[`${evName}_${mem}`] = { price, packQty };
-            if (data.rawName) {
-              eventSettings[`${data.rawName}_${mem}`] = { price, packQty };
-            }
           }
         });
         renderBuyerDetails();
@@ -168,7 +165,7 @@
           const data = d.data();
           allOrders.push({ id: d.id, ...data });
           
-          const name = data.user || data.buyerName || data.name || data.buyer;
+          const name = data.user || data.buyerName || data.name;
           if (name) registeredBuyers.add(String(name).trim());
         });
 
@@ -215,10 +212,10 @@
       document.getElementById('useCreditChk').checked = false;
 
       const userOrders = allOrders.filter(o => {
-        const nameMatch = (o.user === selectedBuyer || o.buyerName === selectedBuyer || o.name === selectedBuyer || o.buyer === selectedBuyer);
-        const pendingMatch = (o.hasPaid !== true) && (o.paymentStatus === 'pending_payment' || o.paymentStatus === '待匯款' || o.status === 'pending_payment' || o.status === '待匯款' || !o.paymentStatus || o.paymentStatus === 'pending');
+        const nameMatch = (o.user === selectedBuyer || o.buyerName === selectedBuyer || o.name === selectedBuyer);
+        const pendingMatch = (o.hasPaid !== true) && (o.paymentStatus === 'pending_payment' || o.paymentStatus === '待匯款' || o.status === 'pending_payment' || o.status === '待匯款' || !o.paymentStatus);
         
-        const ordEvent = o.eventName || o.event || o.fullEvent || '';
+        const ordEvent = o.eventName || o.event || '';
         const ordMember = o.member || '';
         const progressStatus = photoProgressMap[`${ordEvent}_${ordMember}`];
         const isNotWaitingPhoto = progressStatus !== '等圖中';
@@ -235,8 +232,8 @@
         document.getElementById('finalPayTotal').textContent = '$0';
       } else {
         userOrders.forEach(ord => {
-          const qty = Number(ord.quantity !== undefined ? ord.quantity : (ord.qty !== undefined ? ord.qty : ord.count)) || 1;
-          const ordEvent = ord.eventName || ord.event || ord.fullEvent || '';
+          const qty = Number(ord.qty !== undefined ? ord.qty : ord.quantity) || 1;
+          const ordEvent = ord.eventName || ord.event || '';
           const ordMember = ord.member || '';
           
           const settingKey = `${ordEvent}_${ordMember}`;
@@ -245,7 +242,6 @@
           const unitPrice = Number(ord.price) || setting.price || 0;
           const packQty = setting.packQty > 0 ? setting.packQty : 1;
           
-          // 正確計算： (登記張數 ÷ 每包張數) × 每包價格
           const calculatedPrice = (unitPrice > 0) ? (qty / packQty) * unitPrice : (Number(ord.total) || Number(ord.amount) || 0);
 
           ordersList.innerHTML += `
