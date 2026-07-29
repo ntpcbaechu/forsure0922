@@ -6,17 +6,30 @@
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 0; margin: 0; background: transparent; color: #333; }
     
-    .event-group-card { background: #fff; border: 1px solid #e4e7ed; border-radius: 12px; padding: 14px 16px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); }
-    .event-group-title { font-size: 15px; font-weight: bold; color: #303133; margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px dashed #ebeef5; display: flex; align-items: center; gap: 6px; }
+    .event-group-card { background: #fff; border: 1px solid #e4e7ed; border-radius: 12px; overflow: hidden; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); }
+    
+    /* 仿照後台高質感標題列 */
+    .event-group-header {
+      background: #eef5fe;
+      border-left: 4px solid #409eff;
+      color: #1a252f;
+      font-size: 15px;
+      font-weight: bold;
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
 
-    .progress-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 6px; border-bottom: 1px solid #f2f6fc; }
+    .progress-list-box { padding: 4px 14px 10px 14px; }
+    .progress-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 4px; border-bottom: 1px solid #f2f6fc; }
     .progress-row:last-child { border-bottom: none; }
     
-    .member-info { font-size: 13px; color: #606266; display: flex; align-items: center; gap: 6px; }
-    .member-name { font-weight: bold; color: #303133; }
-    .seller-tag { font-size: 11px; color: #909399; background: #f4f4f5; padding: 1px 6px; border-radius: 4px; }
+    .member-info { font-size: 13px; color: #606266; display: flex; align-items: center; gap: 8px; }
+    .member-name { font-weight: bold; color: #303133; font-size: 14px; }
+    .seller-tag { font-size: 11px; color: #909399; background: #f4f4f5; padding: 2px 6px; border-radius: 4px; font-weight: normal; }
 
-    .status-badge { padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: bold; white-space: nowrap; }
+    .status-badge { padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; white-space: nowrap; }
     .status-waiting { background: #f4f4f5; color: #909399; }
     .status-sorting { background: #fdf6ec; color: #e6a23c; }
     .status-done { background: #f0f9eb; color: #67c23a; }
@@ -92,7 +105,6 @@
           return (a.seller || '').localeCompare(b.seller || '');
         });
 
-        // 🛡️ 保密防護邏輯：統計每個成員底下的代拍數量，若複數則自動轉為 代拍1、代拍2...
         const memberCounts = {};
         items.forEach(item => {
           const m = item.member || '全體';
@@ -113,7 +125,7 @@
 
           if (memberCounts[memberName] > 1) {
             if (!memberIndexTracker[memberName]) memberIndexTracker[memberName] = 1;
-            sellerText = `<span class="seller-tag">(代拍${memberIndexTracker[memberName]++})</span>`;
+            sellerText = `<span class="seller-tag">代拍${memberIndexTracker[memberName]++}</span>`;
           }
 
           rowsHtml += `
@@ -129,8 +141,10 @@
 
         htmlContent += `
           <div class="event-group-card">
-            <div class="event-group-title">📅 ${eventName}</div>
-            ${rowsHtml}
+            <div class="event-group-header">📅 ${eventName}</div>
+            <div class="progress-list-box">
+              ${rowsHtml}
+            </div>
           </div>
         `;
       });
