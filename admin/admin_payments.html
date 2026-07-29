@@ -105,10 +105,11 @@
         return;
       }
 
+      // 排序邏輯：依填單時間由舊到新 (tA - tB)，最早填單的排在最上方
       list.sort((a, b) => {
         const tA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
         const tB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-        return tB - tA;
+        return tA - tB;
       });
 
       list.forEach(p => {
