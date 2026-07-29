@@ -125,6 +125,7 @@
           <option value="台銀">台銀</option>
           <option value="樂天">樂天</option>
           <option value="中信">中信</option>
+          <option value="台新">台新</option>
         </select>
       </div>
 
@@ -239,7 +240,6 @@
         updateBuyerDropdownAndDetails();
       });
 
-      // 監聽 user_deposits (預存儲值金)
       onSnapshot(collection(db, "user_deposits"), snap => {
         allDeposits = [];
         snap.forEach(d => allDeposits.push({ id: d.id, ...d.data() }));
@@ -352,13 +352,11 @@
 
       formContent.style.display = 'block';
 
-      // 計算抵用金餘額
       const userCredits = allCredits.filter(c => (c.user === selectedBuyer || c.buyerName === selectedBuyer || c.name === selectedBuyer));
       currentAvailableCredit = userCredits.reduce((sum, c) => sum + ((Number(c.credit) || Number(c.amount) || 0) - (Number(c.used) || 0)), 0);
       document.getElementById('creditBalance').textContent = `$${currentAvailableCredit}`;
       document.getElementById('useCreditChk').checked = false;
 
-      // 計算預存儲值金餘額
       const userDeposits = allDeposits.filter(d => (d.user === selectedBuyer || d.buyerName === selectedBuyer || d.name === selectedBuyer));
       currentAvailableDeposit = userDeposits.reduce((sum, d) => {
         const amt = Number(d.amount) || 0;
@@ -487,7 +485,6 @@
 
       let remainingToPay = orderSubtotal;
 
-      // 1. 先計算預存儲值金折抵
       const useDeposit = document.getElementById('useDepositChk').checked;
       let depositDeduction = 0;
       if (useDeposit && currentAvailableDeposit > 0) {
@@ -495,7 +492,6 @@
         remainingToPay -= depositDeduction;
       }
 
-      // 2. 再計算可用抵用金折抵
       const useCredit = document.getElementById('useCreditChk').checked;
       let creditDeduction = 0;
       if (useCredit && currentAvailableCredit > 0) {
