@@ -5,29 +5,36 @@
   <title>登記與對帳進度查詢</title>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 0; margin: 0; background: transparent; color: #333; }
-    .jump-bar { display: flex; flex-wrap: wrap; gap: 6px; padding-bottom: 10px; margin-bottom: 15px; }
-    .jump-btn { background: #ecf5ff; color: #409eff; border: 1px solid #d9ecff; padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; white-space: nowrap; cursor: pointer; flex-shrink: 0; }
-    .jump-btn:hover { background: #409eff; color: #fff; }
     
-    .event-section { background: #fff; border: 1px solid #e4e7ed; border-radius: 12px; padding: 14px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); }
-    .event-header { font-size: 16px; font-weight: bold; color: #303133; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; }
+    .filter-card { background: #fff; border: 1px solid #e4e7ed; border-radius: 12px; padding: 14px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); }
+    .filter-title { font-size: 14px; font-weight: bold; color: #303133; margin-bottom: 8px; }
+    .filter-options { display: flex; gap: 15px; margin-bottom: 10px; }
+    .filter-label { font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 4px; }
+
+    select { width: 100%; padding: 10px; border: 1px solid #dcdfe6; border-radius: 8px; font-size: 14px; box-sizing: border-box; background: #fff; }
+
+    .summary-card { background: #ecf5ff; border: 1px solid #d9ecff; border-radius: 10px; padding: 12px 14px; margin-bottom: 15px; font-size: 13px; color: #409eff; line-height: 1.6; }
+    .summary-card b { font-size: 15px; }
+
+    .jump-bar { display: flex; flex-wrap: wrap; gap: 6px; padding-bottom: 10px; margin-bottom: 15px; }
+    .jump-btn { background: #ecf5ff; color: #409eff; border: 1px solid #d9ecff; padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; cursor: pointer; }
+    .jump-btn:hover { background: #409eff; color: #fff; }
+
+    .event-section { background: #fff; border: 1px solid #e4e7ed; border-radius: 12px; padding: 14px; margin-bottom: 16px; }
+    .event-header { font-size: 15px; font-weight: bold; color: #303133; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
     .event-meta { font-size: 12px; color: #409eff; background: #ecf5ff; padding: 4px 8px; border-radius: 6px; }
 
-    /* 雙欄網格容器 (改動點 1) */
     .cards-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 8px; }
-
-    /* 保留原樣式，僅微調邊距適應網格 (改動點 2) */
-    .order-card { background: #fafafa; border: 1px solid #ebeef5; border-radius: 8px; padding: 10px 12px; font-size: 13px; box-sizing: border-box; }
+    .order-card { background: #fafafa; border: 1px solid #ebeef5; border-radius: 8px; padding: 10px 12px; font-size: 13px; }
     .order-top { display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 6px; }
-    .order-info { color: #606266; font-size: 12px; line-height: 1.6; }
     .status-badge { padding: 2px 6px; border-radius: 4px; font-size: 11px; }
     .status-paid { background: #f0f9eb; color: #67c23a; }
     .status-pending { background: #fef0f0; color: #f56c6c; }
+    .type-badge { font-size: 11px; padding: 1px 5px; border-radius: 4px; background: #f4f4f5; color: #909399; margin-left: 4px; }
+    .type-add { background: #fdf6ec; color: #e6a23c; border: 1px solid #faebd7; }
 
-    /* 手機螢幕自動微調內距 */
     @media (max-width: 480px) {
-      .order-card { padding: 8px 10px; }
-      .order-info { font-size: 11px; }
+      .cards-grid { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -35,6 +42,22 @@
 
   <h3 style="margin-top:0; margin-bottom:12px; font-size:18px;">📌 登記與對帳進度查詢</h3>
   
+  <!-- 雙重篩選控制器 -->
+  <div class="filter-card">
+    <div class="filter-title">🔍 請選擇篩選模式：</div>
+    <div class="filter-options">
+      <label class="filter-label"><input type="radio" name="filterMode" value="user" checked> 依社群暱稱查詢 (個人喊單總覽)</label>
+      <label class="filter-label"><input type="radio" name="filterMode" value="event"> 依活動日期與場次查詢</label>
+    </div>
+
+    <div id="userSelectBox">
+      <select id="userDropdown">
+        <option value="">載入中...</option>
+      </select>
+    </div>
+  </div>
+
+  <div id="userSummary"></div>
   <div class="jump-bar" id="jumpBar"></div>
   <div id="recordsList">載入中...</div>
 
@@ -55,140 +78,145 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    // 成員順序表
+    let allOrders = [];
     const memberOrder = ["方燦", "Lee Know", "彰彬", "鉉辰", "HAN", "Felix", "昇玟", "I.N"];
 
+    document.addEventListener('DOMContentLoaded', async () => {
+      const uRes = await fetch('../json/users.json');
+      const users = await uRes.json();
+      const uSel = document.getElementById('userDropdown');
+      uSel.innerHTML = '<option value="">請選擇您的社群暱稱</option>';
+      users.forEach(u => { uSel.innerHTML += `<option value="${u}">${u}</option>`; });
+    });
+
+    document.querySelectorAll('input[name="filterMode"]').forEach(r => {
+      r.addEventListener('change', (e) => {
+        document.getElementById('userSelectBox').style.display = e.target.value === 'user' ? 'block' : 'none';
+        renderView();
+      });
+    });
+
+    document.getElementById('userDropdown').addEventListener('change', () => renderView());
+
     onSnapshot(collection(db, "orders"), snap => {
+      allOrders = [];
+      snap.forEach(d => allOrders.push({ id: d.id, ...d.data() }));
+      renderView();
+    });
+
+    function renderView() {
+      const mode = document.querySelector('input[name="filterMode"]:checked').value;
       const recordsList = document.getElementById('recordsList');
       const jumpBar = document.getElementById('jumpBar');
+      const summary = document.getElementById('userSummary');
+
       recordsList.innerHTML = '';
       jumpBar.innerHTML = '';
+      summary.innerHTML = '';
 
-      if (snap.empty) {
+      if (allOrders.length === 0) {
         recordsList.innerHTML = '<p style="color:#909399;">目前無登記紀錄。</p>';
         notifyHeight();
         return;
       }
 
-      let orders = [];
-      snap.forEach(d => orders.push({ id: d.id, ...d.data() }));
+      if (mode === 'user') {
+        const selectedUser = document.getElementById('userDropdown').value;
+        if (!selectedUser) {
+          recordsList.innerHTML = '<p style="color:#909399;">👈 請先在上方選擇您的社群暱稱以查看個人喊單。</p>';
+          notifyHeight();
+          return;
+        }
 
-      // 依「活動名稱 + 成員」進行雙重分組
+        const userOrders = allOrders.filter(o => (o.buyerName || o.user || o.nickname) === selectedUser);
+        if (userOrders.length === 0) {
+          recordsList.innerHTML = `<p style="color:#909399;">查無 <b>${selectedUser}</b> 的喊單紀錄。</p>`;
+          notifyHeight();
+          return;
+        }
+
+        let totalPacks = 0, paidPacks = 0, pendingPacks = 0;
+        userOrders.forEach(o => {
+          const qty = Number(o.quantity) || Number(o.qty) || 1;
+          totalPacks += qty;
+          if (o.paymentStatus === '已對帳' || o.status === '已對帳') paidPacks += qty;
+          else pendingPacks += qty;
+        });
+
+        summary.innerHTML = `
+          <div class="summary-card">
+            <b>👤 ${selectedUser} 的喊單個人統計：</b><br>
+            • 登記總筆數：<b>${userOrders.length}</b> 筆 ｜ 總喊單張數：<b>${totalPacks}</b> 張<br>
+            • 對帳狀態：🟢 已對帳 <b>${paidPacks}</b> 張 ｜ ⏳ 待匯款 <b>${pendingPacks}</b> 張
+          </div>
+        `;
+
+        renderCardsGrouped(userOrders);
+      } else {
+        renderCardsGrouped(allOrders);
+      }
+    }
+
+    function renderCardsGrouped(orders) {
+      const recordsList = document.getElementById('recordsList');
+      const jumpBar = document.getElementById('jumpBar');
+
       const groups = {};
       orders.forEach(o => {
-        const eventName = o.event || '未分類活動';
-        const memberName = o.member ? ` - ${o.member}` : '';
-        const key = eventName + memberName;
-
+        const key = (o.event || '未分類活動') + (o.member ? ` - ${o.member}` : '');
         if (!groups[key]) groups[key] = [];
         groups[key].push(o);
       });
 
-      // 針對活動區塊進行【日期舊到新 + 成員順序】排序
-      const sortedGroupKeys = Object.keys(groups).sort((a, b) => {
-        // 抓取日期 (例如從 260725 RUN IT... 提取 260725)
-        const matchA = a.match(/\d{6}/);
-        const matchB = b.match(/\d{6}/);
+      const sortedKeys = Object.keys(groups).sort((a, b) => {
+        const matchA = a.match(/\d{6}/); const matchB = b.match(/\d{6}/);
         const dateA = matchA ? parseInt(matchA[0], 10) : 0;
         const dateB = matchB ? parseInt(matchB[0], 10) : 0;
-
-        if (dateA !== dateB) {
-          return dateA - dateB; // 日期小的排前面 (舊 -> 新)
-        }
-
-        // 若日期相同，比對成員順序
-        const getMemberIndex = (title) => {
-          for (let i = 0; i < memberOrder.length; i++) {
-            if (title.includes(memberOrder[i])) return i;
-          }
-          return 999;
-        };
-
-        const idxA = getMemberIndex(a);
-        const idxB = getMemberIndex(b);
-
-        if (idxA !== idxB) {
-          return idxA - idxB;
-        }
-
+        if (dateA !== dateB) return dateA - dateB;
         return a.localeCompare(b, 'zh-TW');
       });
 
-      let groupIdx = 0;
-      for (const groupTitle of sortedGroupKeys) {
-        const list = groups[groupTitle];
-        groupIdx++;
-        const sectionId = `event-sec-${groupIdx}`;
+      let gIdx = 0;
+      for (const title of sortedKeys) {
+        gIdx++;
+        const list = groups[title];
+        const secId = `sec-${gIdx}`;
         const totalPacks = list.reduce((sum, item) => sum + (Number(item.quantity) || Number(item.qty) || 1), 0);
 
-        jumpBar.innerHTML += `<button class="jump-btn" onclick="scrollToSection('${sectionId}')">📍 ${groupTitle}</button>`;
-
-        // 區塊內部的個人訂單依填單時間由早到晚 (舊 -> 新) 排序
-        list.sort((a, b) => {
-          const getTime = (val) => {
-            if (!val) return 0;
-            if (typeof val.toDate === 'function') return val.toDate().getTime();
-            return new Date(val).getTime() || 0;
-          };
-          return getTime(a.createdAt) - getTime(b.createdAt);
-        });
+        jumpBar.innerHTML += `<button class="jump-btn" onclick="scrollToSection('${secId}')">📍 ${title}</button>`;
 
         let cardsHtml = '';
         list.forEach((ord, idx) => {
           const isPaid = ord.paymentStatus === '已對帳' || ord.status === '已對帳';
-          const badgeHtml = isPaid 
-            ? '<span class="status-badge status-paid">🟢 已對帳</span>' 
-            : '<span class="status-badge status-pending">⏳ 待匯款</span>';
+          const badgeHtml = isPaid ? '<span class="status-badge status-paid">🟢 已對帳</span>' : '<span class="status-badge status-pending">⏳ 待匯款</span>';
+          const typeBadge = (ord.orderType === '追加') ? '<span class="type-badge type-add">追加</span>' : '<span class="type-badge">一般</span>';
 
-          // 時間解析
-          let dateFormatted = '-';
-          if (ord.createdAt) {
-            if (typeof ord.createdAt.toDate === 'function') {
-              const d = ord.createdAt.toDate();
-              const mm = String(d.getMonth() + 1).padStart(2, '0');
-              const dd = String(d.getDate()).padStart(2, '0');
-              const hh = String(d.getHours()).padStart(2, '0');
-              const min = String(d.getMinutes()).padStart(2, '0');
-              dateFormatted = `${mm}-${dd} ${hh}:${min}`;
-            } else if (typeof ord.createdAt === 'string') {
-              dateFormatted = ord.createdAt.substring(5, 16).replace('T', ' ');
-            }
-          }
-
-          // 準確抓取 buyerName (加入 user 欄位)
-          const rawName = ord.user || ord.buyerName || ord.name || ord.buyer || ord.nickname;
-          const displayName = (rawName && String(rawName).trim() !== '') ? rawName : '未知成員';
-
+          const name = ord.user || ord.buyerName || ord.nickname || '未知';
           cardsHtml += `
             <div class="order-card">
               <div class="order-top">
-                <span>#${idx + 1} ${displayName}</span>
+                <span>#${idx + 1} ${name} ${typeBadge}</span>
                 ${badgeHtml}
               </div>
-              <div class="order-info">
+              <div style="color:#606266; font-size:12px;">
                 <div>喊單張數：<b>${ord.quantity || ord.qty || 1} 張</b></div>
-                <div>填單 / 更新時間：${dateFormatted}</div>
               </div>
             </div>
           `;
         });
 
-        /* 外層加上 <div class="cards-grid"> 包住 cardsHtml (改動點 3) */
         recordsList.innerHTML += `
-          <div class="event-section" id="${sectionId}">
+          <div class="event-section" id="${secId}">
             <div class="event-header">
-              <span>📌 ${groupTitle}</span>
-              <span class="event-meta">共 ${list.length} 筆 / 總計 ${totalPacks} 張</span>
+              <span>📌 ${title}</span>
+              <span class="event-meta">共 ${list.length} 筆 / ${totalPacks} 張</span>
             </div>
-            <div class="cards-grid">
-              ${cardsHtml}
-            </div>
+            <div class="cards-grid">${cardsHtml}</div>
           </div>
         `;
       }
-
       notifyHeight();
-    });
+    }
 
     window.scrollToSection = (secId) => {
       const el = document.getElementById(secId);

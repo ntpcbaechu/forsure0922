@@ -6,8 +6,8 @@
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 15px; margin: 0; background: #fff; color: #333; }
     table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-    th, td { padding: 8px 10px; border-bottom: 1px solid #e4e7ed; text-align: left; font-size: 13px; vertical-align: middle; }
-    th { background: #f8f9fa; white-space: nowrap; }
+    th, td { padding: 10px 8px; border-bottom: 1px solid #e4e7ed; text-align: left; font-size: 13px; vertical-align: middle; }
+    th { background: #f8f9fa; color: #606266; font-weight: bold; white-space: nowrap; }
     
     input[type="text"], input[type="number"], select {
       width: 100%;
@@ -18,19 +18,17 @@
       box-sizing: border-box;
       background-color: #fff;
     }
-    input:focus, select:focus {
-      border-color: #409eff;
-      outline: none;
-    }
 
-    .btn-save { background-color: #67c23a; color: white; padding: 6px 12px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; margin-right: 4px; }
-    .btn-save:hover { background-color: #5daf34; }
-    .btn-danger { background-color: #f56c6c; color: white; padding: 6px 12px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; }
-    .btn-danger:hover { background-color: #e64242; }
+    .btn-edit { background-color: #e6a23c; color: white; padding: 5px 10px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; margin-right: 4px; }
+    .btn-save { background-color: #67c23a; color: white; padding: 5px 10px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; margin-right: 4px; }
+    .btn-cancel { background-color: #909399; color: white; padding: 5px 10px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; margin-right: 4px; }
+    .btn-danger { background-color: #f56c6c; color: white; padding: 5px 10px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; }
     
-    .status-select { font-weight: bold; }
-    .status-pending { color: #e6a23c; }
-    .status-paid { color: #67c23a; }
+    .status-select { font-weight: bold; border-radius: 4px; padding: 4px; }
+    .status-pending { color: #e6a23c; border-color: #fbe3b5; }
+    .status-paid { color: #67c23a; border-color: #c2e7b0; }
+    .type-badge { font-size: 11px; padding: 2px 6px; border-radius: 4px; background: #f4f4f5; color: #909399; }
+    .type-add { background: #fdf6ec; color: #e6a23c; }
   </style>
 </head>
 <body>
@@ -45,10 +43,11 @@
       <tr>
         <th style="width: 15%;">社群暱稱</th>
         <th style="width: 20%;">活動名稱</th>
-        <th style="width: 15%;">登記成員</th>
-        <th style="width: 10%;">登記張數</th>
-        <th style="width: 18%;">登記時間</th>
-        <th style="width: 12%;">匯款狀態</th>
+        <th style="width: 12%;">登記成員</th>
+        <th style="width: 10%;">類別</th>
+        <th style="width: 8%;">張數</th>
+        <th style="width: 15%;">登記時間</th>
+        <th style="width: 10%;">匯款狀態</th>
         <th style="width: 10%;">操作</th>
       </tr>
     </thead>
@@ -72,128 +71,178 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    onSnapshot(collection(db, "orders"), snap => {
-      const tb = document.getElementById('ordersAdminTable');
-      
-      // 避免編輯到一半被即時監聽刷新，只在沒人在輸入時重繪
-      if (document.activeElement && document.activeElement.tagName === 'INPUT') return;
+    let usersList = [];
+    let membersList = [];
+    let eventList = [];
+    let ordersCache = {};
+    let editingRows = new Set();
 
+    document.addEventListener('DOMContentLoaded', async () => {
+      const [uRes, mRes] = await Promise.all([
+        fetch('../json/users.json'),
+        fetch('../json/members.json')
+      ]);
+      usersList = await uRes.json();
+      membersList = await mRes.json();
+
+      onSnapshot(collection(db, "event_settings"), snap => {
+        const eventsSet = new Set();
+        snap.forEach(d => {
+          const name = d.data().name || d.data().rawName;
+          if (name) eventsSet.add(name.trim());
+        });
+        eventList = Array.from(eventsSet).sort();
+      });
+    });
+
+    onSnapshot(collection(db, "orders"), snap => {
+      ordersCache = {};
+      snap.forEach(d => { ordersCache[d.id] = { id: d.id, ...d.data() }; });
+      renderTable();
+    });
+
+    function renderTable() {
+      const tb = document.getElementById('ordersAdminTable');
       tb.innerHTML = '';
 
-      snap.forEach(d => {
-        const item = d.data();
-        const docId = d.id;
-        
-        // 修正：優先抓取前台表單存入的 buyerName，其次才是 user 或 nickname
-        const user = item.buyerName || item.user || item.nickname || '';
+      Object.values(ordersCache).forEach(item => {
+        const docId = item.id;
+        const isEditing = editingRows.has(docId);
 
-        // 修正：活動名稱與成員
+        const user = item.buyerName || item.user || item.nickname || '';
         const eName = item.event || item.eventName || '';
         const member = item.member || '';
+        const orderType = item.orderType || '一般';
         const qty = item.qty !== undefined ? item.qty : (item.quantity !== undefined ? item.quantity : 0);
         
-        // 修正：精準解析 ISO 時間格式（解決 Invalid Date）
         let timeStr = item.time || '';
         if (!timeStr && item.createdAt) {
           try {
-            let dateObj;
-            if (typeof item.createdAt === 'string') {
-              dateObj = new Date(item.createdAt);
-            } else if (item.createdAt.seconds) {
-              dateObj = new Date(item.createdAt.seconds * 1000);
-            }
-            
+            let dateObj = (typeof item.createdAt === 'string') ? new Date(item.createdAt) : new Date(item.createdAt.seconds * 1000);
             if (dateObj && !isNaN(dateObj.getTime())) {
-              timeStr = dateObj.toLocaleString('zh-TW', { 
-                month: 'numeric', 
-                day: 'numeric', 
-                hour: '2-digit', 
-                minute: '2-digit', 
-                hour12: false 
-              });
+              timeStr = dateObj.toLocaleString('zh-TW', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false });
             }
           } catch(e) { timeStr = ''; }
         }
 
-        // 判斷匯款狀態
         const isPaid = item.hasPaid || item.paymentStatus === '已對帳' || item.status === '已對帳';
 
         const tr = document.createElement('tr');
         tr.id = `row-${docId}`;
-        tr.innerHTML = `
-          <td><input type="text" value="${user}" placeholder="手動補上暱稱" id="user-${docId}"></td>
-          <td><input type="text" value="${eName}" placeholder="活動名稱" id="event-${docId}"></td>
-          <td><input type="text" value="${member}" placeholder="成員" id="member-${docId}" style="color:#409eff; font-weight:bold;"></td>
-          <td><input type="number" value="${qty}" id="qty-${docId}" style="width:70px;"></td>
-          <td><input type="text" value="${timeStr}" placeholder="如 7/27 02:15" id="time-${docId}"></td>
-          <td>
-            <select id="status-${docId}" class="status-select ${isPaid ? 'status-paid' : 'status-pending'}">
-              <option value="pending" ${!isPaid ? 'selected' : ''}>⏳ 待匯款</option>
-              <option value="paid" ${isPaid ? 'selected' : ''}>🟢 已匯款</option>
-            </select>
-          </td>
-          <td>
-            <button class="btn-save" onclick="saveOrder('${docId}')">儲存</button>
-            <button class="btn-danger" onclick="deleteUserOrder('${docId}')">刪除</button>
-          </td>
-        `;
+
+        if (!isEditing) {
+          // 純文字模式
+          const typeBadge = orderType === '追加' ? '<span class="type-badge type-add">追加</span>' : '<span class="type-badge">一般</span>';
+          tr.innerHTML = `
+            <td><b>${user}</b></td>
+            <td>${eName}</td>
+            <td style="color:#409eff; font-weight:bold;">${member}</td>
+            <td>${typeBadge}</td>
+            <td><b>${qty}</b></td>
+            <td style="color:#909399; font-size:12px;">${timeStr}</td>
+            <td>
+              <select class="status-select ${isPaid ? 'status-paid' : 'status-pending'}" onchange="quickUpdateStatus('${docId}', this.value)">
+                <option value="pending" ${!isPaid ? 'selected' : ''}>⏳ 待匯款</option>
+                <option value="paid" ${isPaid ? 'selected' : ''}>🟢 已對帳</option>
+              </select>
+            </td>
+            <td>
+              <button class="btn-edit" onclick="toggleEdit('${docId}', true)">✏️ 編輯</button>
+              <button class="btn-danger" onclick="deleteUserOrder('${docId}')">🗑️ 刪除</button>
+            </td>
+          `;
+        } else {
+          // 編輯模式 (下拉選單)
+          let userOptions = usersList.map(u => `<option value="${u}" ${u === user ? 'selected' : ''}>${u}</option>`).join('');
+          if (user && !usersList.includes(user)) userOptions = `<option value="${user}" selected>${user}</option>` + userOptions;
+
+          let eventOptions = eventList.map(e => `<option value="${e}" ${e === eName ? 'selected' : ''}>${e}</option>`).join('');
+          if (eName && !eventList.includes(eName)) eventOptions = `<option value="${eName}" selected>${eName}</option>` + eventOptions;
+
+          let memberOptions = membersList.map(m => `<option value="${m}" ${m === member ? 'selected' : ''}>${m}</option>`).join('');
+
+          tr.innerHTML = `
+            <td><select id="user-${docId}">${userOptions}</select></td>
+            <td><select id="event-${docId}">${eventOptions}</select></td>
+            <td><select id="member-${docId}">${memberOptions}</select></td>
+            <td>
+              <select id="type-${docId}">
+                <option value="一般" ${orderType === '一般' ? 'selected' : ''}>一般</option>
+                <option value="追加" ${orderType === '追加' ? 'selected' : ''}>追加</option>
+              </select>
+            </td>
+            <td><input type="number" value="${qty}" id="qty-${docId}"></td>
+            <td><input type="text" value="${timeStr}" id="time-${docId}"></td>
+            <td>
+              <select id="status-${docId}" class="status-select ${isPaid ? 'status-paid' : 'status-pending'}">
+                <option value="pending" ${!isPaid ? 'selected' : ''}>⏳ 待匯款</option>
+                <option value="paid" ${isPaid ? 'selected' : ''}>🟢 已對帳</option>
+              </select>
+            </td>
+            <td>
+              <button class="btn-save" onclick="saveOrder('${docId}')">💾 儲存</button>
+              <button class="btn-cancel" onclick="toggleEdit('${docId}', false)">❌ 取消</button>
+            </td>
+          `;
+        }
+
         tb.appendChild(tr);
       });
       notifyHeight();
-    });
+    }
 
-    // 儲存整列單筆資料（雙向相容寫入 buyerName 與 user，確保前後台都讀得到）
-    window.saveOrder = async (docId) => {
-      const user = document.getElementById(`user-${docId}`).value.trim();
-      const eventName = document.getElementById(`event-${docId}`).value.trim();
-      const member = document.getElementById(`member-${docId}`).value.trim();
-      const qty = parseInt(document.getElementById(`qty-${docId}`).value) || 0;
-      const timeStr = document.getElementById(`time-${docId}`).value.trim();
-      const statusVal = document.getElementById(`status-${docId}`).value;
+    window.toggleEdit = (docId, isEdit) => {
+      if (isEdit) editingRows.add(docId);
+      else editingRows.delete(docId);
+      renderTable();
+    };
+
+    window.quickUpdateStatus = async (docId, statusVal) => {
       const isPaid = statusVal === 'paid';
-
       try {
         await updateDoc(doc(db, "orders", docId), {
-          buyerName: user,
-          user: user,
-          event: eventName,
-          eventName: eventName,
-          member: member,
-          qty: qty,
-          quantity: qty,
-          time: timeStr,
           hasPaid: isPaid,
           paymentStatus: isPaid ? '已對帳' : '待匯款',
           status: isPaid ? '已對帳' : '待匯款'
         });
+      } catch (err) { alert('更新狀態失敗: ' + err.message); }
+    };
+
+    window.saveOrder = async (docId) => {
+      const user = document.getElementById(`user-${docId}`).value;
+      const eventName = document.getElementById(`event-${docId}`).value;
+      const member = document.getElementById(`member-${docId}`).value;
+      const orderType = document.getElementById(`type-${docId}`).value;
+      const qty = parseInt(document.getElementById(`qty-${docId}`).value) || 0;
+      const timeStr = document.getElementById(`time-${docId}`).value.trim();
+      const isPaid = document.getElementById(`status-${docId}`).value === 'paid';
+
+      try {
+        await updateDoc(doc(db, "orders", docId), {
+          buyerName: user, user: user,
+          event: eventName, eventName: eventName,
+          member: member, orderType: orderType,
+          qty: qty, quantity: qty, time: timeStr,
+          hasPaid: isPaid, paymentStatus: isPaid ? '已對帳' : '待匯款', status: isPaid ? '已對帳' : '待匯款'
+        });
+        editingRows.delete(docId);
         alert('✅ 更新成功！');
-      } catch (err) {
-        alert('儲存失敗: ' + err.message);
-      }
+      } catch (err) { alert('儲存失敗: ' + err.message); }
     };
 
     window.deleteUserOrder = async (docId) => {
       if (confirm('確定要刪除這筆紀錄嗎？')) {
         try {
           await deleteDoc(doc(db, "orders", docId));
-          alert('已成功刪除。');
-        } catch (err) {
-          alert('刪除失敗: ' + err.message);
-        }
+        } catch (err) { alert('刪除失敗: ' + err.message); }
       }
     };
 
-    // 搜尋過濾
     document.getElementById('searchOrderInput').addEventListener('input', (e) => {
       const kw = e.target.value.toLowerCase();
       const rows = document.querySelectorAll('#ordersAdminTable tr');
       rows.forEach(r => {
-        const inputs = r.querySelectorAll('input');
-        let textMatch = false;
-        inputs.forEach(input => {
-          if (input.value.toLowerCase().includes(kw)) textMatch = true;
-        });
-        r.style.display = textMatch ? '' : 'none';
+        r.style.display = r.textContent.toLowerCase().includes(kw) ? '' : 'none';
       });
     });
 
@@ -203,6 +252,5 @@
       }, 100);
     }
   </script>
-
 </body>
 </html>
