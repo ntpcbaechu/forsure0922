@@ -46,7 +46,6 @@
 
     let memberOrderList = ["方燦", "Lee Know", "彰彬", "鉉辰", "HAN", "Felix", "昇玟", "I.N"];
 
-    // 嘗試讀取官方成員順序設定
     fetch('../json/members.json').then(r => r.json()).then(arr => { memberOrderList = arr; }).catch(() => {});
 
     onSnapshot(collection(db, "photo_progress"), snap => {
@@ -62,7 +61,6 @@
       let rawList = [];
       snap.forEach(d => rawList.push({ id: d.id, ...d.data() }));
 
-      // 群組化：以活動名稱 (eventName) 分類
       const eventGroups = {};
       rawList.forEach(item => {
         const eTitle = item.eventName || item.event || '未命名活動';
@@ -70,7 +68,6 @@
         eventGroups[eTitle].push(item);
       });
 
-      // 排序活動場次（依照日期先後名稱排序）
       const sortedEventNames = Object.keys(eventGroups).sort((a, b) => {
         const matchA = a.match(/\d{6}/); const matchB = b.match(/\d{6}/);
         const dateA = matchA ? parseInt(matchA[0], 10) : 0;
@@ -84,7 +81,6 @@
       sortedEventNames.forEach(eventName => {
         const items = eventGroups[eventName];
 
-        // 內部成員排序：依照 official members.json 順序
         items.sort((a, b) => {
           const mA = a.member || '';
           const mB = b.member || '';
@@ -96,17 +92,29 @@
           return (a.seller || '').localeCompare(b.seller || '');
         });
 
-        let rowsHtml = '';
-        const isMultipleSellers = items.length > 1;
+        // 🛡️ 保密防護邏輯：統計每個成員底下的代拍數量，若複數則自動轉為 代拍1、代拍2...
+        const memberCounts = {};
+        items.forEach(item => {
+          const m = item.member || '全體';
+          memberCounts[m] = (memberCounts[m] || 0) + 1;
+        });
 
-        items.forEach((item, idx) => {
+        const memberIndexTracker = {};
+        let rowsHtml = '';
+
+        items.forEach((item) => {
           let badgeClass = 'status-waiting';
           const st = item.status || '等圖中';
           if (['分圖中', '整理中', '上傳中'].includes(st)) badgeClass = 'status-sorting';
           if (['已完工', '已發圖', '已結束'].includes(st)) badgeClass = 'status-done';
 
-          const sellerText = item.seller ? `<span class="seller-tag">${item.seller}</span>` : '';
           const memberName = item.member || '全體';
+          let sellerText = '';
+
+          if (memberCounts[memberName] > 1) {
+            if (!memberIndexTracker[memberName]) memberIndexTracker[memberName] = 1;
+            sellerText = `<span class="seller-tag">(代拍${memberIndexTracker[memberName]++})</span>`;
+          }
 
           rowsHtml += `
             <div class="progress-row">
