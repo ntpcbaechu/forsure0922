@@ -28,16 +28,16 @@
       letter-spacing: 0.5px;
     }
     
-    /* 手機端按鈕 3 - 2 網格佈局 */
+    /* 兩排 3x3 按鈕網格 */
     .nav-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
       gap: 8px;
-      margin-bottom: 20px;
+      margin-bottom: 8px;
     }
     .nav-grid-row2 {
       display: grid;
-      grid-template-columns: repeat(2, 1fr);
+      grid-template-columns: repeat(3, 1fr);
       gap: 8px;
       margin-bottom: 20px;
     }
@@ -106,10 +106,11 @@
       <button class="nav-btn" onclick="switchTab(2, 'index/index_payment.html')">💰 匯款表單</button>
     </div>
 
-    <!-- 第二排：2 個查詢按鈕 -->
+    <!-- 第二排：3 個查詢與公告按鈕 -->
     <div class="nav-grid-row2">
-      <button class="nav-btn" onclick="switchTab(3, 'index/index_records.html')">🔍 查詢登記與對帳</button>
+      <button class="nav-btn" onclick="switchTab(3, 'index/index_records.html')">🔍 登記與對帳</button>
       <button class="nav-btn" onclick="switchTab(4, 'index/index_credit.html')">💳 抵用金查詢</button>
+      <button class="nav-btn" onclick="switchTab(5, 'index/index_lottery.html')">🎉 抽獎結果</button>
     </div>
 
     <iframe id="contentFrame" src="index/index_progress.html"></iframe>
