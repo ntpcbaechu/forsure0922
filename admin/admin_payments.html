@@ -89,7 +89,8 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    const BANK_OPTIONS = ['台灣銀行', '樂天銀行', '中國信託', '國泰世華', '玉山銀行', '台新銀行', '郵局', '富邦銀行', '其他'];
+    // 同步前台 index_payment.html 的 3 家銀行選單
+    const BANK_OPTIONS = ['台銀', '樂天', '中信'];
 
     const GROUP_CONFIGS = [
       { key: 'pending', title: '🟡 未對帳', class: 'pending' },
@@ -166,7 +167,6 @@
       GROUP_CONFIGS.forEach(group => {
         if (currentFilter !== 'all' && currentFilter !== group.key) return;
 
-        // 當篩選【已對帳】時，過濾掉已發圖的資料
         let groupItems = list.filter(p => getNormalizedPayStatus(p) === group.key);
         if (group.key === 'ok' && currentFilter === 'ok') {
           groupItems = groupItems.filter(p => !(p.isPhotoSent === true || p.status === 'photo_sent'));
@@ -205,6 +205,7 @@
       
       const expectedAmt = p.finalPay !== undefined ? p.finalPay : (p.amount || 0);
       const expectedLast5 = String(p.bankLast5 || p.last5 || '').trim();
+      const buyerBank = p.bankName || p.bank || '台銀';
 
       let inputs = p.bankInputs || [];
       if (inputs.length === 0) {
@@ -212,11 +213,12 @@
           inputs = [{
             amt: p.inputAmt !== undefined ? p.inputAmt : '',
             last5: p.inputLast5 !== undefined ? p.inputLast5 : '',
-            bank: p.bankName || '台灣銀行',
+            bank: buyerBank,
             date: p.checkDate || new Date().toISOString().slice(0,10)
           }];
         } else {
-          inputs = [{ amt: '', last5: '', bank: '台灣銀行', date: new Date().toISOString().slice(0,10) }];
+          // 預設自動帶入買家填寫的銀行
+          inputs = [{ amt: '', last5: '', bank: buyerBank, date: new Date().toISOString().slice(0,10) }];
         }
       }
 
@@ -318,7 +320,7 @@
           '</td>' +
           '<td>' +
             '<b style="color:#f56c6c; font-size:14px;">$' + expectedAmt + '</b><br>' +
-            '<small style="color:#606266;">買家填後五碼: <b>' + (expectedLast5 || '-') + '</b></small>' +
+            '<small style="color:#606266;">買家填寫: <b>' + buyerBank + ' (' + (expectedLast5 || '-') + ')</b></small>' +
             (p.creditUsed > 0 ? '<br><small style="color:#67c23a;">(折抵$' + p.creditUsed + ')</small>' : '') +
           '</td>' +
           '<td>' +
@@ -365,7 +367,7 @@
     window.updateBankInput = async (docId, idx, key, val) => {
       const p = paymentDataMap[docId];
       if (!p) return;
-      let inputs = p.bankInputs || [{ amt: p.inputAmt || '', last5: p.inputLast5 || '', bank: '台灣銀行', date: p.checkDate || '' }];
+      let inputs = p.bankInputs || [{ amt: p.inputAmt || '', last5: p.inputLast5 || '', bank: p.bankName || '台銀', date: p.checkDate || '' }];
       inputs[idx][key] = val;
       const latestDate = inputs[inputs.length - 1]?.date || new Date().toISOString().slice(0,10);
       try {
@@ -376,8 +378,8 @@
     window.addBankInput = async (docId) => {
       const p = paymentDataMap[docId];
       if (!p) return;
-      let inputs = p.bankInputs || [{ amt: p.inputAmt || '', last5: p.inputLast5 || '', bank: '台灣銀行', date: p.checkDate || '' }];
-      inputs.push({ amt: '', last5: '', bank: '台灣銀行', date: new Date().toISOString().slice(0,10) });
+      let inputs = p.bankInputs || [{ amt: p.inputAmt || '', last5: p.inputLast5 || '', bank: p.bankName || '台銀', date: p.checkDate || '' }];
+      inputs.push({ amt: '', last5: '', bank: p.bankName || '台銀', date: new Date().toISOString().slice(0,10) });
       try { await updateDoc(doc(db, "payments", docId), { bankInputs: inputs }); } catch (err) { alert('新增失敗: ' + err.message); }
     };
 
