@@ -4,8 +4,9 @@
   <meta charset="UTF-8">
   <title>發圖進度更新</title>
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 15px; margin: 0; background: #fff; color: #333; min-height: 400px; }
-    table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+    html, body { min-height: 500px !important; background: #fff; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 15px; margin: 0; color: #333; }
+    table { width: 100%; border-collapse: collapse; margin-top: 15px; min-height: 200px; }
     th, td { padding: 10px 8px; border-bottom: 1px solid #e4e7ed; text-align: left; font-size: 13px; vertical-align: middle; }
     th { background: #f8f9fa; color: #606266; font-weight: bold; white-space: nowrap; }
     select, button, input { padding: 8px 10px; border: 1px solid #dcdfe6; border-radius: 6px; font-size: 13px; box-sizing: border-box; }
@@ -56,7 +57,9 @@
         <th style="width: 20%;">操作</th>
       </tr>
     </thead>
-    <tbody id="progressTable"></tbody>
+    <tbody id="progressTable">
+      <tr><td colspan="5" style="text-align:center; color:#909399;">資料載入中...</td></tr>
+    </tbody>
   </table>
 
   <script type="module">
@@ -80,86 +83,89 @@
     let progressMap = {};
     let memberOrderList = ["方燦", "Lee Know", "彰彬", "鉉辰", "Han", "Felix", "昇玟", "I.N"];
 
-    document.addEventListener('DOMContentLoaded', async () => {
-      try {
-        const mRes = await fetch('../json/members.json');
-        memberOrderList = await mRes.json();
-      } catch(e){}
+    // 初始化成員排序檔
+    fetch('../json/members.json').then(r => r.json()).then(arr => { memberOrderList = arr; }).catch(() => {});
 
-      const evSel = document.getElementById('eventSelect');
-      const memSel = document.getElementById('memberSelect');
-      const photoSel = document.getElementById('photographerSelect');
+    const evSel = document.getElementById('eventSelect');
+    const memSel = document.getElementById('memberSelect');
+    const photoSel = document.getElementById('photographerSelect');
 
-      onSnapshot(collection(db, "event_settings"), snap => {
-        rawEventSettings = [];
-        snap.forEach(d => rawEventSettings.push(d.data()));
+    // 三層連動 - 第一層：活動
+    onSnapshot(collection(db, "event_settings"), snap => {
+      rawEventSettings = [];
+      snap.forEach(d => rawEventSettings.push(d.data()));
 
-        const eventsSet = new Set();
-        rawEventSettings.forEach(s => {
-          const eName = s.name || s.rawName;
-          if (eName) eventsSet.add(eName.trim());
-        });
-
-        evSel.innerHTML = '<option value="">請選擇活動</option>';
-        Array.from(eventsSet).sort().forEach(e => {
-          evSel.innerHTML += `<option value="${e}">${e}</option>`;
-        });
+      const eventsSet = new Set();
+      rawEventSettings.forEach(s => {
+        const eName = s.name || s.rawName;
+        if (eName) eventsSet.add(eName.trim());
       });
 
-      evSel.addEventListener('change', () => {
-        const selectedEvent = evSel.value;
-        memSel.innerHTML = '<option value="">請選擇成員</option>';
-        photoSel.innerHTML = '<option value="">請先選擇成員</option>';
+      evSel.innerHTML = '<option value="">請選擇活動</option>';
+      Array.from(eventsSet).sort().forEach(e => {
+        evSel.innerHTML += `<option value="${e}">${e}</option>`;
+      });
+    });
 
-        if (!selectedEvent) return;
+    // 三層連動 - 第二層：成員 (依 members.json 排序)
+    evSel.addEventListener('change', () => {
+      const selectedEvent = evSel.value;
+      memSel.innerHTML = '<option value="">請選擇成員</option>';
+      photoSel.innerHTML = '<option value="">請先選擇成員</option>';
 
-        const membersSet = new Set();
-        rawEventSettings.forEach(s => {
-          const eName = s.name || s.rawName;
-          if (eName === selectedEvent && s.member) {
-            membersSet.add(s.member.trim());
-          }
-        });
+      if (!selectedEvent) return;
 
-        const sortedMembers = Array.from(membersSet).sort((a, b) => {
-          let idxA = memberOrderList.indexOf(a);
-          let idxB = memberOrderList.indexOf(b);
-          if (idxA === -1) idxA = 99;
-          if (idxB === -1) idxB = 99;
-          return idxA - idxB;
-        });
-
-        sortedMembers.forEach(m => {
-          memSel.innerHTML += `<option value="${m}">${m}</option>`;
-        });
+      const membersSet = new Set();
+      rawEventSettings.forEach(s => {
+        const eName = s.name || s.rawName;
+        if (eName === selectedEvent && s.member) {
+          membersSet.add(s.member.trim());
+        }
       });
 
-      memSel.addEventListener('change', () => {
-        const selectedEvent = evSel.value;
-        const selectedMember = memSel.value;
-        photoSel.innerHTML = '<option value="">請選擇代拍</option>';
-
-        if (!selectedEvent || !selectedMember) return;
-
-        const photoSet = new Set();
-        rawEventSettings.forEach(s => {
-          const eName = s.name || s.rawName;
-          if (eName === selectedEvent && s.member === selectedMember && s.photographer) {
-            photoSet.add(s.photographer.trim());
-          }
-        });
-
-        Array.from(photoSet).sort().forEach(p => {
-          photoSel.innerHTML += `<option value="${p}">${p}</option>`;
-        });
+      const sortedMembers = Array.from(membersSet).sort((a, b) => {
+        let idxA = memberOrderList.indexOf(a);
+        let idxB = memberOrderList.indexOf(b);
+        if (idxA === -1) idxA = 99;
+        if (idxB === -1) idxB = 99;
+        return idxA - idxB;
       });
 
-      // 實時監聽 progress_list 並渲染表格
-      onSnapshot(collection(db, "progress_list"), snap => {
-        const tb = document.getElementById('progressTable');
-        tb.innerHTML = '';
-        progressMap = {};
+      sortedMembers.forEach(m => {
+        memSel.innerHTML += `<option value="${m}">${m}</option>`;
+      });
+    });
 
+    // 三層連動 - 第三層：代拍
+    memSel.addEventListener('change', () => {
+      const selectedEvent = evSel.value;
+      const selectedMember = memSel.value;
+      photoSel.innerHTML = '<option value="">請選擇代拍</option>';
+
+      if (!selectedEvent || !selectedMember) return;
+
+      const photoSet = new Set();
+      rawEventSettings.forEach(s => {
+        const eName = s.name || s.rawName;
+        if (eName === selectedEvent && s.member === selectedMember && s.photographer) {
+          photoSet.add(s.photographer.trim());
+        }
+      });
+
+      Array.from(photoSet).sort().forEach(p => {
+        photoSel.innerHTML += `<option value="${p}">${p}</option>`;
+      });
+    });
+
+    // 全域直接監聽 progress_list (確保表格絕對不會留白)
+    onSnapshot(collection(db, "progress_list"), snap => {
+      const tb = document.getElementById('progressTable');
+      tb.innerHTML = '';
+      progressMap = {};
+
+      if (snap.empty) {
+        tb.innerHTML = '<tr><td colspan="5" style="text-align:center; color:#909399;">目前無發圖進度紀錄。</td></tr>';
+      } else {
         snap.forEach(d => {
           const item = { id: d.id, ...d.data() };
           progressMap[d.id] = item;
@@ -177,8 +183,8 @@
           `;
           tb.appendChild(tr);
         });
-        notifyHeight();
-      });
+      }
+      notifyHeight();
     });
 
     document.getElementById('progressForm').addEventListener('submit', async (e) => {
@@ -252,9 +258,9 @@
 
     function notifyHeight() {
       setTimeout(() => {
-        const h = Math.max(document.body.scrollHeight, 500);
+        const h = Math.max(document.body.scrollHeight, 600);
         window.parent.postMessage({ frameHeight: h }, '*');
-      }, 200);
+      }, 100);
     }
   </script>
 </body>
