@@ -28,7 +28,7 @@
     }
     .form-row { display: grid; gap: 10px; align-items: end; }
     .row-4 { grid-template-columns: 1fr 1.5fr 1.2fr 1.2fr; }
-    .row-pack-spec { grid-template-columns: 1fr 1fr 1fr auto; }
+    .row-pack-spec { grid-template-columns: 1fr 1fr 1fr 1fr auto; }
     .row-cost-act { grid-template-columns: 1fr 1fr 1.2fr 1fr 1fr auto; }
     .row-discount { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
     .form-divider { border-top: 1px dashed #dcdfe6; margin: 2px 0; }
@@ -119,10 +119,11 @@
     <div>
       <div class="form-row row-pack-spec">
         <div><label style="font-size:12px;">每包數量(張)</label><input type="number" id="evPackQty" placeholder="張數" style="width:100%;"></div>
-        <div><label style="font-size:12px;">每包原價 ($)</label><input type="number" step="0.1" min="0" id="evPrice" placeholder="單價" style="width:100%;"></div>
+        <div><label style="font-size:12px;">預估金額 ($)</label><input type="number" step="0.1" min="0" id="evEstimatedPrice" placeholder="預估價" style="width:100%;"></div>
+        <div><label style="font-size:12px;">實際金額 ($)</label><input type="number" step="0.1" min="0" id="evActualPrice" placeholder="實際價(選填)" style="width:100%;"></div>
         <div><label style="font-size:12px;">總拆包數</label><input type="number" id="evPacksCount" placeholder="包數" style="width:100%;"></div>
         <div>
-          <button type="button" id="addDiscountBtn" style="background:#67c23a; font-size:12px; padding:7px 10px;">+ 新增折扣售價</button>
+          <button type="button" id="addDiscountBtn" style="background:#67c23a; font-size:12px; padding:7px 10px;">+ 新增折扣</button>
         </div>
       </div>
       <div id="discountContainer"></div>
@@ -407,10 +408,17 @@
 
             let mergedCellsHtml = '';
             if (idx === 0) {
+              const estP = Number(sampleEv.estimatedPrice) || 0;
+              const actP = Number(sampleEv.actualPrice) || 0;
+              let priceDisplayHtml = `$${sampleEv.price || 0}/包`;
+              if (actP > 0 && estP > 0 && actP < estP) {
+                priceDisplayHtml = `<span style="text-decoration:line-through; color:#909399; font-size:11px; margin-right:4px;">$${estP}</span><span style="color:#f56c6c; font-weight:bold;">$${actP}</span>/包`;
+              }
+
               mergedCellsHtml = `
                 <td rowspan="${groupRowCount}" style="vertical-align:middle;">
                   <div class="spec-title">📦 ${sampleEv.packQty || 0} 張/包</div>
-                  <div class="sub-info">原價: $${sampleEv.price || 0}/包 (拆${sampleEv.packsCount || 0}包)</div>
+                  <div class="sub-info">價格: ${priceDisplayHtml} (拆${sampleEv.packsCount || 0}包)</div>
                   ${discountDisplay}
                 </td>
                 <td rowspan="${groupRowCount}" style="vertical-align:middle;">
@@ -509,7 +517,10 @@
         const bigNote = document.getElementById('evBigNote').value.trim();
 
         const packQty = parseInt(document.getElementById('evPackQty').value) || 0;
-        const price = parseFloat(document.getElementById('evPrice').value) || 0;
+        const estimatedPrice = parseFloat(document.getElementById('evEstimatedPrice').value) || 0;
+        const actualPrice = parseFloat(document.getElementById('evActualPrice').value) || 0;
+        const price = (actualPrice > 0) ? actualPrice : estimatedPrice;
+
         const packsCount = parseInt(document.getElementById('evPacksCount').value) || 0;
 
         const discCounts = document.querySelectorAll('.disc-count');
@@ -540,10 +551,10 @@
 
         await setDoc(doc(db, "event_settings", docId), {
           name: fullName, rawDate: evDate, rawName: evNameRaw, member, seller, bigNote,
-          packQty, price, packsCount, discounts, deposit, balance, cost, actPhoto, actVideo, actQty, isClosed
+          packQty, estimatedPrice, actualPrice, price, packsCount, discounts, deposit, balance, cost, actPhoto, actVideo, actQty, isClosed
         });
 
-        alert('✅ 活動設定與金額張數已成功更新！');
+        alert('✅ 活動設定與金額已成功更新！');
         resetEventForm();
       } catch (err) {
         alert('儲存失敗：' + err.message);
@@ -576,7 +587,8 @@
       adjustTextareaHeight(bigNoteArea);
 
       document.getElementById('evPackQty').value = ev.packQty !== undefined ? ev.packQty : '';
-      document.getElementById('evPrice').value = ev.price !== undefined ? ev.price : '';
+      document.getElementById('evEstimatedPrice').value = ev.estimatedPrice !== undefined ? ev.estimatedPrice : (ev.price || '');
+      document.getElementById('evActualPrice').value = ev.actualPrice !== undefined ? ev.actualPrice : '';
       document.getElementById('evPacksCount').value = ev.packsCount !== undefined ? ev.packsCount : '';
 
       discountContainer.innerHTML = '';

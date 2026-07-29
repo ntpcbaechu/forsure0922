@@ -115,13 +115,16 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
+    const MEMBER_ORDER = ["方燦", "Lee Know", "彰彬", "鉉辰", "HAN", "Felix", "昇玟", "I.N"];
+
     let allCredits = [];
     let allOrders = [];
     let photoProgressMap = {};
-    let eventSettings = {};
     let currentAvailableCredit = 0;
 
     document.addEventListener('DOMContentLoaded', () => {
+      fetch('json/members.json').then(r => r.json()).then(arr => { MEMBER_ORDER.length = 0; MEMBER_ORDER.push(...arr); }).catch(() => {});
+
       onSnapshot(collection(db, "photo_progress"), snap => {
         photoProgressMap = {};
         snap.forEach(d => {
@@ -130,22 +133,6 @@
           const mem = data.member || '';
           if (evName && mem) {
             photoProgressMap[`${evName}_${mem}`] = data.status || '等圖中';
-          }
-        });
-        renderBuyerDetails();
-      });
-
-      onSnapshot(collection(db, "event_settings"), snap => {
-        eventSettings = {};
-        snap.forEach(d => {
-          const data = d.data();
-          const evName = data.name || '';
-          const mem = data.member || '';
-          const price = Number(data.price) || 0;
-          const packQty = Number(data.packQty) || 1;
-
-          if (evName) {
-            eventSettings[`${evName}_${mem}`] = { price, packQty };
           }
         });
         renderBuyerDetails();
@@ -211,7 +198,7 @@
       document.getElementById('creditBalance').textContent = `$${currentAvailableCredit}`;
       document.getElementById('useCreditChk').checked = false;
 
-      const userOrders = allOrders.filter(o => {
+      let userOrders = allOrders.filter(o => {
         const nameMatch = (o.user === selectedBuyer || o.buyerName === selectedBuyer || o.name === selectedBuyer);
         const pendingMatch = (o.hasPaid !== true) && (o.paymentStatus === 'pending_payment' || o.paymentStatus === '待匯款' || o.status === 'pending_payment' || o.status === '待匯款' || !o.paymentStatus);
         
@@ -221,6 +208,21 @@
         const isNotWaitingPhoto = progressStatus !== '等圖中';
 
         return nameMatch && pendingMatch && isNotWaitingPhoto;
+      });
+
+      // 嚴格依照 活動日期 -> 官方成員順序 排列
+      userOrders.sort((a, b) => {
+        const evA = a.eventName || a.event || '';
+        const evB = b.eventName || b.event || '';
+        if (evA !== evB) return evA.localeCompare(evB);
+
+        const memA = a.member || '';
+        const memB = b.member || '';
+        let idxA = MEMBER_ORDER.indexOf(memA);
+        let idxB = MEMBER_ORDER.indexOf(memB);
+        if (idxA === -1) idxA = 99;
+        if (idxB === -1) idxB = 99;
+        return idxA - idxB;
       });
 
       const ordersList = document.getElementById('ordersList');
@@ -236,13 +238,7 @@
           const ordEvent = ord.eventName || ord.event || '';
           const ordMember = ord.member || '';
           
-          const settingKey = `${ordEvent}_${ordMember}`;
-          const setting = eventSettings[settingKey] || { price: 0, packQty: 1 };
-          
-          const unitPrice = Number(ord.price) || setting.price || 0;
-          const packQty = setting.packQty > 0 ? setting.packQty : 1;
-          
-          const calculatedPrice = (unitPrice > 0) ? (qty / packQty) * unitPrice : (Number(ord.total) || Number(ord.amount) || 0);
+          const calculatedPrice = Number(ord.total !== undefined ? ord.total : (ord.amount !== undefined ? ord.amount : (ord.price || 0)));
 
           ordersList.innerHTML += `
             <div class="order-item">
