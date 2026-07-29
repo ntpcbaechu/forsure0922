@@ -6,29 +6,24 @@
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 0; margin: 0; background: transparent; color: #333; }
     
-    .lottery-card { background: #fff; border: 1px solid #e4e7ed; border-radius: 12px; padding: 16px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); }
-    .lottery-title { font-size: 18px; font-weight: bold; color: #303133; margin-bottom: 12px; border-bottom: 2px solid #409eff; padding-bottom: 8px; display: flex; align-items: center; justify-content: space-between; }
+    .lottery-card { background: #fff; border: 1px solid #e4e7ed; border-radius: 12px; padding: 16px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); }
+    .lottery-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f0f2f5; padding-bottom: 10px; margin-bottom: 12px; }
+    .lottery-title { font-size: 16px; font-weight: bold; color: #303133; }
+    .lottery-date { font-size: 12px; color: #909399; }
 
-    .section-block { background: #f8f9fa; border-radius: 8px; padding: 12px; margin-bottom: 12px; font-size: 13px; color: #606266; }
-    .section-subtitle { font-weight: bold; color: #303133; margin-bottom: 6px; font-size: 14px; }
-    
-    .prizes-list { margin: 0; padding-left: 18px; line-height: 1.6; }
-    .members-tag { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
-    .member-badge { background: #eef5fe; color: #409eff; padding: 3px 8px; border-radius: 12px; font-size: 12px; }
+    .winner-list { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+    .winner-item { background: #fdf6ec; border: 1px solid #faebd7; padding: 10px 12px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; font-size: 13px; }
+    .winner-name { font-weight: bold; color: #e6a23c; }
+    .winner-prize { color: #606266; }
 
-    .winner-box { background: #f0f9eb; border: 1px solid #e1f3d8; border-radius: 8px; padding: 12px; margin-top: 12px; }
-    .winner-title { font-weight: bold; color: #67c23a; font-size: 15px; margin-bottom: 8px; border-bottom: 1px dashed #c2e7b0; padding-bottom: 4px; }
-    .winner-item { padding: 6px 0; border-bottom: 1px dashed #e1f3d8; font-size: 13px; }
-    .winner-item:last-child { border-bottom: none; }
-    .winner-name { font-weight: bold; color: #303133; }
-    .winner-prize { color: #e6a23c; font-weight: bold; margin-top: 2px; }
-    .winner-special { color: #f56c6c; font-weight: bold; margin-top: 2px; }
+    .special-badge { background: #fef0f0; color: #f56c6c; border: 1px solid #fde2e2; padding: 2px 6px; border-radius: 4px; font-size: 11px; margin-left: 6px; }
   </style>
 </head>
 <body>
 
-  <h3 style="margin-top:0; margin-bottom:15px; font-size:18px;">🎉 抽獎結果公告</h3>
-  <div id="lotteryContainer">載入中...</div>
+  <h3 style="margin-top:0; margin-bottom:12px; font-size:18px;">🎉 抽獎結果公告</h3>
+  
+  <div id="lotteryList">載入中...</div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -48,65 +43,53 @@
     const db = getFirestore(app);
 
     onSnapshot(collection(db, "lottery_events"), snap => {
-      const container = document.getElementById('lotteryContainer');
+      const container = document.getElementById('lotteryList');
       container.innerHTML = '';
 
       if (snap.empty) {
-        container.innerHTML = '<p style="color:#909399;">目前無抽獎公告。</p>';
+        container.innerHTML = '<p style="color:#909399;">目前尚無抽獎結果公告。</p>';
         notifyHeight();
         return;
       }
 
       let list = [];
       snap.forEach(d => list.push({ id: d.id, ...d.data() }));
-
-      list.sort((a,b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+      list.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
 
       list.forEach(item => {
-        const prizesHtml = (item.prizes || []).map(p => `<li>${p}</li>`).join('');
-        const participantsHtml = (item.participants || []).map(p => `<span class="member-badge">${p}</span>`).join('');
+        let dateStr = '-';
+        if (item.createdAt) {
+          const dt = item.createdAt.seconds ? new Date(item.createdAt.seconds * 1000) : new Date(item.createdAt);
+          dateStr = dt.toLocaleDateString('zh-TW');
+        }
 
         let winnersHtml = '';
-        (item.winners || []).forEach((w, idx) => {
-          const prizeClass = w.isSpecial ? 'winner-special' : 'winner-prize';
-          winnersHtml += `
-            <div class="winner-item">
-              <div>👤 第 ${idx + 1} 位幸運兒：<span class="winner-name">${w.name}</span></div>
-              <div class="${prizeClass}">➔ ${w.isSpecial ? '獲得特別獎：' : '抽中獎項：'}${w.prize}</div>
+        if (item.winners && item.winners.length > 0) {
+          item.winners.forEach(w => {
+            const specialBadge = w.isSpecial ? '<span class="special-badge">特別獎</span>' : '';
+            winnersHtml += `
+              <div class="winner-item">
+                <span><span class="winner-name">🎁 ${w.name}</span> ${specialBadge}</span>
+                <span class="winner-prize">${w.prize || '專屬獎項'}</span>
+              </div>
+            `;
+          });
+        } else {
+          winnersHtml = '<p style="font-size:12px; color:#909399; margin:4px 0;">尚未公佈中獎名單</p>';
+        }
+
+        container.innerHTML += `
+          <div class="lottery-card">
+            <div class="lottery-header">
+              <span class="lottery-title">🎁 ${item.title}</span>
+              <span class="lottery-date">發佈日期：${dateStr}</span>
             </div>
-          `;
-        });
-
-        const memTag = item.member ? ` <span style="font-size:13px; color:#409eff; font-weight:normal;">(${item.member})</span>` : '';
-
-        const card = document.createElement('div');
-        card.className = 'lottery-card';
-        card.innerHTML = `
-          <div class="lottery-title">
-            <span>🎁 ${item.title || '抽獎活動'}${memTag}</span>
-          </div>
-
-          ${item.prizes?.length ? `
-          <div class="section-block">
-            <div class="section-subtitle">🎁 獎項列表</div>
-            <ul class="prizes-list">${prizesHtml}</ul>
-          </div>` : ''}
-
-          ${item.participants?.length ? `
-          <div class="section-block">
-            <div class="section-subtitle">👥 參與名單 (共 ${item.participants.length} 籤)</div>
-            <div class="members-tag">${participantsHtml}</div>
-          </div>` : ''}
-
-          <div class="winner-box">
-            <div class="winner-title">🎉 抽獎結果揭曉</div>
-            ${winnersHtml || '<div style="color:#909399; font-size:13px;">尚未公佈中獎結果</div>'}
-            <div style="margin-top: 10px; font-weight: bold; color: #67c23a; text-align: center; font-size: 13px;">
-              恭喜中獎者！請私訊領取！
+            <div style="font-size:13px; color:#606266; margin-bottom:8px;">
+              對應成員：<b>${item.member || '全體'}</b> ｜ 總抽獎籤數：<b>${item.participants?.length || 0}</b> 籤
             </div>
+            <div class="winner-list">${winnersHtml}</div>
           </div>
         `;
-        container.appendChild(card);
       });
 
       notifyHeight();
@@ -114,7 +97,8 @@
 
     function notifyHeight() {
       setTimeout(() => {
-        window.parent.postMessage({ frameHeight: document.body.scrollHeight }, '*');
+        const h = Math.max(document.body.scrollHeight, 400);
+        window.parent.postMessage({ frameHeight: h }, '*');
       }, 100);
     }
   </script>

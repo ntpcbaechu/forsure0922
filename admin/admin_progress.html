@@ -83,14 +83,13 @@
     let progressMap = {};
     let memberOrderList = ["方燦", "Lee Know", "彰彬", "鉉辰", "Han", "Felix", "昇玟", "I.N"];
 
-    // 初始化成員排序檔
     fetch('../json/members.json').then(r => r.json()).then(arr => { memberOrderList = arr; }).catch(() => {});
 
     const evSel = document.getElementById('eventSelect');
     const memSel = document.getElementById('memberSelect');
     const photoSel = document.getElementById('photographerSelect');
 
-    // 三層連動 - 第一層：活動
+    // 載入 event_settings 進行三層選單連動
     onSnapshot(collection(db, "event_settings"), snap => {
       rawEventSettings = [];
       snap.forEach(d => rawEventSettings.push(d.data()));
@@ -107,7 +106,6 @@
       });
     });
 
-    // 三層連動 - 第二層：成員 (依 members.json 排序)
     evSel.addEventListener('change', () => {
       const selectedEvent = evSel.value;
       memSel.innerHTML = '<option value="">請選擇成員</option>';
@@ -136,7 +134,6 @@
       });
     });
 
-    // 三層連動 - 第三層：代拍
     memSel.addEventListener('change', () => {
       const selectedEvent = evSel.value;
       const selectedMember = memSel.value;
@@ -157,7 +154,7 @@
       });
     });
 
-    // 全域直接監聽 progress_list (確保表格絕對不會留白)
+    // 全域直接監聽 progress_list (確保表格絕對不會停留在載入中)
     onSnapshot(collection(db, "progress_list"), snap => {
       const tb = document.getElementById('progressTable');
       tb.innerHTML = '';
