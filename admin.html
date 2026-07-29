@@ -5,28 +5,29 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>FORSURE🐶📸 - 管理者控制台</title>
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 20px; max-width: 1150px; margin: 0 auto; background-color: #f4f6f8; color: #333; }
-    .card { background: #ffffff; padding: 24px; border-radius: 16px; box-shadow: 0 8px 20px rgba(0,0,0,0.06); }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 15px; max-width: 1050px; margin: 0 auto; background-color: #f4f6f8; color: #333; }
+    .card { background: #ffffff; padding: 18px 20px; border-radius: 16px; box-shadow: 0 4px 16px rgba(0,0,0,0.05); }
     
-    .top-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-    .btn-home-nav { color: #409eff; text-decoration: none; font-size: 13px; font-weight: bold; background: #ecf5ff; padding: 6px 12px; border-radius: 6px; }
+    .top-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .btn-home-nav { color: #409eff; text-decoration: none; font-size: 12px; font-weight: bold; background: #ecf5ff; padding: 4px 10px; border-radius: 6px; }
 
-    .login-box { max-width: 380px; margin: 60px auto; padding: 30px; background: #fff; border-radius: 16px; box-shadow: 0 8px 24px rgba(0,0,0,0.08); text-align: center; }
-    .login-box h3 { margin-bottom: 20px; color: #303133; }
-    .login-box input { width: 100%; margin-bottom: 15px; padding: 12px; border: 1px solid #dcdfe6; border-radius: 8px; box-sizing: border-box; font-size: 14px; }
-    .login-box button { width: 100%; padding: 12px; background: #409eff; color: white; border: none; border-radius: 8px; font-weight: bold; font-size: 15px; cursor: pointer; }
+    .login-box { max-width: 360px; margin: 60px auto; padding: 25px; background: #fff; border-radius: 16px; box-shadow: 0 8px 24px rgba(0,0,0,0.08); text-align: center; }
+    .login-box h3 { margin-bottom: 18px; color: #303133; font-size: 18px; }
+    .login-box input { width: 100%; margin-bottom: 12px; padding: 10px; border: 1px solid #dcdfe6; border-radius: 8px; box-sizing: border-box; font-size: 13px; }
+    .login-box button { width: 100%; padding: 10px; background: #409eff; color: white; border: none; border-radius: 8px; font-weight: bold; font-size: 14px; cursor: pointer; }
 
-    /* 2 排 3 列網格佈局，解決按鈕溢出右側問題 */
-    .tabs-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
-    .tab-btn { padding: 12px 10px; cursor: pointer; border: 1px solid #dcdfe6; background: #fff; font-weight: bold; color: #606266; font-size: 14px; border-radius: 10px; text-align: center; transition: all 0.2s; }
+    /* 緊湊型 4 欄後台導覽按鈕 */
+    .tabs-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 15px; }
+    .tab-btn { padding: 6px 8px; cursor: pointer; border: 1px solid #dcdfe6; background: #fff; font-weight: bold; color: #606266; font-size: 12px; border-radius: 8px; text-align: center; transition: all 0.2s; outline: none; white-space: nowrap; }
     .tab-btn:hover { border-color: #c6e2ff; background: #ecf5ff; color: #409eff; }
-    .tab-btn.active { background: #409eff; color: #fff; border-color: #409eff; box-shadow: 0 4px 12px rgba(64,158,255,0.3); }
+    .tab-btn.active { background: #409eff; color: #fff; border-color: #409eff; box-shadow: 0 2px 8px rgba(64,158,255,0.25); }
 
-    @media (max-width: 600px) {
-      .tabs-grid { grid-template-columns: repeat(2, 1fr); }
+    @media (max-width: 650px) {
+      .tabs-grid { grid-template-columns: repeat(2, 1fr); gap: 5px; }
+      .tab-btn { font-size: 11px; padding: 6px 4px; }
     }
     
-    iframe { width: 100%; border: none; min-height: 600px; transition: height 0.2s ease; }
+    iframe { width: 100%; border: none; min-height: 550px; transition: height 0.2s ease; }
   </style>
 </head>
 <body>
@@ -46,21 +47,22 @@
     <div class="top-nav">
       <a href="index.html" class="btn-home-nav">← 返回前台首頁</a>
       <div>
-        <span id="currentUserEmail" style="font-size:12px; color:#909399; margin-right:10px;"></span>
-        <button id="logoutBtn" style="padding:4px 8px; font-size:12px; background:#909399; border:none; border-radius:4px; color:#fff; cursor:pointer;">登出</button>
+        <span id="currentUserEmail" style="font-size:11px; color:#909399; margin-right:8px;"></span>
+        <button id="logoutBtn" style="padding:3px 8px; font-size:11px; background:#909399; border:none; border-radius:4px; color:#fff; cursor:pointer;">登出</button>
       </div>
     </div>
 
-    <h2 style="margin-bottom: 15px;">FORSURE🐶📸 管理者控制台</h2>
+    <h3 style="margin-top:0; margin-bottom:12px; font-size:18px;">FORSURE🐶📸 管理者控制台</h3>
 
-    <!-- 導覽按鈕網格 (無數字) -->
+    <!-- 輕量型 4x2 導覽網格 -->
     <div class="tabs-grid">
       <button class="tab-btn active" onclick="switchAdminTab(0, 'admin/admin_orders.html')">團員登記管理</button>
       <button class="tab-btn" onclick="switchAdminTab(1, 'admin/admin_payments.html')">匯款對帳審核</button>
       <button class="tab-btn" onclick="switchAdminTab(2, 'admin/admin_credits.html')">成員抵用金管理</button>
-      <button class="tab-btn" onclick="switchAdminTab(3, 'admin/admin_events.html')">活動單價與成本設定</button>
-      <button class="tab-btn" onclick="switchAdminTab(4, 'admin/admin_progress.html')">發圖進度更新</button>
-      <button class="tab-btn" onclick="switchAdminTab(5, 'admin/admin_lottery.html')">抽獎活動管理</button>
+      <button class="tab-btn" onclick="switchAdminTab(3, 'admin/admin_deposit.html')">預存儲值金管理</button>
+      <button class="tab-btn" onclick="switchAdminTab(4, 'admin/admin_events.html')">活動單價成本</button>
+      <button class="tab-btn" onclick="switchAdminTab(5, 'admin/admin_progress.html')">發圖進度更新</button>
+      <button class="tab-btn" onclick="switchAdminTab(6, 'admin/admin_lottery.html')">抽獎活動管理</button>
     </div>
 
     <!-- iFrame 預設載入 admin/admin_orders.html -->
@@ -116,7 +118,7 @@
 
     window.addEventListener('message', (e) => {
       if (e.data && e.data.frameHeight) {
-        document.getElementById('adminFrame').style.height = (e.data.frameHeight + 30) + 'px';
+        document.getElementById('adminFrame').style.height = (e.data.frameHeight + 20) + 'px';
       }
     });
   </script>

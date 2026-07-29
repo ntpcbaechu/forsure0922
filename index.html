@@ -7,54 +7,48 @@
   <style>
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      padding: 20px;
-      max-width: 900px;
+      padding: 15px;
+      max-width: 950px;
       margin: 0 auto;
       background-color: #f4f6f8;
       color: #333;
     }
     .main-card {
       background: #ffffff;
-      padding: 24px;
-      border-radius: 20px;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+      padding: 16px 20px;
+      border-radius: 16px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.05);
     }
     .header-title {
       text-align: center;
-      font-size: 26px;
+      font-size: 22px;
       font-weight: 800;
-      margin-bottom: 20px;
+      margin-bottom: 12px;
       color: #1a1a1a;
       letter-spacing: 0.5px;
     }
     
-    /* 兩排 3x3 按鈕網格 */
+    /* 緊湊型 4 欄網格按鈕 */
     .nav-grid {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 8px;
-      margin-bottom: 8px;
-    }
-    .nav-grid-row2 {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 8px;
-      margin-bottom: 20px;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      margin-bottom: 15px;
     }
 
     .nav-btn {
-      padding: 10px 6px;
-      font-size: 13px;
+      padding: 6px 8px;
+      font-size: 12px;
       font-weight: bold;
-      border: 1px solid #e4e7ed;
+      border: 1px solid #dcdfe6;
       background: #ffffff;
       color: #606266;
-      border-radius: 12px;
+      border-radius: 8px;
       cursor: pointer;
       text-align: center;
       transition: all 0.2s ease;
       white-space: nowrap;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+      outline: none;
     }
     .nav-btn:hover {
       background: #f0f7ff;
@@ -65,7 +59,7 @@
       background: #409eff;
       color: #ffffff;
       border-color: #409eff;
-      box-shadow: 0 4px 12px rgba(64,158,255,0.3);
+      box-shadow: 0 2px 8px rgba(64,158,255,0.25);
     }
 
     iframe {
@@ -75,22 +69,12 @@
       transition: height 0.2s ease;
     }
 
-    @media (max-width: 600px) {
-      body {
-        padding: 8px 4px;
-      }
-      .main-card {
-        padding: 14px 10px;
-        border-radius: 16px;
-      }
-      .header-title {
-        font-size: 22px;
-        margin-bottom: 15px;
-      }
-      .nav-btn {
-        font-size: 12px;
-        padding: 9px 4px;
-      }
+    @media (max-width: 650px) {
+      body { padding: 8px 4px; }
+      .main-card { padding: 12px 10px; border-radius: 12px; }
+      .header-title { font-size: 18px; margin-bottom: 10px; }
+      .nav-grid { grid-template-columns: repeat(2, 1fr); gap: 5px; }
+      .nav-btn { font-size: 11px; padding: 6px 4px; }
     }
   </style>
 </head>
@@ -99,18 +83,15 @@
   <div class="main-card">
     <div class="header-title">FORSURE🐶📸</div>
 
-    <!-- 第一排：3 個常用按鈕 -->
+    <!-- 輕量型 4x2 導覽網格 -->
     <div class="nav-grid">
       <button class="nav-btn active" onclick="switchTab(0, 'index/index_progress.html')">🔥 開團與進度</button>
       <button class="nav-btn" onclick="switchTab(1, 'index/index_order.html')">📝 登記表單</button>
       <button class="nav-btn" onclick="switchTab(2, 'index/index_payment.html')">💰 匯款表單</button>
-    </div>
-
-    <!-- 第二排：3 個查詢與公告按鈕 -->
-    <div class="nav-grid-row2">
       <button class="nav-btn" onclick="switchTab(3, 'index/index_records.html')">🔍 登記與對帳</button>
       <button class="nav-btn" onclick="switchTab(4, 'index/index_credit.html')">💳 抵用金查詢</button>
-      <button class="nav-btn" onclick="switchTab(5, 'index/index_lottery.html')">🎉 抽獎結果</button>
+      <button class="nav-btn" onclick="switchTab(5, 'index/index_deposit.html')">💵 預存儲值金</button>
+      <button class="nav-btn" onclick="switchTab(6, 'index/index_lottery.html')">🎉 抽獎結果</button>
     </div>
 
     <iframe id="contentFrame" src="index/index_progress.html"></iframe>
