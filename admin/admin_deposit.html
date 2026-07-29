@@ -7,6 +7,7 @@
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 15px; margin: 0; background: #fff; color: #333; }
     h3 { margin-top: 0; margin-bottom: 15px; font-size: 18px; }
 
+    /* 統一卡片表單樣式 */
     .unified-form-box {
       background: #f8f9fa;
       border: 1px solid #e4e7ed;
@@ -17,8 +18,9 @@
       flex-direction: column;
       gap: 12px;
     }
-    .form-row { display: grid; gap: 10px; align-items: end; grid-template-columns: 1.5fr 1fr 1.2fr 2fr auto; }
-    @media (max-width: 768px) { .form-row { grid-template-columns: 1fr; } }
+    .form-row { display: grid; gap: 10px; align-items: end; grid-template-columns: 1.2fr 1fr 1fr 1fr 1fr 1.5fr auto; }
+    @media (max-width: 900px) { .form-row { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 600px) { .form-row { grid-template-columns: 1fr; } }
 
     label { font-size: 12px; font-weight: bold; color: #606266; margin-bottom: 4px; display: block; }
     input, select, button, textarea { padding: 8px 10px; border: 1px solid #dcdfe6; border-radius: 6px; font-size: 13px; box-sizing: border-box; transition: border-color 0.2s; outline: none; }
@@ -28,6 +30,7 @@
     .btn-edit { background-color: #e6a23c; color: white; padding: 4px 8px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; }
     .btn-danger { background-color: #f56c6c; color: white; padding: 4px 8px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; }
 
+    /* 簡化版膠囊按鈕列 */
     .capsule-bar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 15px; background: #f8f9fa; padding: 10px; border-radius: 8px; border: 1px solid #ebeef5; }
     .capsule-btn { background: #ecf5ff; color: #409eff; border: 1px solid #d9ecff; padding: 5px 12px; border-radius: 16px; font-size: 12px; font-weight: bold; cursor: pointer; transition: all 0.2s; }
     .capsule-btn:hover, .capsule-btn.active { background: #409eff; color: #fff; border-color: #409eff; }
@@ -40,54 +43,71 @@
     .stat-num { font-size: 18px; font-weight: bold; }
 
     table { width: 100%; border-collapse: collapse; }
-    th, td { padding: 10px 8px; border-bottom: 1px solid #e4e7ed; text-align: left; font-size: 13px; vertical-align: middle; }
+    th, td { padding: 10px 8px; border-bottom: 1px solid #e4e7ed; text-align: left; font-size: 13px; vertical-align: top; }
     th { background: #f8f9fa; color: #606266; font-weight: bold; white-space: nowrap; }
 
-    .badge-type { padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: bold; display: inline-block; }
-    .badge-deposit { background: #f0f9eb; color: #67c23a; border: 1px solid #c2e7b0; }
-    .badge-usage { background: #fef0f0; color: #f56c6c; border: 1px solid #fde2e2; }
+    /* 銀行實際對帳紀錄卡片 (參照 admin_payments) */
+    .bank-check-card { margin-top: 6px; background: #fdfdfd; border: 1px solid #e4e7ed; border-radius: 6px; padding: 8px 10px; }
+    .bank-input-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; background: #fff; border: 1px solid #ebeef5; padding: 4px 6px; border-radius: 4px; margin-bottom: 4px; }
+    .btn-add-bank { background: #ecf5ff; color: #409eff; border: 1px solid #b3d8ff; padding: 2px 6px; border-radius: 4px; font-size: 11px; cursor: pointer; font-weight: bold; margin-top: 4px; }
+    .btn-del-bank { background: #fef0f0; color: #f56c6c; border: 1px solid #fde2e2; border-radius: 4px; padding: 1px 5px; cursor: pointer; font-size: 11px; }
+
+    .status-warning { color: #f56c6c; font-size: 11px; font-weight: bold; margin-top: 4px; display: block; }
+    .status-ok-msg { color: #67c23a; font-size: 11px; font-weight: bold; margin-top: 4px; display: block; }
   </style>
 </head>
 <body>
 
-  <h3>買家預存儲值金管理 (Deposits)</h3>
+  <h3>買家預存儲值金與對帳管理 (Deposits)</h3>
 
+  <!-- 儲值對帳表單 -->
   <form id="depositForm" class="unified-form-box">
     <input type="hidden" id="editDepositId">
     
     <div class="form-row">
       <div>
         <label>社群暱稱 *</label>
-        <select id="userSelect" required>
-          <option value="">載入買家名單中...</option>
+        <select id="userSelect" required><option value="">載入買家名單中...</option></select>
+      </div>
+
+      <div>
+        <label>匯款日期 *</label>
+        <input type="date" id="payDate" required style="width:100%;">
+      </div>
+
+      <div>
+        <label>匯款銀行 *</label>
+        <select id="bankSelect" required>
+          <option value="台銀">台銀</option>
+          <option value="樂天">樂天</option>
+          <option value="中信">中信</option>
+          <option value="其他">其他</option>
         </select>
       </div>
 
       <div>
-        <label>異動類型 *</label>
-        <select id="typeSelect" required>
-          <option value="deposit">➕ 現金儲值入帳</option>
-          <option value="usage">➖ 扣款/消費折抵</option>
-        </select>
+        <label>儲值金額 ($) *</label>
+        <input type="number" id="depositAmt" placeholder="例如: 3000" min="1" required style="width:100%;">
       </div>
 
       <div>
-        <label>金額 ($) *</label>
-        <input type="number" id="depositAmt" placeholder="請輸入金額" min="1" required style="width:100%;">
+        <label>帳號後五碼 *</label>
+        <input type="text" id="last5" placeholder="例如: 12345" required maxlength="5" style="width:100%;">
       </div>
 
       <div>
         <label>備註說明</label>
-        <input type="text" id="depositNote" placeholder="例: 私訊預存轉帳 / 7月儲值優惠" style="width:100%;">
+        <input type="text" id="depositNote" placeholder="例: 小狗首爾場用" style="width:100%;">
       </div>
 
       <div>
-        <button type="submit" id="saveBtn" style="padding:8px 16px; min-width:90px;">新增紀錄</button>
-        <button type="button" id="cancelBtn" style="background:#909399; padding:8px 12px; display:none;" onclick="resetDepositForm()">取消</button>
+        <button type="submit" id="saveBtn" style="padding:8px 14px; min-width:85px;">新增儲值</button>
+        <button type="button" id="cancelBtn" style="background:#909399; padding:8px 10px; display:none;" onclick="resetDepositForm()">取消</button>
       </div>
     </div>
   </form>
 
+  <!-- 數據統計 -->
   <div class="summary-card">
     <div class="summary-grid">
       <div class="stat-col">
@@ -95,7 +115,7 @@
         <span class="stat-num" style="color:#409eff;" id="statTotalDeposit">$0</span>
       </div>
       <div class="stat-col">
-        <span class="stat-title">📤 累積已扣款金額</span>
+        <span class="stat-title">📤 累積已扣款/使用金額</span>
         <span class="stat-num" style="color:#e6a23c;" id="statTotalUsed">$0</span>
       </div>
       <div class="stat-col">
@@ -105,29 +125,30 @@
     </div>
   </div>
 
+  <!-- 簡化後的膠囊過濾列 (只顯示有紀錄的買家) -->
   <div class="capsule-bar" id="buyerCapsules">
     <button class="capsule-btn active" onclick="filterByUser('ALL', this)">👤 顯示全部買家</button>
   </div>
 
+  <!-- 表格 -->
   <table>
     <thead>
       <tr>
-        <th style="width: 15%;">日期</th>
-        <th style="width: 18%;">社群暱稱</th>
-        <th style="width: 12%;">類型</th>
-        <th style="width: 15%;">變動金額</th>
-        <th style="width: 25%;">備註說明</th>
-        <th style="width: 15%;">操作</th>
+        <th style="width: 15%;">社群暱稱</th>
+        <th style="width: 48%;">儲值申報資料與銀行對帳核對</th>
+        <th style="width: 15%;">儲值金額</th>
+        <th style="width: 12%;">對帳狀態</th>
+        <th style="width: 10%;">操作</th>
       </tr>
     </thead>
     <tbody id="depositTableBody">
-      <tr><td colspan="6" style="text-align:center; color:#909399; padding:20px;">載入中...</td></tr>
+      <tr><td colspan="5" style="text-align:center; color:#909399; padding:20px;">載入中...</td></tr>
     </tbody>
   </table>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getFirestore, collection, doc, setDoc, deleteDoc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyDF7QySG1Jj4gdZvXwMRaKjRmI-lFKpj7k",
@@ -142,15 +163,18 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
+    const BANK_OPTIONS = ['台銀', '樂天', '中信', '其他'];
     let depositsMap = {};
     let usersSet = new Set();
     let activeFilterUser = 'ALL';
 
     document.addEventListener('DOMContentLoaded', async () => {
+      // 預設今日日期
+      document.getElementById('payDate').value = new Date().toISOString().slice(0,10);
+
       try {
         const res = await fetch('../json/users.json');
-        const defaultUsers = await res.json();
-        defaultUsers.forEach(u => usersSet.add(u));
+        (await res.json()).forEach(u => usersSet.add(u));
       } catch (e) {}
 
       onSnapshot(collection(db, "orders"), snap => {
@@ -164,10 +188,7 @@
       onSnapshot(collection(db, "user_deposits"), snap => {
         depositsMap = {};
         snap.forEach(d => {
-          const data = { id: d.id, ...d.data() };
-          depositsMap[d.id] = data;
-          const u = data.user || data.buyerName || data.name;
-          if (u) usersSet.add(u);
+          depositsMap[d.id] = { id: d.id, ...d.data() };
         });
         updateUserDropdown();
         renderTable();
@@ -183,13 +204,21 @@
       sortedUsers.forEach(u => {
         userSel.innerHTML += `<option value="${u}">${u}</option>`;
       });
-
       if (curVal && sortedUsers.includes(curVal)) userSel.value = curVal;
+
+      // 關鍵改善：膠囊只顯示【有儲值紀錄的買家】！
+      const activeDepositUsers = new Set();
+      Object.values(depositsMap).forEach(d => {
+        const u = d.user || d.buyerName;
+        if (u) activeDepositUsers.add(u);
+      });
+
+      const sortedActiveUsers = Array.from(activeDepositUsers).sort((a, b) => a.localeCompare(b, 'zh-TW'));
 
       const capsuleBox = document.getElementById('buyerCapsules');
       capsuleBox.innerHTML = `<button class="capsule-btn ${activeFilterUser === 'ALL' ? 'active' : ''}" onclick="filterByUser('ALL', this)">👤 顯示全部買家</button>`;
       
-      sortedUsers.forEach(u => {
+      sortedActiveUsers.forEach(u => {
         capsuleBox.innerHTML += `<button class="capsule-btn ${activeFilterUser === u ? 'active' : ''}" onclick="filterByUser('${u}', this)">👤 ${u}</button>`;
       });
     }
@@ -208,14 +237,14 @@
       let list = Object.values(depositsMap);
 
       if (activeFilterUser !== 'ALL') {
-        list = list.filter(c => (c.user === activeFilterUser || c.buyerName === activeFilterUser || c.name === activeFilterUser));
+        list = list.filter(c => (c.user === activeFilterUser || c.buyerName === activeFilterUser));
       }
 
       let totalDep = 0;
       let totalU = 0;
       
       Object.values(depositsMap).forEach(c => {
-        if (activeFilterUser === 'ALL' || (c.user === activeFilterUser || c.buyerName === activeFilterUser || c.name === activeFilterUser)) {
+        if (activeFilterUser === 'ALL' || (c.user === activeFilterUser || c.buyerName === activeFilterUser)) {
           const amt = Number(c.amount) || 0;
           if (c.type !== 'usage') totalDep += amt;
           else totalU += amt;
@@ -227,39 +256,79 @@
       document.getElementById('statTotalBalance').textContent = `$${(totalDep - totalU).toLocaleString()}`;
 
       if (list.length === 0) {
-        tb.innerHTML = '<tr><td colspan="6" style="text-align:center; color:#909399; padding:30px;">目前尚無儲值金紀錄</td></tr>';
+        tb.innerHTML = '<tr><td colspan="5" style="text-align:center; color:#909399; padding:30px;">目前尚無儲值金對帳紀錄</td></tr>';
         notifyHeight();
         return;
       }
 
-      list.sort((a, b) => {
-        const tA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-        const tB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-        return tB - tA;
-      });
+      list.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
 
       list.forEach(item => {
-        const uName = item.user || item.buyerName || item.name || '-';
-        const amt = Number(item.amount) || 0;
-        const isDeposit = (item.type !== 'usage');
+        const docId = item.id;
+        const uName = item.user || item.buyerName || '-';
+        const expectedAmt = Number(item.amount) || 0;
+        const expectedLast5 = item.last5 || '-';
+        const buyerBank = item.bank || '台銀';
+        const payDate = item.payDate || (item.createdAt ? item.createdAt.slice(0,10) : '-');
 
-        let dateStr = item.date || item.createdAt || '-';
-        if (typeof dateStr === 'object' && dateStr.seconds) {
-          dateStr = new Date(dateStr.seconds * 1000).toLocaleString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
-        } else if (typeof dateStr === 'string' && dateStr.length > 16) {
-          dateStr = dateStr.slice(0, 16).replace('T', ' ');
+        let inputs = item.bankInputs || [{ amt: '', last5: '', bank: buyerBank, date: new Date().toISOString().slice(0,10) }];
+
+        let totalInputAmt = 0;
+        let hasAnyInput = false;
+        inputs.forEach(inp => {
+          if (inp.amt !== '' && !isNaN(parseFloat(inp.amt))) {
+            totalInputAmt += parseFloat(inp.amt);
+            hasAnyInput = true;
+          }
+        });
+
+        let isMatch = false;
+        let diffMsg = '';
+        if (!hasAnyInput) {
+          diffMsg = '⚠️ 請輸入銀行實際對帳資料';
+        } else if (totalInputAmt === expectedAmt) {
+          isMatch = true;
+          diffMsg = '🟢 對帳完全吻合 (實收 $' + totalInputAmt + ')';
+        } else {
+          diffMsg = '❌ 金額不符 (實收 $' + totalInputAmt + ' / 應儲 $' + expectedAmt + ')';
         }
+
+        let bankInputsHtml = '<div class="bank-check-card"><div style="font-weight:bold; font-size:11px; color:#409eff; margin-bottom:4px;">🏦 銀行實際對帳比對：</div>';
+        inputs.forEach((inp, idx) => {
+          let opts = BANK_OPTIONS.map(b => `<option value="${b}" ${inp.bank === b ? 'selected' : ''}>${b}</option>`).join('');
+          bankInputsHtml += `<div class="bank-input-row">
+            <span style="font-weight:bold; color:#909399; font-size:11px;">#${idx+1}</span>
+            金額: <input type="number" style="width:65px; padding:2px 4px;" value="${inp.amt}" onchange="updateBankInput('${docId}', ${idx}, 'amt', this.value === '' ? '' : parseFloat(this.value))">
+            後五碼: <input type="text" style="width:60px; padding:2px 4px;" value="${inp.last5}" onchange="updateBankInput('${docId}', ${idx}, 'last5', this.value.trim())">
+            銀行: <select style="padding:2px 4px;" onchange="updateBankInput('${docId}', ${idx}, 'bank', this.value)">${opts}</select>
+            日期: <input type="date" style="padding:1px 3px;" value="${inp.date || ''}" onchange="updateBankInput('${docId}', ${idx}, 'date', this.value)">
+            ${inputs.length > 1 ? `<button class="btn-del-bank" onclick="removeBankInput('${docId}', ${idx})">🗑️</button>` : ''}
+          </div>`;
+        });
+
+        bankInputsHtml += `<button class="btn-add-bank" onclick="addBankInput('${docId}')">➕ 新增對帳筆數</button>
+          <span class="${isMatch ? 'status-ok-msg' : 'status-warning'}">${diffMsg}</span>
+        </div>`;
 
         const tr = document.createElement('tr');
         tr.innerHTML = `
-          <td>${dateStr}</td>
           <td><b>${uName}</b></td>
-          <td><span class="badge-type ${isDeposit ? 'badge-deposit' : 'badge-usage'}">${isDeposit ? '➕ 儲值' : '➖ 扣款'}</span></td>
-          <td><b style="color:${isDeposit ? '#67c23a' : '#f56c6c'};">${isDeposit ? '+' : '-'}$${amt}</b></td>
-          <td>${item.note || '-'}</td>
           <td>
-            <button class="btn-edit" onclick="editDeposit('${item.id}')">✏️ 編輯</button>
-            <button class="btn-danger" onclick="deleteDeposit('${item.id}')">🗑️ 刪除</button>
+            <div style="font-size:12px; color:#606266;">
+              ⏱️ 匯款日期：<b>${payDate}</b> ｜ 銀行：<b>${buyerBank}</b> ｜ 後五碼：<b>${expectedLast5}</b>
+            </div>
+            ${item.note ? `<div style="font-size:11px; color:#e6a23c; margin-top:2px;">📝 備註：${item.note}</div>` : ''}
+            ${bankInputsHtml}
+          </td>
+          <td><b style="color:#67c23a; font-size:15px;">+$${expectedAmt}</b></td>
+          <td>
+            <span class="badge-type ${isMatch ? 'badge-deposit' : 'badge-usage'}">
+              ${isMatch ? '🟢 已對帳' : '⏳ 待對帳'}
+            </span>
+          </td>
+          <td>
+            <button class="btn-edit" onclick="editDeposit('${docId}')">✏️ 編輯</button>
+            <button class="btn-danger" onclick="deleteDeposit('${docId}')" style="margin-top:4px;">🗑️ 刪除</button>
           </td>
         `;
         tb.appendChild(tr);
@@ -268,6 +337,32 @@
       notifyHeight();
     }
 
+    window.updateBankInput = async (docId, idx, key, val) => {
+      const item = depositsMap[docId];
+      if (!item) return;
+      let inputs = item.bankInputs || [{ amt: '', last5: '', bank: item.bank || '台銀', date: new Date().toISOString().slice(0,10) }];
+      inputs[idx][key] = val;
+      try {
+        await updateDoc(doc(db, "user_deposits", docId), { bankInputs: inputs });
+      } catch (err) { alert('更新失敗: ' + err.message); }
+    };
+
+    window.addBankInput = async (docId) => {
+      const item = depositsMap[docId];
+      if (!item) return;
+      let inputs = item.bankInputs || [{ amt: '', last5: '', bank: item.bank || '台銀', date: new Date().toISOString().slice(0,10) }];
+      inputs.push({ amt: '', last5: '', bank: item.bank || '台銀', date: new Date().toISOString().slice(0,10) });
+      try { await updateDoc(doc(db, "user_deposits", docId), { bankInputs: inputs }); } catch (err) { alert('新增失敗: ' + err.message); }
+    };
+
+    window.removeBankInput = async (docId, idx) => {
+      const item = depositsMap[docId];
+      if (!item) return;
+      let inputs = item.bankInputs || [];
+      inputs.splice(idx, 1);
+      try { await updateDoc(doc(db, "user_deposits", docId), { bankInputs: inputs }); } catch (err) { alert('刪除失敗: ' + err.message); }
+    };
+
     document.getElementById('depositForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const saveBtn = document.getElementById('saveBtn');
@@ -275,8 +370,10 @@
 
       const editId = document.getElementById('editDepositId').value;
       const user = document.getElementById('userSelect').value;
-      const type = document.getElementById('typeSelect').value;
+      const payDate = document.getElementById('payDate').value;
+      const bank = document.getElementById('bankSelect').value;
       const amt = parseFloat(document.getElementById('depositAmt').value) || 0;
+      const last5 = document.getElementById('last5').value.trim();
       const note = document.getElementById('depositNote').value.trim();
 
       const docId = editId ? editId : `dep_${Date.now()}`;
@@ -285,13 +382,16 @@
         await setDoc(doc(db, "user_deposits", docId), {
           user: user,
           buyerName: user,
+          payDate: payDate,
+          bank: bank,
           amount: amt,
-          type: type,
+          last5: last5,
+          type: 'deposit',
           note: note,
           createdAt: new Date().toISOString()
         }, { merge: true });
 
-        alert('✅ 儲值紀錄已成功更新！');
+        alert('✅ 預存儲值紀錄已成功送出對帳！');
         resetDepositForm();
       } catch (err) {
         alert('儲存失敗：' + err.message);
@@ -306,8 +406,10 @@
 
       document.getElementById('editDepositId').value = docId;
       document.getElementById('userSelect').value = item.user || item.buyerName || '';
-      document.getElementById('typeSelect').value = item.type || 'deposit';
+      document.getElementById('payDate').value = item.payDate || item.createdAt.slice(0,10);
+      document.getElementById('bankSelect').value = item.bank || '台銀';
       document.getElementById('depositAmt').value = item.amount || '';
+      document.getElementById('last5').value = item.last5 || '';
       document.getElementById('depositNote').value = item.note || '';
 
       document.getElementById('saveBtn').textContent = '更新紀錄';
@@ -316,7 +418,7 @@
     };
 
     window.deleteDeposit = async (docId) => {
-      if (confirm('確定要刪除這筆儲值紀錄嗎？')) {
+      if (confirm('確定要刪除這筆儲值對帳紀錄嗎？')) {
         await deleteDoc(doc(db, "user_deposits", docId));
         alert('已刪除');
       }
@@ -324,8 +426,9 @@
 
     window.resetDepositForm = () => {
       document.getElementById('depositForm').reset();
+      document.getElementById('payDate').value = new Date().toISOString().slice(0,10);
       document.getElementById('editDepositId').value = '';
-      document.getElementById('saveBtn').textContent = '新增紀錄';
+      document.getElementById('saveBtn').textContent = '新增儲值';
       document.getElementById('cancelBtn').style.display = 'none';
     };
 
