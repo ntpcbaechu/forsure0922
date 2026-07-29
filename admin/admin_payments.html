@@ -102,9 +102,10 @@
     .status-warning { color: #f56c6c; font-size: 11px; font-weight: bold; margin-top: 6px; display: block; }
     .status-ok-msg { color: #67c23a; font-size: 11px; font-weight: bold; margin-top: 6px; display: block; }
 
-    .btn-toggle { padding: 5px 10px; border-radius: 4px; font-size: 12px; cursor: pointer; border: 1px solid #dcdfe6; background: #fff; transition: all 0.2s; }
+    .btn-toggle { padding: 5px 10px; border-radius: 4px; font-size: 12px; cursor: pointer; border: 1px solid #dcdfe6; background: #fff; transition: all 0.2s; width: 100%; text-align: center; }
     .btn-toggle:disabled { cursor: not-allowed; opacity: 0.5; }
     .btn-toggle.ok-active { background: #e1f3d8; color: #67c23a; border-color: #67c23a; font-weight: bold; }
+    .btn-toggle.photo-active { background: #d9ecff; color: #409eff; border-color: #409eff; font-weight: bold; }
     .btn-toggle.err-active { background: #fef0f0; color: #f56c6c; border-color: #f56c6c; font-weight: bold; }
     
     .btn-edit { background-color: #e6a23c; color: white; padding: 4px 8px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; margin-bottom: 4px; width: 100%; display: block; text-align: center; }
@@ -124,6 +125,7 @@
     <button class="filter-btn active" onclick="filterStatus('all', this)">📌 全部</button>
     <button class="filter-btn" onclick="filterStatus('pending', this)">📌 未對帳</button>
     <button class="filter-btn" onclick="filterStatus('ok', this)">📌 已對帳</button>
+    <button class="filter-btn" onclick="filterStatus('photo_sent', this)">📌 已發圖</button>
     <button class="filter-btn" onclick="filterStatus('error', this)">📌 帳有問題</button>
   </div>
 
@@ -334,8 +336,11 @@
             </td>
             <td>
               <button class="btn-toggle ${status === 'ok' ? 'ok-active' : ''}" 
-                      ${!isMatch && status !== 'ok' ? 'disabled title="金額不一致，無法設為已對帳"' : ''} 
+                      ${!isMatch && status !== 'ok' && status !== 'photo_sent' ? 'disabled title="金額不一致，無法設為已對帳"' : ''} 
                       onclick="setPayStatus('${docId}', 'ok')">🟢 已對帳</button>
+              <button class="btn-toggle ${status === 'photo_sent' ? 'photo-active' : ''}" 
+                      ${!isMatch && status !== 'ok' && status !== 'photo_sent' ? 'disabled title="金額不一致，無法設為已發圖"' : ''} 
+                      onclick="setPayStatus('${docId}', 'photo_sent')" style="margin-top:4px;">🔵 已發圖</button>
               <button class="btn-toggle ${status === 'error' ? 'err-active' : ''}" 
                       onclick="setPayStatus('${docId}', 'error')" style="margin-top:4px;">🔴 有問題</button>
               ${status === 'error' ? `<div class="status-err-note" onclick="editErrorNote('${docId}', '${noteErr}')">原因: ${noteErr || '點擊填寫'}</div>` : ''}
@@ -463,6 +468,9 @@
             await updateDoc(doc(db, "payments", docId), { status: 'error', errorNote: reason, checkDate: today });
             await syncOrdersStatus(relatedIds, buyerName, false, '對帳有問題', reason);
           }
+        } else if (newStatus === 'photo_sent') {
+          await updateDoc(doc(db, "payments", docId), { status: 'photo_sent', errorNote: '', checkDate: today });
+          await syncOrdersStatus(relatedIds, buyerName, true, '已發圖', '');
         } else {
           await updateDoc(doc(db, "payments", docId), { status: 'ok', errorNote: '', checkDate: today });
           await syncOrdersStatus(relatedIds, buyerName, true, '已對帳', '');
