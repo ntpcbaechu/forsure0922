@@ -6,11 +6,26 @@
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 0; margin: 0; background: transparent; color: #333; }
     
-    .lottery-card { background: #fff; border: 1px solid #e4e7ed; border-radius: 12px; padding: 16px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); }
-    .lottery-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f0f2f5; padding-bottom: 10px; margin-bottom: 12px; }
-    .lottery-title { font-size: 16px; font-weight: bold; color: #303133; }
-    .lottery-date { font-size: 12px; color: #909399; }
+    /* 參考 index_records 頂部篩選卡片與膠囊列 */
+    .filter-card { background: #fff; border: 1px solid #e4e7ed; border-radius: 12px; padding: 14px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); }
+    .capsule-bar { display: flex; flex-wrap: wrap; gap: 8px; }
+    .capsule-btn { background: #ecf5ff; color: #409eff; border: 1px solid #d9ecff; padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: bold; cursor: pointer; transition: all 0.2s; }
+    .capsule-btn:hover, .capsule-btn.active { background: #409eff; color: #fff; border-color: #409eff; }
 
+    /* 抽獎卡片主體 */
+    .lottery-card { background: #fff; border: 1px solid #e4e7ed; border-radius: 12px; padding: 16px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); }
+    .lottery-top { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid #f0f2f5; padding-bottom: 10px; margin-bottom: 12px; }
+    .lottery-title { font-size: 16px; font-weight: bold; color: #303133; }
+    .lottery-meta { font-size: 12px; color: #909399; margin-top: 4px; }
+
+    /* 狀態 Badge 容器 (參照 index_records 右上角) */
+    .status-badges-container { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+    .status-badge { padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; display: inline-block; }
+    .photo-badge-pending { background: #f4f4f5; color: #909399; }
+    .photo-badge-sent { background: #ecf5ff; color: #409eff; border: 1px solid #b3d8ff; }
+    .photo-dates-box { font-size: 11px; color: #606266; margin-top: 2px; text-align: right; line-height: 1.3; }
+
+    /* 中獎清單樣式 */
     .winner-list { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
     .winner-item { background: #fdf6ec; border: 1px solid #faebd7; padding: 10px 12px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; font-size: 13px; }
     .winner-name { font-weight: bold; color: #e6a23c; }
@@ -21,8 +36,15 @@
 </head>
 <body>
 
-  <h3 style="margin-top:0; margin-bottom:12px; font-size:18px;">🎉 抽獎結果公告</h3>
-  
+  <h3 style="margin-top:0; margin-bottom:12px; font-size:18px;">🎉 抽獎結果與發圖進度</h3>
+
+  <!-- 頂部成員篩選膠囊 -->
+  <div class="filter-card">
+    <div class="capsule-bar" id="memberCapsules">
+      <button class="capsule-btn active" onclick="filterByMember('ALL', this)">全體成員</button>
+    </div>
+  </div>
+
   <div id="lotteryList">載入中...</div>
 
   <script type="module">
@@ -42,18 +64,52 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
+    let allLotteries = [];
+    let activeMemberFilter = 'ALL';
+
+    window.filterByMember = (mem, btnElem) => {
+      activeMemberFilter = mem;
+      document.querySelectorAll('.capsule-btn').forEach(b => b.classList.remove('active'));
+      if (btnElem) btnElem.classList.add('active');
+      renderLotteryCards();
+    };
+
     onSnapshot(collection(db, "lottery_events"), snap => {
+      allLotteries = [];
+      const memberSet = new Set();
+
+      snap.forEach(d => {
+        const data = { id: d.id, ...d.data() };
+        allLotteries.push(data);
+        if (data.member) memberSet.add(data.member);
+      });
+
+      // 渲染膠囊按鈕
+      const capsuleBox = document.getElementById('memberCapsules');
+      capsuleBox.innerHTML = `<button class="capsule-btn ${activeMemberFilter === 'ALL' ? 'active' : ''}" onclick="filterByMember('ALL', this)">全體成員</button>`;
+      
+      Array.from(memberSet).sort().forEach(m => {
+        capsuleBox.innerHTML += `<button class="capsule-btn ${activeMemberFilter === m ? 'active' : ''}" onclick="filterByMember('${m}', this)">${m}</button>`;
+      });
+
+      renderLotteryCards();
+    });
+
+    function renderLotteryCards() {
       const container = document.getElementById('lotteryList');
       container.innerHTML = '';
 
-      if (snap.empty) {
-        container.innerHTML = '<p style="color:#909399;">目前尚無抽獎結果公告。</p>';
+      let list = allLotteries;
+      if (activeMemberFilter !== 'ALL') {
+        list = list.filter(l => l.member === activeMemberFilter);
+      }
+
+      if (list.length === 0) {
+        container.innerHTML = '<p style="color:#909399; padding:20px 0; text-align:center;">目前尚無相關的抽獎結果公告。</p>';
         notifyHeight();
         return;
       }
 
-      let list = [];
-      snap.forEach(d => list.push({ id: d.id, ...d.data() }));
       list.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
 
       list.forEach(item => {
@@ -61,6 +117,21 @@
         if (item.createdAt) {
           const dt = item.createdAt.seconds ? new Date(item.createdAt.seconds * 1000) : new Date(item.createdAt);
           dateStr = dt.toLocaleDateString('zh-TW');
+        }
+
+        // 發圖狀態 Badge (參照 index_records)
+        const isPhotoSent = item.photoStatus === '已發圖';
+        let photoBadgeHtml = '';
+        let photoDatesHtml = '';
+
+        if (isPhotoSent) {
+          photoBadgeHtml = '<span class="status-badge photo-badge-sent">🔵 已發圖</span>';
+          photoDatesHtml = `<div class="photo-dates-box">
+            📅 發圖日：${item.photoSentAt || '-'}<br>
+            ⏳ 刪除日：<b style="color:#f56c6c;">${item.photoExpireAt || '-'}</b>
+          </div>`;
+        } else {
+          photoBadgeHtml = '<span class="status-badge photo-badge-pending">📷 待發圖</span>';
         }
 
         let winnersHtml = '';
@@ -80,20 +151,26 @@
 
         container.innerHTML += `
           <div class="lottery-card">
-            <div class="lottery-header">
-              <span class="lottery-title">🎁 ${item.title}</span>
-              <span class="lottery-date">發佈日期：${dateStr}</span>
+            <div class="lottery-top">
+              <div>
+                <div class="lottery-title">🎁 ${item.title}</div>
+                <div class="lottery-meta">
+                  成員：<b>${item.member || '全體'}</b> ｜ 總籤數：<b>${item.participants?.length || 0}</b> 籤 ｜ 發佈日期：${dateStr}
+                </div>
+              </div>
+              <div class="status-badges-container">
+                ${photoBadgeHtml}
+                ${photoDatesHtml}
+              </div>
             </div>
-            <div style="font-size:13px; color:#606266; margin-bottom:8px;">
-              對應成員：<b>${item.member || '全體'}</b> ｜ 總抽獎籤數：<b>${item.participants?.length || 0}</b> 籤
-            </div>
+            
             <div class="winner-list">${winnersHtml}</div>
           </div>
         `;
       });
 
       notifyHeight();
-    });
+    }
 
     function notifyHeight() {
       setTimeout(() => {
