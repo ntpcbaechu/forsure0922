@@ -136,6 +136,9 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
+    let memberOrderList = ["方燦", "Lee Know", "彰彬", "鉉辰", "HAN", "Felix", "昇玟", "I.N"];
+    fetch('../json/members.json').then(r => r.json()).then(arr => { memberOrderList = arr; }).catch(() => {});
+
     let allCredits = [];
     let allOrders = [];
     let photoProgressMap = {};
@@ -256,6 +259,30 @@
         const isNotWaitingPhoto = progressStatus !== '等圖中';
 
         return nameMatch && pendingMatch && isNotWaitingPhoto;
+      });
+
+      // 排序 logic: 1.日期 2.成員(members.json)
+      userOrders.sort((a, b) => {
+        const evA = a.event || a.fullEvent || a.eventName || '';
+        const evB = b.event || b.fullEvent || b.eventName || '';
+
+        const matchA = evA.match(/\d{6}/);
+        const matchB = evB.match(/\d{6}/);
+        const dateA = matchA ? parseInt(matchA[0], 10) : 0;
+        const dateB = matchB ? parseInt(matchB[0], 10) : 0;
+
+        if (dateA !== dateB) {
+          return dateA - dateB;
+        }
+
+        const memA = a.member || '';
+        const memB = b.member || '';
+        let idxA = memberOrderList.indexOf(memA);
+        let idxB = memberOrderList.indexOf(memB);
+        if (idxA === -1) idxA = 99;
+        if (idxB === -1) idxB = 99;
+
+        return idxA - idxB;
       });
 
       const ordersList = document.getElementById('ordersList');
