@@ -7,14 +7,15 @@
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 0; margin: 0; background: transparent; color: #333; }
     .form-group { margin-bottom: 16px; }
     label { font-size: 14px; font-weight: bold; color: #303133; display: block; margin-bottom: 6px; }
-    input, select { width: 100%; padding: 12px; border: 1px solid #dcdfe6; border-radius: 10px; font-size: 15px; box-sizing: border-box; background: #fff; }
+    input, select, textarea { width: 100%; padding: 12px; border: 1px solid #dcdfe6; border-radius: 10px; font-size: 15px; box-sizing: border-box; background: #fff; font-family: inherit; }
+    textarea { resize: vertical; min-height: 80px; }
     button { width: 100%; padding: 14px; background: #67c23a; color: white; border: none; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; }
     button:disabled { background: #b3e19d; }
 
     /* 抵用金與待匯款訂單卡片樣式 */
     .info-card { background: #f4f4f5; border-radius: 10px; padding: 12px; margin-bottom: 16px; font-size: 13px; color: #606266; border: 1px solid #e4e7ed; }
     .info-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
-    .orders-select-box { background: #fff; border: 1px solid #dcdfe6; border-radius: 8px; padding: 10px; max-height: 150px; overflow-y: auto; margin-top: 6px; }
+    .orders-select-box { background: #fff; border: 1px solid #dcdfe6; border-radius: 8px; padding: 10px; max-height: 180px; overflow-y: auto; margin-top: 6px; }
     
     /* 修正勾選框與清單樣式 */
     .order-item { display: flex; align-items: center; justify-content: space-between; font-size: 13px; padding: 6px 0; border-bottom: 1px dashed #ebeef5; }
@@ -22,6 +23,10 @@
     .order-left { display: flex; align-items: center; gap: 8px; }
     .order-chk, .credit-chk { width: 16px; height: 16px; margin: 0; cursor: pointer; }
     
+    .price-box { display: flex; align-items: center; gap: 6px; font-weight: bold; }
+    .price-original-strike { text-decoration: line-through; color: #909399; font-size: 12px; }
+    .price-final { color: #f56c6c; font-size: 14px; }
+
     /* 右下角試算區域樣式 */
     .summary-right-box { text-align: right; border-top: 1px dashed #dcdfe6; padding-top: 8px; margin-top: 10px; }
     .summary-right-row { display: flex; justify-content: flex-end; gap: 12px; align-items: center; margin-bottom: 4px; }
@@ -104,10 +109,10 @@
         <input type="text" id="last5" maxlength="5" placeholder="例如: 12345" required>
       </div>
 
-      <!-- 備註說明 (選填) -->
+      <!-- 備註說明 (改為 textarea 支援換行) -->
       <div class="form-group">
         <label>備註說明</label>
-        <input type="text" id="note" placeholder="#">
+        <textarea id="note" placeholder="如有特殊事項請在此註明... (按 Enter 可換行)"></textarea>
       </div>
 
       <button type="submit" id="submitBtn">提交對帳資料</button>
@@ -133,12 +138,18 @@
 
     let allCredits = [];
     let allOrders = [];
-    let photoProgressMap = {}; // 紀錄各活動成員的發圖進度
-    let eventSettings = {}; // 儲存 event_settings 的單價對照表
-    let currentAvailableCredit = 0; // 紀錄目前使用者的可用抵用金
+    let photoProgressMap = {};
+    let eventSettingsMap = {};
+    let currentAvailableCredit = 0;
+
+    // 攔截 Enter 防誤觸送出
+    document.getElementById('paymentForm').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') {
+        e.preventDefault();
+      }
+    });
 
     document.addEventListener('DOMContentLoaded', () => {
-      // 監聽 photo_progress 取得發圖進度，排除「等圖中」
       onSnapshot(collection(db, "photo_progress"), snap => {
         photoProgressMap = {};
         snap.forEach(d => {
@@ -152,33 +163,35 @@
         renderBuyerDetails();
       });
 
-      // 監聽 event_settings 資料庫取得活動單價
+      // 監聽 event_settings 取得預估金額與實際金額
       onSnapshot(collection(db, "event_settings"), snap => {
-        eventSettings = {};
+        eventSettingsMap = {};
         snap.forEach(d => {
           const data = d.data();
           const evName = data.name || data.rawName || data.eventName || data.event || '';
           const mem = data.member || '';
-          const price = Number(data.price) || Number(data.unitPrice) || Number(data.sellPrice) || 0;
+          
+          const estPrice = Number(data.estimatedPrice) || Number(data.price) || 0;
+          const actPrice = Number(data.actualPrice) || 0;
+          const packQty = Number(data.packQty) || 1;
 
           if (evName) {
-            eventSettings[`${evName}_${mem}`] = price;
+            const key = `${evName}_${mem}`;
+            eventSettingsMap[key] = { estPrice, actPrice, packQty };
             if (data.rawName) {
-              eventSettings[`${data.rawName}_${mem}`] = price;
+              eventSettingsMap[`${data.rawName}_${mem}`] = { estPrice, actPrice, packQty };
             }
           }
         });
         renderBuyerDetails();
       });
 
-      // 監聽 user_credits 資料庫
       onSnapshot(collection(db, "user_credits"), snap => {
         allCredits = [];
         snap.forEach(d => allCredits.push({ id: d.id, ...d.data() }));
         renderBuyerDetails();
       });
 
-      // 監聽 orders 資料庫
       onSnapshot(collection(db, "orders"), snap => {
         allOrders = [];
         const registeredBuyers = new Set();
@@ -211,7 +224,6 @@
       notifyHeight();
     });
 
-    // 計算抵用金與渲染待匯款訂單，控制區域顯示/隱藏
     function renderBuyerDetails() {
       const selectedBuyer = document.getElementById('buyerName').value;
       const formContent = document.getElementById('formContent');
@@ -224,7 +236,6 @@
 
       formContent.style.display = 'block';
 
-      // 1. 計算可用抵用金
       const userCredits = allCredits.filter(c => (c.user === selectedBuyer || c.buyerName === selectedBuyer || c.name === selectedBuyer));
       currentAvailableCredit = userCredits.reduce((sum, c) => {
         const amt = Number(c.credit) || Number(c.amount) || 0;
@@ -235,7 +246,6 @@
       document.getElementById('creditBalance').textContent = `$${currentAvailableCredit}`;
       document.getElementById('useCreditChk').checked = false;
 
-      // 2. 抓取待匯款訂單 (排除狀態為「等圖中」的訂單)
       const userOrders = allOrders.filter(o => {
         const nameMatch = (o.user === selectedBuyer || o.buyerName === selectedBuyer || o.name === selectedBuyer || o.buyer === selectedBuyer);
         const pendingMatch = (o.paymentStatus === 'pending_payment' || o.paymentStatus === '待匯款' || o.status === 'pending_payment' || o.status === '待匯款' || !o.paymentStatus);
@@ -261,17 +271,36 @@
           const ordEvent = ord.event || ord.fullEvent || ord.eventName || '';
           const ordMember = ord.member || '';
           
-          const settingKey = `${ordEvent}_${ordMember}`;
-          const unitPrice = Number(ord.price) || Number(ord.unitPrice) || eventSettings[settingKey] || 0;
-          const calculatedPrice = (unitPrice > 0) ? (qty * unitPrice) : (Number(ord.total) || Number(ord.amount) || 0);
+          const setting = eventSettingsMap[`${ordEvent}_${ordMember}`] || {};
+          const packQty = setting.packQty || 1;
+          const packsCount = qty / packQty;
+
+          const estPrice = setting.estPrice || 0;
+          const actPrice = setting.actPrice || 0;
+
+          let finalUnitPrice = (actPrice > 0) ? actPrice : estPrice;
+          if (finalUnitPrice === 0) {
+            finalUnitPrice = Number(ord.price) || Number(ord.unitPrice) || 0;
+          }
+
+          const calculatedFinalPrice = Math.round(packsCount * finalUnitPrice);
+          const calculatedEstPrice = Math.round(packsCount * estPrice);
+
+          let priceHtml = `<span class="price-final">$${calculatedFinalPrice}</span>`;
+          if (actPrice > 0 && estPrice > 0 && actPrice !== estPrice) {
+            priceHtml = `
+              <span class="price-final">$${calculatedFinalPrice}</span>
+              <span class="price-original-strike">$${calculatedEstPrice}</span>
+            `;
+          }
 
           ordersList.innerHTML += `
             <div class="order-item">
               <div class="order-left">
-                <input type="checkbox" class="order-chk" value="${ord.id}" data-price="${calculatedPrice}">
+                <input type="checkbox" class="order-chk" value="${ord.id}" data-price="${calculatedFinalPrice}">
                 <span>📌 ${ordEvent || '未命名活動'} (${ordMember || '全體'}) - ${qty} 張</span>
               </div>
-              <b style="color:#f56c6c;">$${calculatedPrice}</b>
+              <div class="price-box">${priceHtml}</div>
             </div>
           `;
         });
@@ -341,13 +370,13 @@
 
         const updatePromises = selectedOrderIds.map(orderId => {
           return updateDoc(doc(db, "orders", orderId), {
-            paymentStatus: '對帳中',
-            status: '對帳中'
+            paymentStatus: '待對帳',
+            status: '待對帳'
           });
         });
         await Promise.all(updatePromises);
 
-        alert('✅ 匯款回報已提交，選取的訂單已同步更新為「對帳中」，請等待管理者審核！');
+        alert('✅ 匯款回報已提交，選取的訂單已同步更新為「待對帳」，請等待管理者審核！');
         document.getElementById('paymentForm').reset();
         document.getElementById('formContent').style.display = 'none';
       } catch (err) {

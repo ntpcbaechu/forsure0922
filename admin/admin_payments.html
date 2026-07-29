@@ -25,7 +25,7 @@
     .item-list li { margin-bottom: 4px; }
     
     .meta-box { margin-top: 6px; padding-top: 6px; border-top: 1px dashed #ebeef5; font-size: 11px; color: #909399; }
-    .note-text { color: #e6a23c; word-break: break-all; margin-top: 2px; }
+    .note-text { color: #e6a23c; word-break: break-all; margin-top: 4px; white-space: pre-wrap; line-height: 1.4; }
 
     .status-warning { color: #f56c6c; font-size: 11px; font-weight: bold; margin-top: 4px; display: block; }
     .status-ok-msg { color: #67c23a; font-size: 11px; font-weight: bold; margin-top: 4px; display: block; }
@@ -139,7 +139,6 @@
 
         const buyerNote = p.note || p.userNote || '';
 
-        // 整理勾選場次明細
         let itemsHtml = '';
         const relatedIds = p.relatedOrderIds || [];
         if (relatedIds.length > 0) {
@@ -160,15 +159,14 @@
           itemsHtml = `<div>${ev} ${qtyInfo}</div>`;
         }
 
-        // 補上時間與買家備註
+        // 買家備註：加上 white-space: pre-wrap 讓多行內容在冒號下方自動換行
         itemsHtml += `
           <div class="meta-box">
             <div>⏱️ <b>匯款時間：</b>${timeStr}</div>
-            ${buyerNote ? `<div class="note-text">📝 <b>買家備註：</b>${buyerNote}</div>` : ''}
+            ${buyerNote ? `<div class="note-text">📝 <b>買家備註：</b>\n${buyerNote}</div>` : ''}
           </div>
         `;
 
-        // 自動比對防呆機制
         let isMatch = false;
         let diffMsg = '';
 
@@ -238,7 +236,7 @@
             <td>
               ${itemsHtml}
               <div style="margin-top:6px;">
-                <textarea id="edit-note-${docId}" style="width:100%; height:45px;" placeholder="編輯買家備註">${buyerNote}</textarea>
+                <textarea id="edit-note-${docId}" style="width:100%; height:55px;" placeholder="編輯買家備註">${buyerNote}</textarea>
               </div>
             </td>
             <td>
@@ -322,7 +320,7 @@
           const reason = prompt("請輸入對帳問題原因：");
           if (reason !== null) { 
             await updateDoc(doc(db, "payments", docId), { status: 'error', errorNote: reason, checkDate: today });
-            await syncOrdersStatus(relatedIds, buyerName, false, 'pending_payment');
+            await syncOrdersStatus(relatedIds, buyerName, false, '對帳有問題');
           }
         } else {
           await updateDoc(doc(db, "payments", docId), { status: 'ok', errorNote: '', checkDate: today });
@@ -335,7 +333,9 @@
 
     window.editErrorNote = async (docId, oldNote) => {
       const reason = prompt("修改問題原因：", oldNote);
-      if (reason !== null) { await updateDoc(doc(db, "payments", docId), { errorNote: reason }); }
+      if (reason !== null) { 
+        await updateDoc(doc(db, "payments", docId), { errorNote: reason });
+      }
     };
 
     window.deletePayment = async (docId) => {
@@ -346,7 +346,7 @@
 
         try {
           await deleteDoc(doc(db, "payments", docId));
-          await syncOrdersStatus(relatedIds, buyerName, false, 'pending_payment');
+          await syncOrdersStatus(relatedIds, buyerName, false, '待匯款');
           alert('已刪除審核紀錄並還原訂單狀態。');
         } catch (err) {
           alert('刪除失敗: ' + err.message);
