@@ -51,6 +51,7 @@
 
       const groups = {};
       rawList.forEach(item => {
+        // 只精準對接全站統一的 eventName 欄位
         const eTitle = item.eventName || '未命名活動';
         const key = `${eTitle}__${item.member}`;
         if (!groups[key]) groups[key] = [];

@@ -279,10 +279,14 @@
       const docId = editId || `prog_${Date.now()}`;
 
       try {
+        // 🔥 這裡強迫只寫入純淨的 eventName 欄位，徹底拋棄舊欄位名稱
         await setDoc(doc(db, "photo_progress", docId), {
-          eventName, member, seller, status,
+          eventName: eventName,
+          member: member,
+          seller: seller,
+          status: status,
           updatedAt: new Date()
-        }, { merge: true });
+        });
 
         alert('✅ 進度發佈成功！');
         resetForm();
