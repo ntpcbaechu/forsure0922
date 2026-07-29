@@ -31,7 +31,7 @@
       <option value="">請先選擇活動</option>
     </select>
 
-    <select id="photographerSelect" style="min-width: 140px;">
+    <select id="sellerSelect" style="min-width: 140px;">
       <option value="">請先選擇成員</option>
     </select>
 
@@ -87,7 +87,7 @@
 
     const evSel = document.getElementById('eventSelect');
     const memSel = document.getElementById('memberSelect');
-    const photoSel = document.getElementById('photographerSelect');
+    const sellerSel = document.getElementById('sellerSelect');
 
     // 載入 event_settings 進行三層選單連動
     onSnapshot(collection(db, "event_settings"), snap => {
@@ -109,7 +109,7 @@
     evSel.addEventListener('change', () => {
       const selectedEvent = evSel.value;
       memSel.innerHTML = '<option value="">請選擇成員</option>';
-      photoSel.innerHTML = '<option value="">請先選擇成員</option>';
+      sellerSel.innerHTML = '<option value="">請先選擇成員</option>';
 
       if (!selectedEvent) return;
 
@@ -134,27 +134,28 @@
       });
     });
 
+    // 成員改變 ➔ 精準抓取 seller 欄位
     memSel.addEventListener('change', () => {
       const selectedEvent = evSel.value;
       const selectedMember = memSel.value;
-      photoSel.innerHTML = '<option value="">請選擇代拍</option>';
+      sellerSel.innerHTML = '<option value="">請選擇代拍</option>';
 
       if (!selectedEvent || !selectedMember) return;
 
-      const photoSet = new Set();
+      const sellerSet = new Set();
       rawEventSettings.forEach(s => {
         const eName = s.name || s.eventName || s.rawName;
-        if (eName === selectedEvent && s.member === selectedMember && s.photographer) {
-          photoSet.add(s.photographer.trim());
+        if (eName === selectedEvent && s.member === selectedMember && s.seller) {
+          sellerSet.add(s.seller.trim());
         }
       });
 
-      Array.from(photoSet).sort().forEach(p => {
-        photoSel.innerHTML += `<option value="${p}">${p}</option>`;
+      Array.from(sellerSet).sort().forEach(p => {
+        sellerSel.innerHTML += `<option value="${p}">${p}</option>`;
       });
     });
 
-    // 正確讀取原始資料集合 photo_progress
+    // 監聽 photo_progress 表格，全部統一為 seller 欄位
     onSnapshot(collection(db, "photo_progress"), snap => {
       const tb = document.getElementById('progressTable');
       tb.innerHTML = '';
@@ -169,14 +170,14 @@
 
           const eventTitle = item.event || item.eventName || item.rawName || '-';
           const memberName = item.member || '-';
-          const photographerName = item.photographer || '-';
+          const sellerName = item.seller || '-';
           const statusText = item.status || item.progress || '-';
 
           const tr = document.createElement('tr');
           tr.innerHTML = `
             <td><b>${eventTitle}</b></td>
             <td>${memberName}</td>
-            <td>${photographerName}</td>
+            <td>${sellerName}</td>
             <td><b>${statusText}</b></td>
             <td>
               <button class="btn-edit" onclick="editProgress('${item.id}')">編輯</button>
@@ -197,14 +198,14 @@
       const editId = document.getElementById('editProgressId').value;
       const event = document.getElementById('eventSelect').value;
       const member = document.getElementById('memberSelect').value;
-      const photographer = document.getElementById('photographerSelect').value;
+      const seller = document.getElementById('sellerSelect').value;
       const status = document.getElementById('statusSelect').value;
 
       const docId = editId || `prog_${Date.now()}`;
 
       try {
         await setDoc(doc(db, "photo_progress", docId), {
-          event, member, photographer, status,
+          event, member, seller, status,
           updatedAt: new Date()
         }, { merge: true });
 
@@ -233,7 +234,7 @@
         memSel.dispatchEvent(new Event('change'));
 
         setTimeout(() => {
-          document.getElementById('photographerSelect').value = item.photographer || '';
+          document.getElementById('sellerSelect').value = item.seller || '';
         }, 50);
       }, 50);
 
@@ -253,7 +254,7 @@
       document.getElementById('progressForm').reset();
       document.getElementById('editProgressId').value = '';
       document.getElementById('memberSelect').innerHTML = '<option value="">請先選擇活動</option>';
-      document.getElementById('photographerSelect').innerHTML = '<option value="">請先選擇成員</option>';
+      document.getElementById('sellerSelect').innerHTML = '<option value="">請先選擇成員</option>';
       document.getElementById('saveProgressBtn').textContent = '發佈進度';
       document.getElementById('cancelBtn').style.display = 'none';
     };
