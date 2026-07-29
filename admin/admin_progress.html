@@ -134,7 +134,6 @@
       });
     });
 
-    // 成員改變 ➔ 精準抓取 seller 欄位
     memSel.addEventListener('change', () => {
       const selectedEvent = evSel.value;
       const selectedMember = memSel.value;
@@ -155,7 +154,7 @@
       });
     });
 
-    // 監聽 photo_progress 表格，全部統一為 seller 欄位
+    // 實作同一天同成員 rowspan 跨行垂直合併
     onSnapshot(collection(db, "photo_progress"), snap => {
       const tb = document.getElementById('progressTable');
       tb.innerHTML = '';
@@ -164,28 +163,53 @@
       if (snap.empty) {
         tb.innerHTML = '<tr><td colspan="5" style="text-align:center; color:#909399;">目前無發圖進度紀錄。</td></tr>';
       } else {
+        let list = [];
         snap.forEach(d => {
           const item = { id: d.id, ...d.data() };
           progressMap[d.id] = item;
-
-          const eventTitle = item.event || item.eventName || item.rawName || '-';
-          const memberName = item.member || '-';
-          const sellerName = item.seller || '-';
-          const statusText = item.status || item.progress || '-';
-
-          const tr = document.createElement('tr');
-          tr.innerHTML = `
-            <td><b>${eventTitle}</b></td>
-            <td>${memberName}</td>
-            <td>${sellerName}</td>
-            <td><b>${statusText}</b></td>
-            <td>
-              <button class="btn-edit" onclick="editProgress('${item.id}')">編輯</button>
-              <button class="btn-danger" onclick="deleteProgress('${item.id}')">刪除</button>
-            </td>
-          `;
-          tb.appendChild(tr);
+          list.push(item);
         });
+
+        // 按「活動名稱 + 成員」進行分組
+        const groups = {};
+        list.forEach(item => {
+          const eName = item.event || item.eventName || item.rawName || '-';
+          const mName = item.member || '-';
+          const key = `${eName}__${mName}`;
+          if (!groups[key]) groups[key] = [];
+          groups[key].push(item);
+        });
+
+        for (const [key, items] of Object.entries(groups)) {
+          const rowCount = items.length;
+          items.forEach((item, idx) => {
+            const tr = document.createElement('tr');
+
+            const eventTitle = item.event || item.eventName || item.rawName || '-';
+            const memberName = item.member || '-';
+            const sellerName = item.seller || item.photographer || '-';
+            const statusText = item.status || item.progress || '-';
+
+            let mergedCells = '';
+            if (idx === 0) {
+              mergedCells = `
+                <td rowspan="${rowCount}" style="vertical-align:middle;"><b>${eventTitle}</b></td>
+                <td rowspan="${rowCount}" style="vertical-align:middle;">${memberName}</td>
+              `;
+            }
+
+            tr.innerHTML = `
+              ${mergedCells}
+              <td>${sellerName}</td>
+              <td><b>${statusText}</b></td>
+              <td>
+                <button class="btn-edit" onclick="editProgress('${item.id}')">編輯</button>
+                <button class="btn-danger" onclick="deleteProgress('${item.id}')">刪除</button>
+              </td>
+            `;
+            tb.appendChild(tr);
+          });
+        }
       }
       notifyHeight();
     });
@@ -234,7 +258,7 @@
         memSel.dispatchEvent(new Event('change'));
 
         setTimeout(() => {
-          document.getElementById('sellerSelect').value = item.seller || '';
+          document.getElementById('sellerSelect').value = item.seller || item.photographer || '';
         }, 50);
       }, 50);
 
