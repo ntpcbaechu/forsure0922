@@ -5,20 +5,29 @@
   <title>團員登記管理</title>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 15px; margin: 0; background: #fff; color: #333; }
+    
+    .filter-card { background: #f8f9fa; border: 1px solid #e4e7ed; border-radius: 10px; padding: 12px 14px; margin-bottom: 15px; }
+    .filter-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .filter-title { font-size: 13px; font-weight: bold; color: #303133; white-space: nowrap; }
+
+    select, input[type="text"], input[type="number"] {
+      padding: 6px 10px;
+      border: 1px solid #dcdfe6;
+      border-radius: 6px;
+      font-size: 13px;
+      background-color: #fff;
+      outline: none;
+    }
+    select:focus, input:focus { border-color: #409eff; }
+
+    .capsule-bar { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+    .capsule-btn { background: #fff; color: #409eff; border: 1px solid #d9ecff; padding: 4px 12px; border-radius: 16px; font-size: 12px; font-weight: bold; cursor: pointer; transition: all 0.2s; }
+    .capsule-btn:hover, .capsule-btn.active { background: #409eff; color: #fff; border-color: #409eff; }
+
     table { width: 100%; border-collapse: collapse; margin-top: 10px; }
     th, td { padding: 10px 8px; border-bottom: 1px solid #e4e7ed; text-align: left; font-size: 13px; vertical-align: middle; }
     th { background: #f8f9fa; color: #606266; font-weight: bold; white-space: nowrap; }
     
-    input[type="text"], input[type="number"], select {
-      width: 100%;
-      padding: 6px 8px;
-      border: 1px solid #dcdfe6;
-      border-radius: 4px;
-      font-size: 13px;
-      box-sizing: border-box;
-      background-color: #fff;
-    }
-
     .btn-edit { background-color: #e6a23c; color: white; padding: 5px 10px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; margin-right: 4px; }
     .btn-save { background-color: #67c23a; color: white; padding: 5px 10px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; margin-right: 4px; }
     .btn-cancel { background-color: #909399; color: white; padding: 5px 10px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; margin-right: 4px; }
@@ -34,8 +43,19 @@
 <body>
 
   <h3>團員填單紀錄管理</h3>
-  <div style="margin-bottom:12px; display:flex; gap:10px;">
-    <input type="text" id="searchOrderInput" placeholder="搜尋社群名稱或活動/成員..." style="max-width:300px;">
+
+  <!-- 仿照 index_records 的篩選面板 -->
+  <div class="filter-card">
+    <div class="filter-row">
+      <span class="filter-title">🔍 篩選模式：</span>
+      <select id="modeSelect">
+        <option value="ALL">全部顯示</option>
+        <option value="user">依社群暱稱</option>
+        <option value="event">依活動名稱</option>
+      </select>
+      <input type="text" id="searchOrderInput" placeholder="直接關鍵字搜尋..." style="flex:1; min-width:180px;">
+    </div>
+    <div id="capsuleContainer" class="capsule-bar"></div>
   </div>
 
   <table>
@@ -76,6 +96,7 @@
     let eventList = [];
     let ordersCache = {};
     let editingRows = new Set();
+    let activeFilterValue = 'ALL';
 
     document.addEventListener('DOMContentLoaded', async () => {
       const [uRes, mRes] = await Promise.all([
@@ -95,17 +116,106 @@
       });
     });
 
+    document.getElementById('modeSelect').addEventListener('change', () => {
+      activeFilterValue = 'ALL';
+      renderCapsulesAndTable();
+    });
+
+    document.getElementById('searchOrderInput').addEventListener('input', () => {
+      renderTableContent();
+    });
+
     onSnapshot(collection(db, "orders"), snap => {
       ordersCache = {};
       snap.forEach(d => { ordersCache[d.id] = { id: d.id, ...d.data() }; });
-      renderTable();
+      renderCapsulesAndTable();
     });
 
-    function renderTable() {
+    function renderCapsulesAndTable() {
+      const mode = document.getElementById('modeSelect').value;
+      const container = document.getElementById('capsuleContainer');
+      container.innerHTML = '';
+
+      const allOrders = Object.values(ordersCache);
+
+      if (mode === 'user') {
+        const usersSet = new Set();
+        allOrders.forEach(o => {
+          const name = o.buyerName || o.user || o.nickname;
+          if (name) usersSet.add(name);
+        });
+        const sortedUsers = Array.from(usersSet).sort((a, b) => a.localeCompare(b, 'zh-TW'));
+
+        const allBtn = document.createElement('button');
+        allBtn.className = `capsule-btn ${activeFilterValue === 'ALL' ? 'active' : ''}`;
+        allBtn.textContent = '👤 全部';
+        allBtn.onclick = () => { activeFilterValue = 'ALL'; renderCapsulesAndTable(); };
+        container.appendChild(allBtn);
+
+        sortedUsers.forEach(userName => {
+          const btn = document.createElement('button');
+          btn.className = `capsule-btn ${activeFilterValue === userName ? 'active' : ''}`;
+          btn.textContent = `👤 ${userName}`;
+          btn.onclick = () => { activeFilterValue = userName; renderCapsulesAndTable(); };
+          container.appendChild(btn);
+        });
+      } else if (mode === 'event') {
+        const eventsSet = new Set();
+        allOrders.forEach(o => {
+          const ev = o.event || o.eventName || '未分類活動';
+          if (ev) eventsSet.add(ev);
+        });
+        const sortedEvents = Array.from(eventsSet).sort((a, b) => {
+          const matchA = a.match(/\d{6}/); const matchB = b.match(/\d{6}/);
+          const dateA = matchA ? parseInt(matchA[0], 10) : 0;
+          const dateB = matchB ? parseInt(matchB[0], 10) : 0;
+          if (dateA !== dateB) return dateA - dateB;
+          return a.localeCompare(b, 'zh-TW');
+        });
+
+        const allBtn = document.createElement('button');
+        allBtn.className = `capsule-btn ${activeFilterValue === 'ALL' ? 'active' : ''}`;
+        allBtn.textContent = '📍 全部';
+        allBtn.onclick = () => { activeFilterValue = 'ALL'; renderCapsulesAndTable(); };
+        container.appendChild(allBtn);
+
+        sortedEvents.forEach(evTitle => {
+          const btn = document.createElement('button');
+          btn.className = `capsule-btn ${activeFilterValue === evTitle ? 'active' : ''}`;
+          btn.textContent = `📍 ${evTitle}`;
+          btn.onclick = () => { activeFilterValue = evTitle; renderCapsulesAndTable(); };
+          container.appendChild(btn);
+        });
+      }
+
+      renderTableContent();
+    }
+
+    function renderTableContent() {
       const tb = document.getElementById('ordersAdminTable');
       tb.innerHTML = '';
 
-      Object.values(ordersCache).forEach(item => {
+      const mode = document.getElementById('modeSelect').value;
+      const kw = document.getElementById('searchOrderInput').value.toLowerCase();
+      const allOrders = Object.values(ordersCache);
+
+      const filtered = allOrders.filter(item => {
+        const user = String(item.buyerName || item.user || item.nickname || '');
+        const eName = String(item.event || item.eventName || '');
+
+        // 膠囊篩選判斷
+        if (mode === 'user' && activeFilterValue !== 'ALL' && user !== activeFilterValue) return false;
+        if (mode === 'event' && activeFilterValue !== 'ALL' && eName !== activeFilterValue) return false;
+
+        // 文字搜尋框判斷
+        if (kw) {
+          const rowText = `${user} ${eName} ${item.member || ''} ${item.orderType || ''}`.toLowerCase();
+          if (!rowText.includes(kw)) return false;
+        }
+        return true;
+      });
+
+      filtered.forEach(item => {
         const docId = item.id;
         const isEditing = editingRows.has(docId);
 
@@ -131,7 +241,6 @@
         tr.id = `row-${docId}`;
 
         if (!isEditing) {
-          // 純文字模式
           const typeBadge = orderType === '追加' ? '<span class="type-badge type-add">追加</span>' : '<span class="type-badge">一般</span>';
           tr.innerHTML = `
             <td><b>${user}</b></td>
@@ -152,7 +261,6 @@
             </td>
           `;
         } else {
-          // 編輯模式 (下拉選單)
           let userOptions = usersList.map(u => `<option value="${u}" ${u === user ? 'selected' : ''}>${u}</option>`).join('');
           if (user && !usersList.includes(user)) userOptions = `<option value="${user}" selected>${user}</option>` + userOptions;
 
@@ -194,7 +302,7 @@
     window.toggleEdit = (docId, isEdit) => {
       if (isEdit) editingRows.add(docId);
       else editingRows.delete(docId);
-      renderTable();
+      renderTableContent();
     };
 
     window.quickUpdateStatus = async (docId, statusVal) => {
@@ -237,14 +345,6 @@
         } catch (err) { alert('刪除失敗: ' + err.message); }
       }
     };
-
-    document.getElementById('searchOrderInput').addEventListener('input', (e) => {
-      const kw = e.target.value.toLowerCase();
-      const rows = document.querySelectorAll('#ordersAdminTable tr');
-      rows.forEach(r => {
-        r.style.display = r.textContent.toLowerCase().includes(kw) ? '' : 'none';
-      });
-    });
 
     function notifyHeight() {
       setTimeout(() => {
