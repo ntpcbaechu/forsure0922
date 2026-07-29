@@ -14,8 +14,6 @@
     .btn-danger { background-color: #f56c6c; color: white; padding: 4px 8px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; }
     .btn-edit { background-color: #e6a23c; color: white; padding: 4px 8px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; margin-right: 4px; }
     .form-row { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 15px; align-items: center; background: #f8f9fa; padding: 12px; border-radius: 8px; }
-    
-    /* 加粗活動與成員間的分隔線 */
     .group-divider-row td { border-bottom: 2px solid #c0c4cc !important; }
   </style>
 </head>
@@ -92,14 +90,13 @@
     const memSel = document.getElementById('memberSelect');
     const sellerSel = document.getElementById('sellerSelect');
 
-    // 載入 event_settings 進行三層選單連動
     onSnapshot(collection(db, "event_settings"), snap => {
       rawEventSettings = [];
       snap.forEach(d => rawEventSettings.push(d.data()));
 
       const eventsSet = new Set();
       rawEventSettings.forEach(s => {
-        const eName = s.name || s.eventName || s.rawName;
+        const eName = s.eventName || s.name || s.rawName;
         if (eName) eventsSet.add(eName.trim());
       });
 
@@ -118,7 +115,7 @@
 
       const membersSet = new Set();
       rawEventSettings.forEach(s => {
-        const eName = s.name || s.eventName || s.rawName;
+        const eName = s.eventName || s.name || s.rawName;
         if (eName === selectedEvent && s.member) {
           membersSet.add(s.member.trim());
         }
@@ -146,7 +143,7 @@
 
       const sellerSet = new Set();
       rawEventSettings.forEach(s => {
-        const eName = s.name || s.eventName || s.rawName;
+        const eName = s.eventName || s.name || s.rawName;
         if (eName === selectedEvent && s.member === selectedMember && s.seller) {
           sellerSet.add(s.seller.trim());
         }
@@ -157,7 +154,6 @@
       });
     });
 
-    // 監聽與繪製：1.活動日期排序 2.成員排序 + rowspan跨行合併與加粗分隔線
     onSnapshot(collection(db, "photo_progress"), snap => {
       const tb = document.getElementById('progressTable');
       tb.innerHTML = '';
@@ -173,10 +169,9 @@
           list.push(item);
         });
 
-        // 按 1.活動日期/名稱 2.成員順序 進行雙重排序
         list.sort((a, b) => {
-          const eA = a.event || a.eventName || a.rawName || '';
-          const eB = b.event || b.eventName || b.rawName || '';
+          const eA = a.eventName || a.event || a.rawName || '';
+          const eB = b.eventName || b.event || b.rawName || '';
           if (eA !== eB) return eA.localeCompare(eB);
 
           const mA = a.member || '';
@@ -188,11 +183,10 @@
           return idxA - idxB;
         });
 
-        // 分組歸類
         const groupKeys = [];
         const groups = {};
         list.forEach(item => {
-          const eName = item.event || item.eventName || item.rawName || '-';
+          const eName = item.eventName || item.event || item.rawName || '-';
           const mName = item.member || '-';
           const key = `${eName}__${mName}`;
           if (!groups[key]) {
@@ -209,10 +203,10 @@
           items.forEach((item, idx) => {
             const tr = document.createElement('tr');
             if (idx === rowCount - 1) {
-              tr.className = 'group-divider-row'; // 各活動/成員分組的最後一行加上加粗邊框
+              tr.className = 'group-divider-row';
             }
 
-            const eventTitle = item.event || item.eventName || item.rawName || '-';
+            const eventTitle = item.eventName || item.event || item.rawName || '-';
             const memberName = item.member || '-';
             const sellerName = item.seller || item.photographer || '-';
             const statusText = item.status || item.progress || '-';
@@ -247,7 +241,7 @@
       saveBtn.disabled = true;
 
       const editId = document.getElementById('editProgressId').value;
-      const event = document.getElementById('eventSelect').value;
+      const eventName = document.getElementById('eventSelect').value;
       const member = document.getElementById('memberSelect').value;
       const seller = document.getElementById('sellerSelect').value;
       const status = document.getElementById('statusSelect').value;
@@ -256,7 +250,7 @@
 
       try {
         await setDoc(doc(db, "photo_progress", docId), {
-          event, member, seller, status,
+          eventName, event: eventName, member, seller, status,
           updatedAt: new Date()
         }, { merge: true });
 
@@ -276,7 +270,7 @@
       document.getElementById('editProgressId').value = docId;
       
       const evSel = document.getElementById('eventSelect');
-      evSel.value = item.event || item.eventName || '';
+      evSel.value = item.eventName || item.event || '';
       evSel.dispatchEvent(new Event('change'));
 
       setTimeout(() => {
