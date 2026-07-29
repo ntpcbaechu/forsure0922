@@ -7,7 +7,8 @@
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 0; margin: 0; background: transparent; color: #333; }
     .form-group { margin-bottom: 16px; }
     label { font-size: 14px; font-weight: bold; color: #303133; display: block; margin-bottom: 6px; }
-    input, select, textarea { width: 100%; padding: 12px; border: 1px solid #dcdfe6; border-radius: 10px; font-size: 15px; box-sizing: border-box; background: #fff; }
+    input, select, textarea { width: 100%; padding: 12px; border: 1px solid #dcdfe6; border-radius: 10px; font-size: 15px; box-sizing: border-box; background: #fff; outline: none; }
+    select:disabled { background: #f5f7fa; color: #c0c4cc; cursor: not-allowed; }
     button { width: 100%; padding: 14px; background: #409eff; color: white; border: none; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; }
     button:disabled { background: #a0cfff; }
   </style>
@@ -26,7 +27,7 @@
     </div>
     <div class="form-group">
       <label>成員 *</label>
-      <select id="member" required><option value="">載入中...</option></select>
+      <select id="member" required disabled><option value="">請先選擇活動</option></select>
     </div>
     <div class="form-group">
       <label>數量 *</label>
@@ -56,40 +57,94 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
+    const MEMBER_ORDER = ["方燦", "Lee Know", "彰彬", "鉉辰", "HAN", "Felix", "昇玟", "I.N"];
+    let activeEventSettings = [];
+
     document.addEventListener('DOMContentLoaded', async () => {
-      const [buyersRes, membersRes] = await Promise.all([
-        fetch('../json/users.json'),
-        fetch('../json/members.json')
-      ]);
-      const buyers = await buyersRes.json();
-      const members = await membersRes.json();
+      // 載入買家名單
+      try {
+        const buyersRes = await fetch('../json/users.json');
+        const buyers = await buyersRes.json();
+        const buyerSel = document.getElementById('buyerName');
+        buyerSel.innerHTML = '<option value="">請選擇您的名稱</option>';
+        buyers.forEach(b => { buyerSel.innerHTML += '<option value="' + b + '">' + b + '</option>'; });
+      } catch (e) {
+        console.error("載入買家失敗:", e);
+      }
 
-      const buyerSel = document.getElementById('buyerName');
-      buyerSel.innerHTML = '<option value="">請選擇您的名稱</option>';
-      buyers.forEach(b => { buyerSel.innerHTML += `<option value="${b}">${b}</option>`; });
-
+      const eventSel = document.getElementById('eventName');
       const memberSel = document.getElementById('member');
-      memberSel.innerHTML = '<option value="">請選擇成員</option>';
-      members.forEach(m => { memberSel.innerHTML += `<option value="${m}">${m}</option>`; });
 
-      // 監聽活動設定，並自動對活動進行去重，只顯示純活動名稱（不加成員後綴）
+      // 監聽後台活動設定
       onSnapshot(collection(db, "event_settings"), snap => {
-        const eventSel = document.getElementById('eventName');
-        eventSel.innerHTML = '<option value="">請選擇活動</option>';
-        
+        activeEventSettings = [];
         const uniqueEvents = new Set();
+
         snap.forEach(d => {
           const data = d.data();
           if (!data.isClosed && data.name) {
+            activeEventSettings.push(data);
             uniqueEvents.add(data.name.trim());
           }
         });
 
-        Array.from(uniqueEvents).sort().forEach(eventName => {
-          eventSel.innerHTML += `<option value="${eventName}">${eventName}</option>`;
+        const selectedEv = eventSel.value;
+        eventSel.innerHTML = '<option value="">請選擇活動</option>';
+        
+        Array.from(uniqueEvents).sort().forEach(eName => {
+          eventSel.innerHTML += '<option value="' + eName + '">' + eName + '</option>';
         });
 
+        if (selectedEv && uniqueEvents.has(selectedEv)) {
+          eventSel.value = selectedEv;
+        } else {
+          memberSel.innerHTML = '<option value="">請先選擇活動</option>';
+          memberSel.disabled = true;
+        }
+
         notifyHeight();
+      });
+
+      // 當活動名稱改變時，動態更新成員選單
+      eventSel.addEventListener('change', () => {
+        const chosenEvent = eventSel.value;
+        memberSel.innerHTML = '';
+
+        if (!chosenEvent) {
+          memberSel.innerHTML = '<option value="">請先選擇活動</option>';
+          memberSel.disabled = true;
+          return;
+        }
+
+        // 過濾出後台此活動有設定的成員
+        const availableMembers = new Set();
+        activeEventSettings.forEach(s => {
+          if ((s.name || '').trim() === chosenEvent && s.member) {
+            availableMembers.add(s.member.trim());
+          }
+        });
+
+        const sortedMembers = Array.from(availableMembers).sort((a, b) => {
+          let idxA = MEMBER_ORDER.indexOf(a);
+          let idxB = MEMBER_ORDER.indexOf(b);
+          return (idxA === -1 ? 99 : idxA) - (idxB === -1 ? 99 : idxB);
+        });
+
+        if (sortedMembers.length === 0) {
+          memberSel.innerHTML = '<option value="">該活動尚無開放成員</option>';
+          memberSel.disabled = true;
+        } else {
+          memberSel.disabled = false;
+          memberSel.innerHTML = '<option value="">請選擇成員</option>';
+          sortedMembers.forEach(m => {
+            memberSel.innerHTML += '<option value="' + m + '">' + m + '</option>';
+          });
+
+          // 防呆：如果只有 1 個成員，直接幫買家自動選好
+          if (sortedMembers.length === 1) {
+            memberSel.value = sortedMembers[0];
+          }
+        }
       });
     });
 
@@ -101,18 +156,25 @@
 
       const data = {
         buyerName: document.getElementById('buyerName').value,
+        user: document.getElementById('buyerName').value,
         event: document.getElementById('eventName').value,
+        eventName: document.getElementById('eventName').value,
         member: document.getElementById('member').value,
         qty: parseInt(document.getElementById('qty').value) || 1,
+        quantity: parseInt(document.getElementById('qty').value) || 1,
         note: document.getElementById('note').value.trim(),
         createdAt: new Date().toISOString(),
-        paymentStatus: '待匯款'
+        paymentStatus: '待匯款',
+        status: '待匯款',
+        hasPaid: false
       };
 
       try {
         await addDoc(collection(db, "orders"), data);
         alert('🎉 登記成功！');
         document.getElementById('orderForm').reset();
+        document.getElementById('member').innerHTML = '<option value="">請先選擇活動</option>';
+        document.getElementById('member').disabled = true;
       } catch (err) {
         alert('提交失敗：' + err.message);
       } finally {
