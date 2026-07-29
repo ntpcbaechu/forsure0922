@@ -13,29 +13,25 @@
 
     select { width: 100%; padding: 10px; border: 1px solid #dcdfe6; border-radius: 8px; font-size: 14px; box-sizing: border-box; background: #fff; }
 
-    .summary-card { background: #ecf5ff; border: 1px solid #d9ecff; border-radius: 10px; padding: 12px 14px; margin-bottom: 15px; font-size: 13px; color: #409eff; line-height: 1.6; }
+    .summary-card { background: #ecf5ff; border: 1px solid #d9ecff; border-radius: 10px; padding: 12px 14px; margin-bottom: 15px; font-size: 13px; color: #409eff; line-height: 1.8; }
     .summary-card b { font-size: 15px; }
-
-    .jump-bar { display: flex; flex-wrap: wrap; gap: 6px; padding-bottom: 10px; margin-bottom: 15px; }
-    .jump-btn { background: #ecf5ff; color: #409eff; border: 1px solid #d9ecff; padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; cursor: pointer; }
-    .jump-btn:hover { background: #409eff; color: #fff; }
 
     .event-section { background: #fff; border: 1px solid #e4e7ed; border-radius: 12px; padding: 14px; margin-bottom: 16px; }
     .event-header { font-size: 15px; font-weight: bold; color: #303133; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
     .event-meta { font-size: 12px; color: #409eff; background: #ecf5ff; padding: 4px 8px; border-radius: 6px; }
 
-    .cards-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 8px; }
-    .order-card { background: #fafafa; border: 1px solid #ebeef5; border-radius: 8px; padding: 10px 12px; font-size: 13px; }
-    .order-top { display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 6px; }
-    .status-badge { padding: 2px 6px; border-radius: 4px; font-size: 11px; }
+    .cards-list { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+    .order-card { background: #fafafa; border: 1px solid #ebeef5; border-radius: 8px; padding: 12px 14px; font-size: 13px; }
+    .order-top { display: flex; justify-content: space-between; align-items: center; font-weight: bold; margin-bottom: 6px; }
+    .order-info { display: flex; flex-wrap: wrap; gap: 15px; color: #606266; font-size: 13px; margin-top: 4px; }
+    
+    .status-badge { padding: 2px 8px; border-radius: 4px; font-size: 12px; }
     .status-paid { background: #f0f9eb; color: #67c23a; }
     .status-pending { background: #fef0f0; color: #f56c6c; }
+    .status-issue { background: #fdf6ec; color: #e6a23c; }
+    
     .type-badge { font-size: 11px; padding: 1px 5px; border-radius: 4px; background: #f4f4f5; color: #909399; margin-left: 4px; }
     .type-add { background: #fdf6ec; color: #e6a23c; border: 1px solid #faebd7; }
-
-    @media (max-width: 480px) {
-      .cards-grid { grid-template-columns: 1fr; }
-    }
   </style>
 </head>
 <body>
@@ -50,15 +46,22 @@
       <label class="filter-label"><input type="radio" name="filterMode" value="event"> 依活動日期與場次查詢</label>
     </div>
 
+    <!-- 模式 A：暱稱選單 -->
     <div id="userSelectBox">
       <select id="userDropdown">
         <option value="">載入中...</option>
       </select>
     </div>
+
+    <!-- 模式 B：場次選單 -->
+    <div id="eventSelectBox" style="display:none;">
+      <select id="eventDropdown">
+        <option value="ALL">📍 顯示全部活動場次</option>
+      </select>
+    </div>
   </div>
 
   <div id="userSummary"></div>
-  <div class="jump-bar" id="jumpBar"></div>
   <div id="recordsList">載入中...</div>
 
   <script type="module">
@@ -79,7 +82,7 @@
     const db = getFirestore(app);
 
     let allOrders = [];
-    const memberOrder = ["方燦", "Lee Know", "彰彬", "鉉辰", "HAN", "Felix", "昇玟", "I.N"];
+    let eventPricesMap = {};
 
     document.addEventListener('DOMContentLoaded', async () => {
       const uRes = await fetch('../json/users.json');
@@ -89,14 +92,37 @@
       users.forEach(u => { uSel.innerHTML += `<option value="${u}">${u}</option>`; });
     });
 
+    onSnapshot(collection(db, "event_settings"), snap => {
+      eventPricesMap = {};
+      const evSel = document.getElementById('eventDropdown');
+      evSel.innerHTML = '<option value="ALL">📍 顯示全部活動場次</option>';
+
+      snap.forEach(d => {
+        const data = d.data();
+        const key = `${data.name || data.rawName}_${data.member || ''}`;
+        eventPricesMap[key] = {
+          price: Number(data.price || data.unitPrice) || 0,
+          packQty: Number(data.packQty) || 1
+        };
+
+        const opt = document.createElement('option');
+        opt.value = key;
+        opt.textContent = `📍 ${data.name || data.rawName} - ${data.member || '全體'}`;
+        evSel.appendChild(opt);
+      });
+    });
+
     document.querySelectorAll('input[name="filterMode"]').forEach(r => {
       r.addEventListener('change', (e) => {
-        document.getElementById('userSelectBox').style.display = e.target.value === 'user' ? 'block' : 'none';
+        const isUser = e.target.value === 'user';
+        document.getElementById('userSelectBox').style.display = isUser ? 'block' : 'none';
+        document.getElementById('eventSelectBox').style.display = isUser ? 'none' : 'block';
         renderView();
       });
     });
 
     document.getElementById('userDropdown').addEventListener('change', () => renderView());
+    document.getElementById('eventDropdown').addEventListener('change', () => renderView());
 
     onSnapshot(collection(db, "orders"), snap => {
       allOrders = [];
@@ -104,14 +130,28 @@
       renderView();
     });
 
+    function getItemPriceInfo(item) {
+      const eventName = item.event || item.eventName || '';
+      const member = item.member || '';
+      const key = `${eventName}_${member}`;
+      const setting = eventPricesMap[key] || {};
+      
+      const pricePerPack = setting.price || 0;
+      const packQty = setting.packQty || 1;
+      const qty = Number(item.quantity) || Number(item.qty) || 0;
+      
+      const numPacks = (packQty > 0) ? (qty / packQty) : 1;
+      const totalPrice = Math.round(numPacks * pricePerPack);
+
+      return { pricePerPack, totalPrice, qty };
+    }
+
     function renderView() {
       const mode = document.querySelector('input[name="filterMode"]:checked').value;
       const recordsList = document.getElementById('recordsList');
-      const jumpBar = document.getElementById('jumpBar');
       const summary = document.getElementById('userSummary');
 
       recordsList.innerHTML = '';
-      jumpBar.innerHTML = '';
       summary.innerHTML = '';
 
       if (allOrders.length === 0) {
@@ -135,35 +175,51 @@
           return;
         }
 
-        let totalPacks = 0, paidPacks = 0, pendingPacks = 0;
+        // 計算個人統計 (包含三大狀態: 已對帳 / 待匯款 / 對帳有問題)
+        const eventsSet = new Set();
+        let paidCount = 0, pendingCount = 0, issueCount = 0, grandTotal = 0;
+
         userOrders.forEach(o => {
-          const qty = Number(o.quantity) || Number(o.qty) || 1;
-          totalPacks += qty;
-          if (o.paymentStatus === '已對帳' || o.status === '已對帳') paidPacks += qty;
-          else pendingPacks += qty;
+          const key = `${o.event || o.eventName}_${o.member}`;
+          eventsSet.add(key);
+
+          const status = o.paymentStatus || o.status || (o.hasPaid ? '已對帳' : '待匯款');
+          if (status === '已對帳') paidCount++;
+          else if (status === '對帳有問題' || status === '有問題') issueCount++;
+          else pendingCount++;
+
+          const info = getItemPriceInfo(o);
+          grandTotal += info.totalPrice;
         });
 
+        // 多行獨立視覺呈現
         summary.innerHTML = `
           <div class="summary-card">
             <b>👤 ${selectedUser} 的喊單個人統計：</b><br>
-            • 登記總筆數：<b>${userOrders.length}</b> 筆 ｜ 總喊單張數：<b>${totalPacks}</b> 張<br>
-            • 對帳狀態：🟢 已對帳 <b>${paidPacks}</b> 張 ｜ ⏳ 待匯款 <b>${pendingPacks}</b> 張
+            • 已登記場次：<b>${eventsSet.size}</b> 場<br>
+            • 對帳狀態：🟢 已對帳 <b>${paidCount}</b> 筆 ｜ ⏳ 待匯款 <b>${pendingCount}</b> 筆 ｜ ⚠️ 對帳有問題 <b>${issueCount}</b> 筆<br>
+            • 喊單總金額：<b>$${grandTotal.toLocaleString()}</b>
           </div>
         `;
 
         renderCardsGrouped(userOrders);
       } else {
-        renderCardsGrouped(allOrders);
+        const selectedEvKey = document.getElementById('eventDropdown').value;
+        if (selectedEvKey === 'ALL') {
+          renderCardsGrouped(allOrders);
+        } else {
+          const filtered = allOrders.filter(o => `${o.event || o.eventName}_${o.member}` === selectedEvKey);
+          renderCardsGrouped(filtered);
+        }
       }
     }
 
     function renderCardsGrouped(orders) {
       const recordsList = document.getElementById('recordsList');
-      const jumpBar = document.getElementById('jumpBar');
 
       const groups = {};
       orders.forEach(o => {
-        const key = (o.event || '未分類活動') + (o.member ? ` - ${o.member}` : '');
+        const key = (o.event || o.eventName || '未分類活動') + (o.member ? ` - ${o.member}` : '');
         if (!groups[key]) groups[key] = [];
         groups[key].push(o);
       });
@@ -176,52 +232,50 @@
         return a.localeCompare(b, 'zh-TW');
       });
 
-      let gIdx = 0;
       for (const title of sortedKeys) {
-        gIdx++;
         const list = groups[title];
-        const secId = `sec-${gIdx}`;
         const totalPacks = list.reduce((sum, item) => sum + (Number(item.quantity) || Number(item.qty) || 1), 0);
-
-        jumpBar.innerHTML += `<button class="jump-btn" onclick="scrollToSection('${secId}')">📍 ${title}</button>`;
 
         let cardsHtml = '';
         list.forEach((ord, idx) => {
-          const isPaid = ord.paymentStatus === '已對帳' || ord.status === '已對帳';
-          const badgeHtml = isPaid ? '<span class="status-badge status-paid">🟢 已對帳</span>' : '<span class="status-badge status-pending">⏳ 待匯款</span>';
+          const status = ord.paymentStatus || ord.status || (ord.hasPaid ? '已對帳' : '待匯款');
+          
+          let badgeHtml = '<span class="status-badge status-pending">⏳ 待匯款</span>';
+          if (status === '已對帳') badgeHtml = '<span class="status-badge status-paid">🟢 已對帳</span>';
+          else if (status === '對帳有問題' || status === '有問題') badgeHtml = '<span class="status-badge status-issue">⚠️ 對帳有問題</span>';
+
           const typeBadge = (ord.orderType === '追加') ? '<span class="type-badge type-add">追加</span>' : '<span class="type-badge">一般</span>';
 
           const name = ord.user || ord.buyerName || ord.nickname || '未知';
+          const info = getItemPriceInfo(ord);
+
           cardsHtml += `
             <div class="order-card">
               <div class="order-top">
                 <span>#${idx + 1} ${name} ${typeBadge}</span>
                 ${badgeHtml}
               </div>
-              <div style="color:#606266; font-size:12px;">
-                <div>喊單張數：<b>${ord.quantity || ord.qty || 1} 張</b></div>
+              <div class="order-info">
+                <span>喊單張數：<b>${info.qty} 張</b></span>
+                <span>每包金額：<b>$${info.pricePerPack}</b></span>
+                <span style="color:#409eff;">總金額：<b>$${info.totalPrice.toLocaleString()}</b></span>
               </div>
             </div>
           `;
         });
 
         recordsList.innerHTML += `
-          <div class="event-section" id="${secId}">
+          <div class="event-section">
             <div class="event-header">
               <span>📌 ${title}</span>
               <span class="event-meta">共 ${list.length} 筆 / ${totalPacks} 張</span>
             </div>
-            <div class="cards-grid">${cardsHtml}</div>
+            <div class="cards-list">${cardsHtml}</div>
           </div>
         `;
       }
       notifyHeight();
     }
-
-    window.scrollToSection = (secId) => {
-      const el = document.getElementById(secId);
-      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    };
 
     function notifyHeight() {
       setTimeout(() => {
