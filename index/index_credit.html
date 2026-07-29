@@ -2,38 +2,94 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
-  <title>個人抵用金餘額查詢</title>
+  <title>儲值金與餘額查詢</title>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 0; margin: 0; background: transparent; color: #333; }
-    .search-box { margin-bottom: 16px; }
-    label { font-size: 14px; font-weight: bold; color: #303133; display: block; margin-bottom: 6px; }
-    select { width: 100%; padding: 12px; border: 1px solid #dcdfe6; border-radius: 10px; font-size: 15px; box-sizing: border-box; background: #fff; }
     
-    /* 新增：User 大標題區塊外層與標題樣式 */
-    .user-group { background: #fff; border: 1px solid #e4e7ed; border-radius: 12px; padding: 16px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); }
-    .user-header { font-size: 16px; font-weight: bold; color: #303133; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #409eff; padding-bottom: 8px; margin-bottom: 12px; }
-    .user-total-badge { background: #f0f9eb; color: #67c23a; padding: 4px 10px; border-radius: 20px; font-size: 13px; }
+    .search-card { background: #fff; border: 1px solid #e4e7ed; border-radius: 12px; padding: 16px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); }
+    .search-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .search-title { font-size: 15px; font-weight: bold; color: #303133; white-space: nowrap; }
 
-    /* 保留原始卡片樣式 */
-    .credit-card { background: #fafafa; border: 1px solid #ebeef5; border-radius: 8px; padding: 12px; margin-bottom: 10px; }
-    .credit-card:last-child { margin-bottom: 0; }
-    .credit-title { font-weight: bold; font-size: 14px; color: #409eff; margin-bottom: 6px; border-bottom: 1px dashed #ebeef5; padding-bottom: 4px; }
-    .credit-row { display: flex; justify-content: space-between; font-size: 13px; color: #606266; margin-bottom: 4px; }
-    .credit-balance { font-size: 14px; font-weight: bold; color: #67c23a; text-align: right; margin-top: 4px; }
+    select { flex: 1; min-width: 200px; padding: 10px 12px; border: 1px solid #dcdfe6; border-radius: 8px; font-size: 14px; background: #fff; outline: none; }
+    select:focus { border-color: #409eff; }
+
+    /* 數據統計卡片網格 */
+    .summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
+    @media (max-width: 600px) {
+      .summary-grid { grid-template-columns: 1fr; }
+    }
+
+    .stat-box { background: #fff; border: 1px solid #ebeef5; border-radius: 10px; padding: 14px; text-align: center; box-shadow: 0 2px 6px rgba(0,0,0,0.02); }
+    .stat-box.highlight { background: #f0f9eb; border-color: #e1f3d8; }
+    .stat-label { font-size: 12px; color: #909399; font-weight: bold; margin-bottom: 6px; }
+    .stat-val { font-size: 20px; font-weight: bold; color: #303133; }
+    .stat-val.green { color: #67c23a; font-size: 24px; }
+    .stat-val.blue { color: #409eff; }
+    .stat-val.orange { color: #e6a23c; }
+
+    /* 明細列表與時間軸樣式 */
+    .history-card { background: #fff; border: 1px solid #e4e7ed; border-radius: 12px; padding: 16px; }
+    .history-title { font-size: 15px; font-weight: bold; color: #303133; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px dashed #dcdfe6; display: flex; justify-content: space-between; align-items: center; }
+
+    .history-list { display: flex; flex-direction: column; gap: 8px; }
+    .history-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; background: #fafafa; border: 1px solid #ebeef5; border-radius: 8px; font-size: 13px; }
+    .history-item.deposit { border-left: 4px solid #67c23a; }
+    .history-item.usage { border-left: 4px solid #f56c6c; }
+
+    .item-left { display: flex; flex-direction: column; gap: 3px; }
+    .item-note { font-weight: bold; color: #303133; font-size: 14px; }
+    .item-date { font-size: 11px; color: #909399; }
+    
+    .item-amt { font-size: 15px; font-weight: bold; }
+    .amt-plus { color: #67c23a; }
+    .amt-minus { color: #f56c6c; }
+
+    .empty-tip { text-align: center; color: #909399; padding: 30px 0; font-size: 14px; }
   </style>
 </head>
 <body>
 
-  <h3 style="margin-top:0; margin-bottom:15px; font-size:18px;">💳 個人抵用金餘額查詢</h3>
-  
-  <div class="search-box">
-    <label>社群暱稱：</label>
-    <select id="buyerFilter">
-      <option value="">請選擇您的社群暱稱</option>
-    </select>
+  <h3 style="margin-top:0; margin-bottom:12px; font-size:18px;">💰 儲值金與餘額查詢</h3>
+
+  <div class="search-card">
+    <div class="search-row">
+      <span class="search-title">👤 請選擇您的社群名稱：</span>
+      <select id="userSelect">
+        <option value="">載入買家名單中...</option>
+      </select>
+    </div>
   </div>
 
-  <div id="creditsList">載入中...</div>
+  <div id="contentArea" style="display:none;">
+    <!-- 三大統計指標 -->
+    <div class="summary-grid">
+      <div class="stat-box highlight">
+        <div class="stat-label">🟢 目前可用餘額</div>
+        <div class="stat-val green" id="availableCredit">$0</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">📥 累積儲值總額</div>
+        <div class="stat-val blue" id="totalDeposit">$0</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">📤 累積已折抵消費</div>
+        <div class="stat-val orange" id="totalUsed">$0</div>
+      </div>
+    </div>
+
+    <!-- 歷史變動紀錄 -->
+    <div class="history-card">
+      <div class="history-title">
+        <span>📜 儲值與消費變動紀錄</span>
+        <span style="font-size:12px; font-weight:normal; color:#909399;" id="recordCount">共 0 筆</span>
+      </div>
+      <div id="historyList" class="history-list"></div>
+    </div>
+  </div>
+
+  <div id="emptyArea" class="search-card empty-tip">
+    請在上方選擇您的社群暱稱以查詢儲值金餘額與明細 🔍
+  </div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -53,115 +109,149 @@
     const db = getFirestore(app);
 
     let allCredits = [];
+    let allPayments = [];
+    let activeUser = '';
 
-    document.addEventListener('DOMContentLoaded', () => {
-      document.getElementById('buyerFilter').addEventListener('change', renderCredits);
-    });
+    document.addEventListener('DOMContentLoaded', async () => {
+      // 讀取 users.json
+      let defaultUsers = [];
+      try {
+        const res = await fetch('../json/users.json');
+        defaultUsers = await res.json();
+      } catch (e) {}
 
-    // 連動 user_credits 集合
-    onSnapshot(collection(db, "user_credits"), snap => {
-      allCredits = [];
-      snap.forEach(d => {
-        allCredits.push({ id: d.id, ...d.data() });
+      // 監聽 user_credits 儲值紀錄
+      onSnapshot(collection(db, "user_credits"), snap => {
+        allCredits = [];
+        const creditUsers = new Set(defaultUsers);
+
+        snap.forEach(d => {
+          const data = { id: d.id, ...d.data() };
+          allCredits.push(data);
+          const uName = data.user || data.buyerName || data.name;
+          if (uName) creditUsers.add(uName);
+        });
+
+        // 監聽 payments 對帳紀錄 (折抵明細)
+        onSnapshot(collection(db, "payments"), pSnap => {
+          allPayments = [];
+          pSnap.forEach(pd => allPayments.push({ id: pd.id, ...pd.data() }));
+          
+          updateUserDropdown(Array.from(creditUsers));
+          if (activeUser) renderUserCredit(activeUser);
+        });
       });
 
-      allCredits.sort((a, b) => (b.fullEvent || b.rawDate || '').localeCompare(a.fullEvent || a.rawDate || ''));
-      updateUserOptions();
-      renderCredits();
+      document.getElementById('userSelect').addEventListener('change', (e) => {
+        activeUser = e.target.value;
+        renderUserCredit(activeUser);
+      });
     });
 
-    // 動態更新下拉選單（僅顯示在 admin-3 有填寫且剩餘抵用金 > 0 的成員）
-    function updateUserOptions() {
-      const activeUsers = new Set();
-      allCredits.forEach(c => {
-        const buyerName = c.user || c.buyerName;
-        const creditAmt = Number(c.credit) || Number(c.amount) || 0;
-        const usedAmt = Number(c.used) || 0;
-        const remain = c.remaining !== undefined ? Number(c.remaining) : (creditAmt - usedAmt);
+    function updateUserDropdown(usersList) {
+      const sel = document.getElementById('userSelect');
+      const cur = sel.value;
+      sel.innerHTML = '<option value="">請選擇您的社群名稱</option>';
 
-        if (buyerName && remain > 0) {
-          activeUsers.add(buyerName);
-        }
-      });
-
-      const sel = document.getElementById('buyerFilter');
-      const currentSelected = sel.value;
-      sel.innerHTML = '<option value="">全體社群成員 (顯示全部)</option>';
-
-      Array.from(activeUsers).sort().forEach(u => {
+      usersList.sort((a, b) => a.localeCompare(b, 'zh-TW')).forEach(u => {
         sel.innerHTML += `<option value="${u}">${u}</option>`;
       });
 
-      if (currentSelected && activeUsers.has(currentSelected)) {
-        sel.value = currentSelected;
+      if (cur && usersList.includes(cur)) {
+        sel.value = cur;
       }
     }
 
-    function renderCredits() {
-      const selectedBuyer = document.getElementById('buyerFilter').value;
-      const container = document.getElementById('creditsList');
-      container.innerHTML = '';
+    function renderUserCredit(userName) {
+      const contentArea = document.getElementById('contentArea');
+      const emptyArea = document.getElementById('emptyArea');
 
-      // 1. 篩選有剩餘金額且符合選單條件的紀錄
-      const filtered = allCredits.filter(c => {
-        const buyerName = c.user || c.buyerName || '未知';
-        const creditAmt = Number(c.credit) || Number(c.amount) || 0;
-        const usedAmt = Number(c.used) || 0;
-        const remain = c.remaining !== undefined ? Number(c.remaining) : (creditAmt - usedAmt);
-
-        const matchBuyer = !selectedBuyer || buyerName === selectedBuyer;
-        return matchBuyer && remain > 0;
-      });
-
-      if (filtered.length === 0) {
-        container.innerHTML = '<p style="color:#909399; font-size:14px; text-align:center; padding:20px 0;">目前無可用的抵用金餘額。</p>';
+      if (!userName) {
+        contentArea.style.display = 'none';
+        emptyArea.style.display = 'block';
         notifyHeight();
         return;
       }
 
-      // 2. 依 User 進行分組 (Group by User)
-      const groupedByUser = {};
-      filtered.forEach(c => {
-        const userName = c.user || c.buyerName || '未知成員';
-        if (!groupedByUser[userName]) {
-          groupedByUser[userName] = [];
+      emptyArea.style.display = 'none';
+      contentArea.style.display = 'block';
+
+      // 1. 計算該使用者的儲值入帳
+      const userCredits = allCredits.filter(c => (c.user === userName || c.buyerName === userName || c.name === userName));
+      
+      let totalDep = 0;
+      let totalU = 0;
+      let historyItems = [];
+
+      userCredits.forEach(c => {
+        const amt = Number(c.credit) || Number(c.amount) || 0;
+        const used = Number(c.used) || 0;
+        totalDep += amt;
+        totalU += used;
+
+        let dateStr = c.date || c.createdAt || '-';
+        if (typeof dateStr === 'object' && dateStr.seconds) {
+          dateStr = new Date(dateStr.seconds * 1000).toISOString().slice(0,10);
+        } else if (typeof dateStr === 'string' && dateStr.length > 10) {
+          dateStr = dateStr.slice(0, 10);
         }
-        groupedByUser[userName].push(c);
+
+        historyItems.push({
+          type: 'deposit',
+          title: c.note || '儲值入帳',
+          date: dateStr,
+          amount: amt
+        });
       });
 
-      // 3. 渲染：大標題 User -> 小卡片活動紀錄
-      for (const [userName, items] of Object.entries(groupedByUser)) {
-        let userTotalRemain = 0;
-        let cardsHtml = '';
+      // 2. 搜尋匯款紀錄中是否有使用抵用金/儲值金的變動
+      const userUsedPayments = allPayments.filter(p => (p.user === userName || p.buyerName === userName) && p.useCredit && p.creditUsed > 0);
+      userUsedPayments.forEach(p => {
+        let dateStr = p.payDate || p.createdAt || '-';
+        if (typeof dateStr === 'object' && dateStr.seconds) {
+          dateStr = new Date(dateStr.seconds * 1000).toISOString().slice(0,10);
+        } else if (typeof dateStr === 'string' && dateStr.length > 10) {
+          dateStr = dateStr.slice(0, 10);
+        }
 
-        items.forEach(c => {
-          const total = Number(c.credit) || Number(c.amount) || 0;
-          const used = Number(c.used) || 0;
-          const remain = c.remaining !== undefined ? Number(c.remaining) : (total - used);
-          userTotalRemain += remain;
+        historyItems.push({
+          type: 'usage',
+          title: '訂單對帳折抵',
+          date: dateStr,
+          amount: Number(p.creditUsed) || 0
+        });
+      });
 
-          const eventName = c.fullEvent || c.eventName || '抵用金紀錄';
-          const memberName = c.member ? ` (${c.member})` : '';
+      const available = totalDep - totalU;
 
-          cardsHtml += `
-            <div class="credit-card">
-              <div class="credit-title">📌 ${eventName}${memberName}</div>
-              <div class="credit-row"><span>轉抵用金金額：</span><span>$${total}</span></div>
-              <div class="credit-row"><span>已使用金額：</span><span>$${used}</span></div>
-              <div class="credit-balance">💰 剩餘抵用金：$${remain}</div>
+      document.getElementById('availableCredit').textContent = `$${available.toLocaleString()}`;
+      document.getElementById('totalDeposit').textContent = `$${totalDep.toLocaleString()}`;
+      document.getElementById('totalUsed').textContent = `$${totalU.toLocaleString()}`;
+
+      // 日期排序 (最新在前)
+      historyItems.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+      const listContainer = document.getElementById('historyList');
+      document.getElementById('recordCount').textContent = `共 ${historyItems.length} 筆紀錄`;
+      listContainer.innerHTML = '';
+
+      if (historyItems.length === 0) {
+        listContainer.innerHTML = '<div class="empty-tip">目前尚無儲值或消費明細紀錄</div>';
+      } else {
+        historyItems.forEach(item => {
+          const isDep = item.type === 'deposit';
+          listContainer.innerHTML += `
+            <div class="history-item ${isDep ? 'deposit' : 'usage'}">
+              <div class="item-left">
+                <span class="item-note">${isDep ? '➕' : '➖'} ${item.title}</span>
+                <span class="item-date">⏱️ 日期：${item.date}</span>
+              </div>
+              <div class="item-amt ${isDep ? 'amt-plus' : 'amt-minus'}">
+                ${isDep ? '+' : '-'}$${item.amount.toLocaleString()}
+              </div>
             </div>
           `;
         });
-
-        container.innerHTML += `
-          <div class="user-group">
-            <div class="user-header">
-              <span>👤 ${userName}</span>
-              <span class="user-total-badge">總剩餘抵用金：<b>$${userTotalRemain}</b></span>
-            </div>
-            ${cardsHtml}
-          </div>
-        `;
       }
 
       notifyHeight();
@@ -169,8 +259,9 @@
 
     function notifyHeight() {
       setTimeout(() => {
-        window.parent.postMessage({ frameHeight: document.body.scrollHeight }, '*');
-      }, 100);
+        const h = Math.max(document.body.scrollHeight, 500);
+        window.parent.postMessage({ frameHeight: h }, '*');
+      }, 150);
     }
   </script>
 </body>
