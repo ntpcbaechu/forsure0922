@@ -41,7 +41,7 @@
 
   <h3 style="margin-top:0; margin-bottom:20px; text-align:center; font-size:20px;">匯款對帳回報</h3>
   <form id="paymentForm">
-    <!-- 1. 社群名稱選單 (只顯示有登記的人) -->
+    <!-- 1. 社群名稱選單 (只顯示尚有「待匯款」訂單的人) -->
     <div class="form-group">
       <label>社群名稱 *</label>
       <select id="buyerName" required><option value="">載入中...</option></select>
@@ -163,7 +163,7 @@
             photoProgressMap[`${evName}_${mem}`] = data.status || '等圖中';
           }
         });
-        renderBuyerDetails();
+        updateBuyerDropdownAndDetails();
       });
 
       // 監聽 event_settings 取得預估金額與實際金額
@@ -186,46 +186,62 @@
             }
           }
         });
-        renderBuyerDetails();
+        updateBuyerDropdownAndDetails();
       });
 
       onSnapshot(collection(db, "user_credits"), snap => {
         allCredits = [];
         snap.forEach(d => allCredits.push({ id: d.id, ...d.data() }));
-        renderBuyerDetails();
+        updateBuyerDropdownAndDetails();
       });
 
       onSnapshot(collection(db, "orders"), snap => {
         allOrders = [];
-        const registeredBuyers = new Set();
-
         snap.forEach(d => {
-          const data = d.data();
-          allOrders.push({ id: d.id, ...data });
-          
-          const name = data.user || data.buyerName || data.name || data.buyer;
-          if (name) registeredBuyers.add(String(name).trim());
+          allOrders.push({ id: d.id, ...d.data() });
         });
-
-        const buyerSel = document.getElementById('buyerName');
-        const currentSelected = buyerSel.value;
-        buyerSel.innerHTML = '<option value="">請選擇您的名稱</option>';
-        
-        Array.from(registeredBuyers).sort().forEach(b => {
-          buyerSel.innerHTML += `<option value="${b}">${b}</option>`;
-        });
-
-        if (currentSelected && registeredBuyers.has(currentSelected)) {
-          buyerSel.value = currentSelected;
-        }
-
-        renderBuyerDetails();
+        updateBuyerDropdownAndDetails();
       });
 
       document.getElementById('buyerName').addEventListener('change', renderBuyerDetails);
       document.getElementById('useCreditChk').addEventListener('change', calcSelectedTotal);
       notifyHeight();
     });
+
+    // 動態過濾並更新「社群名稱」選單（僅列出還有「待匯款」訂單的買家）
+    function updateBuyerDropdownAndDetails() {
+      const pendingBuyers = new Set();
+
+      allOrders.forEach(o => {
+        const name = o.user || o.buyerName || o.name || o.buyer;
+        const pendingMatch = (o.paymentStatus === 'pending_payment' || o.paymentStatus === '待匯款' || o.status === 'pending_payment' || o.status === '待匯款' || !o.paymentStatus);
+        
+        const ordEvent = o.event || o.fullEvent || o.eventName || '';
+        const ordMember = o.member || '';
+        const progressStatus = photoProgressMap[`${ordEvent}_${ordMember}`];
+        const isNotWaitingPhoto = progressStatus !== '等圖中';
+
+        if (name && pendingMatch && isNotWaitingPhoto) {
+          pendingBuyers.add(String(name).trim());
+        }
+      });
+
+      const buyerSel = document.getElementById('buyerName');
+      const currentSelected = buyerSel.value;
+      buyerSel.innerHTML = '<option value="">請選擇您的名稱</option>';
+
+      Array.from(pendingBuyers).sort((a, b) => a.localeCompare(b, 'zh-TW')).forEach(b => {
+        buyerSel.innerHTML += `<option value="${b}">${b}</option>`;
+      });
+
+      if (currentSelected && pendingBuyers.has(currentSelected)) {
+        buyerSel.value = currentSelected;
+      } else if (currentSelected && !pendingBuyers.has(currentSelected)) {
+        buyerSel.value = '';
+      }
+
+      renderBuyerDetails();
+    }
 
     function renderBuyerDetails() {
       const selectedBuyer = document.getElementById('buyerName').value;
