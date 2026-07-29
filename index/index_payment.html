@@ -15,7 +15,7 @@
     /* 抵用金與待匯款訂單卡片樣式 */
     .info-card { background: #f4f4f5; border-radius: 10px; padding: 12px; margin-bottom: 16px; font-size: 13px; color: #606266; border: 1px solid #e4e7ed; }
     .info-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
-    .orders-select-box { background: #fff; border: 1px solid #dcdfe6; border-radius: 8px; padding: 10px; max-height: 180px; overflow-y: auto; margin-top: 6px; }
+    .orders-select-box { background: #fff; border: 1px solid #dcdfe6; border-radius: 8px; padding: 10px; max-height: 220px; overflow-y: auto; margin-top: 6px; }
     
     /* 修正勾選框與清單樣式 */
     .order-item { display: flex; align-items: center; justify-content: space-between; font-size: 13px; padding: 6px 0; border-bottom: 1px dashed #ebeef5; }
@@ -26,6 +26,13 @@
     .price-box { display: flex; align-items: center; gap: 6px; font-weight: bold; }
     .price-original-strike { text-decoration: line-through; color: #909399; font-size: 12px; }
     .price-final { color: #f56c6c; font-size: 14px; }
+
+    /* 自訂補款按鈕與表單樣式 */
+    .btn-add-custom { background: #67c23a; color: #fff; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; margin-top: 8px; display: inline-flex; align-items: center; gap: 4px; }
+    .btn-add-custom:hover { background: #5daf34; }
+    .custom-form-box { background: #fff; border: 1px solid #67c23a; border-radius: 8px; padding: 10px; margin-top: 8px; display: none; }
+    .custom-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+    .custom-form-grid input, .custom-form-grid select { padding: 6px 8px; font-size: 12px; border-radius: 6px; }
 
     /* 右下角試算區域樣式 */
     .summary-right-box { text-align: right; border-top: 1px dashed #dcdfe6; padding-top: 8px; margin-top: 10px; }
@@ -61,6 +68,25 @@
         <div style="font-weight:bold; margin-bottom:6px; color:#303133;">選擇要一起匯款的訂單：</div>
         <div class="orders-select-box" id="ordersList">無待匯款訂單</div>
 
+        <!-- 綠色自訂項目按鈕與展開區域 -->
+        <div>
+          <button type="button" class="btn-add-custom" id="toggleCustomBtn">➕ 新增其他金額 / 補款項目</button>
+          
+          <div class="custom-form-box" id="customFormBox">
+            <div style="font-weight:bold; color:#67c23a; margin-bottom:6px; font-size:12px;">新增自訂補款/額外金額：</div>
+            <div class="custom-form-grid">
+              <input type="text" id="custDate" placeholder="日期 (例: 260801)">
+              <input type="text" id="custEvent" placeholder="活動名稱 (例: 周邊加購)">
+              <select id="custMember"><option value="">選擇成員</option></select>
+              <input type="number" id="custPrice" min="1" placeholder="金額 ($)">
+            </div>
+            <div style="display:flex; gap:6px;">
+              <button type="button" id="addCustomItemBtn" style="padding:6px 10px; font-size:12px; margin-top:0; background:#67c23a;">確認加入勾選清單</button>
+              <button type="button" id="closeCustomItemBtn" style="padding:6px 10px; font-size:12px; margin-top:0; background:#909399;">取消</button>
+            </div>
+          </div>
+        </div>
+
         <!-- 2. 中間：折抵抵用金 -->
         <div class="info-row" style="margin-top:12px; padding-top:8px; border-top: 1px dashed #dcdfe6;">
           <label style="font-weight:normal; font-size:13px; margin:0; cursor:pointer; display:flex; align-items:center; gap:6px;">
@@ -70,7 +96,7 @@
           <b style="color:#909399;" id="creditDeduct">-</b>
         </div>
 
-        <!-- 3. 右下角：小計與本次應匯款總金額 (放大清晰) -->
+        <!-- 3. 右下角：小計與本次應匯款總金額 -->
         <div class="summary-right-box">
           <div class="summary-right-row">
             <span>勾選訂單小計：</span>
@@ -91,25 +117,25 @@
         <div class="bank-warning">（⚠️中信帳戶已不提供收款‼️）</div>
       </div>
 
-      <!-- 匯款日期 (預設不自動帶入日期) -->
+      <!-- 匯款日期 -->
       <div class="form-group">
         <label>匯款日期 *</label>
         <input type="date" id="payDate" required>
       </div>
 
-      <!-- 匯款金額 (必填) -->
+      <!-- 匯款金額 -->
       <div class="form-group">
         <label>匯款金額 ($) *</label>
         <input type="number" id="amount" min="1" placeholder="請輸入匯款金額" required>
       </div>
 
-      <!-- 匯款帳號末 5 碼 (必填) -->
+      <!-- 匯款帳號末 5 碼 -->
       <div class="form-group">
         <label>匯款帳號末 5 碼 *</label>
         <input type="text" id="last5" maxlength="5" placeholder="例如: 12345" required>
       </div>
 
-      <!-- 備註說明 (改為 textarea 支援換行) -->
+      <!-- 備註說明 -->
       <div class="form-group">
         <label>備註說明</label>
         <textarea id="note" placeholder="如有特殊事項請在此註明... (按 Enter 可換行)"></textarea>
@@ -137,13 +163,27 @@
     const db = getFirestore(app);
 
     let memberOrderList = ["方燦", "Lee Know", "彰彬", "鉉辰", "HAN", "Felix", "昇玟", "I.N"];
-    fetch('../json/members.json').then(r => r.json()).then(arr => { memberOrderList = arr; }).catch(() => {});
+    fetch('../json/members.json').then(r => r.json()).then(arr => { 
+      memberOrderList = arr; 
+      initCustMemberDropdown();
+    }).catch(() => { initCustMemberDropdown(); });
+
+    function initCustMemberDropdown() {
+      const sel = document.getElementById('custMember');
+      if (!sel) return;
+      sel.innerHTML = '<option value="">選擇成員</option>';
+      memberOrderList.forEach(m => {
+        sel.innerHTML += `<option value="${m}">${m}</option>`;
+      });
+    }
 
     let allCredits = [];
     let allOrders = [];
+    let customAddedItems = [];
     let photoProgressMap = {};
     let eventSettingsMap = {};
     let currentAvailableCredit = 0;
+    let currentCalculatedFinalTotal = 0;
 
     // 攔截 Enter 防誤觸送出
     document.getElementById('paymentForm').addEventListener('keydown', (e) => {
@@ -166,7 +206,6 @@
         updateBuyerDropdownAndDetails();
       });
 
-      // 監聽 event_settings 取得預估金額與實際金額
       onSnapshot(collection(db, "event_settings"), snap => {
         eventSettingsMap = {};
         snap.forEach(d => {
@@ -197,18 +236,33 @@
 
       onSnapshot(collection(db, "orders"), snap => {
         allOrders = [];
-        snap.forEach(d => {
-          allOrders.push({ id: d.id, ...d.data() });
-        });
+        snap.forEach(d => allOrders.push({ id: d.id, ...d.data() }));
         updateBuyerDropdownAndDetails();
       });
 
-      document.getElementById('buyerName').addEventListener('change', renderBuyerDetails);
+      document.getElementById('buyerName').addEventListener('change', () => {
+        customAddedItems = [];
+        renderBuyerDetails();
+      });
       document.getElementById('useCreditChk').addEventListener('change', calcSelectedTotal);
+
+      // 自訂按鈕事件
+      document.getElementById('toggleCustomBtn').addEventListener('click', () => {
+        const box = document.getElementById('customFormBox');
+        box.style.display = (box.style.display === 'block') ? 'none' : 'block';
+        notifyHeight();
+      });
+
+      document.getElementById('closeCustomItemBtn').addEventListener('click', () => {
+        document.getElementById('customFormBox').style.display = 'none';
+        notifyHeight();
+      });
+
+      document.getElementById('addCustomItemBtn').addEventListener('click', addCustomItem);
+
       notifyHeight();
     });
 
-    // 動態過濾並更新「社群名稱」選單（僅列出還有「待匯款」訂單的買家）
     function updateBuyerDropdownAndDetails() {
       const pendingBuyers = new Set();
 
@@ -239,6 +293,36 @@
       } else if (currentSelected && !pendingBuyers.has(currentSelected)) {
         buyerSel.value = '';
       }
+
+      renderBuyerDetails();
+    }
+
+    function addCustomItem() {
+      const dt = document.getElementById('custDate').value.trim();
+      const ev = document.getElementById('custEvent').value.trim();
+      const mem = document.getElementById('custMember').value;
+      const price = parseFloat(document.getElementById('custPrice').value) || 0;
+
+      if (!ev || price <= 0) {
+        alert('請至少輸入活動名稱與有效的金額！');
+        return;
+      }
+
+      const fullEvName = dt ? `${dt} ${ev}` : ev;
+      const customId = `custom_${Date.now()}`;
+
+      customAddedItems.push({
+        id: customId,
+        event: fullEvName,
+        member: mem || '全體',
+        price: price
+      });
+
+      document.getElementById('custDate').value = '';
+      document.getElementById('custEvent').value = '';
+      document.getElementById('custMember').value = '';
+      document.getElementById('custPrice').value = '';
+      document.getElementById('customFormBox').style.display = 'none';
 
       renderBuyerDetails();
     }
@@ -277,7 +361,6 @@
         return nameMatch && pendingMatch && isNotWaitingPhoto;
       });
 
-      // 排序 logic: 1.日期 2.成員(members.json)
       userOrders.sort((a, b) => {
         const evA = a.event || a.fullEvent || a.eventName || '';
         const evB = b.event || b.fullEvent || b.eventName || '';
@@ -287,9 +370,7 @@
         const dateA = matchA ? parseInt(matchA[0], 10) : 0;
         const dateB = matchB ? parseInt(matchB[0], 10) : 0;
 
-        if (dateA !== dateB) {
-          return dateA - dateB;
-        }
+        if (dateA !== dateB) return dateA - dateB;
 
         const memA = a.member || '';
         const memB = b.member || '';
@@ -304,7 +385,7 @@
       const ordersList = document.getElementById('ordersList');
       ordersList.innerHTML = '';
 
-      if (userOrders.length === 0) {
+      if (userOrders.length === 0 && customAddedItems.length === 0) {
         ordersList.innerHTML = '<span style="color:#909399;">目前無待匯款訂單</span>';
         document.getElementById('pendingTotal').textContent = '$0';
         document.getElementById('finalPayTotal').textContent = '$0';
@@ -348,6 +429,19 @@
           `;
         });
 
+        // 渲染自訂加入的補款項目
+        customAddedItems.forEach(cItem => {
+          ordersList.innerHTML += `
+            <div class="order-item" style="background:#f0f9eb; padding:6px 8px; border-radius:6px; margin-bottom:4px;">
+              <div class="order-left">
+                <input type="checkbox" class="order-chk custom-chk" value="${cItem.id}" data-price="${cItem.price}" data-is-custom="true" data-event="${cItem.event}" data-member="${cItem.member}" checked>
+                <span>➕ [自訂補款] ${cItem.event} (${cItem.member})</span>
+              </div>
+              <div class="price-box"><span class="price-final">$${cItem.price}</span></div>
+            </div>
+          `;
+        });
+
         document.querySelectorAll('.order-chk').forEach(chk => {
           chk.addEventListener('change', calcSelectedTotal);
         });
@@ -371,7 +465,7 @@
         creditDeduction = Math.min(orderSubtotal, currentAvailableCredit);
       }
 
-      const finalTotal = Math.max(0, orderSubtotal - creditDeduction);
+      currentCalculatedFinalTotal = Math.max(0, orderSubtotal - creditDeduction);
 
       document.getElementById('pendingTotal').textContent = `$${orderSubtotal.toFixed(1).replace(/\.0$/, '')}`;
       
@@ -384,31 +478,75 @@
         deductElem.style.color = '#909399';
       }
 
-      document.getElementById('finalPayTotal').textContent = `$${finalTotal.toFixed(1).replace(/\.0$/, '')}`;
+      document.getElementById('finalPayTotal').textContent = `$${currentCalculatedFinalTotal.toFixed(1).replace(/\.0$/, '')}`;
     }
 
     document.getElementById('paymentForm').addEventListener('submit', async (e) => {
       e.preventDefault();
+
+      const inputAmount = parseFloat(document.getElementById('amount').value) || 0;
+      if (inputAmount !== currentCalculatedFinalTotal) {
+        alert(`⚠️ 金額不一致！\n\n您填寫的匯款金額是：$${inputAmount}\n本次應匯款總金額是：$${currentCalculatedFinalTotal}\n\n請重新確認匯款金額或勾選項目後再試一次！`);
+        return;
+      }
+
       const btn = document.getElementById('submitBtn');
       btn.disabled = true;
       btn.textContent = '送出中...';
 
-      const selectedOrderIds = Array.from(document.querySelectorAll('.order-chk:checked')).map(cb => cb.value);
+      const selectedOrderIds = [];
+      const customItemsToCreate = [];
 
-      const data = {
-        buyerName: document.getElementById('buyerName').value,
-        socialAccount: document.getElementById('socialAccount').value.trim(),
-        payDate: document.getElementById('payDate').value,
-        amount: parseFloat(document.getElementById('amount').value) || 0,
-        last5: document.getElementById('last5').value.trim(),
-        note: document.getElementById('note').value.trim(),
-        useCredit: document.getElementById('useCreditChk').checked,
-        relatedOrderIds: selectedOrderIds,
-        createdAt: new Date().toISOString(),
-        status: '待對帳'
-      };
+      document.querySelectorAll('.order-chk:checked').forEach(cb => {
+        if (cb.getAttribute('data-is-custom') === 'true') {
+          customItemsToCreate.push({
+            event: cb.getAttribute('data-event'),
+            member: cb.getAttribute('data-member'),
+            price: Number(cb.getAttribute('data-price')) || 0
+          });
+        } else {
+          selectedOrderIds.push(cb.value);
+        }
+      });
+
+      const buyerNameVal = document.getElementById('buyerName').value;
 
       try {
+        // 先建立自訂項目到 orders 資料庫
+        const customCreatePromises = customItemsToCreate.map(cItem => {
+          return addDoc(collection(db, "orders"), {
+            buyerName: buyerNameVal,
+            user: buyerNameVal,
+            event: cItem.event,
+            member: cItem.member,
+            qty: 1,
+            price: cItem.price,
+            createdAt: new Date().toISOString(),
+            paymentStatus: '待對帳',
+            status: '待對帳',
+            note: '買家自訂補款項目'
+          }).then(docRef => docRef.id);
+        });
+
+        const createdCustomIds = await Promise.all(customCreatePromises);
+        const finalAllRelatedOrderIds = [...selectedOrderIds, ...createdCustomIds];
+
+        const data = {
+          buyerName: buyerNameVal,
+          user: buyerNameVal,
+          socialAccount: document.getElementById('socialAccount').value.trim(),
+          payDate: document.getElementById('payDate').value,
+          amount: inputAmount,
+          finalPay: inputAmount,
+          last5: document.getElementById('last5').value.trim(),
+          bankLast5: document.getElementById('last5').value.trim(),
+          note: document.getElementById('note').value.trim(),
+          useCredit: document.getElementById('useCreditChk').checked,
+          relatedOrderIds: finalAllRelatedOrderIds,
+          createdAt: new Date().toISOString(),
+          status: '待對帳'
+        };
+
         await addDoc(collection(db, "payments"), data);
 
         const updatePromises = selectedOrderIds.map(orderId => {
@@ -420,13 +558,14 @@
         await Promise.all(updatePromises);
 
         alert('✅ 匯款回報已提交，選取的訂單已同步更新為「待對帳」，請等待管理者審核！');
+        customAddedItems = [];
         document.getElementById('paymentForm').reset();
         document.getElementById('formContent').style.display = 'none';
       } catch (err) {
         alert('送出失敗：' + err.message);
       } finally {
         btn.disabled = false;
-        btn.textContent = '送出';
+        btn.textContent = '提交對帳資料';
       }
     });
 
