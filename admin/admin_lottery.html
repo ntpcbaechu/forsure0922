@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <title>抽獎活動管理</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 0; margin: 0; background: #fff; color: #333; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th, td { padding: 10px 8px; border-bottom: 1px solid #e4e7ed; text-align: left; font-size: 13px; vertical-align: middle; }
+    th { background: #f8f9fa; color: #606266; font-weight: bold; white-space: nowrap; }
+    input, select, button, textarea { padding: 8px 10px; border: 1px solid #dcdfe6; border-radius: 6px; font-size: 13px; box-sizing: border-box; transition: border-color 0.2s; }
+    input:focus, select:focus, textarea:focus { border-color: #409eff; outline: none; }
+    button { background-color: #409eff; color: white; border: none; font-weight: bold; cursor: pointer; }
+    .btn-danger { background-color: #f56c6c; color: white; padding: 4px 8px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; }
+    .btn-edit { background-color: #e6a23c; color: white; padding: 4px 8px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; margin-right: 4px; }
+
+    .form-section { background: #f8f9fa; border: 1px solid #ebeef5; border-radius: 8px; padding: 14px; margin-bottom: 12px; }
+    .form-row { display: grid; gap: 10px; margin-bottom: 8px; align-items: end; }
+    .row-2 { grid-template-columns: 1fr 1fr; }
+    .winner-row { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+
+    .auto-textarea { width: 100%; min-height: 60px; resize: none; overflow-y: hidden; line-height: 1.5; }
+    
+    @media (max-width: 768px) {
+      .row-2 { grid-template-columns: 1fr; }
+      .winner-row { flex-wrap: wrap; }
+    }
+  </style>
+</head>
+<body>
+
+  <h3>🎁 抽獎活動管理與結果發佈</h3>
+  <form id="lotteryForm" style="margin-bottom:20px;">
+    <input type="hidden" id="editLotteryId">
+
+    <!-- 卡片 1: 匯入模式選擇與標題 -->
+    <div class="form-section">
+      <div style="margin-bottom:10px;">
+        <label style="font-size:13px; font-weight:bold; color:#409eff;">📌 選擇連動開團或自訂抽獎：</label>
+        <div style="margin-top:6px; display:flex; gap:15px; align-items:center;">
+          <label style="font-size:13px; cursor:pointer;"><input type="radio" name="modeType" value="auto" checked> 選擇開團活動 (自動連動「一般」喊單包數算籤)</label>
+          <label style="font-size:13px; cursor:pointer;"><input type="radio" name="modeType" value="custom"> 完全自訂抽獎 (手動貼上名單)</label>
+        </div>
+      </div>
+
+      <div id="autoSection" style="background:#eef5fe; padding:10px; border-radius:6px; margin-bottom:10px;">
+        <label style="font-size:12px; font-weight:bold;">選擇活動場次與成員：</label>
+        <div style="display:flex; gap:8px; margin-top:4px;">
+          <select id="eventSelect" style="flex:1;">
+            <option value="">載入中...</option>
+          </select>
+          <button type="button" id="importBtn" style="background:#67c23a; padding:8px 14px;">⚡ 自動抓取名單與籤數</button>
+        </div>
+      </div>
+
+      <div>
+        <label style="font-size:12px; font-weight:bold;">抽獎活動標題 *</label>
+        <input type="text" id="lotteryTitle" placeholder="例: 🎁 幸運抽獎（五位得主）" required style="width:100%; margin-top:4px;">
+      </div>
+    </div>
+
+    <!-- 卡片 2: 規則與獎項 -->
+    <div class="form-section">
+      <div class="form-row row-2">
+        <div>
+          <label style="font-size:12px; font-weight:bold;">📋 抽獎規則與說明 (每行一條)</label>
+          <textarea id="lotteryRules" class="auto-textarea" style="margin-top:4px;" placeholder="每位參與者僅有一次中獎機會&#10;前四位得主採隨機配對"></textarea>
+        </div>
+        <div>
+          <label style="font-size:12px; font-weight:bold;">🎁 獎項列表 (每行一個)</label>
+          <textarea id="lotteryPrizes" class="auto-textarea" style="margin-top:4px;" placeholder="📷 240721 Ending (30P)（共 2 份）&#10;✈️ 240731 出境 (20P)（共 1 份）"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- 卡片 3: 參與名單 (多籤數以逗號分隔) -->
+    <div class="form-section">
+      <label style="font-size:12px; font-weight:bold;">👥 參與名單與籤數 (用逗號分隔，出現幾次代表幾張籤)</label>
+      <textarea id="lotteryParticipants" class="auto-textarea" style="margin-top:4px;" placeholder="@江, @摳摳, @Hannah, @Hannah"></textarea>
+      <div style="font-size:11px; color:#909399; margin-top:2px;">💡 提示：按「自動抓取名單」後會自動算出「一般」類別喊單包數的重複籤數，也可手動修改。</div>
+    </div>
+
+    <!-- 卡片 4: 中獎結果設定 -->
+    <div class="form-section">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+        <label style="font-size:12px; font-weight:bold; color:#67c23a;">🎉 中獎結果設定</label>
+        <button type="button" id="addWinnerBtn" style="background:#67c23a; font-size:12px; padding:4px 8px;">+ 新增中獎者</button>
+      </div>
+      <div id="winnersContainer"></div>
+    </div>
+
+    <button type="submit" id="saveLotteryBtn" style="width:100%; padding:10px; font-size:15px;">儲存並發佈抽獎公告</button>
+    <button type="button" id="cancelLotteryBtn" style="background:#909399; width:100%; padding:10px; margin-top:5px; display:none;" onclick="resetLotteryForm()">取消編輯</button>
+  </form>
+
+  <!-- 歷史抽獎列表 -->
+  <h3>📜 歷史抽獎公告列表</h3>
+  <table>
+    <thead>
+      <tr>
+        <th style="width:20%;">建立時間</th>
+        <th style="width:35%;">抽獎活動標題</th>
+        <th style="width:15%;">參與總籤數</th>
+        <th style="width:15%;">中獎人數</th>
+        <th style="width:15%;">操作</th>
+      </tr>
+    </thead>
+    <tbody id="lotteryTable"></tbody>
+  </table>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDF7QySG1Jj4gdZvXwMRaKjRmI-lFKpj7k",
+      authDomain: "forsure0922.firebaseapp.com",
+      databaseURL: "https://forsure0922-default-rtdb.firebaseio.com",
+      projectId: "forsure0922",
+      storageBucket: "forsure0922.firebasestorage.app",
+      messagingSenderId: "817449290174",
+      appId: "1:817449290174:web:6b4ec1d36c171ff97011ef"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    let lotteryMap = {};
+    let eventSettingsMap = {};
+
+    // 監聽模式切換
+    document.querySelectorAll('input[name="modeType"]').forEach(r => {
+      r.addEventListener('change', (e) => {
+        document.getElementById('autoSection').style.display = e.target.value === 'auto' ? 'block' : 'none';
+      });
+    });
+
+    // 載入活動清單
+    onSnapshot(collection(db, "event_settings"), snap => {
+      const eventSel = document.getElementById('eventSelect');
+      eventSel.innerHTML = '<option value="">請選擇活動與成員</option>';
+      eventSettingsMap = {};
+
+      snap.forEach(d => {
+        const data = d.data();
+        const key = `${data.name || data.rawName}_${data.member || ''}`;
+        eventSettingsMap[key] = data;
+
+        const opt = document.createElement('option');
+        opt.value = key;
+        opt.textContent = `${data.name} - ${data.member || '全體'} (每包 ${data.packQty || 1} 張)`;
+        eventSel.appendChild(opt);
+      });
+    });
+
+    // 抓取名單算籤數
+    document.getElementById('importBtn').onclick = async () => {
+      const selectedKey = document.getElementById('eventSelect').value;
+      if (!selectedKey) return alert('請先選擇活動場次與成員！');
+
+      const evData = eventSettingsMap[selectedKey];
+      const packQty = Number(evData?.packQty) || 1;
+      const targetEventName = evData?.name || evData?.rawName;
+      const targetMember = evData?.member;
+
+      const snap = await getDocs(collection(db, "orders"));
+      const userQtyMap = {};
+
+      snap.forEach(d => {
+        const ord = d.data();
+        const ordEvent = ord.event || ord.eventName;
+        const ordMember = ord.member;
+        const ordType = ord.orderType || '一般';
+
+        // 條件：活動+成員相符，且 orderType 必須是「一般」
+        if (ordEvent === targetEventName && ordMember === targetMember && ordType === '一般') {
+          const userName = ord.buyerName || ord.user || ord.nickname || '未知';
+          const qty = Number(ord.qty !== undefined ? ord.qty : ord.quantity) || 0;
+          userQtyMap[userName] = (userQtyMap[userName] || 0) + qty;
+        }
+      });
+
+      let participantList = [];
+      for (const [user, totalQty] of Object.entries(userQtyMap)) {
+        const packs = Math.floor(totalQty / packQty) || 1; // 至少給 1 籤
+        for (let i = 0; i < packs; i++) {
+          participantList.push(user.startsWith('@') ? user : `@${user}`);
+        }
+      }
+
+      if (participantList.length === 0) {
+        alert('⚠️ 該活動在「一般」類別中查無喊單紀錄！');
+      } else {
+        document.getElementById('lotteryParticipants').value = participantList.join(', ');
+        if (!document.getElementById('lotteryTitle').value) {
+          document.getElementById('lotteryTitle').value = `🎁 ${targetEventName} - ${targetMember} 喊單專屬抽獎`;
+        }
+        alert(`✅ 成功匯入 ${Object.keys(userQtyMap).length} 位成員，共生成 ${participantList.length} 張抽獎籤！`);
+      }
+    };
+
+    // 獎項列控制
+    const winnersContainer = document.getElementById('winnersContainer');
+    document.getElementById('addWinnerBtn').onclick = () => addWinnerRow();
+
+    function addWinnerRow(name = '', prize = '', isSpecial = false) {
+      const div = document.createElement('div');
+      div.className = 'winner-row';
+      div.innerHTML = `
+        <input type="text" class="w-name" placeholder="中獎者暱稱" value="${name}" style="flex:1;">
+        <input type="text" class="w-prize" placeholder="獲得獎項描述" value="${prize}" style="flex:1.5;">
+        <label style="font-size:12px; display:flex; align-items:center; gap:3px;">
+          <input type="checkbox" class="w-special" ${isSpecial ? 'checked' : ''}> 特別獎?
+        </label>
+        <button type="button" class="btn-danger" onclick="this.parentElement.remove()">移除</button>
+      `;
+      winnersContainer.appendChild(div);
+    }
+
+    // 儲存抽獎公告
+    document.getElementById('lotteryForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const saveBtn = document.getElementById('saveLotteryBtn');
+      saveBtn.disabled = true;
+
+      try {
+        const title = document.getElementById('lotteryTitle').value.trim();
+        const rules = document.getElementById('lotteryRules').value.split('\n').map(s => s.trim()).filter(Boolean);
+        const prizes = document.getElementById('lotteryPrizes').value.split('\n').map(s => s.trim()).filter(Boolean);
+        const participants = document.getElementById('lotteryParticipants').value.split(',').map(s => s.trim()).filter(Boolean);
+
+        const wNames = document.querySelectorAll('.w-name');
+        const wPrizes = document.querySelectorAll('.w-prize');
+        const wSpecials = document.querySelectorAll('.w-special');
+
+        let winners = [];
+        wNames.forEach((el, i) => {
+          const name = el.value.trim();
+          const prize = wPrizes[i].value.trim();
+          if (name) {
+            winners.push({ name, prize, isSpecial: wSpecials[i].checked });
+          }
+        });
+
+        const editId = document.getElementById('editLotteryId').value;
+        const docId = editId || `lottery_${Date.now()}`;
+
+        await setDoc(doc(db, "lottery_events", docId), {
+          title, rules, prizes, participants, winners,
+          updatedAt: serverTimestamp(),
+          createdAt: editId ? (lotteryMap[editId]?.createdAt || serverTimestamp()) : serverTimestamp()
+        }, { merge: true });
+
+        alert('✅ 抽獎公告已發佈成功！');
+        resetLotteryForm();
+      } catch (err) {
+        alert('儲存失敗：' + err.message);
+      } finally {
+        saveBtn.disabled = false;
+      }
+    });
+
+    // 監聽歷史列表
+    onSnapshot(collection(db, "lottery_events"), snap => {
+      const tb = document.getElementById('lotteryTable');
+      tb.innerHTML = '';
+      lotteryMap = {};
+
+      let list = [];
+      snap.forEach(d => {
+        const item = { id: d.id, ...d.data() };
+        list.push(item);
+        lotteryMap[d.id] = item;
+      });
+
+      list.sort((a,b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+
+      list.forEach(item => {
+        let dateStr = '-';
+        if (item.createdAt) {
+          const dt = item.createdAt.seconds ? new Date(item.createdAt.seconds * 1000) : new Date(item.createdAt);
+          dateStr = dt.toLocaleDateString('zh-TW');
+        }
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${dateStr}</td>
+          <td><b>${item.title}</b></td>
+          <td>${item.participants?.length || 0} 籤</td>
+          <td>${item.winners?.length || 0} 人</td>
+          <td>
+            <button class="btn-edit" onclick="editLottery('${item.id}')">編輯</button>
+            <button class="btn-danger" onclick="deleteLottery('${item.id}')">刪除</button>
+          </td>
+        `;
+        tb.appendChild(tr);
+      });
+      notifyHeight();
+    });
+
+    window.editLottery = (docId) => {
+      const item = lotteryMap[docId];
+      if (!item) return;
+
+      document.getElementById('editLotteryId').value = docId;
+      document.getElementById('lotteryTitle').value = item.title || '';
+      document.getElementById('lotteryRules').value = (item.rules || []).join('\n');
+      document.getElementById('lotteryPrizes').value = (item.prizes || []).join('\n');
+      document.getElementById('lotteryParticipants').value = (item.participants || []).join(', ');
+
+      winnersContainer.innerHTML = '';
+      if (item.winners && item.winners.length > 0) {
+        item.winners.forEach(w => addWinnerRow(w.name, w.prize, w.isSpecial));
+      }
+
+      document.getElementById('saveLotteryBtn').textContent = '更新此抽獎公告';
+      document.getElementById('cancelLotteryBtn').style.display = 'inline-block';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    window.deleteLottery = async (docId) => {
+      if (confirm('確定要刪除這筆抽獎公告嗎？')) {
+        await deleteDoc(doc(db, "lottery_events", docId));
+      }
+    };
+
+    window.resetLotteryForm = () => {
+      document.getElementById('lotteryForm').reset();
+      document.getElementById('editLotteryId').value = '';
+      winnersContainer.innerHTML = '';
+      document.getElementById('saveLotteryBtn').textContent = '儲存並發佈抽獎公告';
+      document.getElementById('cancelLotteryBtn').style.display = 'none';
+    };
+
+    function notifyHeight() {
+      setTimeout(() => {
+        window.parent.postMessage({ frameHeight: document.body.scrollHeight }, '*');
+      }, 100);
+    }
+  </script>
+</body>
+</html>

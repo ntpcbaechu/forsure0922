@@ -28,156 +28,100 @@
 <body>
 
   <h3 style="margin-top:0; margin-bottom:15px; font-size:18px;">🎉 抽獎結果公告</h3>
+  <div id="lotteryContainer">載入中...</div>
 
-  <!-- 第一場抽獎 -->
-  <div class="lottery-card">
-    <div class="lottery-title">
-      <span>🎁 幸運抽獎（五位得主）</span>
-    </div>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getFirestore, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-    <!-- 規則 -->
-    <div class="section-block">
-      <div class="section-subtitle">📋 抽獎規則與說明</div>
-      <ul class="rules-list">
-        <li>每位參與者僅有一次中獎機會（不重複中獎）。</li>
-        <li>前四位得主採「先抽人，隨即抽獎項」的模式隨機配對。</li>
-        <li>第五位得主獲得專屬「特別獎：下一次飯拍折 $50」。</li>
-        <li>飯拍僅供個人收藏，請勿二次轉載或商業使用。</li>
-      </ul>
-    </div>
+    const firebaseConfig = {
+      apiKey: "AIzaSyDF7QySG1Jj4gdZvXwMRaKjRmI-lFKpj7k",
+      authDomain: "forsure0922.firebaseapp.com",
+      databaseURL: "https://forsure0922-default-rtdb.firebaseio.com",
+      projectId: "forsure0922",
+      storageBucket: "forsure0922.firebasestorage.app",
+      messagingSenderId: "817449290174",
+      appId: "1:817449290174:web:6b4ec1d36c171ff97011ef"
+    };
 
-    <!-- 獎項 -->
-    <div class="section-block">
-      <div class="section-subtitle">🎁 獎項列表</div>
-      <ul class="prizes-list">
-        <li>📷 240721 歌謠大戰 Ending (30P)（共 2 份）</li>
-        <li>✈️ 240731 出境 (20P)（共 1 份）</li>
-        <li>🌙 251015 WKorea 下班 (20P)（共 1 份）</li>
-        <li>💎 特別獎：下一次飯拍折 $50（共 1 份）</li>
-      </ul>
-    </div>
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
 
-    <!-- 參與名單 -->
-    <div class="section-block">
-      <div class="section-subtitle">👥 參與名單 (共 15 位)</div>
-      <div class="members-tag">
-        <span class="member-badge">@江</span>
-        <span class="member-badge">@摳摳</span>
-        <span class="member-badge">@Emily_1230</span>
-        <span class="member-badge">@무무</span>
-        <span class="member-badge">@Hannah</span>
-        <span class="member-badge">@skrothy.z</span>
-        <span class="member-badge">@祐庭</span>
-        <span class="member-badge">@Nicole</span>
-        <span class="member-badge">@Cynthiya</span>
-        <span class="member-badge">@zhen wei</span>
-        <span class="member-badge">@Akari</span>
-        <span class="member-badge">@Lll ◝‿◜</span>
-        <span class="member-badge">@LC</span>
-        <span class="member-badge">@이정이🍀</span>
-        <span class="member-badge">@NN</span>
-      </div>
-    </div>
+    onSnapshot(collection(db, "lottery_events"), snap => {
+      const container = document.getElementById('lotteryContainer');
+      container.innerHTML = '';
 
-    <!-- 中獎結果 -->
-    <div class="winner-box">
-      <div class="winner-title">🎉 抽獎結果揭曉</div>
-      
-      <div class="winner-item">
-        <div>👤 第 1 位幸運兒：<span class="winner-name">@zhen wei</span></div>
-        <div class="winner-prize">➔ 抽中獎項：✈️ 240731 出境 (20P)</div>
-      </div>
+      if (snap.empty) {
+        container.innerHTML = '<p style="color:#909399;">目前無抽獎公告。</p>';
+        notifyHeight();
+        return;
+      }
 
-      <div class="winner-item">
-        <div>👤 第 2 位幸運兒：<span class="winner-name">@Hannah</span></div>
-        <div class="winner-prize">➔ 抽中獎項：📷 240721 歌謠大戰 Ending (30P)</div>
-      </div>
+      let list = [];
+      snap.forEach(d => list.push({ id: d.id, ...d.data() }));
 
-      <div class="winner-item">
-        <div>👤 第 3 位幸運兒：<span class="winner-name">@江</span></div>
-        <div class="winner-prize">➔ 抽中獎項：🌙 251015 WKorea 下班 (20P)</div>
-      </div>
+      list.sort((a,b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
 
-      <div class="winner-item">
-        <div>👤 第 4 位幸運兒：<span class="winner-name">@Lll ◝‿◜</span></div>
-        <div class="winner-prize">➔ 抽中獎項：📷 240721 歌謠大戰 Ending (30P)</div>
-      </div>
+      list.forEach(item => {
+        const rulesHtml = (item.rules || []).map(r => `<li>${r}</li>`).join('');
+        const prizesHtml = (item.prizes || []).map(p => `<li>${p}</li>`).join('');
+        const participantsHtml = (item.participants || []).map(p => `<span class="member-badge">${p}</span>`).join('');
 
-      <div class="winner-item" style="border-top: 1px dashed #a6e289; margin-top: 6px; padding-top: 6px;">
-        <div>👤 第 5 位幸運兒：<span class="winner-name">@Emily_1230</span></div>
-        <div class="winner-special">➔ 獲得特別獎：💎 下一次飯拍折 $50</div>
-      </div>
+        let winnersHtml = '';
+        (item.winners || []).forEach((w, idx) => {
+          const prizeClass = w.isSpecial ? 'winner-special' : 'winner-prize';
+          winnersHtml += `
+            <div class="winner-item">
+              <div>👤 第 ${idx + 1} 位幸運兒：<span class="winner-name">${w.name}</span></div>
+              <div class="${prizeClass}">➔ ${w.isSpecial ? '獲得特別獎：' : '抽中獎項：'}${w.prize}</div>
+            </div>
+          `;
+        });
 
-      <div style="margin-top: 10px; font-weight: bold; color: #67c23a; text-align: center; font-size: 13px;">
-        恭喜以上 5 位中獎者！請私訊領取！
-      </div>
-    </div>
-  </div>
+        const card = document.createElement('div');
+        card.className = 'lottery-card';
+        card.innerHTML = `
+          <div class="lottery-title">
+            <span>${item.title || '抽獎活動'}</span>
+          </div>
 
-  <!-- 第二場抽獎 -->
-  <div class="lottery-card">
-    <div class="lottery-title">
-      <span>🎁 加碼飯拍抽獎</span>
-    </div>
+          ${item.rules?.length ? `
+          <div class="section-block">
+            <div class="section-subtitle">📋 抽獎規則與說明</div>
+            <ul class="rules-list">${rulesHtml}</ul>
+          </div>` : ''}
 
-    <!-- 規則 -->
-    <div class="section-block">
-      <div class="section-subtitle">📋 抽獎規則與說明</div>
-      <ul class="rules-list">
-        <li>每一位參與者僅有一次中獎機會（不重複中獎）。</li>
-        <li>抽出 1 位幸運得主獲得專屬加碼飯拍。</li>
-        <li>飯拍僅供個人收藏，請勿二次轉載或商業使用。</li>
-      </ul>
-    </div>
+          ${item.prizes?.length ? `
+          <div class="section-block">
+            <div class="section-subtitle">🎁 獎項列表</div>
+            <ul class="prizes-list">${prizesHtml}</ul>
+          </div>` : ''}
 
-    <!-- 獎項 -->
-    <div class="section-block">
-      <div class="section-subtitle">🎁 加碼獎項</div>
-      <ul class="prizes-list">
-        <li>📷 0726 D2 I.N Fo（共 1 份）</li>
-      </ul>
-    </div>
+          ${item.participants?.length ? `
+          <div class="section-block">
+            <div class="section-subtitle">👥 參與名單 (共 ${item.participants.length} 籤)</div>
+            <div class="members-tag">${participantsHtml}</div>
+          </div>` : ''}
 
-    <!-- 參與名單 -->
-    <div class="section-block">
-      <div class="section-subtitle">👥 參與名單 (共 11 位)</div>
-      <div class="members-tag">
-        <span class="member-badge">@N.I.</span>
-        <span class="member-badge">@芋頭</span>
-        <span class="member-badge">@康</span>
-        <span class="member-badge">@zhen wei</span>
-        <span class="member-badge">@riko</span>
-        <span class="member-badge">@渡田飲</span>
-        <span class="member-badge">@빵야</span>
-        <span class="member-badge">@Tacet</span>
-        <span class="member-badge">@莎莉💚</span>
-        <span class="member-badge">@NALA</span>
-        <span class="member-badge">@starria</span>
-      </div>
-    </div>
+          <div class="winner-box">
+            <div class="winner-title">🎉 抽獎結果揭曉</div>
+            ${winnersHtml || '<div style="color:#909399; font-size:13px;">尚未公佈中獎結果</div>'}
+            <div style="margin-top: 10px; font-weight: bold; color: #67c23a; text-align: center; font-size: 13px;">
+              恭喜中獎者！請私訊領取！
+            </div>
+          </div>
+        `;
+        container.appendChild(card);
+      });
 
-    <!-- 中獎結果 -->
-    <div class="winner-box">
-      <div class="winner-title">🎉 抽獎結果揭曉</div>
-      
-      <div class="winner-item">
-        <div>👤 幸運兒：<span class="winner-name">@빵야</span></div>
-        <div class="winner-prize">➔ 抽中獎項：📷 0726 D2 I.N Fo</div>
-      </div>
+      notifyHeight();
+    });
 
-      <div style="margin-top: 10px; font-weight: bold; color: #67c23a; text-align: center; font-size: 13px;">
-        恭喜中獎者！請私訊領取！
-      </div>
-    </div>
-  </div>
-
-  <script>
     function notifyHeight() {
       setTimeout(() => {
         window.parent.postMessage({ frameHeight: document.body.scrollHeight }, '*');
       }, 100);
     }
-    window.addEventListener('load', notifyHeight);
   </script>
 </body>
 </html>
