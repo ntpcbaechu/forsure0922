@@ -47,8 +47,8 @@
       <span class="filter-title">🔍 請選擇篩選模式：</span>
       <select id="modeSelect">
         <option value="ALL">全部</option>
-        <option value="event">依活動日期與場次</option>
         <option value="user">依社群暱稱</option>
+        <option value="event">依活動日期與場次</option>
       </select>
     </div>
 
@@ -137,45 +137,6 @@
 
       if (mode === 'ALL') {
         renderCardsGrouped(allOrders);
-      } else if (mode === 'event') {
-        const eventsSet = new Set();
-        allOrders.forEach(o => {
-          const key = (o.event || o.eventName || '未分類活動') + (o.member ? ` - ${o.member}` : '');
-          eventsSet.add(key);
-        });
-
-        const sortedEvents = Array.from(eventsSet).sort((a, b) => {
-          const matchA = a.match(/\d{6}/); const matchB = b.match(/\d{6}/);
-          const dateA = matchA ? parseInt(matchA[0], 10) : 0;
-          const dateB = matchB ? parseInt(matchB[0], 10) : 0;
-          if (dateA !== dateB) return dateA - dateB;
-          return a.localeCompare(b, 'zh-TW');
-        });
-
-        // 預設第一顆「📍 全部」膠囊
-        const allBtn = document.createElement('button');
-        allBtn.className = `capsule-btn ${activeFilterValue === 'ALL' ? 'active' : ''}`;
-        allBtn.textContent = '📍 全部';
-        allBtn.onclick = () => { activeFilterValue = 'ALL'; renderCapsulesAndRecords(); };
-        container.appendChild(allBtn);
-
-        sortedEvents.forEach(evTitle => {
-          const btn = document.createElement('button');
-          btn.className = `capsule-btn ${activeFilterValue === evTitle ? 'active' : ''}`;
-          btn.textContent = `📍 ${evTitle}`;
-          btn.onclick = () => { activeFilterValue = evTitle; renderCapsulesAndRecords(); };
-          container.appendChild(btn);
-        });
-
-        let filteredOrders = allOrders;
-        if (activeFilterValue !== 'ALL') {
-          filteredOrders = allOrders.filter(o => {
-            const key = (o.event || o.eventName || '未分類活動') + (o.member ? ` - ${o.member}` : '');
-            return key === activeFilterValue;
-          });
-        }
-        renderCardsGrouped(filteredOrders);
-
       } else if (mode === 'user') {
         const usersSet = new Set();
         allOrders.forEach(o => {
@@ -185,7 +146,6 @@
 
         const sortedUsers = Array.from(usersSet).sort((a, b) => a.localeCompare(b, 'zh-TW'));
 
-        // 預設第一顆「👤 全部」膠囊
         const allBtn = document.createElement('button');
         allBtn.className = `capsule-btn ${activeFilterValue === 'ALL' ? 'active' : ''}`;
         allBtn.textContent = '👤 全部';
@@ -232,6 +192,43 @@
 
           renderCardsGrouped(userOrders);
         }
+      } else if (mode === 'event') {
+        const eventsSet = new Set();
+        allOrders.forEach(o => {
+          const key = (o.event || o.eventName || '未分類活動') + (o.member ? ` - ${o.member}` : '');
+          eventsSet.add(key);
+        });
+
+        const sortedEvents = Array.from(eventsSet).sort((a, b) => {
+          const matchA = a.match(/\d{6}/); const matchB = b.match(/\d{6}/);
+          const dateA = matchA ? parseInt(matchA[0], 10) : 0;
+          const dateB = matchB ? parseInt(matchB[0], 10) : 0;
+          if (dateA !== dateB) return dateA - dateB;
+          return a.localeCompare(b, 'zh-TW');
+        });
+
+        const allBtn = document.createElement('button');
+        allBtn.className = `capsule-btn ${activeFilterValue === 'ALL' ? 'active' : ''}`;
+        allBtn.textContent = '📍 全部';
+        allBtn.onclick = () => { activeFilterValue = 'ALL'; renderCapsulesAndRecords(); };
+        container.appendChild(allBtn);
+
+        sortedEvents.forEach(evTitle => {
+          const btn = document.createElement('button');
+          btn.className = `capsule-btn ${activeFilterValue === evTitle ? 'active' : ''}`;
+          btn.textContent = `📍 ${evTitle}`;
+          btn.onclick = () => { activeFilterValue = evTitle; renderCapsulesAndRecords(); };
+          container.appendChild(btn);
+        });
+
+        let filteredOrders = allOrders;
+        if (activeFilterValue !== 'ALL') {
+          filteredOrders = allOrders.filter(o => {
+            const key = (o.event || o.eventName || '未分類活動') + (o.member ? ` - ${o.member}` : '');
+            return key === activeFilterValue;
+          });
+        }
+        renderCardsGrouped(filteredOrders);
       }
       notifyHeight();
     }

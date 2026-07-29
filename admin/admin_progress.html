@@ -78,18 +78,23 @@
 
     let rawEventSettings = [];
     let progressMap = {};
+    let memberOrderList = ["方燦", "Lee Know", "彰彬", "鉉辰", "Han", "Felix", "昇玟", "I.N"];
 
-    document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('DOMContentLoaded', async () => {
+      try {
+        const mRes = await fetch('../json/members.json');
+        memberOrderList = await mRes.json();
+      } catch(e){}
+
       const evSel = document.getElementById('eventSelect');
       const memSel = document.getElementById('memberSelect');
       const photoSel = document.getElementById('photographerSelect');
 
-      // 載入 event_settings 並發揮層級連動
+      // 載入 event_settings 並建立三層連動
       onSnapshot(collection(db, "event_settings"), snap => {
         rawEventSettings = [];
         snap.forEach(d => rawEventSettings.push(d.data()));
 
-        // 第一層：不重複活動名稱
         const eventsSet = new Set();
         rawEventSettings.forEach(s => {
           const eName = s.name || s.rawName;
@@ -102,7 +107,7 @@
         });
       });
 
-      // 當活動改變 ➜ 動態更新「成員」下拉選單
+      // 當活動改變 ➜ 動態更新「成員」下拉選單 (按 members.json 順序排序)
       evSel.addEventListener('change', () => {
         const selectedEvent = evSel.value;
         memSel.innerHTML = '<option value="">請選擇成員</option>';
@@ -118,7 +123,15 @@
           }
         });
 
-        Array.from(membersSet).sort().forEach(m => {
+        const sortedMembers = Array.from(membersSet).sort((a, b) => {
+          let idxA = memberOrderList.indexOf(a);
+          let idxB = memberOrderList.indexOf(b);
+          if (idxA === -1) idxA = 99;
+          if (idxB === -1) idxB = 99;
+          return idxA - idxB;
+        });
+
+        sortedMembers.forEach(m => {
           memSel.innerHTML += `<option value="${m}">${m}</option>`;
         });
       });
@@ -145,6 +158,7 @@
       });
     });
 
+    // 實時監聽 progress_list 並預設全量繪製表格
     onSnapshot(collection(db, "progress_list"), snap => {
       const tb = document.getElementById('progressTable');
       tb.innerHTML = '';
