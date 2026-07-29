@@ -6,7 +6,14 @@
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 0; margin: 0; background: transparent; color: #333; }
     
-    .event-group-card { background: #fff; border: 1px solid #e4e7ed; border-radius: 12px; overflow: hidden; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); }
+    /* 外層改為兩欄並排網格佈局（兩個活動一行） */
+    #progressList {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+    }
+
+    .event-group-card { background: #fff; border: 1px solid #e4e7ed; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.02); display: flex; flex-direction: column; }
     
     .event-group-header {
       background: #eef5fe;
@@ -20,34 +27,22 @@
       gap: 6px;
     }
 
-    .progress-grid-box { 
-      padding: 12px; 
-      display: grid; 
-      grid-template-columns: repeat(2, 1fr); 
-      gap: 10px; 
-    }
-
-    .progress-item { 
-      background: #fcfcfc; 
-      border: 1px solid #ebeef5; 
-      border-radius: 8px; 
-      padding: 10px 12px; 
-      display: flex; 
-      justify-content: space-between; 
-      align-items: center; 
-    }
+    /* 內層成員維持一個成員一行 */
+    .progress-list-box { padding: 4px 14px 10px 14px; display: flex; flex-direction: column; }
+    .progress-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 4px; border-bottom: 1px solid #f2f6fc; }
+    .progress-row:last-child { border-bottom: none; }
     
     .member-info { font-size: 13px; color: #606266; display: flex; align-items: center; gap: 8px; }
     .member-name { font-weight: bold; color: #303133; font-size: 14px; }
     .seller-tag { font-size: 11px; color: #909399; background: #f4f4f5; padding: 2px 6px; border-radius: 4px; font-weight: normal; }
 
-    .status-badge { padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: bold; white-space: nowrap; }
+    .status-badge { padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; white-space: nowrap; }
     .status-waiting { background: #f4f4f5; color: #909399; }
     .status-sorting { background: #fdf6ec; color: #e6a23c; }
     .status-done { background: #f0f9eb; color: #67c23a; }
 
-    @media (max-width: 600px) {
-      .progress-grid-box { grid-template-columns: 1fr; }
+    @media (max-width: 768px) {
+      #progressList { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -128,7 +123,7 @@
         });
 
         const memberIndexTracker = {};
-        let itemsHtml = '';
+        let rowsHtml = '';
 
         items.forEach((item) => {
           let badgeClass = 'status-waiting';
@@ -144,8 +139,8 @@
             sellerText = `<span class="seller-tag">代拍${memberIndexTracker[memberName]++}</span>`;
           }
 
-          itemsHtml += `
-            <div class="progress-item">
+          rowsHtml += `
+            <div class="progress-row">
               <div class="member-info">
                 <span class="member-name">👤 ${memberName}</span>
                 ${sellerText}
@@ -158,8 +153,8 @@
         htmlContent += `
           <div class="event-group-card">
             <div class="event-group-header">📅 ${eventName}</div>
-            <div class="progress-grid-box">
-              ${itemsHtml}
+            <div class="progress-list-box">
+              ${rowsHtml}
             </div>
           </div>
         `;
