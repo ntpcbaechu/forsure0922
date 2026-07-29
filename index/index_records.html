@@ -29,12 +29,15 @@
       .cards-list { grid-template-columns: 1fr; }
     }
 
+    /* 調整卡片高度與間距 */
     .order-card { background: #fafafa; border: 1px solid #ebeef5; border-radius: 8px; padding: 12px 14px; font-size: 13px; display: flex; flex-direction: column; justify-content: space-between; }
-    .order-top { display: flex; justify-content: space-between; align-items: flex-start; font-weight: bold; margin-bottom: 6px; }
-    .order-info { display: flex; flex-direction: column; gap: 4px; color: #606266; font-size: 13px; margin-top: 4px; }
+    .order-top { display: flex; justify-content: space-between; align-items: flex-start; font-weight: bold; margin-bottom: 2px; }
     
-    /* 下方左右對齊的金額列 */
-    .order-bottom-row { display: flex; justify-content: space-between; align-items: center; margin-top: 2px; }
+    /* 左側資訊整體上移，緊貼買家暱稱 */
+    .order-info { display: flex; flex-direction: column; gap: 3px; color: #606266; font-size: 13px; margin-top: -2px; }
+    
+    /* 下方左右水平對齊的金額列 (左：每包金額，右：總金額) */
+    .order-bottom-row { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 4px; }
 
     .status-badges-container { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
     
