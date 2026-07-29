@@ -34,13 +34,13 @@
   <form id="lotteryForm" style="margin-bottom:20px;">
     <input type="hidden" id="editLotteryId">
 
-    <!-- 模式選擇與基本資料 -->
+    <!-- 模式選擇與基本資料 (精簡贅字) -->
     <div class="form-section">
       <div style="margin-bottom:10px;">
         <label style="font-size:13px; font-weight:bold; color:#409eff;">📌 選擇連動開團或自訂抽獎：</label>
         <div style="margin-top:6px; display:flex; gap:15px; align-items:center;">
-          <label style="font-size:13px; cursor:pointer;"><input type="radio" name="modeType" value="auto" checked> 選擇開團活動 (自動連動「一般」喊單包數算籤)</label>
-          <label style="font-size:13px; cursor:pointer;"><input type="radio" name="modeType" value="custom"> 完全自訂抽獎 (手動貼上名單)</label>
+          <label style="font-size:13px; cursor:pointer;"><input type="radio" name="modeType" value="auto" checked> 選擇開團活動</label>
+          <label style="font-size:13px; cursor:pointer;"><input type="radio" name="modeType" value="custom"> 完全自訂抽獎</label>
         </div>
       </div>
 
@@ -57,10 +57,10 @@
       <div class="form-row row-2">
         <div>
           <label style="font-size:12px; font-weight:bold;">抽獎活動標題 *</label>
-          <input type="text" id="lotteryTitle" placeholder="例: Emma 9/7 生日快樂" required style="width:100%; margin-top:4px;">
+          <input type="text" id="lotteryTitle" required style="width:100%; margin-top:4px;">
         </div>
         <div>
-          <label style="font-size:12px; font-weight:bold;">抽獎對應成員 (選填，載入自 members.json)</label>
+          <label style="font-size:12px; font-weight:bold;">抽獎對應成員</label>
           <select id="lotteryMember" style="width:100%; margin-top:4px;">
             <option value="">請選擇成員</option>
           </select>
@@ -88,8 +88,7 @@
     <!-- 參與名單 -->
     <div class="form-section">
       <label style="font-size:12px; font-weight:bold;">👥 參與名單與籤數 (用逗號分隔，出現幾次代表幾張籤)</label>
-      <textarea id="lotteryParticipants" class="auto-textarea" style="margin-top:4px;" placeholder="@江, @摳摳, @Hannah, @Hannah"></textarea>
-      <div style="font-size:11px; color:#909399; margin-top:2px;">💡 提示：按「自動抓取名單」後會自動算出「一般」類別喊單包數的重複籤數，也可手動修改。</div>
+      <textarea id="lotteryParticipants" class="auto-textarea" style="margin-top:4px;"></textarea>
     </div>
 
     <!-- 中獎結果設定 -->
@@ -144,7 +143,7 @@
     document.addEventListener('DOMContentLoaded', () => {
       fetch('../json/members.json').then(res => res.json()).then(members => {
         const memSel = document.getElementById('lotteryMember');
-        memSel.innerHTML = '<option value="">請選擇成員 (可不選)</option>';
+        memSel.innerHTML = '<option value="">請選擇成員</option>';
         members.forEach(m => {
           memSel.innerHTML += `<option value="${m}">${m}</option>`;
         });
@@ -170,12 +169,13 @@
 
         const opt = document.createElement('option');
         opt.value = key;
-        opt.textContent = `${data.name} - ${data.member || '全體'} (每包 ${data.packQty || 1} 張)`;
+        // 移除每包張數等贅字
+        opt.textContent = `${data.name} - ${data.member || '全體'}`;
         eventSel.appendChild(opt);
       });
     });
 
-    // 抓取名單算籤數 (限定一般類別)
+    // 抓取名單算籤數
     document.getElementById('importBtn').onclick = async () => {
       const selectedKey = document.getElementById('eventSelect').value;
       if (!selectedKey) return alert('請先選擇活動場次與成員！');
@@ -223,7 +223,6 @@
       }
     };
 
-    // 獎項動態控制
     const prizesContainer = document.getElementById('prizesContainer');
     document.getElementById('addPrizeBtn').onclick = () => addPrizeRow();
 
@@ -231,14 +230,13 @@
       const div = document.createElement('div');
       div.className = 'dynamic-row';
       div.innerHTML = `
-        <input type="text" class="prize-input" placeholder="例: 📷 240721 Ending (30P) (共 2 份)" value="${text}" style="flex:1;">
+        <input type="text" class="prize-input" placeholder="獎項名稱/描述" value="${text}" style="flex:1;">
         <button type="button" class="btn-danger" onclick="this.parentElement.remove()">移除</button>
       `;
       prizesContainer.appendChild(div);
       updatePrizeDropdowns();
     }
 
-    // 中獎者動態控制
     const winnersContainer = document.getElementById('winnersContainer');
     document.getElementById('addWinnerBtn').onclick = () => addWinnerRow();
 
@@ -269,7 +267,7 @@
 
       document.querySelectorAll('.w-prize').forEach(sel => {
         const currentVal = sel.value;
-        sel.innerHTML = '<option value="">選擇獲獎項目 (或直接選擇)</option>';
+        sel.innerHTML = '<option value="">選擇獲獎項目</option>';
         prizeOptions.forEach(p => {
           sel.innerHTML += `<option value="${p}">${p}</option>`;
         });
@@ -277,7 +275,6 @@
       });
     }
 
-    // 儲存公告
     document.getElementById('lotteryForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const saveBtn = document.getElementById('saveLotteryBtn');
