@@ -96,7 +96,7 @@
 
       const eventsSet = new Set();
       rawEventSettings.forEach(s => {
-        const eName = s.name || s.rawName;
+        const eName = s.name || s.eventName || s.rawName;
         if (eName) eventsSet.add(eName.trim());
       });
 
@@ -115,7 +115,7 @@
 
       const membersSet = new Set();
       rawEventSettings.forEach(s => {
-        const eName = s.name || s.rawName;
+        const eName = s.name || s.eventName || s.rawName;
         if (eName === selectedEvent && s.member) {
           membersSet.add(s.member.trim());
         }
@@ -143,7 +143,7 @@
 
       const photoSet = new Set();
       rawEventSettings.forEach(s => {
-        const eName = s.name || s.rawName;
+        const eName = s.name || s.eventName || s.rawName;
         if (eName === selectedEvent && s.member === selectedMember && s.photographer) {
           photoSet.add(s.photographer.trim());
         }
@@ -154,8 +154,8 @@
       });
     });
 
-    // 全域直接監聽 progress_list (確保表格絕對不會停留在載入中)
-    onSnapshot(collection(db, "progress_list"), snap => {
+    // 正確讀取原始資料集合 photo_progress
+    onSnapshot(collection(db, "photo_progress"), snap => {
       const tb = document.getElementById('progressTable');
       tb.innerHTML = '';
       progressMap = {};
@@ -167,12 +167,17 @@
           const item = { id: d.id, ...d.data() };
           progressMap[d.id] = item;
 
+          const eventTitle = item.event || item.eventName || item.rawName || '-';
+          const memberName = item.member || '-';
+          const photographerName = item.photographer || '-';
+          const statusText = item.status || item.progress || '-';
+
           const tr = document.createElement('tr');
           tr.innerHTML = `
-            <td><b>${item.event || '-'}</b></td>
-            <td>${item.member || '-'}</td>
-            <td>${item.photographer || '-'}</td>
-            <td><b>${item.status || '-'}</b></td>
+            <td><b>${eventTitle}</b></td>
+            <td>${memberName}</td>
+            <td>${photographerName}</td>
+            <td><b>${statusText}</b></td>
             <td>
               <button class="btn-edit" onclick="editProgress('${item.id}')">編輯</button>
               <button class="btn-danger" onclick="deleteProgress('${item.id}')">刪除</button>
@@ -198,7 +203,7 @@
       const docId = editId || `prog_${Date.now()}`;
 
       try {
-        await setDoc(doc(db, "progress_list", docId), {
+        await setDoc(doc(db, "photo_progress", docId), {
           event, member, photographer, status,
           updatedAt: new Date()
         }, { merge: true });
@@ -219,7 +224,7 @@
       document.getElementById('editProgressId').value = docId;
       
       const evSel = document.getElementById('eventSelect');
-      evSel.value = item.event || '';
+      evSel.value = item.event || item.eventName || '';
       evSel.dispatchEvent(new Event('change'));
 
       setTimeout(() => {
@@ -232,7 +237,7 @@
         }, 50);
       }, 50);
 
-      document.getElementById('statusSelect').value = item.status || '';
+      document.getElementById('statusSelect').value = item.status || item.progress || '';
 
       document.getElementById('saveProgressBtn').textContent = '更新進度';
       document.getElementById('cancelBtn').style.display = 'inline-block';
@@ -240,7 +245,7 @@
 
     window.deleteProgress = async (docId) => {
       if (confirm('確定要刪除這筆進度紀錄嗎？')) {
-        await deleteDoc(doc(db, "progress_list", docId));
+        await deleteDoc(doc(db, "photo_progress", docId));
       }
     };
 
