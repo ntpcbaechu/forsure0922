@@ -12,7 +12,7 @@
     .section-block { background: #f8f9fa; border-radius: 8px; padding: 12px; margin-bottom: 12px; font-size: 13px; color: #606266; }
     .section-subtitle { font-weight: bold; color: #303133; margin-bottom: 6px; font-size: 14px; }
     
-    .rules-list, .prizes-list { margin: 0; padding-left: 18px; line-height: 1.6; }
+    .prizes-list { margin: 0; padding-left: 18px; line-height: 1.6; }
     .members-tag { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
     .member-badge { background: #eef5fe; color: #409eff; padding: 3px 8px; border-radius: 12px; font-size: 12px; }
 
@@ -63,7 +63,6 @@
       list.sort((a,b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
 
       list.forEach(item => {
-        const rulesHtml = (item.rules || []).map(r => `<li>${r}</li>`).join('');
         const prizesHtml = (item.prizes || []).map(p => `<li>${p}</li>`).join('');
         const participantsHtml = (item.participants || []).map(p => `<span class="member-badge">${p}</span>`).join('');
 
@@ -78,18 +77,14 @@
           `;
         });
 
+        const memTag = item.member ? ` <span style="font-size:13px; color:#409eff; font-weight:normal;">(${item.member})</span>` : '';
+
         const card = document.createElement('div');
         card.className = 'lottery-card';
         card.innerHTML = `
           <div class="lottery-title">
-            <span>${item.title || '抽獎活動'}</span>
+            <span>🎁 ${item.title || '抽獎活動'}${memTag}</span>
           </div>
-
-          ${item.rules?.length ? `
-          <div class="section-block">
-            <div class="section-subtitle">📋 抽獎規則與說明</div>
-            <ul class="rules-list">${rulesHtml}</ul>
-          </div>` : ''}
 
           ${item.prizes?.length ? `
           <div class="section-block">

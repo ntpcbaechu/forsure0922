@@ -17,13 +17,14 @@
     .form-section { background: #f8f9fa; border: 1px solid #ebeef5; border-radius: 8px; padding: 14px; margin-bottom: 12px; }
     .form-row { display: grid; gap: 10px; margin-bottom: 8px; align-items: end; }
     .row-2 { grid-template-columns: 1fr 1fr; }
-    .winner-row { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+    .dynamic-row { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
 
     .auto-textarea { width: 100%; min-height: 60px; resize: none; overflow-y: hidden; line-height: 1.5; }
+    .info-rule-box { background: #ecf5ff; border-left: 4px solid #409eff; padding: 10px; border-radius: 0 6px 6px 0; font-size: 12px; color: #606266; line-height: 1.6; margin-bottom: 10px; }
     
     @media (max-width: 768px) {
       .row-2 { grid-template-columns: 1fr; }
-      .winner-row { flex-wrap: wrap; }
+      .dynamic-row { flex-wrap: wrap; }
     }
   </style>
 </head>
@@ -33,7 +34,7 @@
   <form id="lotteryForm" style="margin-bottom:20px;">
     <input type="hidden" id="editLotteryId">
 
-    <!-- 卡片 1: 匯入模式選擇與標題 -->
+    <!-- 模式選擇與基本資料 -->
     <div class="form-section">
       <div style="margin-bottom:10px;">
         <label style="font-size:13px; font-weight:bold; color:#409eff;">📌 選擇連動開團或自訂抽獎：</label>
@@ -53,34 +54,45 @@
         </div>
       </div>
 
-      <div>
-        <label style="font-size:12px; font-weight:bold;">抽獎活動標題 *</label>
-        <input type="text" id="lotteryTitle" placeholder="例: 🎁 幸運抽獎（五位得主）" required style="width:100%; margin-top:4px;">
-      </div>
-    </div>
-
-    <!-- 卡片 2: 規則與獎項 -->
-    <div class="form-section">
       <div class="form-row row-2">
         <div>
-          <label style="font-size:12px; font-weight:bold;">📋 抽獎規則與說明 (每行一條)</label>
-          <textarea id="lotteryRules" class="auto-textarea" style="margin-top:4px;" placeholder="每位參與者僅有一次中獎機會&#10;前四位得主採隨機配對"></textarea>
+          <label style="font-size:12px; font-weight:bold;">抽獎活動標題 *</label>
+          <input type="text" id="lotteryTitle" placeholder="例: Emma 9/7 生日快樂" required style="width:100%; margin-top:4px;">
         </div>
         <div>
-          <label style="font-size:12px; font-weight:bold;">🎁 獎項列表 (每行一個)</label>
-          <textarea id="lotteryPrizes" class="auto-textarea" style="margin-top:4px;" placeholder="📷 240721 Ending (30P)（共 2 份）&#10;✈️ 240731 出境 (20P)（共 1 份）"></textarea>
+          <label style="font-size:12px; font-weight:bold;">抽獎對應成員 (選填，載入自 members.json)</label>
+          <select id="lotteryMember" style="width:100%; margin-top:4px;">
+            <option value="">請選擇成員</option>
+          </select>
         </div>
       </div>
     </div>
 
-    <!-- 卡片 3: 參與名單 (多籤數以逗號分隔) -->
+    <!-- 內部規則參考 -->
+    <div class="info-rule-box">
+      <b>📋 抽獎固定規則說明 (內部參考，前台不顯示)：</b><br>
+      1. 每位參與者依喊單「一般」包數分配抽獎籤數。<br>
+      2. 採隨機配對模式配對中獎者與獎項。<br>
+      3. 飯拍/影片僅供個人收藏，請勿二次轉載或商業使用。
+    </div>
+
+    <!-- 動態獎項列表 -->
+    <div class="form-section">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+        <label style="font-size:12px; font-weight:bold; color:#409eff;">🎁 獎項列表設定</label>
+        <button type="button" id="addPrizeBtn" style="background:#67c23a; font-size:12px; padding:4px 8px;">+ 新增獎項列</button>
+      </div>
+      <div id="prizesContainer"></div>
+    </div>
+
+    <!-- 參與名單 -->
     <div class="form-section">
       <label style="font-size:12px; font-weight:bold;">👥 參與名單與籤數 (用逗號分隔，出現幾次代表幾張籤)</label>
       <textarea id="lotteryParticipants" class="auto-textarea" style="margin-top:4px;" placeholder="@江, @摳摳, @Hannah, @Hannah"></textarea>
       <div style="font-size:11px; color:#909399; margin-top:2px;">💡 提示：按「自動抓取名單」後會自動算出「一般」類別喊單包數的重複籤數，也可手動修改。</div>
     </div>
 
-    <!-- 卡片 4: 中獎結果設定 -->
+    <!-- 中獎結果設定 -->
     <div class="form-section">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
         <label style="font-size:12px; font-weight:bold; color:#67c23a;">🎉 中獎結果設定</label>
@@ -98,11 +110,12 @@
   <table>
     <thead>
       <tr>
-        <th style="width:20%;">建立時間</th>
-        <th style="width:35%;">抽獎活動標題</th>
-        <th style="width:15%;">參與總籤數</th>
-        <th style="width:15%;">中獎人數</th>
-        <th style="width:15%;">操作</th>
+        <th style="width:18%;">建立時間</th>
+        <th style="width:30%;">抽獎活動標題</th>
+        <th style="width:12%;">成員</th>
+        <th style="width:12%;">參與籤數</th>
+        <th style="width:12%;">中獎人數</th>
+        <th style="width:16%;">操作</th>
       </tr>
     </thead>
     <tbody id="lotteryTable"></tbody>
@@ -128,14 +141,23 @@
     let lotteryMap = {};
     let eventSettingsMap = {};
 
-    // 監聽模式切換
+    document.addEventListener('DOMContentLoaded', () => {
+      fetch('../json/members.json').then(res => res.json()).then(members => {
+        const memSel = document.getElementById('lotteryMember');
+        memSel.innerHTML = '<option value="">請選擇成員 (可不選)</option>';
+        members.forEach(m => {
+          memSel.innerHTML += `<option value="${m}">${m}</option>`;
+        });
+        memSel.innerHTML += '<option value="團體/全體">團體/全體</option>';
+      });
+    });
+
     document.querySelectorAll('input[name="modeType"]').forEach(r => {
       r.addEventListener('change', (e) => {
         document.getElementById('autoSection').style.display = e.target.value === 'auto' ? 'block' : 'none';
       });
     });
 
-    // 載入活動清單
     onSnapshot(collection(db, "event_settings"), snap => {
       const eventSel = document.getElementById('eventSelect');
       eventSel.innerHTML = '<option value="">請選擇活動與成員</option>';
@@ -153,7 +175,7 @@
       });
     });
 
-    // 抓取名單算籤數
+    // 抓取名單算籤數 (限定一般類別)
     document.getElementById('importBtn').onclick = async () => {
       const selectedKey = document.getElementById('eventSelect').value;
       if (!selectedKey) return alert('請先選擇活動場次與成員！');
@@ -172,7 +194,6 @@
         const ordMember = ord.member;
         const ordType = ord.orderType || '一般';
 
-        // 條件：活動+成員相符，且 orderType 必須是「一般」
         if (ordEvent === targetEventName && ordMember === targetMember && ordType === '一般') {
           const userName = ord.buyerName || ord.user || ord.nickname || '未知';
           const qty = Number(ord.qty !== undefined ? ord.qty : ord.quantity) || 0;
@@ -182,7 +203,7 @@
 
       let participantList = [];
       for (const [user, totalQty] of Object.entries(userQtyMap)) {
-        const packs = Math.floor(totalQty / packQty) || 1; // 至少給 1 籤
+        const packs = Math.floor(totalQty / packQty) || 1;
         for (let i = 0; i < packs; i++) {
           participantList.push(user.startsWith('@') ? user : `@${user}`);
         }
@@ -195,29 +216,68 @@
         if (!document.getElementById('lotteryTitle').value) {
           document.getElementById('lotteryTitle').value = `🎁 ${targetEventName} - ${targetMember} 喊單專屬抽獎`;
         }
+        if (targetMember) {
+          document.getElementById('lotteryMember').value = targetMember;
+        }
         alert(`✅ 成功匯入 ${Object.keys(userQtyMap).length} 位成員，共生成 ${participantList.length} 張抽獎籤！`);
       }
     };
 
-    // 獎項列控制
+    // 獎項動態控制
+    const prizesContainer = document.getElementById('prizesContainer');
+    document.getElementById('addPrizeBtn').onclick = () => addPrizeRow();
+
+    function addPrizeRow(text = '') {
+      const div = document.createElement('div');
+      div.className = 'dynamic-row';
+      div.innerHTML = `
+        <input type="text" class="prize-input" placeholder="例: 📷 240721 Ending (30P) (共 2 份)" value="${text}" style="flex:1;">
+        <button type="button" class="btn-danger" onclick="this.parentElement.remove()">移除</button>
+      `;
+      prizesContainer.appendChild(div);
+      updatePrizeDropdowns();
+    }
+
+    // 中獎者動態控制
     const winnersContainer = document.getElementById('winnersContainer');
     document.getElementById('addWinnerBtn').onclick = () => addWinnerRow();
 
     function addWinnerRow(name = '', prize = '', isSpecial = false) {
       const div = document.createElement('div');
-      div.className = 'winner-row';
+      div.className = 'dynamic-row';
       div.innerHTML = `
         <input type="text" class="w-name" placeholder="中獎者暱稱" value="${name}" style="flex:1;">
-        <input type="text" class="w-prize" placeholder="獲得獎項描述" value="${prize}" style="flex:1.5;">
-        <label style="font-size:12px; display:flex; align-items:center; gap:3px;">
-          <input type="checkbox" class="w-special" ${isSpecial ? 'checked' : ''}> 特別獎?
-        </label>
+        <select class="w-prize" style="flex:1.5;">
+          <option value="">選擇獲獎項目</option>
+        </select>
+        <select class="w-type" style="width:90px;">
+          <option value="normal" ${!isSpecial ? 'selected' : ''}>一般獎</option>
+          <option value="special" ${isSpecial ? 'selected' : ''}>特別獎</option>
+        </select>
         <button type="button" class="btn-danger" onclick="this.parentElement.remove()">移除</button>
       `;
       winnersContainer.appendChild(div);
+      updatePrizeDropdowns();
+      if (prize) {
+        div.querySelector('.w-prize').value = prize;
+      }
     }
 
-    // 儲存抽獎公告
+    function updatePrizeDropdowns() {
+      const prizeInputs = document.querySelectorAll('.prize-input');
+      const prizeOptions = Array.from(prizeInputs).map(i => i.value.trim()).filter(Boolean);
+
+      document.querySelectorAll('.w-prize').forEach(sel => {
+        const currentVal = sel.value;
+        sel.innerHTML = '<option value="">選擇獲獎項目 (或直接選擇)</option>';
+        prizeOptions.forEach(p => {
+          sel.innerHTML += `<option value="${p}">${p}</option>`;
+        });
+        if (currentVal) sel.value = currentVal;
+      });
+    }
+
+    // 儲存公告
     document.getElementById('lotteryForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const saveBtn = document.getElementById('saveLotteryBtn');
@@ -225,20 +285,21 @@
 
       try {
         const title = document.getElementById('lotteryTitle').value.trim();
-        const rules = document.getElementById('lotteryRules').value.split('\n').map(s => s.trim()).filter(Boolean);
-        const prizes = document.getElementById('lotteryPrizes').value.split('\n').map(s => s.trim()).filter(Boolean);
+        const member = document.getElementById('lotteryMember').value;
+        const prizes = Array.from(document.querySelectorAll('.prize-input')).map(el => el.value.trim()).filter(Boolean);
         const participants = document.getElementById('lotteryParticipants').value.split(',').map(s => s.trim()).filter(Boolean);
 
         const wNames = document.querySelectorAll('.w-name');
         const wPrizes = document.querySelectorAll('.w-prize');
-        const wSpecials = document.querySelectorAll('.w-special');
+        const wTypes = document.querySelectorAll('.w-type');
 
         let winners = [];
         wNames.forEach((el, i) => {
           const name = el.value.trim();
           const prize = wPrizes[i].value.trim();
+          const isSpecial = wTypes[i].value === 'special';
           if (name) {
-            winners.push({ name, prize, isSpecial: wSpecials[i].checked });
+            winners.push({ name, prize, isSpecial });
           }
         });
 
@@ -246,7 +307,7 @@
         const docId = editId || `lottery_${Date.now()}`;
 
         await setDoc(doc(db, "lottery_events", docId), {
-          title, rules, prizes, participants, winners,
+          title, member, prizes, participants, winners,
           updatedAt: serverTimestamp(),
           createdAt: editId ? (lotteryMap[editId]?.createdAt || serverTimestamp()) : serverTimestamp()
         }, { merge: true });
@@ -260,7 +321,6 @@
       }
     });
 
-    // 監聽歷史列表
     onSnapshot(collection(db, "lottery_events"), snap => {
       const tb = document.getElementById('lotteryTable');
       tb.innerHTML = '';
@@ -286,6 +346,7 @@
         tr.innerHTML = `
           <td>${dateStr}</td>
           <td><b>${item.title}</b></td>
+          <td>${item.member || '-'}</td>
           <td>${item.participants?.length || 0} 籤</td>
           <td>${item.winners?.length || 0} 人</td>
           <td>
@@ -304,9 +365,13 @@
 
       document.getElementById('editLotteryId').value = docId;
       document.getElementById('lotteryTitle').value = item.title || '';
-      document.getElementById('lotteryRules').value = (item.rules || []).join('\n');
-      document.getElementById('lotteryPrizes').value = (item.prizes || []).join('\n');
+      document.getElementById('lotteryMember').value = item.member || '';
       document.getElementById('lotteryParticipants').value = (item.participants || []).join(', ');
+
+      prizesContainer.innerHTML = '';
+      if (item.prizes && item.prizes.length > 0) {
+        item.prizes.forEach(p => addPrizeRow(p));
+      }
 
       winnersContainer.innerHTML = '';
       if (item.winners && item.winners.length > 0) {
@@ -327,6 +392,7 @@
     window.resetLotteryForm = () => {
       document.getElementById('lotteryForm').reset();
       document.getElementById('editLotteryId').value = '';
+      prizesContainer.innerHTML = '';
       winnersContainer.innerHTML = '';
       document.getElementById('saveLotteryBtn').textContent = '儲存並發佈抽獎公告';
       document.getElementById('cancelLotteryBtn').style.display = 'none';
