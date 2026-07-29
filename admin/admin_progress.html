@@ -4,73 +4,64 @@
   <meta charset="UTF-8">
   <title>發圖進度更新</title>
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 0; margin: 0; background: #fff; color: #333; }
-    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-    th, td { padding: 10px; border-bottom: 1px solid #e4e7ed; text-align: left; font-size: 13px; }
-    th { background: #f8f9fa; }
-    input, select, button { padding: 8px 10px; border: 1px solid #dcdfe6; border-radius: 6px; font-size: 14px; margin-bottom: 10px; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 15px; margin: 0; background: #fff; color: #333; }
+    table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+    th, td { padding: 10px 8px; border-bottom: 1px solid #e4e7ed; text-align: left; font-size: 13px; vertical-align: middle; }
+    th { background: #f8f9fa; color: #606266; font-weight: bold; white-space: nowrap; }
+    select, button, input { padding: 8px 10px; border: 1px solid #dcdfe6; border-radius: 6px; font-size: 13px; box-sizing: border-box; }
     button { background-color: #409eff; color: white; border: none; font-weight: bold; cursor: pointer; }
-    .input-group { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
     .btn-danger { background-color: #f56c6c; color: white; padding: 4px 8px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; }
     .btn-edit { background-color: #e6a23c; color: white; padding: 4px 8px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; margin-right: 4px; }
+    .form-row { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 15px; align-items: center; background: #f8f9fa; padding: 12px; border-radius: 8px; }
   </style>
 </head>
 <body>
 
   <h3>發佈與更新發圖進度</h3>
-  <input type="hidden" id="editProgId">
-  <div class="input-group">
-    <select id="progEventSelect" style="min-width: 200px;">
-      <option value="" disabled selected>請選擇活動</option>
-    </select>
+
+  <form id="progressForm" class="form-row">
+    <input type="hidden" id="editProgressId">
     
-    <select id="progMember" style="width: 120px;">
-      <option value="" disabled selected>請選擇成員</option>
-      <option value="方燦">方燦</option>
-      <option value="Lee Know">Lee Know</option>
-      <option value="彰彬">彰彬</option>
-      <option value="鉉辰">鉉辰</option>
-      <option value="Han">Han</option>
-      <option value="Felix">Felix</option>
-      <option value="昇玟">昇玟</option>
-      <option value="I.N">I.N</option>
-      <option value="團體/全體">團體/全體</option>
+    <select id="eventSelect" required style="min-width: 180px;">
+      <option value="">請選擇活動</option>
     </select>
 
-    <select id="progSellerSelect" style="min-width: 130px;">
-      <option value="" disabled selected>請選擇代拍</option>
+    <select id="memberSelect" required style="min-width: 120px;">
+      <option value="">請選擇成員</option>
     </select>
 
-    <select id="progStatus" style="width: 130px;">
-      <option value="" disabled selected>請選擇進度</option>
-      <option value="已預約">📅 已預約</option>
-      <option value="等圖中">⏳ 等圖中</option>
-      <option value="分圖中">📂 分圖中</option>
-      <option value="上傳中">☁️ 上傳中</option>
-      <option value="已發圖">✅ 已發圖</option>
-      <option value="已結束">🏁 已結束</option>
+    <select id="photographerSelect" style="min-width: 140px;">
+      <option value="">請選擇代拍</option>
     </select>
-    
-    <button id="saveProgBtn">發佈進度</button>
-    <button id="cancelProgBtn" style="background:#909399; display:none;" onclick="resetProgForm()">取消編輯</button>
-  </div>
+
+    <select id="statusSelect" required style="min-width: 120px;">
+      <option value="">請選擇進度</option>
+      <option value="等圖中">等圖中</option>
+      <option value="分圖中">分圖中</option>
+      <option value="整理中">整理中</option>
+      <option value="已完工">已完工</option>
+    </select>
+
+    <button type="submit" id="saveProgressBtn">發佈進度</button>
+    <button type="button" id="cancelBtn" style="background:#909399; display:none;" onclick="resetForm()">取消</button>
+  </form>
 
   <table>
     <thead>
       <tr>
-        <th>活動全名</th>
-        <th>成員</th>
-        <th>代拍</th>
-        <th>目前狀態</th>
-        <th>操作</th>
+        <th style="width: 25%;">活動名稱</th>
+        <th style="width: 15%;">成員</th>
+        <th style="width: 20%;">代拍</th>
+        <th style="width: 20%;">目前狀態</th>
+        <th style="width: 20%;">操作</th>
       </tr>
     </thead>
-    <tbody id="progTable"></tbody>
+    <tbody id="progressTable"></tbody>
   </table>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyDF7QySG1Jj4gdZvXwMRaKjRmI-lFKpj7k",
@@ -85,123 +76,124 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    let eventSellerMap = {};
+    let progressMap = {};
 
-    onSnapshot(collection(db, "event_settings"), snap => {
-      const progSelect = document.getElementById('progEventSelect');
-      progSelect.innerHTML = '<option value="" disabled selected>請選擇活動</option>';
-      eventSellerMap = {};
+    document.addEventListener('DOMContentLoaded', async () => {
+      // 載入成員 json
+      const mRes = await fetch('../json/members.json');
+      const members = await mRes.json();
+      const memSel = document.getElementById('memberSelect');
+      memSel.innerHTML = '<option value="">請選擇成員</option>';
+      members.forEach(m => { memSel.innerHTML += `<option value="${m}">${m}</option>`; });
 
-      snap.forEach(d => {
-        const ev = d.data();
-        if (!eventSellerMap[ev.name]) eventSellerMap[ev.name] = [];
-        if (ev.seller && !eventSellerMap[ev.name].includes(ev.seller)) {
-          eventSellerMap[ev.name].push(ev.seller);
-        }
+      // 載入 event_settings (去重過濾)
+      onSnapshot(collection(db, "event_settings"), snap => {
+        const evSel = document.getElementById('eventSelect');
+        const photoSel = document.getElementById('photographerSelect');
+        
+        evSel.innerHTML = '<option value="">請選擇活動</option>';
+        photoSel.innerHTML = '<option value="">請選擇代拍</option>';
 
-        const opt = document.createElement('option');
-        opt.value = ev.name;
-        opt.textContent = ev.name + (ev.isClosed ? ' (已關閉)' : '');
-        progSelect.appendChild(opt);
+        const uniqueEvents = new Set();
+        const uniquePhotographers = new Set();
+
+        snap.forEach(d => {
+          const data = d.data();
+          const eName = data.name || data.rawName;
+          if (eName) uniqueEvents.add(eName.trim());
+          if (data.photographer) uniquePhotographers.add(data.photographer.trim());
+        });
+
+        // 填入去重後的活動名稱
+        Array.from(uniqueEvents).sort().forEach(eName => {
+          evSel.innerHTML += `<option value="${eName}">${eName}</option>`;
+        });
+
+        // 填入去重後的代拍清單
+        Array.from(uniquePhotographers).sort().forEach(pName => {
+          photoSel.innerHTML += `<option value="${pName}">${pName}</option>`;
+        });
       });
     });
 
-    onSnapshot(collection(db, "photo_progress"), snap => {
-      const tb = document.getElementById('progTable');
+    onSnapshot(collection(db, "progress_list"), snap => {
+      const tb = document.getElementById('progressTable');
       tb.innerHTML = '';
+      progressMap = {};
+
       snap.forEach(d => {
-        const item = d.data();
-        const docId = d.id;
-        tb.innerHTML += `
-          <tr>
-            <td><b>${item.eventName}</b></td>
-            <td>${item.member}</td>
-            <td>${item.seller || '無/預設'}</td>
-            <td><b>${item.status || '等圖中'}</b></td>
-            <td>
-              <button class="btn-edit" onclick="editProg('${docId}', '${item.eventName}', '${item.member}', '${item.seller||''}', '${item.status}')">編輯</button>
-              <button class="btn-danger" onclick="deleteProg('${docId}')">刪除</button>
-            </td>
-          </tr>
+        const item = { id: d.id, ...d.data() };
+        progressMap[d.id] = item;
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><b>${item.event || '-'}</b></td>
+          <td>${item.member || '-'}</td>
+          <td>${item.photographer || '-'}</td>
+          <td><b>${item.status || '-'}</b></td>
+          <td>
+            <button class="btn-edit" onclick="editProgress('${item.id}')">編輯</button>
+            <button class="btn-danger" onclick="deleteProgress('${item.id}')">刪除</button>
+          </td>
         `;
+        tb.appendChild(tr);
       });
       notifyHeight();
     });
 
-    document.getElementById('progEventSelect').addEventListener('change', (e) => {
-      const selectedEvent = e.target.value;
-      const sellerSelect = document.getElementById('progSellerSelect');
-      sellerSelect.innerHTML = '<option value="" disabled selected>請選擇代拍</option>';
+    document.getElementById('progressForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const saveBtn = document.getElementById('saveProgressBtn');
+      saveBtn.disabled = true;
 
-      const sellers = eventSellerMap[selectedEvent] || [];
-      sellers.forEach(s => {
-        if (s) {
-          const opt = document.createElement('option');
-          opt.value = s;
-          opt.textContent = s;
-          sellerSelect.appendChild(opt);
-        }
-      });
+      const editId = document.getElementById('editProgressId').value;
+      const event = document.getElementById('eventSelect').value;
+      const member = document.getElementById('memberSelect').value;
+      const photographer = document.getElementById('photographerSelect').value;
+      const status = document.getElementById('statusSelect').value;
+
+      const docId = editId || `prog_${Date.now()}`;
+
+      try {
+        await setDoc(doc(db, "progress_list", docId), {
+          event, member, photographer, status,
+          updatedAt: new Date()
+        }, { merge: true });
+
+        alert('✅ 進度發佈成功！');
+        resetForm();
+      } catch (err) {
+        alert('儲存失敗：' + err.message);
+      } finally {
+        saveBtn.disabled = false;
+      }
     });
 
-    document.getElementById('saveProgBtn').onclick = async () => {
-      const fullEventName = document.getElementById('progEventSelect').value;
-      const member = document.getElementById('progMember').value;
-      const seller = document.getElementById('progSellerSelect').value;
-      const status = document.getElementById('progStatus').value;
-      const editId = document.getElementById('editProgId').value;
+    window.editProgress = (docId) => {
+      const item = progressMap[docId];
+      if (!item) return;
 
-      if (!fullEventName) return alert('請選擇活動！');
-      if (!member) return alert('請選擇成員！');
-      if (!status) return alert('請選擇進度狀態！');
+      document.getElementById('editProgressId').value = docId;
+      document.getElementById('eventSelect').value = item.event || '';
+      document.getElementById('memberSelect').value = item.member || '';
+      document.getElementById('photographerSelect').value = item.photographer || '';
+      document.getElementById('statusSelect').value = item.status || '';
 
-      const targetDocId = editId || `${fullEventName}_${member}_${seller || 'single'}`;
-
-      await setDoc(doc(db, "photo_progress", targetDocId), {
-        eventName: fullEventName, member, seller, status, updatedAt: serverTimestamp(), createdAt: serverTimestamp()
-      }, { merge: true });
-
-      alert(editId ? '進度修改已儲存！' : '發圖進度已新增！');
-      resetProgForm();
+      document.getElementById('saveProgressBtn').textContent = '更新進度';
+      document.getElementById('cancelBtn').style.display = 'inline-block';
     };
 
-    window.resetProgForm = () => {
-      document.getElementById('editProgId').value = '';
-      document.getElementById('progEventSelect').value = '';
-      document.getElementById('progMember').value = '';
-      document.getElementById('progSellerSelect').innerHTML = '<option value="" disabled selected>請選擇代拍</option>';
-      document.getElementById('progStatus').value = '';
-      document.getElementById('saveProgBtn').textContent = '發佈進度';
-      document.getElementById('cancelProgBtn').style.display = 'none';
-    };
-
-    window.editProg = (docId, eventName, member, seller, status) => {
-      document.getElementById('editProgId').value = docId;
-      document.getElementById('progEventSelect').value = eventName;
-      
-      const sellerSelect = document.getElementById('progSellerSelect');
-      sellerSelect.innerHTML = '<option value="" disabled>請選擇代拍</option>';
-      const sellers = eventSellerMap[eventName] || [];
-      sellers.forEach(s => {
-        if (s) {
-          const opt = document.createElement('option');
-          opt.value = s;
-          opt.textContent = s;
-          sellerSelect.appendChild(opt);
-        }
-      });
-
-      document.getElementById('progMember').value = member;
-      document.getElementById('progSellerSelect').value = seller || '';
-      document.getElementById('progStatus').value = status || '';
-      document.getElementById('saveProgBtn').textContent = '儲存修改';
-      document.getElementById('cancelProgBtn').style.display = 'inline-block';
-    };
-
-    window.deleteProg = async (docId) => {
-      if (confirm('確定要刪除這筆發圖進度嗎？')) {
-        await deleteDoc(doc(db, "photo_progress", docId));
+    window.deleteProgress = async (docId) => {
+      if (confirm('確定要刪除這筆進度紀錄嗎？')) {
+        await deleteDoc(doc(db, "progress_list", docId));
       }
+    };
+
+    window.resetForm = () => {
+      document.getElementById('progressForm').reset();
+      document.getElementById('editProgressId').value = '';
+      document.getElementById('saveProgressBtn').textContent = '發佈進度';
+      document.getElementById('cancelBtn').style.display = 'none';
     };
 
     function notifyHeight() {
@@ -210,6 +202,5 @@
       }, 100);
     }
   </script>
-
 </body>
 </html>
