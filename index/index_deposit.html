@@ -13,30 +13,30 @@
     select { flex: 1; min-width: 200px; padding: 10px 12px; border: 1px solid #dcdfe6; border-radius: 8px; font-size: 14px; background: #fff; outline: none; }
     select:focus { border-color: #409eff; }
 
-    .summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
+    .user-block { background: #fff; border: 1px solid #e4e7ed; border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+    .user-header { font-size: 16px; font-weight: bold; color: #303133; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #ebeef5; display: flex; justify-content: space-between; align-items: center; }
+
+    .summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px; }
     @media (max-width: 600px) { .summary-grid { grid-template-columns: 1fr; } }
 
-    .stat-box { background: #fff; border: 1px solid #ebeef5; border-radius: 10px; padding: 14px; text-align: center; box-shadow: 0 2px 6px rgba(0,0,0,0.02); }
+    .stat-box { background: #fafafa; border: 1px solid #ebeef5; border-radius: 8px; padding: 10px; text-align: center; }
     .stat-box.highlight { background: #f0f9eb; border-color: #e1f3d8; }
-    .stat-label { font-size: 12px; color: #909399; font-weight: bold; margin-bottom: 6px; }
-    .stat-val { font-size: 20px; font-weight: bold; color: #303133; }
-    .stat-val.green { color: #67c23a; font-size: 24px; }
+    .stat-label { font-size: 11px; color: #909399; font-weight: bold; margin-bottom: 4px; }
+    .stat-val { font-size: 18px; font-weight: bold; color: #303133; }
+    .stat-val.green { color: #67c23a; }
     .stat-val.blue { color: #409eff; }
     .stat-val.orange { color: #e6a23c; }
 
-    .history-card { background: #fff; border: 1px solid #e4e7ed; border-radius: 12px; padding: 16px; }
-    .history-title { font-size: 15px; font-weight: bold; color: #303133; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px dashed #dcdfe6; display: flex; justify-content: space-between; align-items: center; }
+    .history-list { display: flex; flex-direction: column; gap: 6px; }
+    .history-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: #fdfdfd; border: 1px solid #ebeef5; border-radius: 6px; font-size: 12px; }
+    .history-item.deposit { border-left: 3px solid #67c23a; }
+    .history-item.usage { border-left: 3px solid #f56c6c; }
 
-    .history-list { display: flex; flex-direction: column; gap: 8px; }
-    .history-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; background: #fafafa; border: 1px solid #ebeef5; border-radius: 8px; font-size: 13px; }
-    .history-item.deposit { border-left: 4px solid #67c23a; }
-    .history-item.usage { border-left: 4px solid #f56c6c; }
-
-    .item-left { display: flex; flex-direction: column; gap: 3px; }
-    .item-note { font-weight: bold; color: #303133; font-size: 14px; }
+    .item-left { display: flex; flex-direction: column; gap: 2px; }
+    .item-note { font-weight: bold; color: #303133; }
     .item-date { font-size: 11px; color: #909399; }
     
-    .item-amt { font-size: 15px; font-weight: bold; }
+    .item-amt { font-size: 14px; font-weight: bold; }
     .amt-plus { color: #67c23a; }
     .amt-minus { color: #f56c6c; }
 
@@ -49,41 +49,14 @@
 
   <div class="search-card">
     <div class="search-row">
-      <span class="search-title">👤 請選擇您的社群名稱：</span>
+      <span class="search-title">👤 快速篩選社群名稱：</span>
       <select id="userSelect">
-        <option value="">載入買家名單中...</option>
+        <option value="ALL">顯示全部有儲值紀錄的買家</option>
       </select>
     </div>
   </div>
 
-  <div id="contentArea" style="display:none;">
-    <div class="summary-grid">
-      <div class="stat-box highlight">
-        <div class="stat-label">🟢 目前可用儲值金餘額</div>
-        <div class="stat-val green" id="availableDeposit">$0</div>
-      </div>
-      <div class="stat-box">
-        <div class="stat-label">📥 累積儲值金額</div>
-        <div class="stat-val blue" id="totalDeposit">$0</div>
-      </div>
-      <div class="stat-box">
-        <div class="stat-label">📤 累積已扣款/使用</div>
-        <div class="stat-val orange" id="totalUsed">$0</div>
-      </div>
-    </div>
-
-    <div class="history-card">
-      <div class="history-title">
-        <span>📜 儲值金異動紀錄</span>
-        <span style="font-size:12px; font-weight:normal; color:#909399;" id="recordCount">共 0 筆</span>
-      </div>
-      <div id="historyList" class="history-list"></div>
-    </div>
-  </div>
-
-  <div id="emptyArea" class="search-card empty-tip">
-    請在上方選擇您的社群暱稱以查詢儲值金餘額 🔍
-  </div>
+  <div id="recordsContainer">載入中...</div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -103,108 +76,105 @@
     const db = getFirestore(app);
 
     let allDeposits = [];
-    let activeUser = '';
+    let selectedUserFilter = 'ALL';
 
-    document.addEventListener('DOMContentLoaded', async () => {
-      let defaultUsers = [];
-      try {
-        const res = await fetch('../json/users.json');
-        defaultUsers = await res.json();
-      } catch (e) {}
-
+    document.addEventListener('DOMContentLoaded', () => {
       onSnapshot(collection(db, "user_deposits"), snap => {
         allDeposits = [];
-        const depositUsers = new Set(defaultUsers);
+        const activeUsersSet = new Set();
 
         snap.forEach(d => {
           const data = { id: d.id, ...d.data() };
           allDeposits.push(data);
           const uName = data.user || data.buyerName || data.name;
-          if (uName) depositUsers.add(uName);
+          if (uName) activeUsersSet.add(uName);
         });
 
-        updateUserDropdown(Array.from(depositUsers));
-        if (activeUser) renderUserDeposit(activeUser);
+        updateUserDropdown(Array.from(activeUsersSet));
+        renderAllUserDeposits();
       });
 
       document.getElementById('userSelect').addEventListener('change', (e) => {
-        activeUser = e.target.value;
-        renderUserDeposit(activeUser);
+        selectedUserFilter = e.target.value;
+        renderAllUserDeposits();
       });
     });
 
     function updateUserDropdown(usersList) {
       const sel = document.getElementById('userSelect');
       const cur = sel.value;
-      sel.innerHTML = '<option value="">請選擇您的社群名稱</option>';
+      sel.innerHTML = '<option value="ALL">顯示全部有儲值紀錄的買家</option>';
 
       usersList.sort((a, b) => a.localeCompare(b, 'zh-TW')).forEach(u => {
         sel.innerHTML += `<option value="${u}">${u}</option>`;
       });
 
-      if (cur && usersList.includes(cur)) sel.value = cur;
+      if (cur && (cur === 'ALL' || usersList.includes(cur))) sel.value = cur;
     }
 
-    function renderUserDeposit(userName) {
-      const contentArea = document.getElementById('contentArea');
-      const emptyArea = document.getElementById('emptyArea');
+    function renderAllUserDeposits() {
+      const container = document.getElementById('recordsContainer');
+      container.innerHTML = '';
 
-      if (!userName) {
-        contentArea.style.display = 'none';
-        emptyArea.style.display = 'block';
+      if (allDeposits.length === 0) {
+        container.innerHTML = '<div class="search-card empty-tip">目前尚無任何預存儲值金紀錄</div>';
         notifyHeight();
         return;
       }
 
-      emptyArea.style.display = 'none';
-      contentArea.style.display = 'block';
-
-      const userRecords = allDeposits.filter(c => (c.user === userName || c.buyerName === userName || c.name === userName));
-      
-      let totalDep = 0;
-      let totalU = 0;
-      let historyItems = [];
-
-      userRecords.forEach(c => {
-        const amt = Number(c.amount) || Number(c.credit) || 0;
-        const isDeposit = (c.type !== 'usage');
-
-        if (isDeposit) totalDep += amt;
-        else totalU += amt;
-
-        let dateStr = c.date || c.createdAt || '-';
-        if (typeof dateStr === 'object' && dateStr.seconds) {
-          dateStr = new Date(dateStr.seconds * 1000).toISOString().slice(0,10);
-        } else if (typeof dateStr === 'string' && dateStr.length > 10) {
-          dateStr = dateStr.slice(0, 10);
-        }
-
-        historyItems.push({
-          type: isDeposit ? 'deposit' : 'usage',
-          title: c.note || (isDeposit ? '現金儲值入帳' : '扣款/消費折抵'),
-          date: dateStr,
-          amount: amt
-        });
+      // 依使用者分組
+      const groups = {};
+      allDeposits.forEach(d => {
+        const uName = d.user || d.buyerName || d.name || '未知買家';
+        if (selectedUserFilter !== 'ALL' && uName !== selectedUserFilter) return;
+        
+        if (!groups[uName]) groups[uName] = [];
+        groups[uName].push(d);
       });
 
-      const available = totalDep - totalU;
+      const sortedUsers = Object.keys(groups).sort((a, b) => a.localeCompare(b, 'zh-TW'));
 
-      document.getElementById('availableDeposit').textContent = `$${available.toLocaleString()}`;
-      document.getElementById('totalDeposit').textContent = `$${totalDep.toLocaleString()}`;
-      document.getElementById('totalUsed').textContent = `$${totalU.toLocaleString()}`;
+      if (sortedUsers.length === 0) {
+        container.innerHTML = '<div class="search-card empty-tip">查無該買家的儲值紀錄</div>';
+        notifyHeight();
+        return;
+      }
 
-      historyItems.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      sortedUsers.forEach(uName => {
+        const records = groups[uName];
+        let totalDep = 0;
+        let totalU = 0;
+        let historyItems = [];
 
-      const listContainer = document.getElementById('historyList');
-      document.getElementById('recordCount').textContent = `共 ${historyItems.length} 筆紀錄`;
-      listContainer.innerHTML = '';
+        records.forEach(c => {
+          const amt = Number(c.amount) || Number(c.credit) || 0;
+          const isDeposit = (c.type !== 'usage');
 
-      if (historyItems.length === 0) {
-        listContainer.innerHTML = '<div class="empty-tip">目前尚無儲值金紀錄</div>';
-      } else {
+          if (isDeposit) totalDep += amt;
+          else totalU += amt;
+
+          let dateStr = c.payDate || c.date || c.createdAt || '-';
+          if (typeof dateStr === 'object' && dateStr.seconds) {
+            dateStr = new Date(dateStr.seconds * 1000).toISOString().slice(0,10);
+          } else if (typeof dateStr === 'string' && dateStr.length > 10) {
+            dateStr = dateStr.slice(0, 10);
+          }
+
+          historyItems.push({
+            type: isDeposit ? 'deposit' : 'usage',
+            title: c.note || (isDeposit ? '預存儲值入帳' : '扣款/消費折抵'),
+            date: dateStr,
+            amount: amt
+          });
+        });
+
+        const available = totalDep - totalU;
+        historyItems.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+        let historyHtml = '';
         historyItems.forEach(item => {
           const isDep = item.type === 'deposit';
-          listContainer.innerHTML += `
+          historyHtml += `
             <div class="history-item ${isDep ? 'deposit' : 'usage'}">
               <div class="item-left">
                 <span class="item-note">${isDep ? '➕' : '➖'} ${item.title}</span>
@@ -216,7 +186,33 @@
             </div>
           `;
         });
-      }
+
+        container.innerHTML += `
+          <div class="user-block">
+            <div class="user-header">
+              <span>👤 ${uName}</span>
+              <span style="font-size:12px; font-weight:normal; color:#909399;">共 ${historyItems.length} 筆紀錄</span>
+            </div>
+            
+            <div class="summary-grid">
+              <div class="stat-box highlight">
+                <div class="stat-label">🟢 目前可用餘額</div>
+                <div class="stat-val green">$${available.toLocaleString()}</div>
+              </div>
+              <div class="stat-box">
+                <div class="stat-label">📥 累積儲值</div>
+                <div class="stat-val blue">$${totalDep.toLocaleString()}</div>
+              </div>
+              <div class="stat-box">
+                <div class="stat-label">📤 累積已扣款</div>
+                <div class="stat-val orange">$${totalU.toLocaleString()}</div>
+              </div>
+            </div>
+
+            <div class="history-list">${historyHtml}</div>
+          </div>
+        `;
+      });
 
       notifyHeight();
     }

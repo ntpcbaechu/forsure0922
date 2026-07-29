@@ -19,7 +19,7 @@
     .order-item { display: flex; align-items: center; justify-content: space-between; font-size: 13px; padding: 6px 0; border-bottom: 1px dashed #ebeef5; }
     .order-item:last-child { border-bottom: none; }
     .order-left { display: flex; align-items: center; gap: 8px; }
-    .order-chk, .credit-chk { width: 16px; height: 16px; margin: 0; cursor: pointer; }
+    .order-chk, .credit-chk, .deposit-chk { width: 16px; height: 16px; margin: 0; cursor: pointer; }
     
     .price-box { display: flex; align-items: center; gap: 6px; font-weight: bold; }
     .price-original-strike { text-decoration: line-through; color: #909399; font-size: 12px; }
@@ -76,7 +76,17 @@
           </div>
         </div>
 
+        <!-- 1. 折抵預存儲值金 -->
         <div class="info-row" style="margin-top:12px; padding-top:8px; border-top: 1px dashed #dcdfe6;">
+          <label style="font-weight:normal; font-size:13px; margin:0; cursor:pointer; display:flex; align-items:center; gap:6px;">
+            <input type="checkbox" id="useDepositChk" class="deposit-chk">
+            <span>勾選折抵預存儲值金 (餘額: <b style="color:#409eff;" id="depositBalance">$0</b>)</span>
+          </label>
+          <b style="color:#909399;" id="depositDeduct">-</b>
+        </div>
+
+        <!-- 2. 折抵可用抵用金 -->
+        <div class="info-row" style="margin-top:6px; padding-top:6px; border-top: 1px dashed #ebeef5;">
           <label style="font-weight:normal; font-size:13px; margin:0; cursor:pointer; display:flex; align-items:center; gap:6px;">
             <input type="checkbox" id="useCreditChk" class="credit-chk">
             <span>勾選折抵可用抵用金 (餘額: <b style="color:#67c23a;" id="creditBalance">$0</b>)</span>
@@ -170,11 +180,14 @@
     }
 
     let allCredits = [];
+    let allDeposits = [];
     let allOrders = [];
     let customAddedItems = [];
     let photoProgressMap = {};
     let eventSettingsMap = {};
+
     let currentAvailableCredit = 0;
+    let currentAvailableDeposit = 0;
     let currentCalculatedFinalTotal = 0;
 
     document.getElementById('paymentForm').addEventListener('keydown', (e) => {
@@ -226,6 +239,13 @@
         updateBuyerDropdownAndDetails();
       });
 
+      // 監聽 user_deposits (預存儲值金)
+      onSnapshot(collection(db, "user_deposits"), snap => {
+        allDeposits = [];
+        snap.forEach(d => allDeposits.push({ id: d.id, ...d.data() }));
+        updateBuyerDropdownAndDetails();
+      });
+
       onSnapshot(collection(db, "orders"), snap => {
         allOrders = [];
         snap.forEach(d => allOrders.push({ id: d.id, ...d.data() }));
@@ -236,6 +256,8 @@
         customAddedItems = [];
         renderBuyerDetails();
       });
+      
+      document.getElementById('useDepositChk').addEventListener('change', calcSelectedTotal);
       document.getElementById('useCreditChk').addEventListener('change', calcSelectedTotal);
 
       document.getElementById('toggleCustomBtn').addEventListener('click', () => {
@@ -330,15 +352,20 @@
 
       formContent.style.display = 'block';
 
+      // 計算抵用金餘額
       const userCredits = allCredits.filter(c => (c.user === selectedBuyer || c.buyerName === selectedBuyer || c.name === selectedBuyer));
-      currentAvailableCredit = userCredits.reduce((sum, c) => {
-        const amt = Number(c.credit) || Number(c.amount) || 0;
-        const used = Number(c.used) || 0;
-        return sum + (amt - used);
-      }, 0);
-      
+      currentAvailableCredit = userCredits.reduce((sum, c) => sum + ((Number(c.credit) || Number(c.amount) || 0) - (Number(c.used) || 0)), 0);
       document.getElementById('creditBalance').textContent = `$${currentAvailableCredit}`;
       document.getElementById('useCreditChk').checked = false;
+
+      // 計算預存儲值金餘額
+      const userDeposits = allDeposits.filter(d => (d.user === selectedBuyer || d.buyerName === selectedBuyer || d.name === selectedBuyer));
+      currentAvailableDeposit = userDeposits.reduce((sum, d) => {
+        const amt = Number(d.amount) || 0;
+        return (d.type !== 'usage') ? (sum + amt) : (sum - amt);
+      }, 0);
+      document.getElementById('depositBalance').textContent = `$${currentAvailableDeposit}`;
+      document.getElementById('useDepositChk').checked = false;
 
       const userOrders = allOrders.filter(o => {
         const nameMatch = (o.user === selectedBuyer || o.buyerName === selectedBuyer || o.name === selectedBuyer || o.buyer === selectedBuyer);
@@ -398,7 +425,6 @@
             baseUnitPrice = Number(ord.price) || Number(ord.unitPrice) || 0;
           }
 
-          // 連動計算專屬折扣金額
           let calculatedFinalPrice = packsCount * baseUnitPrice;
           const discounts = setting.discounts || [];
           if (Array.isArray(discounts)) {
@@ -459,24 +485,44 @@
         orderSubtotal += Number(chk.getAttribute('data-price')) || 0;
       });
 
-      const useCredit = document.getElementById('useCreditChk').checked;
-      let creditDeduction = 0;
+      let remainingToPay = orderSubtotal;
 
-      if (useCredit && currentAvailableCredit > 0) {
-        creditDeduction = Math.min(orderSubtotal, currentAvailableCredit);
+      // 1. 先計算預存儲值金折抵
+      const useDeposit = document.getElementById('useDepositChk').checked;
+      let depositDeduction = 0;
+      if (useDeposit && currentAvailableDeposit > 0) {
+        depositDeduction = Math.min(remainingToPay, currentAvailableDeposit);
+        remainingToPay -= depositDeduction;
       }
 
-      currentCalculatedFinalTotal = Math.max(0, orderSubtotal - creditDeduction);
+      // 2. 再計算可用抵用金折抵
+      const useCredit = document.getElementById('useCreditChk').checked;
+      let creditDeduction = 0;
+      if (useCredit && currentAvailableCredit > 0) {
+        creditDeduction = Math.min(remainingToPay, currentAvailableCredit);
+        remainingToPay -= creditDeduction;
+      }
+
+      currentCalculatedFinalTotal = Math.max(0, remainingToPay);
 
       document.getElementById('pendingTotal').textContent = `$${orderSubtotal.toFixed(1).replace(/\.0$/, '')}`;
       
-      const deductElem = document.getElementById('creditDeduct');
-      if (creditDeduction > 0) {
-        deductElem.textContent = `-$${creditDeduction.toFixed(1).replace(/\.0$/, '')}`;
-        deductElem.style.color = '#f56c6c';
+      const depositDeductElem = document.getElementById('depositDeduct');
+      if (depositDeduction > 0) {
+        depositDeductElem.textContent = `-$${depositDeduction.toFixed(1).replace(/\.0$/, '')}`;
+        depositDeductElem.style.color = '#409eff';
       } else {
-        deductElem.textContent = '-';
-        deductElem.style.color = '#909399';
+        depositDeductElem.textContent = '-';
+        depositDeductElem.style.color = '#909399';
+      }
+
+      const creditDeductElem = document.getElementById('creditDeduct');
+      if (creditDeduction > 0) {
+        creditDeductElem.textContent = `-$${creditDeduction.toFixed(1).replace(/\.0$/, '')}`;
+        creditDeductElem.style.color = '#67c23a';
+      } else {
+        creditDeductElem.textContent = '-';
+        creditDeductElem.style.color = '#909399';
       }
 
       document.getElementById('finalPayTotal').textContent = `$${currentCalculatedFinalTotal.toFixed(1).replace(/\.0$/, '')}`;
@@ -537,6 +583,9 @@
         const createdCustomIds = await Promise.all(customCreatePromises);
         const finalAllRelatedOrderIds = [...selectedOrderIds, ...createdCustomIds];
 
+        const useDepositChecked = document.getElementById('useDepositChk').checked;
+        const useCreditChecked = document.getElementById('useCreditChk').checked;
+
         const data = {
           buyerName: buyerNameVal,
           user: buyerNameVal,
@@ -549,7 +598,8 @@
           last5: document.getElementById('last5').value.trim(),
           bankLast5: document.getElementById('last5').value.trim(),
           note: document.getElementById('note').value.trim(),
-          useCredit: document.getElementById('useCreditChk').checked,
+          useDeposit: useDepositChecked,
+          useCredit: useCreditChecked,
           relatedOrderIds: finalAllRelatedOrderIds,
           createdAt: new Date().toISOString(),
           status: '待對帳'

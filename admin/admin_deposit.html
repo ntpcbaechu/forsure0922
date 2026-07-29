@@ -7,17 +7,7 @@
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 15px; margin: 0; background: #fff; color: #333; }
     h3 { margin-top: 0; margin-bottom: 15px; font-size: 18px; }
 
-    /* 統一卡片表單樣式 */
-    .unified-form-box {
-      background: #f8f9fa;
-      border: 1px solid #e4e7ed;
-      border-radius: 10px;
-      padding: 14px 16px;
-      margin-bottom: 20px;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
+    .unified-form-box { background: #f8f9fa; border: 1px solid #e4e7ed; border-radius: 10px; padding: 14px 16px; margin-bottom: 20px; display: flex; flex-direction: column; gap: 12px; }
     .form-row { display: grid; gap: 10px; align-items: end; grid-template-columns: 1.2fr 1fr 1fr 1fr 1fr 1.5fr auto; }
     @media (max-width: 900px) { .form-row { grid-template-columns: 1fr 1fr; } }
     @media (max-width: 600px) { .form-row { grid-template-columns: 1fr; } }
@@ -30,7 +20,6 @@
     .btn-edit { background-color: #e6a23c; color: white; padding: 4px 8px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; }
     .btn-danger { background-color: #f56c6c; color: white; padding: 4px 8px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; }
 
-    /* 簡化版膠囊按鈕列 */
     .capsule-bar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 15px; background: #f8f9fa; padding: 10px; border-radius: 8px; border: 1px solid #ebeef5; }
     .capsule-btn { background: #ecf5ff; color: #409eff; border: 1px solid #d9ecff; padding: 5px 12px; border-radius: 16px; font-size: 12px; font-weight: bold; cursor: pointer; transition: all 0.2s; }
     .capsule-btn:hover, .capsule-btn.active { background: #409eff; color: #fff; border-color: #409eff; }
@@ -46,7 +35,6 @@
     th, td { padding: 10px 8px; border-bottom: 1px solid #e4e7ed; text-align: left; font-size: 13px; vertical-align: top; }
     th { background: #f8f9fa; color: #606266; font-weight: bold; white-space: nowrap; }
 
-    /* 銀行實際對帳紀錄卡片 (參照 admin_payments) */
     .bank-check-card { margin-top: 6px; background: #fdfdfd; border: 1px solid #e4e7ed; border-radius: 6px; padding: 8px 10px; }
     .bank-input-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; background: #fff; border: 1px solid #ebeef5; padding: 4px 6px; border-radius: 4px; margin-bottom: 4px; }
     .btn-add-bank { background: #ecf5ff; color: #409eff; border: 1px solid #b3d8ff; padding: 2px 6px; border-radius: 4px; font-size: 11px; cursor: pointer; font-weight: bold; margin-top: 4px; }
@@ -60,7 +48,6 @@
 
   <h3>買家預存儲值金與對帳管理 (Deposits)</h3>
 
-  <!-- 儲值對帳表單 -->
   <form id="depositForm" class="unified-form-box">
     <input type="hidden" id="editDepositId">
     
@@ -78,6 +65,7 @@
       <div>
         <label>匯款銀行 *</label>
         <select id="bankSelect" required>
+          <option value="">請選擇銀行</option>
           <option value="台銀">台銀</option>
           <option value="樂天">樂天</option>
           <option value="中信">中信</option>
@@ -107,7 +95,6 @@
     </div>
   </form>
 
-  <!-- 數據統計 -->
   <div class="summary-card">
     <div class="summary-grid">
       <div class="stat-col">
@@ -125,12 +112,10 @@
     </div>
   </div>
 
-  <!-- 簡化後的膠囊過濾列 (只顯示有紀錄的買家) -->
   <div class="capsule-bar" id="buyerCapsules">
     <button class="capsule-btn active" onclick="filterByUser('ALL', this)">👤 顯示全部買家</button>
   </div>
 
-  <!-- 表格 -->
   <table>
     <thead>
       <tr>
@@ -169,7 +154,6 @@
     let activeFilterUser = 'ALL';
 
     document.addEventListener('DOMContentLoaded', async () => {
-      // 預設今日日期
       document.getElementById('payDate').value = new Date().toISOString().slice(0,10);
 
       try {
@@ -206,7 +190,6 @@
       });
       if (curVal && sortedUsers.includes(curVal)) userSel.value = curVal;
 
-      // 關鍵改善：膠囊只顯示【有儲值紀錄的買家】！
       const activeDepositUsers = new Set();
       Object.values(depositsMap).forEach(d => {
         const u = d.user || d.buyerName;
@@ -268,10 +251,11 @@
         const uName = item.user || item.buyerName || '-';
         const expectedAmt = Number(item.amount) || 0;
         const expectedLast5 = item.last5 || '-';
-        const buyerBank = item.bank || '台銀';
+        const buyerBank = item.bank || '-';
         const payDate = item.payDate || (item.createdAt ? item.createdAt.slice(0,10) : '-');
 
-        let inputs = item.bankInputs || [{ amt: '', last5: '', bank: buyerBank, date: new Date().toISOString().slice(0,10) }];
+        // 預設銀行下拉選單不預設台銀 -> 顯示「請選擇銀行」
+        let inputs = item.bankInputs || [{ amt: '', last5: '', bank: '', date: new Date().toISOString().slice(0,10) }];
 
         let totalInputAmt = 0;
         let hasAnyInput = false;
@@ -295,7 +279,7 @@
 
         let bankInputsHtml = '<div class="bank-check-card"><div style="font-weight:bold; font-size:11px; color:#409eff; margin-bottom:4px;">🏦 銀行實際對帳比對：</div>';
         inputs.forEach((inp, idx) => {
-          let opts = BANK_OPTIONS.map(b => `<option value="${b}" ${inp.bank === b ? 'selected' : ''}>${b}</option>`).join('');
+          let opts = '<option value="">請選擇銀行</option>' + BANK_OPTIONS.map(b => `<option value="${b}" ${inp.bank === b ? 'selected' : ''}>${b}</option>`).join('');
           bankInputsHtml += `<div class="bank-input-row">
             <span style="font-weight:bold; color:#909399; font-size:11px;">#${idx+1}</span>
             金額: <input type="number" style="width:65px; padding:2px 4px;" value="${inp.amt}" onchange="updateBankInput('${docId}', ${idx}, 'amt', this.value === '' ? '' : parseFloat(this.value))">
@@ -340,7 +324,7 @@
     window.updateBankInput = async (docId, idx, key, val) => {
       const item = depositsMap[docId];
       if (!item) return;
-      let inputs = item.bankInputs || [{ amt: '', last5: '', bank: item.bank || '台銀', date: new Date().toISOString().slice(0,10) }];
+      let inputs = item.bankInputs || [{ amt: '', last5: '', bank: '', date: new Date().toISOString().slice(0,10) }];
       inputs[idx][key] = val;
       try {
         await updateDoc(doc(db, "user_deposits", docId), { bankInputs: inputs });
@@ -350,8 +334,8 @@
     window.addBankInput = async (docId) => {
       const item = depositsMap[docId];
       if (!item) return;
-      let inputs = item.bankInputs || [{ amt: '', last5: '', bank: item.bank || '台銀', date: new Date().toISOString().slice(0,10) }];
-      inputs.push({ amt: '', last5: '', bank: item.bank || '台銀', date: new Date().toISOString().slice(0,10) });
+      let inputs = item.bankInputs || [{ amt: '', last5: '', bank: '', date: new Date().toISOString().slice(0,10) }];
+      inputs.push({ amt: '', last5: '', bank: '', date: new Date().toISOString().slice(0,10) });
       try { await updateDoc(doc(db, "user_deposits", docId), { bankInputs: inputs }); } catch (err) { alert('新增失敗: ' + err.message); }
     };
 
@@ -407,7 +391,7 @@
       document.getElementById('editDepositId').value = docId;
       document.getElementById('userSelect').value = item.user || item.buyerName || '';
       document.getElementById('payDate').value = item.payDate || item.createdAt.slice(0,10);
-      document.getElementById('bankSelect').value = item.bank || '台銀';
+      document.getElementById('bankSelect').value = item.bank || '';
       document.getElementById('depositAmt').value = item.amount || '';
       document.getElementById('last5').value = item.last5 || '';
       document.getElementById('depositNote').value = item.note || '';
