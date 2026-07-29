@@ -5,10 +5,18 @@
   <title>目前開團與飯拍發放進度</title>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 0; margin: 0; background: transparent; color: #333; }
-    .event-card { background: #fff; border: 1px solid #e4e7ed; border-radius: 12px; padding: 16px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 8px rgba(0,0,0,0.03); }
-    .event-title { font-weight: bold; font-size: 16px; color: #303133; margin-bottom: 4px; }
-    .event-sub { font-size: 13px; color: #909399; }
-    .status-badge { padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; white-space: nowrap; }
+    
+    .event-group-card { background: #fff; border: 1px solid #e4e7ed; border-radius: 12px; padding: 14px 16px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); }
+    .event-group-title { font-size: 15px; font-weight: bold; color: #303133; margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px dashed #ebeef5; display: flex; align-items: center; gap: 6px; }
+
+    .progress-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 6px; border-bottom: 1px solid #f2f6fc; }
+    .progress-row:last-child { border-bottom: none; }
+    
+    .member-info { font-size: 13px; color: #606266; display: flex; align-items: center; gap: 6px; }
+    .member-name { font-weight: bold; color: #303133; }
+    .seller-tag { font-size: 11px; color: #909399; background: #f4f4f5; padding: 1px 6px; border-radius: 4px; }
+
+    .status-badge { padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: bold; white-space: nowrap; }
     .status-waiting { background: #f4f4f5; color: #909399; }
     .status-sorting { background: #fdf6ec; color: #e6a23c; }
     .status-done { background: #f0f9eb; color: #67c23a; }
@@ -36,6 +44,11 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
+    let memberOrderList = ["方燦", "Lee Know", "彰彬", "鉉辰", "HAN", "Felix", "昇玟", "I.N"];
+
+    // 嘗試讀取官方成員順序設定
+    fetch('../json/members.json').then(r => r.json()).then(arr => { memberOrderList = arr; }).catch(() => {});
+
     onSnapshot(collection(db, "photo_progress"), snap => {
       const container = document.getElementById('progressList');
       container.innerHTML = '';
@@ -49,42 +62,72 @@
       let rawList = [];
       snap.forEach(d => rawList.push({ id: d.id, ...d.data() }));
 
-      const groups = {};
+      // 群組化：以活動名稱 (eventName) 分類
+      const eventGroups = {};
       rawList.forEach(item => {
-        // 只精準對接全站統一的 eventName 欄位
-        const eTitle = item.eventName || '未命名活動';
-        const key = `${eTitle}__${item.member}`;
-        if (!groups[key]) groups[key] = [];
-        groups[key].push(item);
+        const eTitle = item.eventName || item.event || '未命名活動';
+        if (!eventGroups[eTitle]) eventGroups[eTitle] = [];
+        eventGroups[eTitle].push(item);
       });
 
-      let cardsHtml = '';
+      // 排序活動場次（依照日期先後名稱排序）
+      const sortedEventNames = Object.keys(eventGroups).sort((a, b) => {
+        const matchA = a.match(/\d{6}/); const matchB = b.match(/\d{6}/);
+        const dateA = matchA ? parseInt(matchA[0], 10) : 0;
+        const dateB = matchB ? parseInt(matchB[0], 10) : 0;
+        if (dateA !== dateB) return dateA - dateB;
+        return a.localeCompare(b, 'zh-TW');
+      });
 
-      for (const [key, items] of Object.entries(groups)) {
+      let htmlContent = '';
+
+      sortedEventNames.forEach(eventName => {
+        const items = eventGroups[eventName];
+
+        // 內部成員排序：依照 official members.json 順序
+        items.sort((a, b) => {
+          const mA = a.member || '';
+          const mB = b.member || '';
+          let idxA = memberOrderList.indexOf(mA);
+          let idxB = memberOrderList.indexOf(mB);
+          if (idxA === -1) idxA = 99;
+          if (idxB === -1) idxB = 99;
+          if (idxA !== idxB) return idxA - idxB;
+          return (a.seller || '').localeCompare(b.seller || '');
+        });
+
+        let rowsHtml = '';
         const isMultipleSellers = items.length > 1;
 
         items.forEach((item, idx) => {
           let badgeClass = 'status-waiting';
           const st = item.status || '等圖中';
-          if (st === '分圖中' || st === '整理中' || st === '上傳中') badgeClass = 'status-sorting';
-          if (st === '已完工' || st === '已發圖' || st === '已結束') badgeClass = 'status-done';
+          if (['分圖中', '整理中', '上傳中'].includes(st)) badgeClass = 'status-sorting';
+          if (['已完工', '已發圖', '已結束'].includes(st)) badgeClass = 'status-done';
 
-          const sellerLabel = isMultipleSellers ? ` (代拍${idx + 1})` : '';
-          const displayTitle = item.eventName || '未命名活動';
+          const sellerText = item.seller ? `<span class="seller-tag">${item.seller}</span>` : '';
+          const memberName = item.member || '全體';
 
-          cardsHtml += `
-            <div class="event-card">
-              <div>
-                <div class="event-title">${displayTitle}</div>
-                <div class="event-sub">成員：${item.member || '全體'}${sellerLabel}</div>
+          rowsHtml += `
+            <div class="progress-row">
+              <div class="member-info">
+                <span class="member-name">👤 ${memberName}</span>
+                ${sellerText}
               </div>
               <div class="status-badge ${badgeClass}">${st}</div>
             </div>
           `;
         });
-      }
 
-      container.innerHTML = cardsHtml;
+        htmlContent += `
+          <div class="event-group-card">
+            <div class="event-group-title">📅 ${eventName}</div>
+            ${rowsHtml}
+          </div>
+        `;
+      });
+
+      container.innerHTML = htmlContent;
       notifyHeight();
     });
 
