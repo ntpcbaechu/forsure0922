@@ -108,11 +108,10 @@
         </div>
       </div>
 
-      <div class="bank-info-box">
-        <div class="bank-info-title">🔸匯款帳號：提供台銀/樂天賬戶</div>
-        <div> 1️⃣ 台銀(004) 012-0085-86876</div>
-        <div> 2️⃣ 樂天(826) 81201-0028-03081</div>
-        <div class="bank-warning">（⚠️中信帳戶已不提供收款‼️）</div>
+      <!-- 銀行帳號卡片：動態讀取 json/bank_info.json -->
+      <div class="bank-info-box" id="bankInfoCard">
+        <div class="bank-info-title">🔸匯款帳號：</div>
+        <div>載入帳號資料中...</div>
       </div>
 
       <div class="form-group">
@@ -120,14 +119,11 @@
         <input type="date" id="payDate" required>
       </div>
 
+      <!-- 銀行選單：動態讀取 json/banks.json -->
       <div class="form-group">
         <label>匯款銀行 *</label>
         <select id="bankName" required>
-          <option value="">請選擇匯款銀行</option>
-          <option value="台銀">台銀</option>
-          <option value="樂天">樂天</option>
-          <option value="中信">中信</option>
-          <option value="台新">台新</option>
+          <option value="">載入銀行選項中...</option>
         </select>
       </div>
 
@@ -168,6 +164,54 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
+    // 1. 動態載入 bank_info.json
+    function loadBankInfo() {
+      fetch('../json/bank_info.json')
+        .then(res => res.json())
+        .then(data => {
+          const card = document.getElementById('bankInfoCard');
+          let html = `<div class="bank-info-title">${data.title || '🔸匯款帳號：'}</div>`;
+          if (data.accounts && Array.isArray(data.accounts)) {
+            data.accounts.forEach(acc => { html += `<div>${acc}</div>`; });
+          }
+          if (data.note) { html += `<div class="bank-warning">${data.note}</div>`; }
+          card.innerHTML = html;
+          notifyHeight();
+        })
+        .catch(() => {
+          document.getElementById('bankInfoCard').innerHTML = `
+            <div class="bank-info-title">🔸匯款帳號：</div>
+            <div> 1️⃣ 台銀(004) 012-0085-86876</div>
+            <div> 2️⃣ 樂天(826) 81201-0028-03081</div>
+            <div> 3️⃣ 中信(822) 7835401-30964</div>
+          `;
+        });
+    }
+
+    // 2. 動態載入 banks.json
+    function loadBankDropdown() {
+      fetch('../json/banks.json')
+        .then(res => res.json())
+        .then(bankList => {
+          const bankSel = document.getElementById('bankName');
+          bankSel.innerHTML = '<option value="">請選擇匯款銀行</option>';
+          bankList.forEach(b => {
+            bankSel.innerHTML += `<option value="${b}">${b}</option>`;
+          });
+        })
+        .catch(() => {
+          const bankSel = document.getElementById('bankName');
+          bankSel.innerHTML = `
+            <option value="">請選擇匯款銀行</option>
+            <option value="台銀">台銀</option>
+            <option value="樂天">樂天</option>
+            <option value="中信">中信</option>
+            <option value="台新">台新</option>
+            <option value="抵用金/儲值金">抵用金/儲值金</option>
+          `;
+        });
+    }
+
     let memberOrderList = ["方燦", "Lee Know", "彰彬", "鉉辰", "HAN", "Felix", "昇玟", "I.N"];
     fetch('../json/members.json').then(r => r.json()).then(arr => { 
       memberOrderList = arr; 
@@ -201,6 +245,9 @@
     });
 
     document.addEventListener('DOMContentLoaded', () => {
+      loadBankInfo();
+      loadBankDropdown();
+
       onSnapshot(collection(db, "photo_progress"), snap => {
         photoProgressMap = {};
         snap.forEach(d => {
@@ -263,7 +310,6 @@
       document.getElementById('useDepositChk').addEventListener('change', calcSelectedTotal);
       document.getElementById('useCreditChk').addEventListener('change', calcSelectedTotal);
 
-      // 動態金額溢繳提示監聽
       document.getElementById('amount').addEventListener('input', checkOverpayTip);
 
       document.getElementById('toggleCustomBtn').addEventListener('click', () => {
@@ -556,7 +602,6 @@
 
       const inputAmount = parseFloat(document.getElementById('amount').value) || 0;
       
-      // 修改重點：少於應付金額時阻擋，溢繳（大於）則允許送出
       if (inputAmount < currentCalculatedFinalTotal) {
         alert(`⚠️ 金額不足！\n\n本次應匯款總金額是：$${currentCalculatedFinalTotal}\n您填寫的金額是：$${inputAmount}\n\n請重新確認匯款金額！`);
         return;
