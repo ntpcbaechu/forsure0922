@@ -42,6 +42,12 @@
     .income { color: #16a34a; font-weight: bold; }
     .expense { color: #dc2626; font-weight: bold; }
     .account-code { font-family: monospace; font-weight: bold; background: #eff6ff; color: #1d4ed8; padding: 2px 6px; border-radius: 4px; }
+
+    /* 分頁控制樣式 */
+    .pagination { display: flex; justify-content: center; align-items: center; gap: 5px; margin-top: 15px; flex-wrap: wrap; }
+    .page-btn { padding: 5px 10px; border: 1px solid #cbd5e1; background: #fff; border-radius: 4px; font-size: 12px; cursor: pointer; color: #334155; }
+    .page-btn.active { background: #2563eb; color: #fff; border-color: #2563eb; font-weight: bold; }
+    .page-btn:disabled { opacity: 0.5; cursor: not-allowed; }
   </style>
 </head>
 <body>
@@ -104,7 +110,7 @@
     <h3>🔍 2. 對帳審核區</h3>
     <div class="form-grid">
       <div class="form-group" style="grid-column: 1 / -1;">
-        <label>4. 中信對應筆數 (已載入 884 筆中信紀錄)</label>
+        <label>4. 中信對應筆數</label>
         <select id="ctbcSelect" onchange="autoFillAuditInfo(this)">
           <option value="">-- 請選擇對應的中信交易筆數 --</option>
         </select>
@@ -126,15 +132,15 @@
 
   <!-- 搜尋與過濾條 -->
   <div class="search-bar">
-    <input type="text" id="searchInput" placeholder="🔍 搜尋日期、金額、後五碼、備註..." onkeyup="renderTable()">
+    <input type="text" id="searchInput" placeholder="🔍 搜尋日期、金額、後五碼、備註..." onkeyup="onSearchChange()">
     <button class="btn-filter active" onclick="setFilter('all', this)">全部</button>
     <button class="btn-filter" onclick="setFilter('income', this)">僅看存入 (+)</button>
     <label style="font-size:12px; cursor:pointer; margin-left:auto;">
-      <input type="checkbox" id="hideCompleted" onchange="renderTable()"> 隱藏已對帳(打勾)項目
+      <input type="checkbox" id="hideCompleted" onchange="onSearchChange()"> 隱藏已對帳(打勾)項目
     </label>
   </div>
 
-  <div class="stats-info" id="statsInfo">顯示 0 筆 | 存入總金額: <span id="totalIncome">$0</span></div>
+  <div class="stats-info" id="statsInfo">載入中...</div>
 
   <!-- 區塊 3：中信流水對帳表 -->
   <div style="overflow-x:auto;">
@@ -153,6 +159,9 @@
     </table>
   </div>
 
+  <!-- 分頁控制元件 -->
+  <div class="pagination" id="pagination"></div>
+
   <script>
     let transactions = [];
     let orderRecords = [
@@ -162,22 +171,25 @@
 
     let auditState = {};
     let currentFilter = 'all';
+    let currentPage = 1;
+    const pageSize = 50; // 固定每頁 50 筆
 
     async function loadAllData() {
-      // 1. 載入中信 Excel 匯入的 884 筆交易 JSON
       try {
         const res = await fetch('../json/ctbc_transactions.json');
-        transactions = await res.json();
+        const rawData = await res.json();
+        // 自動剔除重複標頭列
+        transactions = rawData.filter(d => d.date !== '日期');
       } catch(e) {
         try {
           const res2 = await fetch('json/ctbc_transactions.json');
-          transactions = await res2.json();
+          const rawData = await res2.json();
+          transactions = rawData.filter(d => d.date !== '日期');
         } catch(err) {
           console.error("無法載入交易紀錄", err);
         }
       }
 
-      // 2. 載入 users.json & members.json
       try {
         const uRes = await fetch('../json/users.json');
         const users = await uRes.json();
@@ -223,7 +235,7 @@
 
     function initCtbcDropdown() {
       const select = document.getElementById('ctbcSelect');
-      select.innerHTML = '<option value="">-- 請選擇對應的中信交易筆數 --</option>' + 
+      select.innerHTML = `<option value="">-- 請選擇對應的中信交易筆數 (共 ${transactions.length} 筆) --</option>` + 
         transactions.map(t => {
           const amt = t.inc ? `+${t.inc}` : `-${t.exp}`;
           return `<option value="${t.id}" data-date="${t.date}" data-amount="${amt}" data-acc="${t.acc}">${t.date} | ${amt} | ${t.acc}</option>`;
@@ -245,33 +257,48 @@
       document.getElementById('auditLast5').value = last5Match ? last5Match[0] : acc;
     }
 
-    function renderTable() {
-      const tbody = document.getElementById('bankTable');
+    function getFilteredTransactions() {
       const searchVal = document.getElementById('searchInput').value.toLowerCase();
       const hideComp = document.getElementById('hideCompleted').checked;
-      tbody.innerHTML = '';
 
-      let totalInc = 0;
-      let visibleCount = 0;
-
-      transactions.forEach(t => {
+      return transactions.filter(t => {
         const isComp = auditState[t.id] || false;
-        if(hideComp && isComp) return;
+        if(hideComp && isComp) return false;
 
         const isInc = t.inc !== "";
-        if(currentFilter === 'income' && !isInc) return;
+        if(currentFilter === 'income' && !isInc) return false;
 
         const matchSearch = t.date.toLowerCase().includes(searchVal) || 
                             t.acc.toLowerCase().includes(searchVal) || 
                             (t.inc && t.inc.includes(searchVal)) ||
                             (t.exp && t.exp.includes(searchVal));
-        if(!matchSearch) return;
+        return matchSearch;
+      });
+    }
 
-        visibleCount++;
-        if(isInc) {
-          totalInc += parseInt(t.inc.replace(/,/g, '')) || 0;
-        }
+    function onSearchChange() {
+      currentPage = 1;
+      renderTable();
+    }
 
+    function renderTable() {
+      const tbody = document.getElementById('bankTable');
+      tbody.innerHTML = '';
+
+      const filteredList = getFilteredTransactions();
+      const totalPages = Math.ceil(filteredList.length / pageSize) || 1;
+      if (currentPage > totalPages) currentPage = totalPages;
+
+      const startIndex = (currentPage - 1) * pageSize;
+      const pageData = filteredList.slice(startIndex, startIndex + pageSize);
+
+      let totalInc = 0;
+      filteredList.forEach(t => {
+        if(t.inc) totalInc += parseInt(t.inc.replace(/,/g, '')) || 0;
+      });
+
+      pageData.forEach(t => {
+        const isComp = auditState[t.id] || false;
         const tr = document.createElement('tr');
         if(isComp) tr.classList.add('completed');
 
@@ -299,7 +326,48 @@
       });
 
       document.getElementById('statsInfo').innerHTML = 
-        `顯示 ${visibleCount} / ${transactions.length} 筆交易 | 存入總金額: <span id="totalIncome">$${totalInc.toLocaleString()}</span>`;
+        `符合條件: ${filteredList.length} / 全部 ${transactions.length} 筆 (第 ${currentPage} / ${totalPages} 頁，每頁 50 筆) | 存入總金額: <span id="totalIncome">$${totalInc.toLocaleString()}</span>`;
+
+      renderPagination(totalPages);
+    }
+
+    function renderPagination(totalPages) {
+      const pContainer = document.getElementById('pagination');
+      pContainer.innerHTML = '';
+
+      if (totalPages <= 1) return;
+
+      const prevBtn = document.createElement('button');
+      prevBtn.className = 'page-btn';
+      prevBtn.innerText = '上一頁';
+      prevBtn.disabled = currentPage === 1;
+      prevBtn.onclick = () => { currentPage--; renderTable(); };
+      pContainer.appendChild(prevBtn);
+
+      for(let i = 1; i <= totalPages; i++) {
+        if (totalPages > 10 && Math.abs(i - currentPage) > 3 && i !== 1 && i !== totalPages) {
+          if (i === 2 || i === totalPages - 1) {
+            const dots = document.createElement('span');
+            dots.innerText = '...';
+            dots.style.fontSize = '12px';
+            pContainer.appendChild(dots);
+          }
+          continue;
+        }
+
+        const btn = document.createElement('button');
+        btn.className = `page-btn ${i === currentPage ? 'active' : ''}`;
+        btn.innerText = i;
+        btn.onclick = () => { currentPage = i; renderTable(); };
+        pContainer.appendChild(btn);
+      }
+
+      const nextBtn = document.createElement('button');
+      nextBtn.className = 'page-btn';
+      nextBtn.innerText = '下一頁';
+      nextBtn.disabled = currentPage === totalPages;
+      nextBtn.onclick = () => { currentPage++; renderTable(); };
+      pContainer.appendChild(nextBtn);
     }
 
     function toggleAudit(id, checked) {
@@ -311,6 +379,7 @@
       currentFilter = type;
       document.querySelectorAll('.btn-filter').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
+      currentPage = 1;
       renderTable();
     }
 
