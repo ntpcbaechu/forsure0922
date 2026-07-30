@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>中信 PDF 轉 JS 工具</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+</head>
+<body style="font-family:sans-serif; padding:20px;">
+  <h2>中信 PDF 轉 ctbc_data.js 工具</h2>
+  <p>請選擇您的存款交易明細 PDF 檔案：</p>
+  <input type="file" id="pdfFile" accept="application/pdf">
+  <button onclick="processPDF()" style="padding: 5px 15px;">開始轉換並下載 ctbc_data.js</button>
+  <pre id="log" style="margin-top:20px; background:#f0f0f0; padding:10px;"></pre>
+
+  <script>
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+
+    async function processPDF() {
+      const fileInput = document.getElementById('pdfFile');
+      const log = document.getElementById('log');
+      if (!fileInput.files.length) return alert('請選擇 PDF 檔案');
+
+      log.textContent = '解析中，請稍候...';
+      const file = fileInput.files[0];
+      const arrayBuffer = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({data: arrayBuffer}).promise;
+
+      let transactions = [];
+      let id = 1;
+      const dateRegex = /^(\d{4}\/\d{2}\/\d{2}\s+\d{2}:\d{2}:\d{2})$/;
+
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const textContent = await page.getTextContent();
+        const items = textContent.items.map(item => item.str.trim()).filter(t => t !== '');
+
+        for (let j = 0; j < items.length; j++) {
+          if (dateRegex.test(items[j])) {
+            const date = items[j];
+            let chunk = items.slice(j, j + 10).join(' ');
+
+            // 避開頁首與頁尾雜訊
+            if (chunk.includes('存款交易明細') || chunk.includes('查詢區間')) continue;
+
+            // 提取末5碼
+            let last5Match = chunk.match(/\*\*(\d{5})/) || chunk.match(/(\d{5})/);
+            let last5 = last5Match ? last5Match[1] : '';
+
+            // 提取對方帳號/備註
+            let noteMatch = chunk.match(/(\d{3}\/[\d\* ]+|5023\d+|7-11|[^\s]+)/);
+            let note = noteMatch ? noteMatch[0] : '';
+
+            // 抓取數字（排除日期數字後拿第一個作為金額）
+            let nums = chunk.match(/[\d,]+/g) || [];
+            let amount = 0;
+            for (let n of nums) {
+              let val = parseInt(n.replace(/,/g, ''), 10);
+              if (!isNaN(val) && val > 0 && val < 10000000 && !date.includes(n)) {
+                amount = val;
+                break;
+              }
+            }
+
+            transactions.push({
+              id: String(id++),
+              date: date,
+              amount: amount,
+              note: note,
+              last5: last5,
+              status: '未對帳'
+            });
+          }
+        }
+      }
+
+      const jsContent = 'window.rawTransactions = ' + JSON.stringify(transactions, null, 2) + ';\n';
+
+      // 下載 ctbc_data.js
+      const blob = new Blob([jsContent], {type: 'text/javascript'});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'ctbc_data.js';
+      a.click();
+
+      log.textContent = `解析成功！共提取 ${transactions.length} 筆資料，已自動下載 ctbc_data.js。`;
+    }
+  </script>
+</body>
+</html>
