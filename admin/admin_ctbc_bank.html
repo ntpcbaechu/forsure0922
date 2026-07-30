@@ -35,7 +35,6 @@
     th { background: #f1f5f9; color: #334155; text-align: left; padding: 10px; border-bottom: 2px solid #e2e8f0; white-space: nowrap; }
     td { padding: 10px; border-bottom: 1px solid #e2e8f0; }
     
-    /* 已對帳反灰樣式 */
     tr.completed { background-color: #f1f5f9 !important; color: #94a3b8 !important; }
     tr.completed td { text-decoration: line-through; }
     tr.completed select, tr.completed input { opacity: 0.5; pointer-events: none; }
@@ -45,16 +44,10 @@
     .expense { color: #dc2626; font-weight: bold; }
     .account-code { font-family: monospace; font-weight: bold; background: #eff6ff; color: #1d4ed8; padding: 2px 6px; border-radius: 4px; }
 
-    /* 分頁控制樣式 */
     .pagination { display: flex; justify-content: center; align-items: center; gap: 5px; margin-top: 15px; flex-wrap: wrap; }
     .page-btn { padding: 5px 10px; border: 1px solid #cbd5e1; background: #fff; border-radius: 4px; font-size: 12px; cursor: pointer; color: #334155; }
     .page-btn.active { background: #2563eb; color: #fff; border-color: #2563eb; font-weight: bold; }
     .page-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-
-    .status-badge { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: bold; }
-    .status-paid { background: #dcfce7; color: #15803d; }
-    .status-unpaid { background: #fee2e2; color: #b91c1c; }
-    .status-uncertain { background: #fef3c7; color: #b45309; }
   </style>
 </head>
 <body>
@@ -178,7 +171,10 @@
   <div class="pagination" id="pagination"></div>
 
   <script>
-    let transactions = [];
+    // 直接載入 884 筆交易資料
+    let rawTransactions = [file-tag: code-generated-file-b880da6b-9430-4969-b315-f47770135819];
+    let transactions = rawTransactions.filter(d => d.date !== '日期');
+
     let orderRecords = [
       { id: 101, status: "已匯款", name: "🐶小明", event: "260328 D1", member: "成員A", amount: "4266", last5: "86876" },
       { id: 102, status: "已匯款", name: "🐱小華", event: "260329 D2", member: "成員B", amount: "580", last5: "29556" }
@@ -190,20 +186,7 @@
     const pageSize = 50;
 
     async function loadAllData() {
-      try {
-        const res = await fetch('../json/ctbc_transactions.json');
-        const rawData = await res.json();
-        transactions = rawData.filter(d => d.date !== '日期');
-      } catch(e) {
-        try {
-          const res2 = await fetch('json/ctbc_transactions.json');
-          const rawData = await res2.json();
-          transactions = rawData.filter(d => d.date !== '日期');
-        } catch(err) {
-          console.error("無法載入交易紀錄", err);
-        }
-      }
-
+      // 載入 users.json & members.json (若抓不到給予預設值)
       try {
         const uRes = await fetch('../json/users.json');
         const users = await uRes.json();
@@ -240,7 +223,6 @@
       const payAmount = document.getElementById('payAmountInput').value;
       const last5 = document.getElementById('payLast5Input').value;
 
-      // 必填欄位驗證（1~6 必填，7~9 選填）
       if(!name || !event || !member || !qty || !amount) {
         alert("請填寫所有必填欄位（暱稱、場次、成員、張數、金額）！");
         return;
@@ -262,7 +244,6 @@
       orderRecords.push(newRecord);
       alert("新增填單成功！");
       
-      // 清空部分選填輸入
       document.getElementById('payDateInput').value = '';
       document.getElementById('payAmountInput').value = '';
       document.getElementById('payLast5Input').value = '';
