@@ -15,6 +15,8 @@
     .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; }
     .form-group { display: flex; flex-direction: column; }
     .form-group label { font-size: 12px; font-weight: bold; margin-bottom: 4px; color: #475569; }
+    .form-group label.required::after { content: " *"; color: #ef4444; }
+    .form-group label.optional::after { content: " (選填)"; color: #94a3b8; font-weight: normal; }
     .form-group input, .form-group select { padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; outline: none; }
     .form-group input:focus, .form-group select:focus { border-color: #3b82f6; }
 
@@ -48,6 +50,11 @@
     .page-btn { padding: 5px 10px; border: 1px solid #cbd5e1; background: #fff; border-radius: 4px; font-size: 12px; cursor: pointer; color: #334155; }
     .page-btn.active { background: #2563eb; color: #fff; border-color: #2563eb; font-weight: bold; }
     .page-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .status-badge { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: bold; }
+    .status-paid { background: #dcfce7; color: #15803d; }
+    .status-unpaid { background: #fee2e2; color: #b91c1c; }
+    .status-uncertain { background: #fef3c7; color: #b45309; }
   </style>
 </head>
 <body>
@@ -60,11 +67,19 @@
     <h3>📝 1. 團員匯款登記填單</h3>
     <form id="orderForm" class="form-grid">
       <div class="form-group">
-        <label>1. 社群暱稱</label>
-        <select id="userSelect"><option value="">載入中...</option></select>
+        <label class="required">匯款狀態</label>
+        <select id="payStatusSelect">
+          <option value="已匯款">已匯款</option>
+          <option value="未匯款">未匯款</option>
+          <option value="不確定">不確定</option>
+        </select>
       </div>
       <div class="form-group">
-        <label>2. 場次</label>
+        <label class="required">1. 社群暱稱</label>
+        <select id="userSelect" required><option value="">載入中...</option></select>
+      </div>
+      <div class="form-group">
+        <label class="required">2. 場次</label>
         <select id="eventSelect" onchange="toggleCustomEvent(this)">
           <option value="260328 D1">260328 D1</option>
           <option value="260329 D2">260329 D2</option>
@@ -74,31 +89,31 @@
         </select>
       </div>
       <div class="form-group" id="customEventGroup" style="display:none;">
-        <label>自訂場次名稱</label>
+        <label class="required">自訂場次名稱</label>
         <input type="text" id="customEventInput" placeholder="請輸入場次">
       </div>
       <div class="form-group">
-        <label>4. 成員</label>
-        <select id="memberSelect"><option value="">載入中...</option></select>
+        <label class="required">4. 成員</label>
+        <select id="memberSelect" required><option value="">載入中...</option></select>
       </div>
       <div class="form-group">
-        <label>5. 張數</label>
-        <input type="number" id="qtyInput" value="1" min="1">
+        <label class="required">5. 張數</label>
+        <input type="number" id="qtyInput" value="1" min="1" required>
       </div>
       <div class="form-group">
-        <label>6. 金額</label>
-        <input type="number" id="amountInput" placeholder="請輸入金額">
+        <label class="required">6. 金額</label>
+        <input type="number" id="amountInput" placeholder="請輸入金額" required>
       </div>
       <div class="form-group">
-        <label>7. 匯款日期</label>
+        <label class="optional">7. 匯款日期</label>
         <input type="date" id="payDateInput">
       </div>
       <div class="form-group">
-        <label>8. 匯款金額</label>
+        <label class="optional">8. 匯款金額</label>
         <input type="number" id="payAmountInput" placeholder="實際匯款金額">
       </div>
       <div class="form-group">
-        <label>9. 匯款後5碼</label>
+        <label class="optional">9. 匯款後5碼</label>
         <input type="text" id="payLast5Input" maxlength="5" placeholder="例如: 86876">
       </div>
       <button type="button" class="btn-submit" onclick="addOrderRecord()">＋ 新增登記填單</button>
@@ -165,20 +180,19 @@
   <script>
     let transactions = [];
     let orderRecords = [
-      { id: 101, name: "🐶小明", event: "260328 D1", member: "成員A", amount: "4266", last5: "86876" },
-      { id: 102, name: "🐱小華", event: "260329 D2", member: "成員B", amount: "580", last5: "29556" }
+      { id: 101, status: "已匯款", name: "🐶小明", event: "260328 D1", member: "成員A", amount: "4266", last5: "86876" },
+      { id: 102, status: "已匯款", name: "🐱小華", event: "260329 D2", member: "成員B", amount: "580", last5: "29556" }
     ];
 
     let auditState = {};
     let currentFilter = 'all';
     let currentPage = 1;
-    const pageSize = 50; // 固定每頁 50 筆
+    const pageSize = 50;
 
     async function loadAllData() {
       try {
         const res = await fetch('../json/ctbc_transactions.json');
         const rawData = await res.json();
-        // 自動剔除重複標頭列
         transactions = rawData.filter(d => d.date !== '日期');
       } catch(e) {
         try {
@@ -215,21 +229,44 @@
     }
 
     function addOrderRecord() {
+      const payStatus = document.getElementById('payStatusSelect').value;
       const name = document.getElementById('userSelect').value;
       const eventSel = document.getElementById('eventSelect').value;
       const event = eventSel === 'other' ? document.getElementById('customEventInput').value : eventSel;
       const member = document.getElementById('memberSelect').value;
-      const amount = document.getElementById('payAmountInput').value || document.getElementById('amountInput').value;
+      const qty = document.getElementById('qtyInput').value;
+      const amount = document.getElementById('amountInput').value;
+      const payDate = document.getElementById('payDateInput').value;
+      const payAmount = document.getElementById('payAmountInput').value;
       const last5 = document.getElementById('payLast5Input').value;
 
-      if(!amount || !last5) {
-        alert("請填寫金額與後5碼！");
+      // 必填欄位驗證（1~6 必填，7~9 選填）
+      if(!name || !event || !member || !qty || !amount) {
+        alert("請填寫所有必填欄位（暱稱、場次、成員、張數、金額）！");
         return;
       }
 
-      const newRecord = { id: Date.now(), name, event, member, amount, last5 };
+      const newRecord = { 
+        id: Date.now(), 
+        status: payStatus, 
+        name, 
+        event, 
+        member, 
+        qty, 
+        amount, 
+        payDate: payDate || '-', 
+        payAmount: payAmount || '-', 
+        last5: last5 || '-' 
+      };
+
       orderRecords.push(newRecord);
       alert("新增填單成功！");
+      
+      // 清空部分選填輸入
+      document.getElementById('payDateInput').value = '';
+      document.getElementById('payAmountInput').value = '';
+      document.getElementById('payLast5Input').value = '';
+
       renderTable();
     }
 
@@ -302,7 +339,10 @@
         const tr = document.createElement('tr');
         if(isComp) tr.classList.add('completed');
 
-        const orderOpts = orderRecords.map(o => `<option value="${o.id}">${o.event} | ${o.name} | $${o.amount} (後5碼:${o.last5})</option>`).join('');
+        const orderOpts = orderRecords.map(o => {
+          const last5Display = o.last5 !== '-' ? `後5碼:${o.last5}` : '未填後5碼';
+          return `<option value="${o.id}">[${o.status}] ${o.event} | ${o.name} | $${o.amount} (${last5Display})</option>`;
+        }).join('');
 
         tr.innerHTML = `
           <td>${t.id}</td>
