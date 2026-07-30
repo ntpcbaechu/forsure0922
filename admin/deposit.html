@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>存款交易明細對帳表</title>
+  <style>
+    :root {
+      --primary: #008077;
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --text: #334155;
+      --border: #e2e8f0;
+      --income: #16a34a;
+      --expense: #dc2626;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 15px;
+      font-size: 14px;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .header-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+      margin-bottom: 15px;
+    }
+    .card {
+      background: var(--card-bg);
+      padding: 12px 16px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    .card-title {
+      font-size: 12px;
+      color: #64748b;
+      margin-bottom: 4px;
+    }
+    .card-value {
+      font-size: 18px;
+      font-weight: bold;
+    }
+    .card-value.income { color: var(--income); }
+    .card-value.expense { color: var(--expense); }
+
+    .controls {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 15px;
+      flex-wrap: wrap;
+    }
+    .search-input {
+      flex: 1;
+      min-width: 200px;
+      padding: 8px 12px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      outline: none;
+      font-size: 14px;
+    }
+    .search-input:focus {
+      border-color: var(--primary);
+    }
+    .btn {
+      padding: 8px 16px;
+      background-color: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 500;
+    }
+    .btn:hover {
+      opacity: 0.9;
+    }
+
+    .table-container {
+      background: var(--card-bg);
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      overflow-x: auto;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      white-space: nowrap;
+    }
+    th, td {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+    }
+    th {
+      background-color: #f1f5f9;
+      color: #475569;
+      font-weight: 600;
+      position: sticky;
+      top: 0;
+    }
+    tr:hover {
+      background-color: #f8fafc;
+    }
+    .amount-in { color: var(--income); font-weight: 600; }
+    .amount-out { color: var(--expense); font-weight: 600; }
+    .badge {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 12px;
+      background: #e2e8f0;
+      color: #475569;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <!-- 統計資訊區 -->
+  <div class="header-cards">
+    <div class="card">
+      <div class="card-title">總顯示筆數</div>
+      <div class="card-value" id="totalCount">0 筆</div>
+    </div>
+    <div class="card">
+      <div class="card-title">統計入帳 (存入)</div>
+      <div class="card-value income" id="totalIn">$0</div>
+    </div>
+    <div class="card">
+      <div class="card-title">統計扣款 (支出)</div>
+      <div class="card-value expense" id="totalOut">$0</div>
+    </div>
+  </div>
+
+  <!-- 操作與關鍵字搜尋 -->
+  <div class="controls">
+    <input type="text" id="searchInput" class="search-input" placeholder="搜尋日期、金額、對方帳號、備註 (例如: 7-11、822/0000)..." oninput="filterData()">
+    <button class="btn" onclick="exportCSV()">匯出 Excel CSV</button>
+  </div>
+
+  <!-- 資料表格 -->
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th>交易日期時間</th>
+          <th>支出 (TWD)</th>
+          <th>存入 (TWD)</th>
+          <th>結餘 (TWD)</th>
+          <th>備註</th>
+          <th>對方帳號 / 說明</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody">
+        <!-- 資料由 JavaScript 動態生成 -->
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+// 解析自 PDF 的交易紀錄資料
+const rawData = [
+  {"date": "2026/07/28 19:10:28", "out": null, "in": 500, "balance": 500, "note": "", "account": ""},
+  {"date": "2026/07/27 21:35:15", "out": 4900, "in": null, "balance": 0, "note": "", "account": "822/0000289540184401"},
+  {"date": "2026/07/27 21:33:37", "out": null, "in": 4266, "balance": 4900, "note": "004", "account": "004/000001 200**86876"},
+  {"date": "2026/07/27 16:56:50", "out": null, "in": 580, "balance": 634, "note": "824", "account": "824/000011100**29556"},
+  {"date": "2026/07/16 18:38:43", "out": null, "in": 32, "balance": 54, "note": "", "account": "5023000010315521"},
+  {"date": "2026/07/16 18:38:34", "out": null, "in": 2, "balance": 22, "note": "", "account": "5023000010315341"},
+  {"date": "2026/07/13 02:40:42", "out": null, "in": 20, "balance": 20, "note": "", "account": "7-11"},
+  {"date": "2026/07/10 11:12:04", "out": 718, "in": null, "balance": 0, "note": "", "account": "5023000010236576"},
+  {"date": "2026/07/10 11:11:46", "out": null, "in": 718, "balance": 718, "note": "004", "account": "004/000001200**86876"},
+  {"date": "2026/07/07 08:35:02", "out": 159, "in": null, "balance": 0, "note": "", "account": "5023000010204148"},
+  {"date": "2026/07/07 08:34:41", "out": null, "in": 2, "balance": 159, "note": "004", "account": "004/000001 200**86876"},
+  {"date": "2026/07/07 08:33:50", "out": null, "in": 16, "balance": 157, "note": "004", "account": "004/000001200**86876"},
+  {"date": "2026/07/06 16:08:54", "out": null, "in": 141, "balance": 141, "note": "", "account": "50230000101 90807"},
+  {"date": "2026/07/04 14:04:38", "out": 204, "in": null, "balance": 0, "note": "", "account": "5023000010174588"},
+  {"date": "2026/07/04 14:04:20", "out": null, "in": 204, "balance": 204, "note": "004", "account": "004/00001 2400**97473"},
+  {"date": "2026/06/30 23:20:12", "out": 459, "in": null, "balance": 0, "note": "", "account": "5023000010135638"},
+  {"date": "2026/06/30 23:19:55", "out": null, "in": 459, "balance": 459, "note": "004", "account": "004/000001 200**86876"},
+  {"date": "2026/06/30 22:45:52", "out": 62, "in": null, "balance": 0, "note": "", "account": "5023000010127948"},
+  {"date": "2026/06/30 22:45:33", "out": null, "in": 62, "balance": 62, "note": "004", "account": "004/000001200**86876"},
+  {"date": "2026/06/29 15:09:16", "out": 212, "in": null, "balance": 0, "note": "", "account": "5023000010116684"},
+  {"date": "2026/06/29 15:08:51", "out": null, "in": 132, "balance": 212, "note": "004", "account": "004/000001 200**86876"},
+  {"date": "2026/06/28 03:06:10", "out": 290, "in": null, "balance": 80, "note": "", "account": "5023000010100433"},
+  {"date": "2026/06/28 03:05:50", "out": null, "in": 300, "balance": 370, "note": "004", "account": "004/000001200**86876"},
+  {"date": "2026/06/28 02:43:08", "out": 191, "in": null, "balance": 70, "note": "", "account": "5023000010099959"},
+  {"date": "2026/06/28 02:43:03", "out": null, "in": 200, "balance": 261, "note": "004", "account": "004/000001 200**86876"},
+  {"date": "2026/06/21 00:28:19", "out": null, "in": 41, "balance": 61, "note": "", "account": ""},
+  {"date": "2026/06/16 02:41:28", "out": null, "in": 20, "balance": 20, "note": "", "account": "7-11"},
+  {"date": "2026/06/09 09:49:43", "out": 12047, "in": null, "balance": 0, "note": "826/0081 201002803081", "account": "0081 201002803081"},
+  {"date": "2026/06/09 09:48:41", "out": null, "in": 12000, "balance": 12047, "note": "", "account": "822/000001254**34437"},
+  {"date": "2026/06/04 12:36:49", "out": null, "in": 40, "balance": 47, "note": "", "account": "9502300006665363"},
+  {"date": "2026/06/02 03:38:57", "out": 5, "in": null, "balance": 7, "note": "", "account": ""},
+  {"date": "2026/06/02 03:38:57", "out": null, "in": 12, "balance": 12, "note": "", "account": ""},
+  {"date": "2026/05/20 01:56:03", "out": 80, "in": null, "balance": 0, "note": "0000002056888957", "account": "0000002056888957"},
+  {"date": "2026/05/20 00:29:55", "out": null, "in": 80, "balance": 80, "note": "", "account": "822/000066854**60522"},
+  {"date": "2026/05/18 22:32:36", "out": 360, "in": null, "balance": 0, "note": "0000002056888957", "account": "0000002056888957"},
+  {"date": "2026/05/18 22:16:38", "out": null, "in": 360, "balance": 360, "note": "", "account": "808/0001 23097**02452"},
+  {"date": "2026/05/14 02:15:21", "out": 3800, "in": null, "balance": 0, "note": "", "account": ""},
+  {"date": "2026/05/12 22:31:07", "out": 9, "in": null, "balance": 3800, "note": "0000002056888957", "account": "0000002056888957"},
+  {"date": "2026/05/12 17:22:51", "out": 6100, "in": null, "balance": 3809, "note": "812/0028881004029161", "account": "0028881004029161"},
+  {"date": "2026/05/12 17:22:51", "out": 15, "in": null, "balance": null, "note": "", "account": "0028881004029161"},
+  {"date": "2026/05/12 17:05:14", "out": null, "in": 6124, "balance": 9924, "note": "008", "account": "008/000015420**05506"},
+  {"date": "2026/05/11 00:18:22", "out": 1000, "in": null, "balance": 3800, "note": "0000002056888957", "account": "0000002056888957"},
+  {"date": "2026/05/10 15:10:37", "out": null, "in": 1000, "balance": 4800, "note": "826", "account": "826/0081 20100**03081"},
+  {"date": "2026/05/08 19:43:04", "out": 3685, "in": null, "balance": 3800, "note": "826/0081 201002803081", "account": "0081 201002803081"},
+  {"date": "2026/05/08 19:43:04", "out": 15, "in": null, "balance": null, "note": "", "account": "0081201002803081"},
+  {"date": "2026/05/08 17:33:38", "out": null, "in": 7500, "balance": 7500, "note": "812", "account": "812/002888100**29161"},
+  {"date": "2026/05/08 16:49:25", "out": 7000, "in": null, "balance": 0, "note": "812/0028881004029161", "account": "0028881004029161"},
+  {"date": "2026/05/08 07:31:42", "out": null, "in": 7000, "balance": 7000, "note": "826", "account": "826/0081 20100**03081"},
+  {"date": "2026/05/05 22:30:32", "out": 919, "in": null, "balance": 0, "note": "0000002056888957", "account": "0000002056888957"},
+  {"date": "2026/05/04 03:21:44", "out": null, "in": 918, "balance": 919, "note": "", "account": "7-11"},
+  {"date": "2026/05/05 03:10:48", "out": null, "in": 1, "balance": 1, "note": "", "account": ""},
+  {"date": "2026/05/04 13:29:46", "out": 5480, "in": null, "balance": 0, "note": "", "account": "822/0000048001144927"},
+  {"date": "2026/05/04 13:29:03", "out": null, "in": 5480, "balance": 5480, "note": "004", "account": "004/00001 2400**97473"},
+  {"date": "2026/05/04 00:38:01", "out": 330, "in": null, "balance": 0, "note": "", "account": ""},
+  {"date": "2026/05/04 00:17:58", "out": 48, "in": null, "balance": 330, "note": "0000002056888957", "account": "0000002056888957"},
+  {"date": "2026/04/28 02:24:36", "out": null, "in": 20, "balance": 378, "note": "", "account": "7-11"},
+  {"date": "2026/04/21 21:38:57", "out": 2000, "in": null, "balance": 358, "note": "", "account": ""},
+  {"date": "2026/04/20 15:12:08", "out": 1099, "in": null, "balance": 2358, "note": "", "account": "004/0099995100400543"},
+  {"date": "2026/04/17 22:05:54", "out": null, "in": 420, "balance": 3457, "note": "808", "account": "808/0001 23097**02452"},
+  {"date": "2026/04/17 22:00:25", "out": null, "in": 420, "balance": 3037, "note": "", "account": "822/000006054**24727"},
+  {"date": "2026/04/17 21:59:10", "out": null, "in": 840, "balance": 2617, "note": "807", "account": "807/000390180**55216"},
+  {"date": "2026/04/17 19:59:20", "out": null, "in": 420, "balance": 1777, "note": "013", "account": "013/000003650**16758"},
+  {"date": "2026/04/17 08:46:25", "out": 3000, "in": null, "balance": 1357, "note": "013", "account": ""},
+  {"date": "2026/04/16 12:26:23", "out": 1675, "in": null, "balance": 4357, "note": "805", "account": "805/0000100100011622"},
+  {"date": "2026/04/15 22:07:34", "out": 2778, "in": null, "balance": 6032, "note": "", "account": "391/0000002539946786"},
+  {"date": "2026/04/15 22:07:34", "out": 15, "in": null, "balance": null, "note": "", "account": "0000002539946786"},
+  {"date": "2026/04/15 19:03:19", "out": 2778, "in": null, "balance": 8825, "note": "", "account": "391/0000002539946786"},
+  {"date": "2026/04/15 19:03:19", "out": 15, "in": null, "balance": null, "note": "", "account": "0000002539946786"},
+  {"date": "2026/04/15 11:00:50", "out": 1020, "in": null, "balance": 11618, "note": "808", "account": "808/0000598440011228"},
+  {"date": "2026/04/15 11:00:50", "out": 10, "in": null, "balance": null, "note": "", "account": "0000598440011228"},
+  {"date": "2026/04/14 08:50:52", "out": null, "in": 300, "balance": 12648, "note": "013", "account": "013/000069951**22210"},
+  {"date": "2026/04/14 08:47:04", "out": null, "in": 270, "balance": 12348, "note": "812", "account": "812/002888100**48125"},
+  {"date": "2026/04/14 05:37:10", "out": 1629, "in": null, "balance": 12078, "note": "", "account": "822/0000002060116945"},
+  {"date": "2026/04/14 00:55:32", "out": null, "in": 270, "balance": 13707, "note": "943", "account": "011/999999068**05662"},
+  {"date": "2026/04/14 00:44:38", "out": 150, "in": null, "balance": 13437, "note": "", "account": "824/0000111015525537"},
+  {"date": "2026/04/13 23:06:54", "out": null, "in": 270, "balance": 13587, "note": "", "account": "822/000006054**24727"},
+  {"date": "2026/04/13 22:42:52", "out": null, "in": 270, "balance": 13317, "note": "", "account": "822/000012954 68754"},
+  {"date": "2026/04/13 22:35:36", "out": null, "in": 270, "balance": 13047, "note": "807", "account": "807/000390180**55216"},
+  {"date": "2026/04/13 21:44:45", "out": null, "in": 270, "balance": 12777, "note": "009", "account": "009/005081517**74400"},
+  {"date": "2026/04/13 21:27:01", "out": null, "in": 270, "balance": 12507, "note": "943", "account": "006110060000/**90710"},
+  {"date": "2026/04/13 21:18:45", "out": null, "in": 270, "balance": 12237, "note": "013", "account": "013/000003650**16758"},
+  {"date": "2026/04/13 21:13:37", "out": null, "in": 270, "balance": 11967, "note": "013", "account": "013/000003850**76562"},
+  {"date": "2026/04/13 20:45:08", "out": null, "in": 600, "balance": 11697, "note": "012", "account": "012/0081 68000 28712"},
+  {"date": "2026/04/13 19:56:57", "out": null, "in": 270, "balance": 11097, "note": "807", "account": "807/0019901 80**61783"},
+  {"date": "2026/04/13 19:53:50", "out": null, "in": 270, "balance": 10827, "note": "808", "account": "808/0001 23097**02452"},
+  {"date": "2026/04/13 19:51:22", "out": null, "in": 270, "balance": 10557, "note": "009", "account": "009/005543950**02200"},
+  {"date": "2026/04/13 19:42:43", "out": null, "in": 270, "balance": 10287, "note": "013", "account": "013/000013250**67881"},
+  {"date": "2026/04/13 10:14:31", "out": null, "in": 600, "balance": 10017, "note": "008", "account": "008/000080020**95830"},
+  {"date": "2026/04/13 00:35:34", "out": 7, "in": null, "balance": 9417, "note": "", "account": ""},
+  {"date": "2026/04/13 00:35:34", "out": 479, "in": null, "balance": 9424, "note": "", "account": ""}
+];
+
+let filteredData = [...rawData];
+
+function renderTable(data) {
+  const tbody = document.getElementById('tableBody');
+  tbody.innerHTML = '';
+
+  let totalIn = 0;
+  let totalOut = 0;
+
+  data.forEach(item => {
+    if (item.in) totalIn += item.in;
+    if (item.out) totalOut += item.out;
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${item.date}</td>
+      <td class="${item.out ? 'amount-out' : ''}">${item.out ? '-' + item.out.toLocaleString() : ''}</td>
+      <td class="${item.in ? 'amount-in' : ''}">${item.in ? '+' + item.in.toLocaleString() : ''}</td>
+      <td>${item.balance !== null ? item.balance.toLocaleString() : ''}</td>
+      <td>${item.note ? `<span class="badge">${item.note}</span>` : ''}</td>
+      <td>${item.account}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  document.getElementById('totalCount').innerText = `${data.length} 筆`;
+  document.getElementById('totalIn').innerText = `$${totalIn.toLocaleString()}`;
+  document.getElementById('totalOut').innerText = `$${totalOut.toLocaleString()}`;
+}
+
+function filterData() {
+  const query = document.getElementById('searchInput').value.toLowerCase().trim();
+  filteredData = rawData.filter(item => {
+    return item.date.toLowerCase().includes(query) ||
+           (item.note && item.note.toLowerCase().includes(query)) ||
+           (item.account && item.account.toLowerCase().includes(query)) ||
+           (item.in && item.in.toString().includes(query)) ||
+           (item.out && item.out.toString().includes(query));
+  });
+  renderTable(filteredData);
+}
+
+function exportCSV() {
+  let csv = '\uFEFF交易日期時間,支出,存入,結餘,備註,對方帳號/說明\n';
+  filteredData.forEach(row => {
+    csv += `"${row.date}","${row.out || ''}","${row.in || ''}","${row.balance !== null ? row.balance : ''}","${row.note}","${row.account}"\n`;
+  });
+
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = `ctbc_deposit_export_${new Date().toISOString().slice(0,10)}.csv`;
+  link.click();
+}
+
+// 初始渲染
+renderTable(rawData);
+</script>
+
+</body>
+</html>
