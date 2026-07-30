@@ -6,13 +6,13 @@
   <title>中國信託 存款交易明細對帳系統</title>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 15px; margin: 0; background: #f8fafc; color: #334155; }
-    h2 { margin: 0 0 10px 0; font-size: 20px; color: #0f172a; }
+    h2 { margin: 0 0 6px 0; font-size: 20px; color: #0f172a; }
     .meta-info { font-size: 12px; color: #64748b; margin-bottom: 15px; }
 
     .card { background: #ffffff; padding: 16px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 16px; border: 1px solid #e2e8f0; }
     .card h3 { margin-top: 0; margin-bottom: 12px; font-size: 15px; color: #1e293b; border-bottom: 1px solid #f1f5f9; padding-bottom: 6px; }
 
-    .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
+    .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; }
     .form-group { display: flex; flex-direction: column; }
     .form-group label { font-size: 12px; font-weight: bold; margin-bottom: 4px; color: #475569; }
     .form-group input, .form-group select { padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; outline: none; }
@@ -25,6 +25,9 @@
     .search-bar input { flex: 1; min-width: 220px; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; }
     .btn-filter { padding: 6px 12px; border: 1px solid #cbd5e1; background: #fff; border-radius: 6px; font-size: 12px; cursor: pointer; font-weight: bold; color: #475569; }
     .btn-filter.active { background: #0284c7; color: white; border-color: #0284c7; }
+
+    .stats-info { font-size: 12px; font-weight: bold; color: #0f172a; margin-bottom: 8px; }
+    .stats-info span { color: #16a34a; }
 
     table { width: 100%; border-collapse: collapse; font-size: 12px; background: #fff; border-radius: 8px; overflow: hidden; }
     th { background: #f1f5f9; color: #334155; text-align: left; padding: 10px; border-bottom: 2px solid #e2e8f0; white-space: nowrap; }
@@ -101,7 +104,7 @@
     <h3>🔍 2. 對帳審核區</h3>
     <div class="form-grid">
       <div class="form-group" style="grid-column: 1 / -1;">
-        <label>4. 中信對應筆數</label>
+        <label>4. 中信對應筆數 (已載入 884 筆中信紀錄)</label>
         <select id="ctbcSelect" onchange="autoFillAuditInfo(this)">
           <option value="">-- 請選擇對應的中信交易筆數 --</option>
         </select>
@@ -123,7 +126,7 @@
 
   <!-- 搜尋與過濾條 -->
   <div class="search-bar">
-    <input type="text" id="searchInput" placeholder="🔍 搜尋日期、金額、後五碼..." onkeyup="renderTable()">
+    <input type="text" id="searchInput" placeholder="🔍 搜尋日期、金額、後五碼、備註..." onkeyup="renderTable()">
     <button class="btn-filter active" onclick="setFilter('all', this)">全部</button>
     <button class="btn-filter" onclick="setFilter('income', this)">僅看存入 (+)</button>
     <label style="font-size:12px; cursor:pointer; margin-left:auto;">
@@ -131,11 +134,14 @@
     </label>
   </div>
 
+  <div class="stats-info" id="statsInfo">顯示 0 筆 | 存入總金額: <span id="totalIncome">$0</span></div>
+
   <!-- 區塊 3：中信流水對帳表 -->
   <div style="overflow-x:auto;">
     <table>
       <thead>
         <tr>
+          <th>ID</th>
           <th>交易日期時間</th>
           <th>支出 / 存入</th>
           <th>對方帳號 / 備註</th>
@@ -148,42 +154,48 @@
   </div>
 
   <script>
-    // 中信歷史交易資料
-    const transactions = [
-      { id: 1, date: "2026/07/28 19:10:28", exp: "", inc: "500", acc: "-" },
-      { id: 2, date: "2026/07/27 21:35:15", exp: "4,900", inc: "", acc: "822/0000289540184401" },
-      { id: 3, date: "2026/07/27 21:33:37", exp: "", inc: "4,266", acc: "004/000001200**86876" },
-      { id: 4, date: "2026/07/27 16:56:50", exp: "", inc: "580", acc: "824/000011100**29556" },
-      { id: 5, date: "2026/07/16 18:38:43", exp: "", inc: "32", acc: "5023000010315521" },
-      { id: 6, date: "2026/07/10 11:11:46", exp: "", inc: "718", acc: "004/000001200**86876" }
-    ];
-
-    // 暫存團員填單紀錄
+    let transactions = [];
     let orderRecords = [
       { id: 101, name: "🐶小明", event: "260328 D1", member: "成員A", amount: "4266", last5: "86876" },
       { id: 102, name: "🐱小華", event: "260329 D2", member: "成員B", amount: "580", last5: "29556" }
     ];
 
-    let auditState = {}; // 紀錄各比交易對帳狀態
+    let auditState = {};
     let currentFilter = 'all';
 
-    // 載入 JSON 資料
-    async function loadJsonData() {
+    async function loadAllData() {
+      // 1. 載入中信 Excel 匯入的 884 筆交易 JSON
       try {
-        const uRes = await fetch('/json/users.json');
+        const res = await fetch('../json/ctbc_transactions.json');
+        transactions = await res.json();
+      } catch(e) {
+        try {
+          const res2 = await fetch('json/ctbc_transactions.json');
+          transactions = await res2.json();
+        } catch(err) {
+          console.error("無法載入交易紀錄", err);
+        }
+      }
+
+      // 2. 載入 users.json & members.json
+      try {
+        const uRes = await fetch('../json/users.json');
         const users = await uRes.json();
         document.getElementById('userSelect').innerHTML = users.map(u => `<option value="${u}">${u}</option>`).join('');
       } catch(e) {
-        document.getElementById('userSelect').innerHTML = '<option value="預設使用者">預設使用者</option>';
+        document.getElementById('userSelect').innerHTML = '<option value="預設團員">預設團員</option>';
       }
 
       try {
-        const mRes = await fetch('/json/members.json');
+        const mRes = await fetch('../json/members.json');
         const members = await mRes.json();
         document.getElementById('memberSelect').innerHTML = members.map(m => `<option value="${m}">${m}</option>`).join('');
       } catch(e) {
         document.getElementById('memberSelect').innerHTML = '<option value="預設成員">預設成員</option>';
       }
+
+      initCtbcDropdown();
+      renderTable();
     }
 
     function toggleCustomEvent(sel) {
@@ -206,7 +218,7 @@
       const newRecord = { id: Date.now(), name, event, member, amount, last5 };
       orderRecords.push(newRecord);
       alert("新增填單成功！");
-      updateOrderDropdowns();
+      renderTable();
     }
 
     function initCtbcDropdown() {
@@ -229,12 +241,8 @@
       document.getElementById('auditDate').value = opt.getAttribute('data-date');
       document.getElementById('auditAmount').value = opt.getAttribute('data-amount');
       const acc = opt.getAttribute('data-acc');
-      const last5Match = acc.match(/\d{5}$/);
+      const last5Match = acc.match(/\d{5}/);
       document.getElementById('auditLast5').value = last5Match ? last5Match[0] : acc;
-    }
-
-    function updateOrderDropdowns() {
-      renderTable();
     }
 
     function renderTable() {
@@ -243,6 +251,9 @@
       const hideComp = document.getElementById('hideCompleted').checked;
       tbody.innerHTML = '';
 
+      let totalInc = 0;
+      let visibleCount = 0;
+
       transactions.forEach(t => {
         const isComp = auditState[t.id] || false;
         if(hideComp && isComp) return;
@@ -250,8 +261,16 @@
         const isInc = t.inc !== "";
         if(currentFilter === 'income' && !isInc) return;
 
-        const matchSearch = t.date.includes(searchVal) || t.acc.includes(searchVal) || (t.inc && t.inc.includes(searchVal));
+        const matchSearch = t.date.toLowerCase().includes(searchVal) || 
+                            t.acc.toLowerCase().includes(searchVal) || 
+                            (t.inc && t.inc.includes(searchVal)) ||
+                            (t.exp && t.exp.includes(searchVal));
         if(!matchSearch) return;
+
+        visibleCount++;
+        if(isInc) {
+          totalInc += parseInt(t.inc.replace(/,/g, '')) || 0;
+        }
 
         const tr = document.createElement('tr');
         if(isComp) tr.classList.add('completed');
@@ -259,6 +278,7 @@
         const orderOpts = orderRecords.map(o => `<option value="${o.id}">${o.event} | ${o.name} | $${o.amount} (後5碼:${o.last5})</option>`).join('');
 
         tr.innerHTML = `
+          <td>${t.id}</td>
           <td>${t.date}</td>
           <td>${t.inc ? `<span class="income">+${t.inc}</span>` : `<span class="expense">-${t.exp}</span>`}</td>
           <td><span class="account-code">${t.acc}</span></td>
@@ -277,6 +297,9 @@
         `;
         tbody.appendChild(tr);
       });
+
+      document.getElementById('statsInfo').innerHTML = 
+        `顯示 ${visibleCount} / ${transactions.length} 筆交易 | 存入總金額: <span id="totalIncome">$${totalInc.toLocaleString()}</span>`;
     }
 
     function toggleAudit(id, checked) {
@@ -291,10 +314,7 @@
       renderTable();
     }
 
-    // 初始化執行
-    loadJsonData();
-    initCtbcDropdown();
-    renderTable();
+    loadAllData();
   </script>
 </body>
 </html>
