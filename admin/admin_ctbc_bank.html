@@ -60,6 +60,9 @@
     .page-btn.active { background: #2563eb; color: #fff; border-color: #2563eb; font-weight: bold; }
     .page-btn:disabled { opacity: 0.5; cursor: not-allowed; }
   </style>
+
+  <!-- 引用數據檔 -->
+  <script src="ctbc_data.js"></script>
 </head>
 <body>
 
@@ -182,7 +185,7 @@
   <div class="pagination" id="pagination"></div>
 
   <script>
-    let rawTransactions = [file-tag: code-generated-file-b880da6b-9430-4969-b315-f47770135819];
+    let rawTransactions = window.rawTransactions || [];
     let transactions = rawTransactions.filter(d => d.date !== '日期');
 
     let orderRecords = [
