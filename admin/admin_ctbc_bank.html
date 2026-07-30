@@ -5,35 +5,48 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>中國信託 存款交易明細對帳系統</title>
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 15px; margin: 0; background: #f8fafc; color: #334155; }
-    h2 { margin: 0 0 6px 0; font-size: 20px; color: #0f172a; }
-    .meta-info { font-size: 12px; color: #64748b; margin-bottom: 15px; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 12px; margin: 0; background: #f8fafc; color: #334155; }
+    h2 { margin: 0 0 4px 0; font-size: 18px; color: #0f172a; }
+    .meta-info { font-size: 11px; color: #64748b; margin-bottom: 10px; }
 
-    .card { background: #ffffff; padding: 16px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 16px; border: 1px solid #e2e8f0; }
-    .card h3 { margin-top: 0; margin-bottom: 12px; font-size: 15px; color: #1e293b; border-bottom: 1px solid #f1f5f9; padding-bottom: 6px; }
+    .card { background: #ffffff; padding: 12px 16px; border-radius: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.04); margin-bottom: 12px; border: 1px solid #e2e8f0; }
+    .card h3 { margin-top: 0; margin-bottom: 10px; font-size: 14px; color: #1e293b; border-bottom: 1px solid #f1f5f9; padding-bottom: 4px; }
 
-    .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; }
+    /* 精簡型 Flex 排版，欄位自動按內容縮小 */
+    .compact-form { display: flex; flex-wrap: wrap; gap: 8px 10px; align-items: flex-end; }
     .form-group { display: flex; flex-direction: column; }
-    .form-group label { font-size: 12px; font-weight: bold; margin-bottom: 4px; color: #475569; }
+    .form-group label { font-size: 11px; font-weight: bold; margin-bottom: 3px; color: #475569; white-space: nowrap; }
     .form-group label.required::after { content: " *"; color: #ef4444; }
     .form-group label.optional::after { content: " (選填)"; color: #94a3b8; font-weight: normal; }
-    .form-group input, .form-group select { padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; outline: none; }
+    
+    .form-group input, .form-group select { padding: 6px 8px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 12px; outline: none; box-sizing: border-box; }
     .form-group input:focus, .form-group select:focus { border-color: #3b82f6; }
 
-    .btn-submit { grid-column: 1 / -1; background: #2563eb; color: #fff; border: none; padding: 10px; border-radius: 6px; font-weight: bold; cursor: pointer; margin-top: 6px; }
+    /* 針對不同欄位給予最適適中寬度 */
+    .w-status { width: 100px; }
+    .w-user { width: 130px; }
+    .w-event { width: 130px; }
+    .w-member { width: 110px; }
+    .w-qty { width: 70px; }
+    .w-amount { width: 110px; }
+    .w-date { width: 135px; }
+    .w-last5 { width: 100px; }
+    .w-full { width: 100%; }
+
+    .btn-submit { background: #2563eb; color: #fff; border: none; padding: 7px 16px; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; height: 31px; white-space: nowrap; }
     .btn-submit:hover { background: #1d4ed8; }
 
-    .search-bar { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; align-items: center; }
-    .search-bar input { flex: 1; min-width: 220px; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; }
-    .btn-filter { padding: 6px 12px; border: 1px solid #cbd5e1; background: #fff; border-radius: 6px; font-size: 12px; cursor: pointer; font-weight: bold; color: #475569; }
+    .search-bar { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; align-items: center; }
+    .search-bar input { flex: 1; min-width: 200px; padding: 6px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 12px; }
+    .btn-filter { padding: 5px 10px; border: 1px solid #cbd5e1; background: #fff; border-radius: 6px; font-size: 12px; cursor: pointer; font-weight: bold; color: #475569; }
     .btn-filter.active { background: #0284c7; color: white; border-color: #0284c7; }
 
     .stats-info { font-size: 12px; font-weight: bold; color: #0f172a; margin-bottom: 8px; }
     .stats-info span { color: #16a34a; }
 
     table { width: 100%; border-collapse: collapse; font-size: 12px; background: #fff; border-radius: 8px; overflow: hidden; }
-    th { background: #f1f5f9; color: #334155; text-align: left; padding: 10px; border-bottom: 2px solid #e2e8f0; white-space: nowrap; }
-    td { padding: 10px; border-bottom: 1px solid #e2e8f0; }
+    th { background: #f1f5f9; color: #334155; text-align: left; padding: 8px 10px; border-bottom: 2px solid #e2e8f0; white-space: nowrap; }
+    td { padding: 8px 10px; border-bottom: 1px solid #e2e8f0; }
     
     tr.completed { background-color: #f1f5f9 !important; color: #94a3b8 !important; }
     tr.completed td { text-decoration: line-through; }
@@ -44,8 +57,8 @@
     .expense { color: #dc2626; font-weight: bold; }
     .account-code { font-family: monospace; font-weight: bold; background: #eff6ff; color: #1d4ed8; padding: 2px 6px; border-radius: 4px; }
 
-    .pagination { display: flex; justify-content: center; align-items: center; gap: 5px; margin-top: 15px; flex-wrap: wrap; }
-    .page-btn { padding: 5px 10px; border: 1px solid #cbd5e1; background: #fff; border-radius: 4px; font-size: 12px; cursor: pointer; color: #334155; }
+    .pagination { display: flex; justify-content: center; align-items: center; gap: 5px; margin-top: 12px; flex-wrap: wrap; }
+    .page-btn { padding: 4px 8px; border: 1px solid #cbd5e1; background: #fff; border-radius: 4px; font-size: 12px; cursor: pointer; color: #334155; }
     .page-btn.active { background: #2563eb; color: #fff; border-color: #2563eb; font-weight: bold; }
     .page-btn:disabled { opacity: 0.5; cursor: not-allowed; }
   </style>
@@ -55,11 +68,11 @@
   <h2>🏦 中國信託 存款交易明細對帳系統</h2>
   <div class="meta-info">帳號: 783540130964 | 幣別: TWD | 區間: 2026/01/01 - 2026/07/28</div>
 
-  <!-- 區塊 1：團員匯款登記填單 -->
+  <!-- 區塊 1：團員匯款登記填單 (緊湊型) -->
   <div class="card">
     <h3>📝 1. 團員匯款登記填單</h3>
-    <form id="orderForm" class="form-grid">
-      <div class="form-group">
+    <form id="orderForm" class="compact-form">
+      <div class="form-group w-status">
         <label class="required">匯款狀態</label>
         <select id="payStatusSelect">
           <option value="已匯款">已匯款</option>
@@ -67,11 +80,11 @@
           <option value="不確定">不確定</option>
         </select>
       </div>
-      <div class="form-group">
+      <div class="form-group w-user">
         <label class="required">1. 社群暱稱</label>
         <select id="userSelect" required><option value="">載入中...</option></select>
       </div>
-      <div class="form-group">
+      <div class="form-group w-event">
         <label class="required">2. 場次</label>
         <select id="eventSelect" onchange="toggleCustomEvent(this)">
           <option value="260328 D1">260328 D1</option>
@@ -81,57 +94,57 @@
           <option value="other">其他 (自訂)</option>
         </select>
       </div>
-      <div class="form-group" id="customEventGroup" style="display:none;">
-        <label class="required">自訂場次名稱</label>
+      <div class="form-group w-event" id="customEventGroup" style="display:none;">
+        <label class="required">自訂場次</label>
         <input type="text" id="customEventInput" placeholder="請輸入場次">
       </div>
-      <div class="form-group">
+      <div class="form-group w-member">
         <label class="required">4. 成員</label>
         <select id="memberSelect" required><option value="">載入中...</option></select>
       </div>
-      <div class="form-group">
+      <div class="form-group w-qty">
         <label class="required">5. 張數</label>
         <input type="number" id="qtyInput" value="1" min="1" required>
       </div>
-      <div class="form-group">
+      <div class="form-group w-amount">
         <label class="required">6. 金額</label>
-        <input type="number" id="amountInput" placeholder="請輸入金額" required>
+        <input type="number" id="amountInput" placeholder="金額" required>
       </div>
-      <div class="form-group">
+      <div class="form-group w-date">
         <label class="optional">7. 匯款日期</label>
         <input type="date" id="payDateInput">
       </div>
-      <div class="form-group">
+      <div class="form-group w-amount">
         <label class="optional">8. 匯款金額</label>
-        <input type="number" id="payAmountInput" placeholder="實際匯款金額">
+        <input type="number" id="payAmountInput" placeholder="實際匯款">
       </div>
-      <div class="form-group">
-        <label class="optional">9. 匯款後5碼</label>
-        <input type="text" id="payLast5Input" maxlength="5" placeholder="例如: 86876">
+      <div class="form-group w-last5">
+        <label class="optional">9. 後5碼</label>
+        <input type="text" id="payLast5Input" maxlength="5" placeholder="86876">
       </div>
       <button type="button" class="btn-submit" onclick="addOrderRecord()">＋ 新增登記填單</button>
     </form>
   </div>
 
-  <!-- 區塊 2：對帳審核區 -->
+  <!-- 區塊 2：對帳審核區 (緊湊型) -->
   <div class="card">
     <h3>🔍 2. 對帳審核區</h3>
-    <div class="form-grid">
-      <div class="form-group" style="grid-column: 1 / -1;">
+    <div class="compact-form">
+      <div class="form-group" style="flex: 1; min-width: 280px;">
         <label>4. 中信對應筆數</label>
-        <select id="ctbcSelect" onchange="autoFillAuditInfo(this)">
+        <select id="ctbcSelect" class="w-full" onchange="autoFillAuditInfo(this)">
           <option value="">-- 請選擇對應的中信交易筆數 --</option>
         </select>
       </div>
-      <div class="form-group">
+      <div class="form-group w-date">
         <label>1. 對帳日期</label>
         <input type="text" id="auditDate" readonly style="background:#f1f5f9;">
       </div>
-      <div class="form-group">
+      <div class="form-group w-amount">
         <label>2. 對帳金額</label>
         <input type="text" id="auditAmount" readonly style="background:#f1f5f9;">
       </div>
-      <div class="form-group">
+      <div class="form-group w-last5">
         <label>3. 後五碼</label>
         <input type="text" id="auditLast5" readonly style="background:#f1f5f9;">
       </div>
@@ -171,7 +184,6 @@
   <div class="pagination" id="pagination"></div>
 
   <script>
-    // 直接載入 884 筆交易資料
     let rawTransactions = [file-tag: code-generated-file-b880da6b-9430-4969-b315-f47770135819];
     let transactions = rawTransactions.filter(d => d.date !== '日期');
 
@@ -186,13 +198,12 @@
     const pageSize = 50;
 
     async function loadAllData() {
-      // 載入 users.json & members.json (若抓不到給予預設值)
       try {
         const uRes = await fetch('../json/users.json');
         const users = await uRes.json();
         document.getElementById('userSelect').innerHTML = users.map(u => `<option value="${u}">${u}</option>`).join('');
       } catch(e) {
-        document.getElementById('userSelect').innerHTML = '<option value="預設團員">預設團員</option>';
+        document.getElementById('userSelect').innerHTML = '<option value="白菜">白菜</option>';
       }
 
       try {
@@ -200,7 +211,7 @@
         const members = await mRes.json();
         document.getElementById('memberSelect').innerHTML = members.map(m => `<option value="${m}">${m}</option>`).join('');
       } catch(e) {
-        document.getElementById('memberSelect').innerHTML = '<option value="預設成員">預設成員</option>';
+        document.getElementById('memberSelect').innerHTML = '<option value="方燦">方燦</option>';
       }
 
       initCtbcDropdown();
