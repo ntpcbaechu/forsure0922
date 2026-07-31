@@ -7,7 +7,6 @@
     html, body { min-height: 500px !important; background: #fff; }
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 15px; margin: 0; color: #333; }
     
-    /* 改為 2 欄一排的雙欄格網看板 */
     .progress-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 15px; }
     @media (max-width: 768px) {
       .progress-grid { grid-template-columns: 1fr; }
@@ -101,7 +100,7 @@
         <option value="">請先選擇活動</option>
       </select>
 
-      <select id="sellerSelect" style="min-width: 140px;">
+      <select id="sellerSelect" required style="min-width: 140px;">
         <option value="">請先選擇成員</option>
       </select>
     </div>
@@ -224,7 +223,7 @@
     memSel.addEventListener('change', () => {
       const selectedEvent = evSel.value;
       const selectedMember = memSel.value;
-      sellerSel.innerHTML = '<option value="">請選擇代拍</option>';
+      sellerSel.innerHTML = '<option value="">請選擇活動單價中設定的代拍</option>';
 
       if (!selectedEvent || !selectedMember) return;
 
@@ -236,9 +235,15 @@
         }
       });
 
-      Array.from(sellerSet).sort().forEach(p => {
-        sellerSel.innerHTML += '<option value="' + p + '">' + p + '</option>';
-      });
+      const sellers = Array.from(sellerSet).sort();
+      if (sellers.length === 0) {
+        sellerSel.innerHTML = '<option value="代拍1">代拍1 (預設)</option>';
+      } else {
+        sellerSel.innerHTML = '<option value="">請選擇代拍</option>';
+        sellers.forEach(p => {
+          sellerSel.innerHTML += '<option value="' + p + '">' + p + '</option>';
+        });
+      }
     });
 
     onSnapshot(collection(db, "photo_progress"), snap => {
@@ -305,7 +310,7 @@
             const mRowCount = mItems.length;
 
             mItems.forEach((item, idx) => {
-              const sellerName = item.seller || '-';
+              const sellerName = item.seller || '代拍1';
               const statusText = item.status || '-';
 
               let memberCell = '';
@@ -348,14 +353,14 @@
       const member = document.getElementById('memberSelect').value;
       const seller = document.getElementById('sellerSelect').value;
 
-      const cleanSeller = seller ? seller.trim() : 'default';
+      const cleanSeller = seller ? seller.trim() : '代拍1';
       const docId = eventName + '_' + member + '_' + cleanSeller;
 
       try {
         await setDoc(doc(db, "photo_progress", docId), {
           eventName: eventName,
           member: member,
-          seller: seller,
+          seller: cleanSeller,
           status: status,
           updatedAt: new Date()
         }, { merge: true });
