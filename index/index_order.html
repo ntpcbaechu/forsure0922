@@ -5,48 +5,92 @@
   <title>登記表單</title>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 0; margin: 0; background: transparent; color: #333; }
-    .form-group { margin-bottom: 12px; }
+    
+    /* 雙欄網格佈局 */
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .form-group { margin-bottom: 10px; }
+    .form-group.full-width { grid-column: span 2; }
+
     label { font-size: 13px; font-weight: bold; color: #303133; display: block; margin-bottom: 4px; }
-    input, select, textarea { width: 100%; padding: 8px 10px; border: 1px solid #dcdfe6; border-radius: 8px; font-size: 13px; box-sizing: border-box; background: #fff; outline: none; transition: border-color 0.2s; }
+    
+    input, select, textarea { 
+      width: 100%; 
+      padding: 8px 10px; 
+      border: 1px solid #dcdfe6; 
+      border-radius: 8px; 
+      font-size: 13px; 
+      box-sizing: border-box; 
+      background: #fff; 
+      outline: none; 
+      transition: border-color 0.2s; 
+      font-family: inherit;
+    }
     input:focus, select:focus, textarea:focus { border-color: #409eff; }
     select:disabled { background: #f5f7fa; color: #c0c4cc; cursor: not-allowed; }
-    button { width: 100%; padding: 10px; background: #409eff; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: bold; cursor: pointer; margin-top: 8px; transition: background 0.2s; }
+    
+    textarea { height: 75px; resize: vertical; line-height: 1.4; }
+
+    button { width: 100%; padding: 10px; background: #409eff; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: bold; cursor: pointer; margin-top: 6px; transition: background 0.2s; }
     button:disabled { background: #a0cfff; }
-    .dynamic-tip { font-size: 12px; color: #909399; margin-top: 4px; display: block; }
+    
+    .qty-header-row { display: flex; justify-content: space-between; align-items: center; }
+    .dynamic-tip { font-size: 12px; color: #67c23a; font-weight: bold; }
+
+    @media (max-width: 500px) {
+      .form-grid { grid-template-columns: 1fr; }
+      .form-group.full-width { grid-column: span 1; }
+    }
   </style>
 </head>
 <body>
 
-  <h3 style="margin-top:0; margin-bottom:14px; text-align:center; font-size:16px;">登記表單</h3>
+  <h3 style="margin-top:0; margin-bottom:12px; text-align:center; font-size:16px;">登記表單</h3>
   <form id="orderForm">
-    <div class="form-group">
-      <label>社群名稱 *</label>
-      <select id="buyerName" required><option value="">載入中...</option></select>
+    <div class="form-grid">
+      
+      <div class="form-group">
+        <label>社群名稱 *</label>
+        <select id="buyerName" required><option value="">載入中...</option></select>
+      </div>
+
+      <div class="form-group">
+        <label>訂單類別</label>
+        <select id="orderType">
+          <option value="一般">一般 (預設)</option>
+          <option value="追加">追加</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>活動名稱 *</label>
+        <select id="eventName" required><option value="">載入中...</option></select>
+      </div>
+
+      <div class="form-group">
+        <label>成員 *</label>
+        <select id="member" required disabled><option value="">請先選擇活動</option></select>
+      </div>
+
+      <div class="form-group full-width">
+        <div class="qty-header-row">
+          <label style="margin-bottom:0;">數量 / 包 *</label>
+          <span id="qtyTip" class="dynamic-tip"></span>
+        </div>
+        <input type="number" id="qty" min="1" step="1" placeholder="請輸入包數 (例如: 1, 2...)" style="margin-top:4px;" required>
+      </div>
+
+      <div class="form-group full-width">
+        <label>備註欄位</label>
+        <textarea id="note" placeholder="如有特殊需求請在此註明..."></textarea>
+      </div>
+
     </div>
-    <div class="form-group">
-      <label>活動名稱 *</label>
-      <select id="eventName" required><option value="">載入中...</option></select>
-    </div>
-    <div class="form-group">
-      <label>成員 *</label>
-      <select id="member" required disabled><option value="">請先選擇活動</option></select>
-    </div>
-    <div class="form-group">
-      <label>數量 / 包 *</label>
-      <input type="number" id="qty" min="1" value="1" placeholder="請輸入包數" required>
-      <span id="qtyTip" class="dynamic-tip"></span>
-    </div>
-    <div class="form-group">
-      <label>訂單類別</label>
-      <select id="orderType">
-        <option value="一般">一般 (預設)</option>
-        <option value="追加">追加</option>
-      </select>
-    </div>
-    <div class="form-group">
-      <label>備註欄位</label>
-      <input type="text" id="note" placeholder="">
-    </div>
+
     <button type="submit" id="submitBtn">提交訂單</button>
   </form>
 
@@ -170,10 +214,11 @@
     function updateQtyTip() {
       const evName = document.getElementById('eventName').value;
       const memName = document.getElementById('member').value;
-      const packs = parseInt(document.getElementById('qty').value) || 0;
+      const qtyVal = document.getElementById('qty').value;
+      const packs = parseInt(qtyVal, 10);
       const tipElem = document.getElementById('qtyTip');
 
-      if (!evName || !memName || packs <= 0) {
+      if (!evName || !memName || isNaN(packs) || packs <= 0) {
         tipElem.textContent = '';
         return;
       }
@@ -193,7 +238,15 @@
       const buyerVal = document.getElementById('buyerName').value;
       const eventVal = document.getElementById('eventName').value;
       const memberVal = document.getElementById('member').value;
-      const packs = parseInt(document.getElementById('qty').value) || 1;
+      const rawQty = document.getElementById('qty').value.trim();
+      const packs = Number(rawQty);
+
+      if (!rawQty || isNaN(packs) || !Number.isInteger(packs) || packs <= 0) {
+        alert('⚠️ 請輸入有效的正整數包數（例如：1, 2, 3...）！');
+        document.getElementById('qty').focus();
+        return;
+      }
+
       const orderTypeVal = document.getElementById('orderType').value;
 
       const setting = eventPricesMap[eventVal + '_' + memberVal] || {};
@@ -243,7 +296,6 @@
         await addDoc(collection(db, "orders"), data);
         alert('🎉 登記成功！');
         document.getElementById('orderForm').reset();
-        document.getElementById('qty').value = '1';
         document.getElementById('member').innerHTML = '<option value="">請先選擇活動</option>';
         document.getElementById('member').disabled = true;
         document.getElementById('qtyTip').textContent = '';
