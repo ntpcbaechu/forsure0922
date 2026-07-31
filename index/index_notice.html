@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <title>注意事項</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 0; margin: 0; background: transparent; color: #333; line-height: 1.6; }
+    
+    .notice-card {
+      background: #fff;
+      border: 1px solid #e4e7ed;
+      border-radius: 12px;
+      padding: 18px 20px;
+      margin-bottom: 16px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+    }
+
+    .notice-header {
+      text-align: center;
+      font-size: 18px;
+      font-weight: bold;
+      color: #303133;
+      margin-bottom: 4px;
+    }
+    
+    .notice-sub {
+      text-align: center;
+      font-size: 12px;
+      color: #909399;
+      margin-bottom: 16px;
+    }
+
+    .section-box {
+      background: #fafafa;
+      border: 1px solid #ebeef5;
+      border-radius: 10px;
+      padding: 12px 15px;
+      margin-bottom: 12px;
+    }
+
+    .section-title {
+      font-size: 14px;
+      font-weight: bold;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .text-warning { color: #f56c6c; }
+    .text-line { color: #00b900; }
+    .text-primary { color: #409eff; }
+    .text-orange { color: #e6a23c; }
+
+    .line-card {
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      border-radius: 10px;
+      padding: 12px 15px;
+      margin-bottom: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .line-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    .btn-line {
+      background: #00b900;
+      color: #fff;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: bold;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: background 0.2s;
+    }
+    .btn-line:hover { background: #009900; }
+
+    .btn-copy {
+      background: #fff;
+      color: #00b900;
+      border: 1px solid #00b900;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .btn-copy:hover { background: #f0fdf4; }
+
+    .alert-box {
+      background: #fef0f0;
+      border: 1px solid #fde2e2;
+      border-left: 4px solid #f56c6c;
+      border-radius: 6px;
+      padding: 10px 12px;
+      margin-bottom: 12px;
+      font-size: 13px;
+      color: #303133;
+    }
+
+    ul { margin: 4px 0 0 0; padding-left: 18px; font-size: 13px; color: #606266; }
+    li { margin-bottom: 4px; }
+  </style>
+</head>
+<body>
+
+  <div class="notice-card">
+    <div class="notice-header">【注意事項】</div>
+    <div class="notice-sub">跟團視同同意以下事項 ｜ 20260731更新</div>
+
+    <!-- 官方 Line 聯絡 -->
+    <div class="line-card">
+      <div class="section-title text-line" style="margin-bottom:0;">
+        <span>💬 官方 Line 聯絡管道</span>
+      </div>
+      <div style="font-size:13px; color:#303133;">
+        有任何問題請隨時用官方 Line 跟我聯絡：<b>@115oyenv</b>
+      </div>
+      <div class="line-actions">
+        <a href="https://line.me/R/ti/p/@115oyenv" target="_blank" class="btn-line">💬 直接開啟 Line 連結</a>
+        <button type="button" class="btn-copy" onclick="copyLineId()">複製 ID</button>
+      </div>
+    </div>
+
+    <!-- 高售警告 -->
+    <div class="alert-box">
+      <div style="font-weight:bold; color:#f56c6c; margin-bottom:4px;">🔺 高售一律封鎖 + 退群 🆕</div>
+      <div style="line-height:1.5;">
+        抱歉我的心胸比較狹窄，只能接受原價或低價轉售。<br>
+        我覺得已經是原價拆圖了，也都會多給，不需要的圖還高售真的很奇怪，請去別團拆圖好嗎！
+      </div>
+    </div>
+
+    <!-- 取消與跑單規章 -->
+    <div class="section-box">
+      <div class="section-title text-orange">🔸 喊單與取消規章</div>
+      <div style="font-size:13px; color:#303133; font-weight:bold; margin-bottom:4px;">喊單後不接受任何理由取消：</div>
+      <ul>
+        <li>取消一律視為跑單，會發文公布帳號。</li>
+        <li>現生最重要！請評估自身能力後再來跟團。</li>
+      </ul>
+    </div>
+
+    <!-- 匯款資訊 -->
+    <div class="section-box">
+      <div class="section-title text-primary">🔸 匯款帳戶資訊</div>
+      <div style="font-size:13px; color:#303133; margin-bottom:6px;">
+        提供<b>臺灣銀行</b>、<b>樂天銀行</b>、<b>中國信託銀行</b>帳戶。<br>
+        <span style="color:#f56c6c; font-weight:bold;">無卡請務必先跟我聯絡！</span>
+      </div>
+      <ul>
+        <li>請於成團通知匯款後 <b>48 小時內</b>完成匯款。</li>
+        <li>逾期沒匯款視同跑單，會發文公布帳號。</li>
+      </ul>
+    </div>
+
+    <!-- 無卡存款 -->
+    <div class="section-box">
+      <div class="section-title text-warning">🔸 無卡存款須知</div>
+      <ul>
+        <li>可提供無卡，但請務必<b>先跟我聯絡取得同意</b>。</li>
+        <li>未經同意擅自無卡者 ➡️ 加入黑名單 / 往後拒絕交易。</li>
+        <li>若未經同意無卡，存超過該團金額也只會給預定張數。</li>
+      </ul>
+    </div>
+
+    <!-- 發圖守則 -->
+    <div class="section-box">
+      <div class="section-title text-primary">🔸 發圖連結守則 (Google Drive)</div>
+      <ul>
+        <li>發圖連結提供 Google Drive，請自行 Google 查詢存檔方式（不提供教學）。</li>
+        <li>請記得於資料夾上寫的<b>刪除時間前完成下載</b>。</li>
+        <li>逾時沒有下載到不接受退費，也無法補償。</li>
+      </ul>
+    </div>
+
+    <!-- 飯拍風險 -->
+    <div class="section-box">
+      <div class="section-title text-orange">🔸 飯拍品質與風險說明</div>
+      <ul>
+        <li>飯拍會有連拍 / 模糊 / 閉眼等風險。</li>
+        <li>代拍多給圖都會全部發完；代拍少給圖 / 圖況糟等不提供退款。</li>
+        <li>（會儘量爭取退款或補圖，但若代拍無法滿足要求需大家共同承擔）</li>
+      </ul>
+    </div>
+
+  </div>
+
+  <script>
+    function copyLineId() {
+      navigator.clipboard.writeText('@115oyenv').then(() => {
+        alert('✅ 已成功複製官方 Line ID: @115oyenv');
+      }).catch(() => {
+        alert('Line ID: @115oyenv');
+      });
+    }
+
+    function notifyHeight() {
+      setTimeout(() => {
+        window.parent.postMessage({ frameHeight: document.body.scrollHeight }, '*');
+      }, 100);
+    }
+    document.addEventListener('DOMContentLoaded', notifyHeight);
+  </script>
+</body>
+</html>
