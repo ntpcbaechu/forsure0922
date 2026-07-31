@@ -34,7 +34,7 @@
     .member-header-row { display: flex; justify-content: space-between; align-items: center; font-size: 14px; font-weight: bold; color: #303133; }
     
     .seller-row { display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: #606266; padding-left: 18px; margin-top: 2px; }
-    .buyer-row { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: #606266; padding-left: 18px; margin-top: 2px; }
+    .buyer-row { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: #606266; padding-left: 36px; margin-top: 2px; }
 
     .status-badge { padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: bold; white-space: nowrap; }
     .status-waiting { background: #f4f4f5; color: #909399; }
@@ -202,7 +202,9 @@
               const st = it.status || '等圖中';
               if (['分圖中', '整理中', '上傳中'].includes(st)) badgeClass = 'status-sorting';
               if (['已完工', '已發圖', '已結束', '已預約'].includes(st)) badgeClass = 'status-done';
-              const sellerLabel = it.seller ? `• ${it.seller}` : `• 代拍${sIdx+1}`;
+              
+              // 強制匿名化保護隱私：無論後台叫什麼名字，一律顯示為「代拍1」、「代拍2」
+              const sellerLabel = `• 代拍${sIdx + 1}`;
 
               sellersHtml += `
                 <div class="seller-row">
