@@ -16,7 +16,6 @@
     .login-box input { width: 100%; margin-bottom: 12px; padding: 10px; border: 1px solid #dcdfe6; border-radius: 8px; box-sizing: border-box; font-size: 13px; }
     .login-box button { width: 100%; padding: 10px; background: #409eff; color: white; border: none; border-radius: 8px; font-weight: bold; font-size: 14px; cursor: pointer; }
 
-    /* 緊湊型 4 欄後台導覽按鈕 */
     .tabs-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 15px; }
     .tab-btn { padding: 6px 8px; cursor: pointer; border: 1px solid #dcdfe6; background: #fff; font-weight: bold; color: #606266; font-size: 12px; border-radius: 8px; text-align: center; transition: all 0.2s; outline: none; white-space: nowrap; }
     .tab-btn:hover { border-color: #c6e2ff; background: #ecf5ff; color: #409eff; }
@@ -32,7 +31,6 @@
 </head>
 <body>
 
-  <!-- 登入卡片 -->
   <div id="loginSection" class="login-box">
     <h3>FORSURE🐶📸 管理者登入</h3>
     <form id="loginForm">
@@ -42,7 +40,6 @@
     </form>
   </div>
 
-  <!-- 控制台主區塊 -->
   <div class="card" id="mainAdmin" style="display:none;">
     <div class="top-nav">
       <a href="index.html" class="btn-home-nav">← 返回前台首頁</a>
@@ -54,19 +51,16 @@
 
     <h3 style="margin-top:0; margin-bottom:12px; font-size:18px;">FORSURE🐶📸 管理者控制台</h3>
 
-    <!-- 輕量型 4x2 導覽網格 -->
     <div class="tabs-grid">
       <button class="tab-btn active" onclick="switchAdminTab(0, 'admin/admin_orders.html')">團員登記管理</button>
       <button class="tab-btn" onclick="switchAdminTab(1, 'admin/admin_payments.html')">匯款對帳審核</button>
-      <button class="tab-btn" onclick="switchAdminTab(2, 'admin/admin_credits.html')">成員抵用金管理</button>
-      <button class="tab-btn" onclick="switchAdminTab(3, 'admin/admin_deposit.html')">預存儲值金管理</button>
-      <button class="tab-btn" onclick="switchAdminTab(4, 'admin/admin_events.html')">活動單價成本</button>
-      <button class="tab-btn" onclick="switchAdminTab(5, 'admin/admin_progress.html')">發圖進度更新</button>
-      <button class="tab-btn" onclick="switchAdminTab(6, 'admin/admin_lottery.html')">抽獎活動管理</button>
-      <button class="tab-btn" onclick="switchAdminTab(7, 'admin/admin_newtab.html')">新分頁</button>
+      <button class="tab-btn" onclick="switchAdminTab(2, 'admin/admin_deposit.html')">預存儲值/抵用金管理</button>
+      <button class="tab-btn" onclick="switchAdminTab(3, 'admin/admin_events.html')">活動單價成本</button>
+      <button class="tab-btn" onclick="switchAdminTab(4, 'admin/admin_progress.html')">發圖進度更新</button>
+      <button class="tab-btn" onclick="switchAdminTab(5, 'admin/admin_lottery.html')">抽獎活動管理</button>
+      <button class="tab-btn" onclick="switchAdminTab(6, 'admin/admin_newtab.html')">新分頁</button>
     </div>
 
-    <!-- iFrame 預設載入 admin/admin_orders.html -->
     <iframe id="adminFrame" src="admin/admin_orders.html"></iframe>
   </div>
 
