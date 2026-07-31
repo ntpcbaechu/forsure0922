@@ -2,70 +2,50 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
-  <title>目前開團與飯拍發放進度</title>
+  <title>開團與進度</title>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 0; margin: 0; background: transparent; color: #333; }
     
-    #progressList {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 16px;
-    }
+    .filter-bar { display: flex; gap: 10px; margin-bottom: 20px; align-items: center; background: #fff; padding: 12px 15px; border-radius: 12px; border: 1px solid #e4e7ed; flex-wrap: wrap; }
+    select { padding: 8px 12px; border: 1px solid #dcdfe6; border-radius: 8px; font-size: 14px; background: #fff; outline: none; }
+    select:focus { border-color: #409eff; }
 
-    .event-group-card { background: #fff; border: 1px solid #e4e7ed; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.02); display: flex; flex-direction: column; }
-    
-    .event-group-header {
-      background: #eef5fe;
-      border-left: 4px solid #409eff;
-      color: #1a252f;
-      font-size: 15px;
-      font-weight: bold;
-      padding: 10px 14px;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .progress-list-box { padding: 12px 14px; display: flex; flex-direction: column; gap: 12px; }
-    
-    .member-block { display: flex; flex-direction: column; gap: 6px; border-bottom: 1px dashed #ebeef5; padding-bottom: 10px; }
-    .member-block:last-child { border-bottom: none; padding-bottom: 0; }
-
-    /* 成員整包框框與底色 */
-    .member-box-card {
-      background: #f8f9fa;
-      border: 1px solid #e4e7ed;
-      border-radius: 8px;
-      padding: 8px 12px;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-
-    .member-header-row { display: flex; justify-content: space-between; align-items: center; font-size: 14px; font-weight: bold; color: #303133; }
-    
-    .seller-row { display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: #606266; padding-left: 12px; }
-    
-    /* 買家層級縮排與雙狀態 */
-    .buyer-row { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: #606266; padding-left: 24px; margin-top: 2px; }
-    .buyer-status-group { display: flex; align-items: center; gap: 6px; }
-
-    .status-badge { padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: bold; white-space: nowrap; }
-    .status-waiting { background: #f4f4f5; color: #909399; }
-    .status-sorting { background: #fdf6ec; color: #e6a23c; }
-    .status-done { background: #f0f9eb; color: #67c23a; }
-    .status-checking { background: #fdf6ec; color: #e6a23c; border: 1px solid #faebd7; }
-    .status-issue { background: #fef0f0; color: #f56c6c; border: 1px solid #fde2e2; }
-
+    /* 改為 3 欄一排的精緻看板網格 */
+    .progress-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
     @media (max-width: 768px) {
-      #progressList { grid-template-columns: 1fr; }
+      .progress-grid { grid-template-columns: 1fr; }
     }
+
+    .progress-card { background: #fff; border: 1px solid #e4e7ed; border-radius: 12px; padding: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); display: flex; flex-direction: column; justify-content: space-between; }
+    .progress-header { font-size: 14px; font-weight: bold; color: #303133; margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px dashed #ebeef5; display: flex; align-items: center; gap: 6px; }
+
+    .member-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 8px; margin-bottom: 4px; border-radius: 6px; background: #f8f9fa; font-size: 13px; }
+    .member-info { display: flex; align-items: center; gap: 6px; font-weight: bold; color: #606266; }
+    
+    .badge { padding: 3px 8px; border-radius: 10px; font-size: 11px; font-weight: bold; white-space: nowrap; }
+    .badge[data-val="已預約"] { background: #f3e8ff; color: #9c27b0; }
+    .badge[data-val="等圖中"] { background: #fdf6ec; color: #e6a23c; }
+    .badge[data-val="分圖中"] { background: #ecf5ff; color: #409eff; }
+    .badge[data-val="上傳中"] { background: #e8f8f5; color: #009688; }
+    .badge[data-val="已通知匯款"] { background: #eef2ff; color: #4f46e5; }
+    .badge[data-val="已發圖"] { background: #f0f9eb; color: #67c23a; }
+    .badge[data-val="到期/已刪除"] { background: #f4f4f5; color: #909399; }
   </style>
 </head>
 <body>
 
-  <h3 style="margin-top:0; margin-bottom:15px; font-size:18px;">目前開團與飯拍發放進度</h3>
-  <div id="progressList">載入中...</div>
+  <div class="filter-bar">
+    <select id="filterEvent">
+      <option value="">全部活動 (全部顯示)</option>
+    </select>
+    <select id="filterMember">
+      <option value="">全部成員</option>
+    </select>
+  </div>
+
+  <div class="progress-grid" id="progressContainer">
+    <p style="text-align:center; color:#909399; grid-column: span 3;">資料載入中...</p>
+  </div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -85,206 +65,120 @@
     const db = getFirestore(app);
 
     let memberOrderList = ["方燦", "Lee Know", "彰彬", "鉉辰", "HAN", "Felix", "昇玟", "I.N"];
-    fetch('../json/members.json').then(r => r.json()).then(arr => { memberOrderList = arr; }).catch(() => {});
+    fetch('../json/members.json').then(r => r.json()).then(arr => { memberOrderList = arr; initMemberFilter(); }).catch(() => { initMemberFilter(); });
 
-    let rawProgress = [];
-    let ordersCache = {};
-    let paymentsCache = {};
+    function initMemberFilter() {
+      const memSel = document.getElementById('filterMember');
+      memSel.innerHTML = '<option value="">全部成員</option>';
+      memberOrderList.forEach(m => {
+        memSel.innerHTML += `<option value="${m}">${m}</option>`;
+      });
+    }
 
-    onSnapshot(collection(db, "orders"), snap => {
-      ordersCache = {};
-      snap.forEach(d => { ordersCache[d.id] = d.data(); });
-      renderView();
+    let rawProgressData = [];
+
+    document.addEventListener('DOMContentLoaded', () => {
+      onSnapshot(collection(db, "progress"), snap => {
+        rawProgressData = [];
+        snap.forEach(d => rawProgressData.push(d.data()));
+        updateEventDropdown();
+        renderProgress();
+      });
+
+      onSnapshot(collection(db, "photo_progress"), snap => {
+        snap.forEach(d => {
+          const data = d.data();
+          rawProgressData.push({
+            eventName: data.eventName || data.event,
+            member: data.member,
+            seller: data.seller,
+            status: data.status
+          });
+        });
+        updateEventDropdown();
+        renderProgress();
+      });
+
+      document.getElementById('filterEvent').addEventListener('change', renderProgress);
+      document.getElementById('filterMember').addEventListener('change', renderProgress);
     });
 
-    onSnapshot(collection(db, "payments"), snap => {
-      paymentsCache = {};
-      snap.forEach(d => { paymentsCache[d.id] = d.data(); });
-      renderView();
-    });
+    function updateEventDropdown() {
+      const eventSel = document.getElementById('filterEvent');
+      const currentVal = eventSel.value;
+      const eventsSet = new Set();
 
-    onSnapshot(collection(db, "photo_progress"), snap => {
-      rawProgress = [];
-      snap.forEach(d => rawProgress.push({ id: d.id, ...d.data() }));
-      renderView();
-    });
+      rawProgressData.forEach(item => {
+        const ev = item.eventName || item.event;
+        if (ev) eventsSet.add(ev.trim());
+      });
 
-    function renderView() {
-      const container = document.getElementById('progressList');
+      eventSel.innerHTML = '<option value="">全部活動 (全部顯示)</option>';
+      Array.from(eventsSet).sort().forEach(ev => {
+        eventSel.innerHTML += `<option value="${ev}">${ev}</option>`;
+      });
+      eventSel.value = currentVal;
+    }
+
+    function renderProgress() {
+      const container = document.getElementById('progressContainer');
+      const selectedEvent = document.getElementById('filterEvent').value;
+      const selectedMember = document.getElementById('filterMember').value;
+
+      const eventMap = {};
+
+      rawProgressData.forEach(item => {
+        const ev = item.eventName || item.event || '未命名活動';
+        if (selectedEvent && ev !== selectedEvent) return;
+
+        const mem = item.member || '全體';
+        if (selectedMember && mem !== selectedMember) return;
+
+        if (!eventMap[ev]) eventMap[ev] = [];
+        eventMap[ev].push(item);
+      });
+
       container.innerHTML = '';
+      const eventKeys = Object.keys(eventMap).sort();
 
-      if (rawProgress.length === 0) {
-        container.innerHTML = '<p style="color:#909399; font-size:14px;">目前尚無開團進度公告。</p>';
+      if (eventKeys.length === 0) {
+        container.innerHTML = '<p style="text-align:center; color:#909399; grid-column: span 3;">目前無符合條件的進度紀錄</p>';
         notifyHeight();
         return;
       }
 
-      const eventGroups = {};
-      rawProgress.forEach(item => {
-        const eTitle = item.eventName || item.event || '未命名活動';
-        if (!eventGroups[eTitle]) eventGroups[eTitle] = [];
-        eventGroups[eTitle].push(item);
-      });
-
-      const sortedEventNames = Object.keys(eventGroups).sort((a, b) => {
-        const matchA = a.match(/\d{6}/); const matchB = b.match(/\d{6}/);
-        const dateA = matchA ? parseInt(matchA[0], 10) : 0;
-        const dateB = matchB ? parseInt(matchB[0], 10) : 0;
-        if (dateA !== dateB) return dateA - dateB;
-        return a.localeCompare(b, 'zh-TW');
-      });
-
-      let htmlContent = '';
-
-      sortedEventNames.forEach(eventName => {
-        const items = eventGroups[eventName];
-
+      eventKeys.forEach(ev => {
+        const items = eventMap[ev];
+        
         items.sort((a, b) => {
-          const mA = a.member || '';
-          const mB = b.member || '';
-          let idxA = memberOrderList.indexOf(mA);
-          let idxB = memberOrderList.indexOf(mB);
+          let idxA = memberOrderList.indexOf(a.member);
+          let idxB = memberOrderList.indexOf(b.member);
           if (idxA === -1) idxA = 99;
           if (idxB === -1) idxB = 99;
           return idxA - idxB;
         });
 
-        const memberMap = {};
-        items.forEach(item => {
-          const m = item.member || '全體';
-          if (!memberMap[m]) memberMap[m] = [];
-          memberMap[m].push(item);
-        });
-
         let membersHtml = '';
-
-        Object.keys(memberMap).forEach(mName => {
-          const mItems = memberMap[mName];
-          
-          const matchedBuyers = new Set();
-          Object.values(ordersCache).forEach(ord => {
-            const ev = ord.event || ord.eventName || '';
-            const mem = ord.member || '';
-            if (ev === eventName && mem === mName) {
-              const bName = ord.buyerName || ord.user || ord.nickname;
-              if (bName) matchedBuyers.add(bName);
-            }
-          });
-
-          let buyersHtml = '';
-          Array.from(matchedBuyers).sort().forEach(bName => {
-            let payStatusText = '⏳ 待匯款';
-            let payBadgeClass = 'status-waiting';
-            let photoStatusText = '📷 待發圖';
-            let photoBadgeClass = 'status-waiting';
-
-            // 檢查該買家在此活動的匯款與發圖狀態
-            Object.values(ordersCache).forEach(ord => {
-              const b = ord.buyerName || ord.user || ord.nickname;
-              const ev = ord.event || ord.eventName || '';
-              const mem = ord.member || '';
-              if (b === bName && ev === eventName && mem === mName) {
-                const st = ord.paymentStatus || ord.status || (ord.hasPaid ? '已對帳' : '待匯款');
-                if (st === '已對帳' || ord.hasPaid) {
-                  payStatusText = '🟢 已對帳';
-                  payBadgeClass = 'status-done';
-                } else if (st === '待對帳' || st === '對帳中') {
-                  payStatusText = '⏳ 待對帳';
-                  payBadgeClass = 'status-checking';
-                } else if (st === '對帳有問題' || st === '有問題') {
-                  payStatusText = '⚠️ 帳有問題';
-                  payBadgeClass = 'status-issue';
-                }
-              }
-            });
-
-            // 檢查發圖狀態
-            Object.values(paymentsCache).forEach(p => {
-              const pUser = p.user || p.buyerName;
-              if (pUser === bName && (p.isPhotoSent === true || p.status === 'photo_sent')) {
-                const rels = p.relatedOrderIds || [];
-                const hasThisEv = rels.some(rId => {
-                  const oObj = ordersCache[rId];
-                  return oObj && (oObj.event || oObj.eventName) === eventName;
-                });
-                if (hasThisEv || rels.length === 0) {
-                  photoStatusText = '🔵 已發圖';
-                  photoBadgeClass = 'status-done';
-                }
-              }
-            });
-
-            buyersHtml += `
-              <div class="buyer-row">
-                <span>- ${bName}</span>
-                <div class="buyer-status-group">
-                  <span class="status-badge ${payBadgeClass}">${payStatusText}</span>
-                  <span class="status-badge ${photoBadgeClass}">${photoStatusText}</span>
-                </div>
-              </div>
-            `;
-          });
-
-          if (mItems.length === 1) {
-            let badgeClass = 'status-waiting';
-            const st = mItems[0].status || '等圖中';
-            if (['分圖中', '整理中', '上傳中'].includes(st)) badgeClass = 'status-sorting';
-            if (['已完工', '已發圖', '已結束', '已預約'].includes(st)) badgeClass = 'status-done';
-
-            membersHtml += `
-              <div class="member-block">
-                <div class="member-box-card">
-                  <div class="member-header-row">
-                    <span>👤 ${mName}</span>
-                    <span class="status-badge ${badgeClass}">${st}</span>
-                  </div>
-                </div>
-                ${buyersHtml}
-              </div>
-            `;
-          } else {
-            let sellersHtml = '';
-            mItems.forEach((it, sIdx) => {
-              let badgeClass = 'status-waiting';
-              const st = it.status || '等圖中';
-              if (['分圖中', '整理中', '上傳中'].includes(st)) badgeClass = 'status-sorting';
-              if (['已完工', '已發圖', '已結束', '已預約'].includes(st)) badgeClass = 'status-done';
-              
-              const sellerLabel = `• 代拍${sIdx + 1}`;
-
-              sellersHtml += `
-                <div class="seller-row">
-                  <span>${sellerLabel}</span>
-                  <span class="status-badge ${badgeClass}">${st}</span>
-                </div>
-              `;
-            });
-
-            membersHtml += `
-              <div class="member-block">
-                <div class="member-box-card">
-                  <div class="member-header-row">
-                    <span>👤 ${mName}</span>
-                  </div>
-                  ${sellersHtml}
-                </div>
-                ${buyersHtml}
-              </div>
-            `;
-          }
+        items.forEach(it => {
+          const st = it.status || '等圖中';
+          membersHtml += `
+            <div class="member-row">
+              <div class="member-info">👤 ${it.member} <span style="font-size:11px; color:#909399; font-weight:normal;">(${it.seller || '-'})</span></div>
+              <span class="badge" data-val="${st}">${st}</span>
+            </div>
+          `;
         });
 
-        htmlContent += `
-          <div class="event-group-card">
-            <div class="event-group-header">📅 ${eventName}</div>
-            <div class="progress-list-box">
-              ${membersHtml}
+        container.innerHTML += `
+          <div class="progress-card">
+            <div>
+              <div class="progress-header">🗓️ ${ev}</div>
+              <div>${membersHtml}</div>
             </div>
           </div>
         `;
       });
 
-      container.innerHTML = htmlContent;
       notifyHeight();
     }
 
