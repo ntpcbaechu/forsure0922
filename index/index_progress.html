@@ -26,20 +26,36 @@
       gap: 6px;
     }
 
-    .progress-list-box { padding: 10px 14px; display: flex; flex-direction: column; gap: 12px; }
+    .progress-list-box { padding: 12px 14px; display: flex; flex-direction: column; gap: 12px; }
     
-    .member-block { display: flex; flex-direction: column; gap: 4px; border-bottom: 1px dashed #f0f2f5; padding-bottom: 8px; }
+    .member-block { display: flex; flex-direction: column; gap: 6px; border-bottom: 1px dashed #ebeef5; padding-bottom: 10px; }
     .member-block:last-child { border-bottom: none; padding-bottom: 0; }
+
+    /* 成員整包框框與底色 */
+    .member-box-card {
+      background: #f8f9fa;
+      border: 1px solid #e4e7ed;
+      border-radius: 8px;
+      padding: 8px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
 
     .member-header-row { display: flex; justify-content: space-between; align-items: center; font-size: 14px; font-weight: bold; color: #303133; }
     
-    .seller-row { display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: #606266; padding-left: 18px; margin-top: 2px; }
-    .buyer-row { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: #606266; padding-left: 36px; margin-top: 2px; }
+    .seller-row { display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: #606266; padding-left: 12px; }
+    
+    /* 買家層級縮排與雙狀態 */
+    .buyer-row { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: #606266; padding-left: 24px; margin-top: 2px; }
+    .buyer-status-group { display: flex; align-items: center; gap: 6px; }
 
     .status-badge { padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: bold; white-space: nowrap; }
     .status-waiting { background: #f4f4f5; color: #909399; }
     .status-sorting { background: #fdf6ec; color: #e6a23c; }
     .status-done { background: #f0f9eb; color: #67c23a; }
+    .status-checking { background: #fdf6ec; color: #e6a23c; border: 1px solid #faebd7; }
+    .status-issue { background: #fef0f0; color: #f56c6c; border: 1px solid #fde2e2; }
 
     @media (max-width: 768px) {
       #progressList { grid-template-columns: 1fr; }
@@ -157,7 +173,32 @@
 
           let buyersHtml = '';
           Array.from(matchedBuyers).sort().forEach(bName => {
-            let isSent = false;
+            let payStatusText = '⏳ 待匯款';
+            let payBadgeClass = 'status-waiting';
+            let photoStatusText = '📷 待發圖';
+            let photoBadgeClass = 'status-waiting';
+
+            // 檢查該買家在此活動的匯款與發圖狀態
+            Object.values(ordersCache).forEach(ord => {
+              const b = ord.buyerName || ord.user || ord.nickname;
+              const ev = ord.event || ord.eventName || '';
+              const mem = ord.member || '';
+              if (b === bName && ev === eventName && mem === mName) {
+                const st = ord.paymentStatus || ord.status || (ord.hasPaid ? '已對帳' : '待匯款');
+                if (st === '已對帳' || ord.hasPaid) {
+                  payStatusText = '🟢 已對帳';
+                  payBadgeClass = 'status-done';
+                } else if (st === '待對帳' || st === '對帳中') {
+                  payStatusText = '⏳ 待對帳';
+                  payBadgeClass = 'status-checking';
+                } else if (st === '對帳有問題' || st === '有問題') {
+                  payStatusText = '⚠️ 帳有問題';
+                  payBadgeClass = 'status-issue';
+                }
+              }
+            });
+
+            // 檢查發圖狀態
             Object.values(paymentsCache).forEach(p => {
               const pUser = p.user || p.buyerName;
               if (pUser === bName && (p.isPhotoSent === true || p.status === 'photo_sent')) {
@@ -166,16 +207,20 @@
                   const oObj = ordersCache[rId];
                   return oObj && (oObj.event || oObj.eventName) === eventName;
                 });
-                if (hasThisEv || rels.length === 0) isSent = true;
+                if (hasThisEv || rels.length === 0) {
+                  photoStatusText = '🔵 已發圖';
+                  photoBadgeClass = 'status-done';
+                }
               }
             });
 
-            const badgeText = isSent ? '🔵 已發圖' : '📷 待發圖';
-            const badgeClass = isSent ? 'status-done' : 'status-waiting';
             buyersHtml += `
               <div class="buyer-row">
                 <span>- ${bName}</span>
-                <span class="status-badge ${badgeClass}">${badgeText}</span>
+                <div class="buyer-status-group">
+                  <span class="status-badge ${payBadgeClass}">${payStatusText}</span>
+                  <span class="status-badge ${photoBadgeClass}">${photoStatusText}</span>
+                </div>
               </div>
             `;
           });
@@ -188,9 +233,11 @@
 
             membersHtml += `
               <div class="member-block">
-                <div class="member-header-row">
-                  <span>👤 ${mName}</span>
-                  <span class="status-badge ${badgeClass}">${st}</span>
+                <div class="member-box-card">
+                  <div class="member-header-row">
+                    <span>👤 ${mName}</span>
+                    <span class="status-badge ${badgeClass}">${st}</span>
+                  </div>
                 </div>
                 ${buyersHtml}
               </div>
@@ -203,7 +250,6 @@
               if (['分圖中', '整理中', '上傳中'].includes(st)) badgeClass = 'status-sorting';
               if (['已完工', '已發圖', '已結束', '已預約'].includes(st)) badgeClass = 'status-done';
               
-              // 強制匿名化保護隱私：無論後台叫什麼名字，一律顯示為「代拍1」、「代拍2」
               const sellerLabel = `• 代拍${sIdx + 1}`;
 
               sellersHtml += `
@@ -216,10 +262,12 @@
 
             membersHtml += `
               <div class="member-block">
-                <div class="member-header-row">
-                  <span>👤 ${mName}</span>
+                <div class="member-box-card">
+                  <div class="member-header-row">
+                    <span>👤 ${mName}</span>
+                  </div>
+                  ${sellersHtml}
                 </div>
-                ${sellersHtml}
                 ${buyersHtml}
               </div>
             `;
