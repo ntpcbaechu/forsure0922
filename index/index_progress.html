@@ -6,6 +6,17 @@
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 0; margin: 0; background: transparent; color: #333; }
     
+    .filter-card { background: #fff; border: 1px solid #e4e7ed; border-radius: 12px; padding: 14px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); }
+    .filter-row { display: flex; align-items: center; gap: 10px; }
+    .filter-title { font-size: 14px; font-weight: bold; color: #303133; white-space: nowrap; }
+
+    select { padding: 8px 12px; border: 1px solid #dcdfe6; border-radius: 8px; font-size: 13px; background: #fff; outline: none; cursor: pointer; }
+    select:focus { border-color: #409eff; }
+
+    .capsule-bar { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+    .capsule-btn { background: #ecf5ff; color: #409eff; border: 1px solid #d9ecff; padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: bold; cursor: pointer; transition: all 0.2s; }
+    .capsule-btn:hover, .capsule-btn.active { background: #409eff; color: #fff; border-color: #409eff; }
+
     #progressList {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
@@ -64,7 +75,19 @@
 </head>
 <body>
 
-  <h3 style="margin-top:0; margin-bottom:15px; font-size:18px;">目前開團與飯拍發放進度</h3>
+  <h3 style="margin-top:0; margin-bottom:12px; font-size:18px;">目前開團與飯拍發放進度</h3>
+
+  <div class="filter-card">
+    <div class="filter-row">
+      <span class="filter-title">🔍 請選擇篩選模式：</span>
+      <select id="modeSelect">
+        <option value="ALL">全部</option>
+        <option value="user">依社群成員</option>
+      </select>
+    </div>
+    <div id="capsuleContainer" class="capsule-bar"></div>
+  </div>
+
   <div id="progressList">載入中...</div>
 
   <script type="module">
@@ -90,6 +113,12 @@
     let rawProgress = [];
     let ordersCache = {};
     let paymentsCache = {};
+    let activeFilterValue = 'ALL';
+
+    document.getElementById('modeSelect').addEventListener('change', () => {
+      activeFilterValue = 'ALL';
+      renderView();
+    });
 
     onSnapshot(collection(db, "orders"), snap => {
       ordersCache = {};
@@ -110,13 +139,41 @@
     });
 
     function renderView() {
+      const mode = document.getElementById('modeSelect').value;
+      const capsuleContainer = document.getElementById('capsuleContainer');
       const container = document.getElementById('progressList');
+      
+      capsuleContainer.innerHTML = '';
       container.innerHTML = '';
 
       if (rawProgress.length === 0) {
         container.innerHTML = '<p style="color:#909399; font-size:14px;">目前尚無開團進度公告。</p>';
         notifyHeight();
         return;
+      }
+
+      // 收集所有社群成員名單
+      const usersSet = new Set();
+      Object.values(ordersCache).forEach(ord => {
+        const name = ord.buyerName || ord.user || ord.nickname;
+        if (name) usersSet.add(name);
+      });
+      const sortedUsers = Array.from(usersSet).sort((a, b) => a.localeCompare(b, 'zh-TW'));
+
+      if (mode === 'user') {
+        const allBtn = document.createElement('button');
+        allBtn.className = 'capsule-btn ' + (activeFilterValue === 'ALL' ? 'active' : '');
+        allBtn.textContent = '👤 全部';
+        allBtn.onclick = () => { activeFilterValue = 'ALL'; renderView(); };
+        capsuleContainer.appendChild(allBtn);
+
+        sortedUsers.forEach(userName => {
+          const btn = document.createElement('button');
+          btn.className = 'capsule-btn ' + (activeFilterValue === userName ? 'active' : '');
+          btn.textContent = '👤 ' + userName;
+          btn.onclick = () => { activeFilterValue = userName; renderView(); };
+          capsuleContainer.appendChild(btn);
+        });
       }
 
       const eventGroups = {};
@@ -167,9 +224,17 @@
             const mem = ord.member || '';
             if (ev === eventName && mem === mName) {
               const bName = ord.buyerName || ord.user || ord.nickname;
-              if (bName) matchedBuyers.add(bName);
+              if (bName) {
+                if (mode === 'user' && activeFilterValue !== 'ALL' && bName !== activeFilterValue) return;
+                matchedBuyers.add(bName);
+              }
             }
           });
+
+          // 如果是依社群成員篩選，但該活動/成員下沒有這個買家，則跳過該成員區塊
+          if (mode === 'user' && activeFilterValue !== 'ALL' && matchedBuyers.size === 0) {
+            return;
+          }
 
           let buyersHtml = '';
           Array.from(matchedBuyers).sort().forEach(bName => {
@@ -178,7 +243,6 @@
             let photoStatusText = '📷 待發圖';
             let photoBadgeClass = 'status-waiting';
 
-            // 檢查該買家在此活動的匯款與發圖狀態
             Object.values(ordersCache).forEach(ord => {
               const b = ord.buyerName || ord.user || ord.nickname;
               const ev = ord.event || ord.eventName || '';
@@ -198,7 +262,6 @@
               }
             });
 
-            // 檢查發圖狀態
             Object.values(paymentsCache).forEach(p => {
               const pUser = p.user || p.buyerName;
               if (pUser === bName && (p.isPhotoSent === true || p.status === 'photo_sent')) {
@@ -274,6 +337,10 @@
           }
         });
 
+        if (mode === 'user' && activeFilterValue !== 'ALL' && membersHtml === '') {
+          return;
+        }
+
         htmlContent += `
           <div class="event-group-card">
             <div class="event-group-header">📅 ${eventName}</div>
@@ -284,7 +351,7 @@
         `;
       });
 
-      container.innerHTML = htmlContent;
+      container.innerHTML = htmlContent || '<p style="color:#909399; font-size:14px;">目前尚無符合條件的進度紀錄。</p>';
       notifyHeight();
     }
 
