@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <title>已對帳審核</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 5px; margin: 0; background: #fff; color: #333; }
+    .group-card { border: 1px solid #e1f3d8; border-radius: 8px; margin-bottom: 15px; background: #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.04); overflow: hidden; }
+    .group-header { padding: 10px 15px; font-size: 14px; font-weight: bold; display: flex; align-items: center; justify-content: space-between; background: #f0f9eb; color: #67c23a; border-bottom: 1px solid #e1f3d8; }
+    .group-badge { font-size: 11px; padding: 2px 8px; border-radius: 10px; background: rgba(255,255,255,0.8); }
+
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 10px 8px; border-bottom: 1px solid #e4e7ed; text-align: left; font-size: 13px; vertical-align: top; }
+    th { background: #f8f9fa; color: #606266; font-weight: bold; white-space: nowrap; }
+    tr:last-child td { border-bottom: none; }
+    
+    input[type="text"], input[type="number"], input[type="date"], select, textarea { padding: 4px 6px; border: 1px solid #dcdfe6; border-radius: 4px; font-size: 12px; box-sizing: border-box; outline: none; }
+    input:focus, select:focus, textarea:focus { border-color: #409eff; }
+
+    .item-list { margin: 0; padding-left: 0; list-style: none; font-size: 12px; color: #606266; }
+    .item-list li { margin-bottom: 4px; }
+    .meta-box { margin-top: 6px; padding-top: 6px; border-top: 1px dashed #ebeef5; font-size: 11px; color: #909399; }
+    .note-text { color: #e6a23c; word-break: break-all; margin-top: 4px; white-space: pre-wrap; line-height: 1.4; }
+
+    .bank-check-card { margin-top: 10px; background: #fdfdfd; border: 1px solid #e4e7ed; border-radius: 6px; padding: 10px; }
+    .bank-check-header { font-weight: bold; font-size: 12px; color: #409eff; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
+    .bank-input-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; background: #fff; border: 1px solid #ebeef5; padding: 6px 8px; border-radius: 4px; margin-bottom: 6px; }
+    .btn-add-bank { background: #ecf5ff; color: #409eff; border: 1px solid #b3d8ff; padding: 4px 8px; border-radius: 4px; font-size: 11px; cursor: pointer; font-weight: bold; margin-top: 4px; }
+    .btn-del-bank { background: #fef0f0; color: #f56c6c; border: 1px solid #fde2e2; border-radius: 4px; padding: 2px 6px; cursor: pointer; font-size: 11px; }
+
+    .status-warning { color: #f56c6c; font-size: 11px; font-weight: bold; margin-top: 6px; display: block; }
+    .status-ok-msg { color: #67c23a; font-size: 11px; font-weight: bold; margin-top: 6px; display: block; }
+
+    .btn-toggle { padding: 5px 10px; border-radius: 4px; font-size: 12px; cursor: pointer; border: 1px solid #dcdfe6; background: #fff; transition: all 0.2s; width: 100%; text-align: center; }
+    .btn-toggle.ok-active { background: #e1f3d8; color: #67c23a; border-color: #67c23a; font-weight: bold; }
+    .btn-toggle.photo-active { background: #d9ecff; color: #409eff; border-color: #409eff; font-weight: bold; }
+    
+    .btn-edit { background-color: #e6a23c; color: white; padding: 4px 8px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; margin-bottom: 4px; width: 100%; display: block; text-align: center; }
+    .btn-save { background-color: #67c23a; color: white; padding: 4px 8px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; margin-bottom: 4px; width: 100%; display: block; text-align: center; }
+    .btn-cancel { background-color: #909399; color: white; padding: 4px 8px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; margin-bottom: 4px; width: 100%; display: block; text-align: center; }
+    .btn-danger { background-color: #f56c6c; color: white; padding: 4px 8px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; width: 100%; display: block; text-align: center; }
+  </style>
+</head>
+<body>
+
+  <div id="groupContainer">載入中...</div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getFirestore, collection, doc, deleteDoc, updateDoc, onSnapshot, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDF7QySG1Jj4gdZvXwMRaKjRmI-lFKpj7k",
+      authDomain: "forsure0922.firebaseapp.com",
+      databaseURL: "https://forsure0922-default-rtdb.firebaseio.com",
+      projectId: "forsure0922",
+      storageBucket: "forsure0922.firebasestorage.app",
+      messagingSenderId: "817449290174",
+      appId: "1:817449290174:web:6b4ec1d36c171ff97011ef"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const BANK_OPTIONS = ['台銀', '樂天', '中信', '台新', '其他'];
+
+    let paymentDataMap = {};
+    let editingRows = new Set();
+    let ordersCache = {};
+
+    onSnapshot(collection(db, "orders"), snap => {
+      ordersCache = {};
+      snap.forEach(d => { ordersCache[d.id] = d.data(); });
+      renderTable();
+    });
+
+    onSnapshot(collection(db, "payments"), snap => {
+      paymentDataMap = {};
+      snap.forEach(d => { paymentDataMap[d.id] = { id: d.id, ...d.data() }; });
+      renderTable();
+    });
+
+    function getNormalizedPayStatus(p) {
+      const st = String(p.status || '').toLowerCase().trim();
+      if (st === 'ok' || st === '已對帳') return 'ok';
+      if (st === 'error' || st === '對帳有問題' || st === '有問題') return 'error';
+      return 'pending';
+    }
+
+    function renderTable() {
+      const container = document.getElementById('groupContainer');
+      container.innerHTML = '';
+
+      let list = Object.values(paymentDataMap).filter(p => {
+        const isOk = getNormalizedPayStatus(p) === 'ok';
+        const isPhotoSent = p.isPhotoSent === true || p.status === 'photo_sent';
+        return isOk && !isPhotoSent; // 顯示已對帳但尚未發圖的項目
+      });
+
+      if (list.length === 0) {
+        container.innerHTML = '<div style="text-align:center; color:#909399; padding:30px;">目前尚無已對帳且未發圖的紀錄</div>';
+        notifyHeight();
+        return;
+      }
+
+      list.sort((a, b) => {
+        const tA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const tB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return tA - tB;
+      });
+
+      const card = document.createElement('div');
+      card.className = 'group-card';
+      card.innerHTML = '<div class="group-header"><span>🟢 已對帳 (未發圖)</span><span class="group-badge">共 ' + list.length + ' 筆</span></div>' +
+        '<table><thead><tr><th style="width:15%;">社群名稱</th><th style="width:45%;">買家勾選與明細 & 銀行實際對帳輸入</th><th style="width:15%;">買家填寫資料</th><th style="width:13%;">對帳狀態</th><th style="width:12%;">操作</th></tr></thead><tbody></tbody></table>';
+
+      const tb = card.querySelector('tbody');
+      list.forEach(p => tb.appendChild(renderPaymentRow(p)));
+      container.appendChild(card);
+
+      notifyHeight();
+    }
+
+    function renderPaymentRow(p) {
+      const docId = p.id;
+      const isEditing = editingRows.has(docId);
+
+      const userName = p.user || p.buyerName || '-';
+      const socialName = p.social || p.socialAccount || '-';
+      const status = getNormalizedPayStatus(p);
+      const isPhotoSent = p.isPhotoSent === true || p.status === 'photo_sent';
+      
+      const expectedAmt = p.finalPay !== undefined ? p.finalPay : (p.amount || 0);
+      const expectedLast5 = String(p.bankLast5 || p.last5 || '').trim();
+      const buyerBank = p.bankName || p.bank || '';
+
+      let inputs = p.bankInputs || [];
+      if (inputs.length === 0) {
+        inputs = [{ amt: p.inputAmt || '', last5: p.inputLast5 || '', bank: buyerBank, date: p.checkDate || '' }];
+      }
+
+      let timeStr = '-';
+      if (p.createdAt) {
+        try {
+          let dateObj = (typeof p.createdAt === 'string') ? new Date(p.createdAt) : new Date(p.createdAt.seconds * 1000);
+          if (dateObj && !isNaN(dateObj.getTime())) {
+            timeStr = dateObj.toLocaleString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false });
+          }
+        } catch(e) {}
+      }
+
+      const buyerNote = p.note || p.userNote || '';
+
+      let itemsHtml = '';
+      const relatedIds = p.relatedOrderIds || [];
+      if (relatedIds.length > 0) {
+        itemsHtml += '<ul class="item-list">';
+        relatedIds.forEach(oId => {
+          const o = ordersCache[oId];
+          if (o) {
+            const ev = o.event || o.eventName || '活動';
+            const mem = o.member || '全體';
+            const qty = o.qty !== undefined ? o.qty : (o.quantity || 0);
+            itemsHtml += '<li>• <b>' + ev + '</b> (' + mem + ' / ' + qty + '張)</li>';
+          }
+        });
+        itemsHtml += '</ul>';
+      } else {
+        const ev = p.eventName || p.event || '多筆關聯訂單';
+        const qtyInfo = p.qty !== undefined ? p.qty + ' 張' : '';
+        itemsHtml = '<div>' + ev + ' ' + qtyInfo + '</div>';
+      }
+
+      let totalInputAmt = 0;
+      inputs.forEach(inp => {
+        if (inp.amt !== '' && !isNaN(parseFloat(inp.amt))) totalInputAmt += parseFloat(inp.amt);
+      });
+
+      let bankInputsHtml = '<div class="bank-check-card"><div class="bank-check-header"><span>🏦 銀行實際對帳紀錄</span></div>';
+      inputs.forEach((inp, idx) => {
+        let bankOptionsStr = '<option value="">請選擇銀行</option>' + BANK_OPTIONS.map(b => '<option value="' + b + '" ' + (inp.bank === b ? 'selected' : '') + '>' + b + '</option>').join('');
+        bankInputsHtml += '<div class="bank-input-row">' +
+          '<span style="font-weight:bold; color:#909399; font-size:11px;">#' + (idx+1) + '</span> ' +
+          '金額: <input type="number" style="width:70px;" value="' + inp.amt + '" onchange="updateBankInput(\'' + docId + '\', ' + idx + ', \'amt\', this.value === \'\' ? \'\' : parseFloat(this.value))"> ' +
+          '後五碼: <input type="text" style="width:65px;" value="' + inp.last5 + '" onchange="updateBankInput(\'' + docId + '\', ' + idx + ', \'last5\', this.value.trim())"> ' +
+          '銀行: <select onchange="updateBankInput(\'' + docId + '\', ' + idx + ', \'bank\', this.value)">' + bankOptionsStr + '</select> ' +
+          '日期: <input type="date" value="' + (inp.date || '') + '" onchange="updateBankInput(\'' + docId + '\', ' + idx + ', \'date\', this.value)"> ' +
+          (inputs.length > 1 ? '<button class="btn-del-bank" onclick="removeBankInput(\'' + docId + '\', ' + idx + ')">🗑️</button>' : '') +
+        '</div>';
+      });
+
+      bankInputsHtml += '<button class="btn-add-bank" onclick="addBankInput(\'' + docId + '\')">➕ 新增對帳筆數</button> ' +
+        '<span class="status-ok-msg">🟢 比對完全吻合 (合計 $' + totalInputAmt + ')</span>' +
+      '</div>';
+
+      const tr = document.createElement('tr');
+
+      if (!isEditing) {
+        tr.innerHTML = '<td><b>' + userName + '</b><br><small style="color:#909399;">' + socialName + '</small></td>' +
+          '<td>' +
+            itemsHtml +
+            '<div class="meta-box">' +
+              '<div>⏱️ <b>匯款時間：</b>' + timeStr + '</div>' +
+              (buyerNote ? '<div class="note-text">📝 <b>買家備註：</b>\n' + buyerNote + '</div>' : '') +
+            '</div>' +
+            bankInputsHtml +
+          '</td>' +
+          '<td>' +
+            '<b style="color:#f56c6c; font-size:14px;">$' + expectedAmt + '</b><br>' +
+            '<small style="color:#606266;">買家填寫: <b>' + (buyerBank || '未選') + ' (' + (expectedLast5 || '-') + ')</b></small>' +
+          '</td>' +
+          '<td>' +
+            '<button class="btn-toggle ok-active">🟢 已對帳</button>' +
+            '<button class="btn-toggle" onclick="togglePhotoSent(\'' + docId + '\', true)" style="margin-top:6px; background:#d9ecff; color:#409eff; border-color:#409eff;">📷 設為已發圖</button>' +
+          '</td>' +
+          '<td>' +
+            '<button class="btn-edit" onclick="toggleEdit(\'' + docId + '\', true)">✏️ 編輯</button>' +
+            '<button class="btn-danger" onclick="deletePayment(\'' + docId + '\')">🗑️ 刪除</button>' +
+          '</td>';
+      } else {
+        tr.innerHTML = '<td>' +
+            '<input type="text" id="edit-user-' + docId + '" value="' + userName + '" style="width:100%; margin-bottom:4px;" placeholder="社群暱稱">' +
+            '<input type="text" id="edit-social-' + docId + '" value="' + socialName + '" style="width:100%;" placeholder="社群帳號">' +
+          '</td>' +
+          '<td>' +
+            itemsHtml +
+            '<div style="margin-top:6px;">' +
+              '<textarea id="edit-note-' + docId + '" style="width:100%; height:55px;" placeholder="編輯買家備註">' + buyerNote + '</textarea>' +
+            '</div>' +
+          '</td>' +
+          '<td>' +
+            '應匯: <input type="number" id="edit-amt-' + docId + '" value="' + expectedAmt + '" style="width:70px; margin-bottom:4px;"><br>' +
+            '後五碼: <input type="text" id="edit-last5-' + docId + '" value="' + expectedLast5 + '" style="width:70px;">' +
+          '</td>' +
+          '<td><span style="font-size:12px; color:#909399;">編輯模式中</span></td>' +
+          '<td>' +
+            '<button class="btn-save" onclick="savePaymentEdit(\'' + docId + '\')">💾 儲存</button>' +
+            '<button class="btn-cancel" onclick="toggleEdit(\'' + docId + '\', false)">❌ 取消</button>' +
+          '</td>';
+      }
+
+      return tr;
+    }
+
+    window.updateBankInput = async (docId, idx, key, val) => {
+      const p = paymentDataMap[docId];
+      if (!p) return;
+      let inputs = p.bankInputs || [];
+      inputs[idx][key] = val;
+      try {
+        await updateDoc(doc(db, "payments", docId), { bankInputs: inputs });
+      } catch (err) { alert('更新失敗: ' + err.message); }
+    };
+
+    window.addBankInput = async (docId) => {
+      const p = paymentDataMap[docId];
+      if (!p) return;
+      let inputs = p.bankInputs || [];
+      inputs.push({ amt: '', last5: '', bank: p.bankName || '', date: '' });
+      try { await updateDoc(doc(db, "payments", docId), { bankInputs: inputs }); } catch (err) { alert('新增失敗: ' + err.message); }
+    };
+
+    window.removeBankInput = async (docId, idx) => {
+      const p = paymentDataMap[docId];
+      if (!p) return;
+      let inputs = p.bankInputs || [];
+      inputs.splice(idx, 1);
+      try { await updateDoc(doc(db, "payments", docId), { bankInputs: inputs }); } catch (err) { alert('刪除失敗: ' + err.message); }
+    };
+
+    window.toggleEdit = (docId, isEdit) => {
+      if (isEdit) editingRows.add(docId);
+      else editingRows.delete(docId);
+      renderTable();
+    };
+
+    window.savePaymentEdit = async (docId) => {
+      const user = document.getElementById('edit-user-' + docId).value.trim();
+      const social = document.getElementById('edit-social-' + docId).value.trim();
+      const note = document.getElementById('edit-note-' + docId).value.trim();
+      const finalPay = parseFloat(document.getElementById('edit-amt-' + docId).value) || 0;
+      const bankLast5 = document.getElementById('edit-last5-' + docId).value.trim();
+      try {
+        await updateDoc(doc(db, "payments", docId), {
+          user: user, buyerName: user,
+          social: social, socialAccount: social,
+          note: note, userNote: note,
+          finalPay: finalPay, amount: finalPay,
+          bankLast5: bankLast5, last5: bankLast5
+        });
+        editingRows.delete(docId);
+        alert('✅ 匯款紀錄修改成功！');
+      } catch (err) { alert('儲存失敗: ' + err.message); }
+    };
+
+    window.togglePhotoSent = async (docId, shouldSetSent) => {
+      const pData = paymentDataMap[docId] || {};
+      const relatedIds = pData.relatedOrderIds || [];
+      const buyerName = pData.user || pData.buyerName;
+
+      const todayObj = new Date();
+      const todayStr = todayObj.toISOString().slice(0,10);
+      const expireObj = new Date(todayObj.getTime() + 8 * 24 * 60 * 60 * 1000);
+      const expireStr = expireObj.toISOString().slice(0,10);
+
+      try {
+        await updateDoc(doc(db, "payments", docId), {
+          isPhotoSent: true,
+          photoSentAt: todayStr,
+          photoExpireAt: expireStr
+        });
+        await syncPhotoStatusToOrders(relatedIds, buyerName, true, todayStr, expireStr);
+      } catch (err) { alert('更新發圖狀態失敗: ' + err.message); }
+    };
+
+    window.deletePayment = async (docId) => {
+      if (confirm('確定要刪除這筆匯款審核紀錄嗎？')) { 
+        const pData = paymentDataMap[docId] || {};
+        try {
+          await deleteDoc(doc(db, "payments", docId));
+          const updateData = { hasPaid: false, paymentStatus: '待匯款', status: '待匯款' };
+          if (pData.relatedOrderIds && pData.relatedOrderIds.length > 0) {
+            await Promise.all(pData.relatedOrderIds.map(id => updateDoc(doc(db, "orders", id), updateData)));
+          }
+        } catch (err) { alert('刪除失敗: ' + err.message); }
+      }
+    };
+
+    async function syncPhotoStatusToOrders(relatedIds, buyerName, isPhotoSent, photoSentAt, photoExpireAt) {
+      const updateData = { isPhotoSent, photoSentAt, photoExpireAt };
+      if (relatedIds && relatedIds.length > 0) {
+        await Promise.all(relatedIds.map(id => updateDoc(doc(db, "orders", id), updateData)));
+      } else if (buyerName) {
+        const q = query(collection(db, "orders"), where("user", "==", buyerName));
+        const snap = await getDocs(q);
+        await Promise.all(snap.docs.map(d => updateDoc(doc(db, "orders", d.id), updateData)));
+      }
+    }
+
+    function notifyHeight() {
+      setTimeout(() => { window.parent.postMessage({ frameHeight: document.body.scrollHeight }, '*'); }, 100);
+    }
+  </script>
+</body>
+</html>
