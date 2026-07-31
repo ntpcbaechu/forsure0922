@@ -7,7 +7,7 @@
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 15px; margin: 0; background: #fff; color: #333; }
     
     .filter-card { background: #f8f9fa; border: 1px solid #e4e7ed; border-radius: 10px; padding: 12px 14px; margin-bottom: 15px; }
-    .filter-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .filter-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
     .filter-title { font-size: 13px; font-weight: bold; color: #303133; white-space: nowrap; }
 
     select, input[type="text"], input[type="number"] {
@@ -20,7 +20,11 @@
     }
     select:focus, input:focus { border-color: #409eff; }
 
-    .capsule-bar { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+    .status-filter-bar { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+    .status-tab { padding: 5px 12px; border-radius: 16px; border: 1px solid #dcdfe6; background: #fff; font-size: 12px; font-weight: bold; cursor: pointer; color: #606266; }
+    .status-tab.active { background: #409eff; color: #fff; border-color: #409eff; }
+
+    .capsule-bar { display: flex; flex-wrap: wrap; gap: 6px; }
     .capsule-btn { background: #fff; color: #409eff; border: 1px solid #d9ecff; padding: 4px 12px; border-radius: 16px; font-size: 12px; font-weight: bold; cursor: pointer; transition: all 0.2s; }
     .capsule-btn:hover, .capsule-btn.active { background: #409eff; color: #fff; border-color: #409eff; }
 
@@ -61,9 +65,14 @@
 </head>
 <body>
 
-  <h3>團員填單紀錄管理</h3>
+  <h3>團員登記管理</h3>
 
   <div class="filter-card">
+    <div class="status-filter-bar">
+      <button class="status-tab active" onclick="setPaymentFilter('ALL', this)">📌 全部</button>
+      <button class="status-tab" onclick="setPaymentFilter('pending', this)">⏳ 待匯款 / 未回報</button>
+      <button class="status-tab" onclick="setPaymentFilter('paid', this)">🟢 已匯款</button>
+    </div>
     <div class="filter-row">
       <span class="filter-title">🔍 篩選模式：</span>
       <select id="modeSelect">
@@ -102,6 +111,7 @@
     let eventPricesMap = {};
     let editingRows = new Set();
     let activeFilterValue = 'ALL';
+    let paymentStatusFilter = 'ALL'; // 'ALL', 'pending', 'paid'
 
     document.addEventListener('DOMContentLoaded', async () => {
       try {
@@ -138,6 +148,13 @@
         renderCapsulesAndTable();
       });
     });
+
+    window.setPaymentFilter = (statusType, btnElem) => {
+      paymentStatusFilter = statusType;
+      document.querySelectorAll('.status-tab').forEach(b => b.classList.remove('active'));
+      if (btnElem) btnElem.classList.add('active');
+      renderTableContent();
+    };
 
     document.getElementById('modeSelect').addEventListener('change', () => {
       activeFilterValue = 'ALL';
@@ -232,6 +249,12 @@
         const user = String(item.buyerName || item.user || item.nickname || '');
         const eName = String(item.event || item.eventName || '');
         const member = String(item.member || '');
+        const status = item.paymentStatus || item.status || (item.hasPaid ? '已對帳' : '待匯款');
+        const isPaid = (status === '已對帳' || item.hasPaid === true);
+
+        // 匯款狀態篩選
+        if (paymentStatusFilter === 'pending' && isPaid) return false;
+        if (paymentStatusFilter === 'paid' && !isPaid) return false;
 
         if (mode === 'user' && activeFilterValue !== 'ALL' && user !== activeFilterValue) return false;
         if (mode === 'event' && activeFilterValue !== 'ALL') {
@@ -252,7 +275,6 @@
         return;
       }
 
-      // 分組渲染
       const groups = {};
       filtered.forEach(o => {
         const key = (o.event || o.eventName || '未分類活動') + (o.member ? ' - ' + o.member : '');
@@ -270,7 +292,6 @@
 
       for (const title of sortedKeys) {
         const list = groups[title];
-        // 依時間排序 (舊到新)
         list.sort((a, b) => {
           const tA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
           const tB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
