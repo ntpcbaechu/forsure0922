@@ -36,8 +36,10 @@
     .tab-btn { background: #f4f4f5; color: #606266; border: 1px solid #dcdfe6; padding: 5px 12px; border-radius: 16px; font-size: 12px; font-weight: bold; cursor: pointer; transition: all 0.2s; }
     .tab-btn:hover, .tab-btn.active { background: #409eff; color: #fff; border-color: #409eff; }
 
-    .grid-container { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
-    @media (max-width: 768px) { .grid-container { grid-template-columns: 1fr; } }
+    /* 🎯 預設 3 個一排，螢幕較小時自動變 2 個或 1 個一排 */
+    .grid-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    @media (max-width: 1024px) { .grid-container { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 650px) { .grid-container { grid-template-columns: 1fr; } }
 
     .user-block { background: #fff; border: 1px solid #e4e7ed; border-radius: 10px; padding: 12px 14px; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 2px 6px rgba(0,0,0,0.01); gap: 8px; }
     .user-header { font-size: 14px; font-weight: bold; color: #303133; margin-bottom: 4px; padding-bottom: 6px; border-bottom: 1px solid #ebeef5; display: flex; justify-content: space-between; align-items: center; }
@@ -108,7 +110,7 @@
       <button type="submit" class="btn-submit" id="depSubmitBtn">提交儲值申報 (等待對帳入帳)</button>
     </form>
 
-    <!-- 2. 申請退款表單 (手動原因、拆開銀行與帳號、強效警語) -->
+    <!-- 2. 申請退款表單 -->
     <form id="refundForm" class="form-section">
       <div class="form-group">
         <label>社群名稱 *</label>
@@ -155,7 +157,7 @@
     </form>
   </div>
 
-  <!-- 下半部：模仿 index_records 的篩選與多區塊卡片呈現 -->
+  <!-- 下半部：篩選與卡片顯示區 -->
   <div class="search-card">
     <div class="search-row">
       <span class="search-title">👤 快速篩選：</span>
@@ -291,7 +293,6 @@
       notifyHeight();
     }
 
-    // 1. 提交儲值
     document.getElementById('depositForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const btn = document.getElementById('depSubmitBtn');
@@ -322,7 +323,6 @@
       }
     });
 
-    // 2. 提交退款
     document.getElementById('refundForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const btn = document.getElementById('refSubmitBtn');
@@ -390,7 +390,7 @@
       allRefundRequests.forEach(r => allUsersSet.add(r.user || r.buyerName));
 
       if (allUsersSet.size === 0) {
-        container.innerHTML = '<div class="empty-tip" style="grid-column: span 2;">目前尚無任何紀錄</div>';
+        container.innerHTML = '<div class="empty-tip" style="grid-column: span 3;">目前尚無任何紀錄</div>';
         notifyHeight();
         return;
       }
@@ -401,7 +401,6 @@
       sortedUsers.forEach(uName => {
         if (selectedUserFilter !== 'ALL' && uName !== selectedUserFilter) return;
 
-        // 計算餘額
         let plus = 0, used = 0;
         let depositItems = allDeposits.filter(d => (d.user || d.buyerName) === uName);
         let creditItems = allCredits.filter(c => (c.user || c.buyerName) === uName);
@@ -426,8 +425,6 @@
 
         renderCount++;
 
-        // 建立三大區塊內容
-        // 1. 抵用金與消費明細區
         let creditHtml = '';
         creditItems.forEach(c => {
           const crAmt = Number(c.credit) || Number(c.amount) || 0;
@@ -441,14 +438,12 @@
         });
         if (!creditHtml) creditHtml = '<div style="color:#909399; font-size:11px; padding:2px;">目前無已結算明細</div>';
 
-        // 2. 預存儲值申報區 (黃底)
         let depPendingHtml = '';
         depositItems.filter(d => d.status === '待對帳').forEach(d => {
           depPendingHtml += `<div class="item-row"><span>📥 儲值 $${Number(d.amount).toLocaleString()} (${d.bank} / 後5碼:${d.last5})</span><b style="color:#e6a23c;">⏳ 待確認對帳中</b></div>`;
         });
         if (!depPendingHtml) depPendingHtml = '<div style="color:#909399; font-size:11px; padding:2px;">目前無待對帳申報</div>';
 
-        // 3. 退款申請區 (粉紅底)
         let refPendingHtml = '';
         refundItems.filter(r => r.status === '待退款').forEach(r => {
           refPendingHtml += `<div class="item-row"><span>📤 退款 $${Number(r.amount).toLocaleString()} (${r.reason})</span><b style="color:#f56c6c;">⏳ 待退款審核中</b></div>`;
@@ -490,7 +485,7 @@
       });
 
       if (renderCount === 0) {
-        container.innerHTML = '<div class="empty-tip" style="grid-column: span 2;">目前此分類無符合的成員紀錄</div>';
+        container.innerHTML = '<div class="empty-tip" style="grid-column: span 3;">目前此分類無符合的成員紀錄</div>';
       }
 
       notifyHeight();
