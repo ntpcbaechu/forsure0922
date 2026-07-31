@@ -26,14 +26,17 @@
       gap: 6px;
     }
 
-    .progress-list-box { padding: 4px 14px 10px 14px; display: flex; flex-direction: column; }
-    .progress-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 4px; }
+    .progress-list-box { padding: 10px 14px; display: flex; flex-direction: column; gap: 12px; }
     
-    .member-info { font-size: 13px; color: #606266; display: flex; align-items: center; gap: 8px; }
-    .member-name { font-weight: bold; color: #303133; font-size: 14px; }
-    .seller-tag { font-size: 11px; color: #909399; background: #f4f4f5; padding: 2px 6px; border-radius: 4px; font-weight: normal; }
+    .member-block { display: flex; flex-direction: column; gap: 4px; border-bottom: 1px dashed #f0f2f5; padding-bottom: 8px; }
+    .member-block:last-child { border-bottom: none; padding-bottom: 0; }
 
-    .status-badge { padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; white-space: nowrap; }
+    .member-header-row { display: flex; justify-content: space-between; align-items: center; font-size: 14px; font-weight: bold; color: #303133; }
+    
+    .seller-row { display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: #606266; padding-left: 18px; margin-top: 2px; }
+    .buyer-row { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: #606266; padding-left: 18px; margin-top: 2px; }
+
+    .status-badge { padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: bold; white-space: nowrap; }
     .status-waiting { background: #f4f4f5; color: #909399; }
     .status-sorting { background: #fdf6ec; color: #e6a23c; }
     .status-done { background: #f0f9eb; color: #67c23a; }
@@ -68,21 +71,40 @@
     let memberOrderList = ["方燦", "Lee Know", "彰彬", "鉉辰", "HAN", "Felix", "昇玟", "I.N"];
     fetch('../json/members.json').then(r => r.json()).then(arr => { memberOrderList = arr; }).catch(() => {});
 
+    let rawProgress = [];
+    let ordersCache = {};
+    let paymentsCache = {};
+
+    onSnapshot(collection(db, "orders"), snap => {
+      ordersCache = {};
+      snap.forEach(d => { ordersCache[d.id] = d.data(); });
+      renderView();
+    });
+
+    onSnapshot(collection(db, "payments"), snap => {
+      paymentsCache = {};
+      snap.forEach(d => { paymentsCache[d.id] = d.data(); });
+      renderView();
+    });
+
     onSnapshot(collection(db, "photo_progress"), snap => {
+      rawProgress = [];
+      snap.forEach(d => rawProgress.push({ id: d.id, ...d.data() }));
+      renderView();
+    });
+
+    function renderView() {
       const container = document.getElementById('progressList');
       container.innerHTML = '';
 
-      if (snap.empty) {
+      if (rawProgress.length === 0) {
         container.innerHTML = '<p style="color:#909399; font-size:14px;">目前尚無開團進度公告。</p>';
         notifyHeight();
         return;
       }
 
-      let rawList = [];
-      snap.forEach(d => rawList.push({ id: d.id, ...d.data() }));
-
       const eventGroups = {};
-      rawList.forEach(item => {
+      rawProgress.forEach(item => {
         const eTitle = item.eventName || item.event || '未命名活動';
         if (!eventGroups[eTitle]) eventGroups[eTitle] = [];
         eventGroups[eTitle].push(item);
@@ -108,49 +130,105 @@
           let idxB = memberOrderList.indexOf(mB);
           if (idxA === -1) idxA = 99;
           if (idxB === -1) idxB = 99;
-          if (idxA !== idxB) return idxA - idxB;
-          return (a.seller || '').localeCompare(b.seller || '');
+          return idxA - idxB;
         });
 
-        const memberCounts = {};
+        const memberMap = {};
         items.forEach(item => {
           const m = item.member || '全體';
-          memberCounts[m] = (memberCounts[m] || 0) + 1;
+          if (!memberMap[m]) memberMap[m] = [];
+          memberMap[m].push(item);
         });
 
-        const memberIndexTracker = {};
-        let rowsHtml = '';
+        let membersHtml = '';
 
-        items.forEach((item) => {
-          let badgeClass = 'status-waiting';
-          const st = item.status || '等圖中';
-          if (['分圖中', '整理中', '上傳中'].includes(st)) badgeClass = 'status-sorting';
-          if (['已完工', '已發圖', '已結束', '已預約'].includes(st)) badgeClass = 'status-done';
+        Object.keys(memberMap).forEach(mName => {
+          const mItems = memberMap[mName];
+          
+          const matchedBuyers = new Set();
+          Object.values(ordersCache).forEach(ord => {
+            const ev = ord.event || ord.eventName || '';
+            const mem = ord.member || '';
+            if (ev === eventName && mem === mName) {
+              const bName = ord.buyerName || ord.user || ord.nickname;
+              if (bName) matchedBuyers.add(bName);
+            }
+          });
 
-          const memberName = item.member || '全體';
-          let sellerText = '';
+          let buyersHtml = '';
+          Array.from(matchedBuyers).sort().forEach(bName => {
+            let isSent = false;
+            Object.values(paymentsCache).forEach(p => {
+              const pUser = p.user || p.buyerName;
+              if (pUser === bName && (p.isPhotoSent === true || p.status === 'photo_sent')) {
+                const rels = p.relatedOrderIds || [];
+                const hasThisEv = rels.some(rId => {
+                  const oObj = ordersCache[rId];
+                  return oObj && (oObj.event || oObj.eventName) === eventName;
+                });
+                if (hasThisEv || rels.length === 0) isSent = true;
+              }
+            });
 
-          if (memberCounts[memberName] > 1) {
-            if (!memberIndexTracker[memberName]) memberIndexTracker[memberName] = 1;
-            sellerText = `<span class="seller-tag">代拍${memberIndexTracker[memberName]++}</span>`;
-          }
-
-          rowsHtml += `
-            <div class="progress-row">
-              <div class="member-info">
-                <span class="member-name">👤 ${memberName}</span>
-                ${sellerText}
+            const badgeText = isSent ? '🔵 已發圖' : '📷 待發圖';
+            const badgeClass = isSent ? 'status-done' : 'status-waiting';
+            buyersHtml += `
+              <div class="buyer-row">
+                <span>- ${bName}</span>
+                <span class="status-badge ${badgeClass}">${badgeText}</span>
               </div>
-              <div class="status-badge ${badgeClass}">${st}</div>
-            </div>
-          `;
+            `;
+          });
+
+          if (mItems.length === 1) {
+            let badgeClass = 'status-waiting';
+            const st = mItems[0].status || '等圖中';
+            if (['分圖中', '整理中', '上傳中'].includes(st)) badgeClass = 'status-sorting';
+            if (['已完工', '已發圖', '已結束', '已預約'].includes(st)) badgeClass = 'status-done';
+
+            membersHtml += `
+              <div class="member-block">
+                <div class="member-header-row">
+                  <span>👤 ${mName}</span>
+                  <span class="status-badge ${badgeClass}">${st}</span>
+                </div>
+                ${buyersHtml}
+              </div>
+            `;
+          } else {
+            let sellersHtml = '';
+            mItems.forEach((it, sIdx) => {
+              let badgeClass = 'status-waiting';
+              const st = it.status || '等圖中';
+              if (['分圖中', '整理中', '上傳中'].includes(st)) badgeClass = 'status-sorting';
+              if (['已完工', '已發圖', '已結束', '已預約'].includes(st)) badgeClass = 'status-done';
+              const sellerLabel = it.seller ? `• ${it.seller}` : `• 代拍${sIdx+1}`;
+
+              sellersHtml += `
+                <div class="seller-row">
+                  <span>${sellerLabel}</span>
+                  <span class="status-badge ${badgeClass}">${st}</span>
+                </div>
+              `;
+            });
+
+            membersHtml += `
+              <div class="member-block">
+                <div class="member-header-row">
+                  <span>👤 ${mName}</span>
+                </div>
+                ${sellersHtml}
+                ${buyersHtml}
+              </div>
+            `;
+          }
         });
 
         htmlContent += `
           <div class="event-group-card">
             <div class="event-group-header">📅 ${eventName}</div>
             <div class="progress-list-box">
-              ${rowsHtml}
+              ${membersHtml}
             </div>
           </div>
         `;
@@ -158,7 +236,7 @@
 
       container.innerHTML = htmlContent;
       notifyHeight();
-    });
+    }
 
     function notifyHeight() {
       setTimeout(() => {
