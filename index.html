@@ -5,68 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>FORSURE🐶📸</title>
   <style>
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      padding: 15px;
-      max-width: 950px;
-      margin: 0 auto;
-      background-color: #f4f6f8;
-      color: #333;
-    }
-    .main-card {
-      background: #ffffff;
-      padding: 16px 20px;
-      border-radius: 16px;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.05);
-    }
-    .header-title {
-      text-align: center;
-      font-size: 22px;
-      font-weight: 800;
-      margin-bottom: 12px;
-      color: #1a1a1a;
-      letter-spacing: 0.5px;
-    }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 15px; max-width: 950px; margin: 0 auto; background-color: #f4f6f8; color: #333; }
+    .main-card { background: #ffffff; padding: 16px 20px; border-radius: 16px; box-shadow: 0 4px 16px rgba(0,0,0,0.05); }
+    .header-title { text-align: center; font-size: 22px; font-weight: 800; margin-bottom: 12px; color: #1a1a1a; letter-spacing: 0.5px; }
     
-    .nav-grid {
-      display: grid;
-      grid-template-columns: repeat(6, 1fr);
-      gap: 5px;
-      margin-bottom: 15px;
-    }
+    .nav-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 5px; margin-bottom: 15px; }
+    .nav-btn { padding: 5px 8px; font-size: 12px; font-weight: bold; border: 1px solid #dcdfe6; background: #ffffff; color: #606266; border-radius: 6px; cursor: pointer; text-align: center; transition: all 0.2s ease; white-space: nowrap; outline: none; }
+    .nav-btn:hover { background: #f0f7ff; color: #409eff; border-color: #c6e2ff; }
+    .nav-btn.active { background: #409eff; color: #ffffff; border-color: #409eff; box-shadow: 0 2px 6px rgba(64,158,255,0.25); }
 
-    .nav-btn {
-      padding: 5px 8px;
-      font-size: 12px;
-      font-weight: bold;
-      border: 1px solid #dcdfe6;
-      background: #ffffff;
-      color: #606266;
-      border-radius: 6px;
-      cursor: pointer;
-      text-align: center;
-      transition: all 0.2s ease;
-      white-space: nowrap;
-      outline: none;
-    }
-    .nav-btn:hover {
-      background: #f0f7ff;
-      color: #409eff;
-      border-color: #c6e2ff;
-    }
-    .nav-btn.active {
-      background: #409eff;
-      color: #ffffff;
-      border-color: #409eff;
-      box-shadow: 0 2px 6px rgba(64,158,255,0.25);
-    }
-
-    iframe {
-      width: 100%;
-      border: none;
-      min-height: 500px;
-      transition: height 0.2s ease;
-    }
+    iframe { width: 100%; border: none; min-height: 500px; transition: height 0.2s ease; }
 
     @media (max-width: 650px) {
       body { padding: 8px 4px; }
@@ -87,7 +35,7 @@
       <button class="nav-btn" onclick="switchTab(1, 'index/index_notice.html')">📌 注意事項</button>
       <button class="nav-btn" onclick="switchTab(2, 'index/index_payment.html')">💰 匯款表單</button>
       <button class="nav-btn" onclick="switchTab(3, 'index/index_records.html')">🔍 登記與對帳</button>
-      <button class="nav-btn" onclick="switchTab(4, 'index/index_deposit.html')">💳 抵用金/儲值金</button>
+      <button class="nav-btn" onclick="switchTab(4, 'index/index_deposit_app.html')">💳 帳戶儲值與退款</button>
       <button class="nav-btn" onclick="switchTab(5, 'index/index_lottery.html')">🎉 抽獎結果</button>
     </div>
 

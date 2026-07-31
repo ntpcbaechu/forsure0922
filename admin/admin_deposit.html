@@ -7,6 +7,12 @@
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 15px; margin: 0; background: #fff; color: #333; }
     h3 { margin-top: 0; margin-bottom: 15px; font-size: 18px; }
 
+    .approval-card { background: #fdf6ec; border: 1px solid #faebd7; border-radius: 10px; padding: 14px; margin-bottom: 20px; }
+    .approval-title { font-weight: bold; color: #e6a23c; font-size: 14px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
+    .approval-table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 6px; overflow: hidden; }
+    .approval-table th, .approval-table td { padding: 8px 10px; border-bottom: 1px solid #ebeef5; font-size: 12px; text-align: left; }
+    .approval-table th { background: #fafafa; color: #606266; }
+
     .unified-form-box { background: #f8f9fa; border: 1px solid #e4e7ed; border-radius: 10px; padding: 14px 16px; margin-bottom: 20px; display: flex; flex-direction: column; gap: 12px; }
     .form-row { display: grid; gap: 10px; align-items: end; grid-template-columns: 1.2fr 1fr 1fr 1fr 1fr 1.5fr auto; }
     @media (max-width: 900px) { .form-row { grid-template-columns: 1fr 1fr; } }
@@ -19,6 +25,7 @@
     button { background-color: #409eff; color: white; border: none; font-weight: bold; cursor: pointer; }
     .btn-edit { background-color: #e6a23c; color: white; padding: 4px 8px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; }
     .btn-danger { background-color: #f56c6c; color: white; padding: 4px 8px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; }
+    .btn-success { background-color: #67c23a; color: white; padding: 4px 10px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; }
 
     .capsule-bar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 15px; background: #f8f9fa; padding: 10px; border-radius: 8px; border: 1px solid #ebeef5; }
     .capsule-btn { background: #ecf5ff; color: #409eff; border: 1px solid #d9ecff; padding: 5px 12px; border-radius: 16px; font-size: 12px; font-weight: bold; cursor: pointer; transition: all 0.2s; }
@@ -50,6 +57,12 @@
 <body>
 
   <h3>買家預存儲值金與抵用金對帳管理 (Deposits & Credits)</h3>
+
+  <!-- 待審核清單專區 -->
+  <div class="approval-card" id="approvalCardContainer" style="display:none;">
+    <div class="approval-title"><span>⏳ 待審核申請專區 (儲值申報 & 退款申請)</span></div>
+    <div id="approvalTablesBox" style="display:flex; flex-direction:column; gap:12px;"></div>
+  </div>
 
   <form id="depositForm" class="unified-form-box">
     <input type="hidden" id="editDepositId">
@@ -142,7 +155,7 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore, collection, doc, setDoc, deleteDoc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getFirestore, collection, doc, setDoc, deleteDoc, updateDoc, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyDF7QySG1Jj4gdZvXwMRaKjRmI-lFKpj7k",
@@ -160,6 +173,7 @@
     const BANK_OPTIONS = ['台銀', '樂天', '中信', '其他'];
     let depositsMap = {};
     let creditsMap = {};
+    let pendingRefundsMap = {};
     let usersSet = new Set();
     let activeFilterUser = 'ALL';
 
@@ -198,7 +212,100 @@
         updateUserDropdown();
         renderTable();
       });
+
+      onSnapshot(collection(db, "refund_requests"), snap => {
+        pendingRefundsMap = {};
+        snap.forEach(d => {
+          const data = d.data();
+          if (data.status === '待退款') {
+            pendingRefundsMap[d.id] = { id: d.id, ...data };
+          }
+        });
+        renderApprovalSection();
+      });
     });
+
+    function renderApprovalSection() {
+      const container = document.getElementById('approvalCardContainer');
+      const box = document.getElementById('approvalTablesBox');
+      box.innerHTML = '';
+
+      // 篩選出待對帳的儲值申報
+      const pendingDeposits = Object.values(depositsMap).filter(d => d.status === '待對帳');
+      const pendingRefunds = Object.values(pendingRefundsMap);
+
+      if (pendingDeposits.length === 0 && pendingRefunds.length === 0) {
+        container.style.display = 'none';
+        notifyHeight();
+        return;
+      }
+
+      container.style.display = 'block';
+
+      if (pendingDeposits.length > 0) {
+        let html = `<div style="font-size:12px; font-weight:bold; color:#e6a23c;">📥 待審核預存儲值申報 (${pendingDeposits.length} 筆)</div>
+          <table class="approval-table"><thead><tr><th>買家</th><th>申報日期/銀行/金額/後5碼</th><th>備註</th><th>操作</th></tr></thead><tbody>`;
+        pendingDeposits.forEach(d => {
+          html += `<tr>
+            <td><b>${d.user || d.buyerName}</b></td>
+            <td>${d.payDate || '-'} / ${d.bank} / <b>$${d.amount}</b> / 後5碼:${d.last5}</td>
+            <td>${d.note || '-'}</td>
+            <td><button class="btn-success" onclick="approveDeposit('${d.id}')">🟢 確認入帳</button></td>
+          </tr>`;
+        });
+        html += `</tbody></table>`;
+        box.innerHTML += html;
+      }
+
+      if (pendingRefunds.length > 0) {
+        let html = `<div style="font-size:12px; font-weight:bold; color:#f56c6c; margin-top:6px;">📤 待審核退款申請 (${pendingRefunds.length} 筆)</div>
+          <table class="approval-table"><thead><tr><th>買家</th><th>退款金額與原因</th><th>退款收款帳號</th><th>操作</th></tr></thead><tbody>`;
+        pendingRefunds.forEach(r => {
+          html += `<tr>
+            <td><b>${r.user || r.buyerName}</b></td>
+            <td><b style="color:#f56c6c;">$${r.amount}</b> (${r.reason})</td>
+            <td>${r.bankAccount}</td>
+            <td><button class="btn-success" onclick="approveRefund('${r.id}')">🟢 確認已退款 (扣帳平帳)</button></td>
+          </tr>`;
+        });
+        html += `</tbody></table>`;
+        box.innerHTML += html;
+      }
+
+      notifyHeight();
+    }
+
+    // 🟢 核准儲值
+    window.approveDeposit = async (docId) => {
+      try {
+        await updateDoc(doc(db, "user_deposits", docId), { status: '已對帳' });
+        alert('✅ 已確認入帳！');
+      } catch (err) { alert('操作失敗: ' + err.message); }
+    };
+
+    // 🟢 核准退款 (自動寫入 usage 扣款平帳)
+    window.approveRefund = async (docId) => {
+      const rData = pendingRefundsMap[docId];
+      if (!rData) return;
+
+      if (confirm(`確定已將 $${rData.amount} 退款給 【${rData.user || rData.buyerName}】 嗎？確認後將自動從其餘額中扣除平帳。`)) {
+        try {
+          // 1. 新增一筆 usage 紀錄到 user_deposits 扣除餘額
+          await addDoc(collection(db, "user_deposits"), {
+            user: rData.user || rData.buyerName,
+            buyerName: rData.user || rData.buyerName,
+            amount: Number(rData.amount) || 0,
+            type: 'usage',
+            note: `退款支出 (${rData.reason})`,
+            createdAt: new Date().toISOString()
+          });
+
+          // 2. 更新退款單狀態為已退款
+          await updateDoc(doc(db, "refund_requests", docId), { status: '已退款' });
+          alert('✅ 退款審核通過，已自動完成帳戶扣款平帳！');
+        } catch (err) { alert('操作失敗: ' + err.message); }
+      }
+    };
 
     function updateUserDropdown() {
       const userSel = document.getElementById('userSelect');
@@ -278,7 +385,6 @@
 
       depList.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
 
-      // 1. 渲染儲值紀錄 (user_deposits)
       depList.forEach(item => {
         const docId = item.id;
         const uName = item.user || item.buyerName || '-';
@@ -288,7 +394,6 @@
         const payDate = item.payDate || (item.createdAt ? item.createdAt.slice(0,10) : '-');
 
         let inputs = item.bankInputs || [{ amt: '', last5: '', bank: '', date: new Date().toISOString().slice(0,10) }];
-
         let totalInputAmt = 0;
         let hasAnyInput = false;
         inputs.forEach(inp => {
@@ -351,7 +456,6 @@
         tb.appendChild(tr);
       });
 
-      // 2. 渲染抵用金紀錄 (user_credits) ➕ 開放編輯/刪除按鈕
       credList.forEach(item => {
         const docId = item.id;
         const uName = item.user || item.buyerName || '-';
@@ -424,68 +528,43 @@
       const user = document.getElementById('userSelect').value;
 
       if (itemType === 'credit') {
-        // 編輯抵用金
         const credit = parseFloat(document.getElementById('depositAmt').value) || 0;
         const used = parseFloat(document.getElementById('usedAmt').value) || 0;
         const remaining = Math.max(0, credit - used);
         const note = document.getElementById('depositNote').value.trim();
 
         try {
-          await updateDoc(doc(db, "user_credits", editId), {
-            user: user,
-            credit: credit,
-            used: used,
-            remaining: remaining,
-            note: note
-          });
+          await updateDoc(doc(db, "user_credits", editId), { user, credit, used, remaining, note });
           alert('✅ 抵用金紀錄更新成功！');
           resetDepositForm();
-        } catch (err) {
-          alert('更新失敗：' + err.message);
-        } finally {
-          saveBtn.disabled = false;
-        }
+        } catch (err) { alert('更新失敗：' + err.message); }
+        finally { saveBtn.disabled = false; }
         return;
       }
 
-      // 新增/編輯預存儲值金
       const payDate = document.getElementById('payDate').value;
       const bank = document.getElementById('bankSelect').value;
       const amt = parseFloat(document.getElementById('depositAmt').value) || 0;
       const last5 = document.getElementById('last5').value.trim();
       const note = document.getElementById('depositNote').value.trim();
-
       const docId = editId ? editId : `dep_${Date.now()}`;
 
       try {
         await setDoc(doc(db, "user_deposits", docId), {
-          user: user,
-          buyerName: user,
-          payDate: payDate,
-          bank: bank,
-          amount: amt,
-          last5: last5,
-          type: 'deposit',
-          note: note,
+          user, buyerName: user, payDate, bank, amount: amt, last5, type: 'deposit', note,
           createdAt: new Date().toISOString()
         }, { merge: true });
-
         alert('✅ 預存儲值紀錄已成功儲存！');
         resetDepositForm();
-      } catch (err) {
-        alert('儲存失敗：' + err.message);
-      } finally {
-        saveBtn.disabled = false;
-      }
+      } catch (err) { alert('儲存失敗：' + err.message); }
+      finally { saveBtn.disabled = false; }
     });
 
     window.editDeposit = (docId) => {
       const item = depositsMap[docId];
       if (!item) return;
-
       document.getElementById('editDepositId').value = docId;
       document.getElementById('editItemType').value = 'deposit';
-
       document.getElementById('fieldPayDate').style.display = 'block';
       document.getElementById('fieldBank').style.display = 'block';
       document.getElementById('fieldLast5').style.display = 'block';
@@ -507,10 +586,8 @@
     window.editCredit = (docId) => {
       const item = creditsMap[docId];
       if (!item) return;
-
       document.getElementById('editDepositId').value = docId;
       document.getElementById('editItemType').value = 'credit';
-
       document.getElementById('fieldPayDate').style.display = 'none';
       document.getElementById('fieldBank').style.display = 'none';
       document.getElementById('fieldLast5').style.display = 'none';
@@ -528,17 +605,11 @@
     };
 
     window.deleteDeposit = async (docId) => {
-      if (confirm('確定要刪除這筆儲值紀錄嗎？')) {
-        await deleteDoc(doc(db, "user_deposits", docId));
-        alert('已刪除');
-      }
+      if (confirm('確定要刪除這筆儲值紀錄嗎？')) { await deleteDoc(doc(db, "user_deposits", docId)); alert('已刪除'); }
     };
 
     window.deleteCredit = async (docId) => {
-      if (confirm('確定要刪除這筆抵用金紀錄嗎？')) {
-        await deleteDoc(doc(db, "user_credits", docId));
-        alert('已刪除');
-      }
+      if (confirm('確定要刪除這筆抵用金紀錄嗎？')) { await deleteDoc(doc(db, "user_credits", docId)); alert('已刪除'); }
     };
 
     window.resetDepositForm = () => {
@@ -546,21 +617,17 @@
       document.getElementById('payDate').value = new Date().toISOString().slice(0,10);
       document.getElementById('editDepositId').value = '';
       document.getElementById('editItemType').value = 'deposit';
-
       document.getElementById('fieldPayDate').style.display = 'block';
       document.getElementById('fieldBank').style.display = 'block';
       document.getElementById('fieldLast5').style.display = 'block';
       document.getElementById('fieldUsed').style.display = 'none';
       document.getElementById('lblAmt').textContent = '儲值金額 ($) *';
-
       document.getElementById('saveBtn').textContent = '新增儲值';
       document.getElementById('cancelBtn').style.display = 'none';
     };
 
     function notifyHeight() {
-      setTimeout(() => {
-        window.parent.postMessage({ frameHeight: document.body.scrollHeight }, '*');
-      }, 100);
+      setTimeout(() => { window.parent.postMessage({ frameHeight: document.body.scrollHeight }, '*'); }, 100);
     }
   </script>
 </body>
