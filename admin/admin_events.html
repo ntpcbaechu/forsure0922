@@ -115,7 +115,7 @@
         <label style="font-size:12px;">代拍名稱</label>
         <div style="display:flex; gap:4px;">
           <select id="evSellerSelect" style="width:100%;">
-            <option value="">載入代拍中...</option>
+            <option value="">請選擇代拍</option>
           </select>
           <input type="text" id="evSellerCustom" placeholder="請輸入新代拍名稱" style="width:100%; display:none;">
         </div>
@@ -212,9 +212,8 @@
     });
 
     function populateSellerOptions(defaultVal = '') {
-      sellerSelect.innerHTML = '';
+      sellerSelect.innerHTML = '<option value="">請選擇代拍</option>';
       
-      // 使用電腦系統標準排序
       const sortedSellers = [...loadedSellersList].sort((a, b) => a.localeCompare(b, 'zh-TW'));
 
       sortedSellers.forEach(s => {
@@ -499,14 +498,12 @@
               </td>
               <td>
                 <div class="btn-action-col">
-                  <button class="btn-edit" data-id="${docId}">編輯</button>
-                  <button class="btn-danger" data-id="${docId}">刪除</button>
+                  <button class="btn-edit" onclick="editEventById('${docId}')">編輯</button>
+                  <button class="btn-danger" onclick="deleteEvent('${docId}')">刪除</button>
                 </div>
               </td>
             `;
 
-            tr.querySelector('.btn-edit').onclick = () => editEventById(docId);
-            tr.querySelector('.btn-danger').onclick = () => deleteEvent(docId);
             tb.appendChild(tr);
 
             if (idx === evArray.length - 1 && latestBigNote) {
@@ -634,7 +631,7 @@
       adjustTextareaHeight(bigNoteArea);
     };
 
-    function editEventById(docId) {
+    window.editEventById = (docId) => {
       const ev = eventsDataMap[docId];
       if (!ev) return alert('找不到該筆活動資料！');
 
@@ -671,9 +668,9 @@
       document.getElementById('saveEventBtn').textContent = '更新此活動設定';
 
       window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
+    };
 
-    async function deleteEvent(docId) {
+    window.deleteEvent = async (docId) => {
       const ev = eventsDataMap[docId];
       if (!ev) return;
 
@@ -710,7 +707,7 @@
           alert('刪除失敗: ' + err.message);
         }
       }
-    }
+    };
 
     function notifyHeight() {
       setTimeout(() => {
