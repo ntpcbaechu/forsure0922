@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
-  <title>儲值金餘額查詢</title>
+  <title>抵用金與儲值金餘額查詢</title>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 0; margin: 0; background: transparent; color: #333; }
     
@@ -30,6 +30,7 @@
     .history-list { display: flex; flex-direction: column; gap: 6px; }
     .history-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: #fdfdfd; border: 1px solid #ebeef5; border-radius: 6px; font-size: 12px; }
     .history-item.deposit { border-left: 3px solid #67c23a; }
+    .history-item.credit { border-left: 3px solid #409eff; }
     .history-item.usage { border-left: 3px solid #f56c6c; }
 
     .item-left { display: flex; flex-direction: column; gap: 2px; }
@@ -45,13 +46,13 @@
 </head>
 <body>
 
-  <h3 style="margin-top:0; margin-bottom:12px; font-size:18px;">💵 預存儲值金查詢</h3>
+  <h3 style="margin-top:0; margin-bottom:12px; font-size:18px;">💳 抵用金與儲值金餘額查詢</h3>
 
   <div class="search-card">
     <div class="search-row">
       <span class="search-title">👤 快速篩選社群名稱：</span>
       <select id="userSelect">
-        <option value="ALL">顯示全部有儲值紀錄的買家</option>
+        <option value="ALL">顯示全部成員紀錄</option>
       </select>
     </div>
   </div>
@@ -76,22 +77,22 @@
     const db = getFirestore(app);
 
     let allDeposits = [];
+    let allCredits = [];
     let selectedUserFilter = 'ALL';
 
     document.addEventListener('DOMContentLoaded', () => {
+      // 1. 監聽 user_deposits (儲值金)
       onSnapshot(collection(db, "user_deposits"), snap => {
         allDeposits = [];
-        const activeUsersSet = new Set();
+        snap.forEach(d => allDeposits.push({ id: d.id, ...d.data() }));
+        refreshDataView();
+      });
 
-        snap.forEach(d => {
-          const data = { id: d.id, ...d.data() };
-          allDeposits.push(data);
-          const uName = data.user || data.buyerName || data.name;
-          if (uName) activeUsersSet.add(uName);
-        });
-
-        updateUserDropdown(Array.from(activeUsersSet));
-        renderAllUserDeposits();
+      // 2. 監聽 user_credits (抵用金)
+      onSnapshot(collection(db, "user_credits"), snap => {
+        allCredits = [];
+        snap.forEach(d => allCredits.push({ id: d.id, ...d.data() }));
+        refreshDataView();
       });
 
       document.getElementById('userSelect').addEventListener('change', (e) => {
@@ -100,10 +101,25 @@
       });
     });
 
+    function refreshDataView() {
+      const activeUsersSet = new Set();
+      allDeposits.forEach(d => {
+        const u = d.user || d.buyerName || d.name;
+        if (u) activeUsersSet.add(u);
+      });
+      allCredits.forEach(c => {
+        const u = c.user || c.buyerName || c.name;
+        if (u) activeUsersSet.add(u);
+      });
+
+      updateUserDropdown(Array.from(activeUsersSet));
+      renderAllUserDeposits();
+    }
+
     function updateUserDropdown(usersList) {
       const sel = document.getElementById('userSelect');
       const cur = sel.value;
-      sel.innerHTML = '<option value="ALL">顯示全部有儲值紀錄的買家</option>';
+      sel.innerHTML = '<option value="ALL">顯示全部成員紀錄</option>';
 
       usersList.sort((a, b) => a.localeCompare(b, 'zh-TW')).forEach(u => {
         sel.innerHTML += `<option value="${u}">${u}</option>`;
@@ -116,72 +132,105 @@
       const container = document.getElementById('recordsContainer');
       container.innerHTML = '';
 
-      if (allDeposits.length === 0) {
-        container.innerHTML = '<div class="search-card empty-tip">目前尚無任何預存儲值金紀錄</div>';
+      if (allDeposits.length === 0 && allCredits.length === 0) {
+        container.innerHTML = '<div class="search-card empty-tip">目前尚無任何抵用金或儲值金紀錄</div>';
         notifyHeight();
         return;
       }
 
-      // 依使用者分組
       const groups = {};
+
+      // 處理儲值金
       allDeposits.forEach(d => {
         const uName = d.user || d.buyerName || d.name || '未知買家';
         if (selectedUserFilter !== 'ALL' && uName !== selectedUserFilter) return;
-        
         if (!groups[uName]) groups[uName] = [];
-        groups[uName].push(d);
+
+        const amt = Number(d.amount) || Number(d.credit) || 0;
+        const isDeposit = (d.type !== 'usage');
+        let dateStr = d.payDate || d.date || d.createdAt || '-';
+        if (typeof dateStr === 'object' && dateStr.seconds) {
+          dateStr = new Date(dateStr.seconds * 1000).toISOString().slice(0,10);
+        } else if (typeof dateStr === 'string' && dateStr.length > 10) {
+          dateStr = dateStr.slice(0, 10);
+        }
+
+        groups[uName].push({
+          type: isDeposit ? 'deposit' : 'usage',
+          title: d.note || (isDeposit ? '預存儲值入帳' : '扣款/消費折抵'),
+          date: dateStr,
+          amount: amt
+        });
+      });
+
+      // 處理抵用金
+      allCredits.forEach(c => {
+        const uName = c.user || c.buyerName || c.name || '未知買家';
+        if (selectedUserFilter !== 'ALL' && uName !== selectedUserFilter) return;
+        if (!groups[uName]) groups[uName] = [];
+
+        const total = Number(c.credit) || Number(c.amount) || 0;
+        const used = Number(c.used) || 0;
+        const evName = c.fullEvent || c.eventName || '活動轉抵用金';
+        const memName = c.member ? ` (${c.member})` : '';
+
+        let dateStr = c.rawDate || c.date || c.createdAt || '-';
+        if (typeof dateStr === 'object' && dateStr.seconds) {
+          dateStr = new Date(dateStr.seconds * 1000).toISOString().slice(0,10);
+        } else if (typeof dateStr === 'string' && dateStr.length > 10) {
+          dateStr = dateStr.slice(0, 10);
+        }
+
+        if (total > 0) {
+          groups[uName].push({
+            type: 'credit',
+            title: `[抵用金] ${evName}${memName}`,
+            date: dateStr,
+            amount: total
+          });
+        }
+        if (used > 0) {
+          groups[uName].push({
+            type: 'usage',
+            title: `[抵用金折抵] ${evName}${memName}`,
+            date: dateStr,
+            amount: used
+          });
+        }
       });
 
       const sortedUsers = Object.keys(groups).sort((a, b) => a.localeCompare(b, 'zh-TW'));
 
       if (sortedUsers.length === 0) {
-        container.innerHTML = '<div class="search-card empty-tip">查無該買家的儲值紀錄</div>';
+        container.innerHTML = '<div class="search-card empty-tip">查無該買家的紀錄</div>';
         notifyHeight();
         return;
       }
 
       sortedUsers.forEach(uName => {
-        const records = groups[uName];
-        let totalDep = 0;
-        let totalU = 0;
-        let historyItems = [];
+        const historyItems = groups[uName];
+        let totalPlus = 0;
+        let totalUsed = 0;
 
-        records.forEach(c => {
-          const amt = Number(c.amount) || Number(c.credit) || 0;
-          const isDeposit = (c.type !== 'usage');
-
-          if (isDeposit) totalDep += amt;
-          else totalU += amt;
-
-          let dateStr = c.payDate || c.date || c.createdAt || '-';
-          if (typeof dateStr === 'object' && dateStr.seconds) {
-            dateStr = new Date(dateStr.seconds * 1000).toISOString().slice(0,10);
-          } else if (typeof dateStr === 'string' && dateStr.length > 10) {
-            dateStr = dateStr.slice(0, 10);
-          }
-
-          historyItems.push({
-            type: isDeposit ? 'deposit' : 'usage',
-            title: c.note || (isDeposit ? '預存儲值入帳' : '扣款/消費折抵'),
-            date: dateStr,
-            amount: amt
-          });
+        historyItems.forEach(item => {
+          if (item.type === 'deposit' || item.type === 'credit') totalPlus += item.amount;
+          else totalUsed += item.amount;
         });
 
-        const available = totalDep - totalU;
+        const available = totalPlus - totalUsed;
         historyItems.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
         let historyHtml = '';
         historyItems.forEach(item => {
-          const isDep = item.type === 'deposit';
+          const isPlus = (item.type === 'deposit' || item.type === 'credit');
           historyHtml += `
-            <div class="history-item ${isDep ? 'deposit' : 'usage'}">
+            <div class="history-item ${item.type}">
               <div class="item-left">
-                <span class="item-note">${isDep ? '➕' : '➖'} ${item.title}</span>
+                <span class="item-note">${isPlus ? '➕' : '➖'} ${item.title}</span>
                 <span class="item-date">⏱️ 日期：${item.date}</span>
               </div>
-              <div class="item-amt ${isDep ? 'amt-plus' : 'amt-minus'}">
-                ${isDep ? '+' : '-'}$${item.amount.toLocaleString()}
+              <div class="item-amt ${isPlus ? 'amt-plus' : 'amt-minus'}">
+                ${isPlus ? '+' : '-'}$${item.amount.toLocaleString()}
               </div>
             </div>
           `;
@@ -196,16 +245,16 @@
             
             <div class="summary-grid">
               <div class="stat-box highlight">
-                <div class="stat-label">🟢 目前可用餘額</div>
+                <div class="stat-label">🟢 目前可用總餘額</div>
                 <div class="stat-val green">$${available.toLocaleString()}</div>
               </div>
               <div class="stat-box">
-                <div class="stat-label">📥 累積儲值</div>
-                <div class="stat-val blue">$${totalDep.toLocaleString()}</div>
+                <div class="stat-label">📥 累積儲值與抵用金</div>
+                <div class="stat-val blue">$${totalPlus.toLocaleString()}</div>
               </div>
               <div class="stat-box">
-                <div class="stat-label">📤 累積已扣款</div>
-                <div class="stat-val orange">$${totalU.toLocaleString()}</div>
+                <div class="stat-label">📤 累積已扣款/使用</div>
+                <div class="stat-val orange">$${totalUsed.toLocaleString()}</div>
               </div>
             </div>
 

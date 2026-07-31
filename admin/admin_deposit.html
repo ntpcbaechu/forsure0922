@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
-  <title>買家預存儲值金管理</title>
+  <title>預存儲值與抵用金管理</title>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 15px; margin: 0; background: #fff; color: #333; }
     h3 { margin-top: 0; margin-bottom: 15px; font-size: 18px; }
@@ -42,11 +42,14 @@
 
     .status-warning { color: #f56c6c; font-size: 11px; font-weight: bold; margin-top: 4px; display: block; }
     .status-ok-msg { color: #67c23a; font-size: 11px; font-weight: bold; margin-top: 4px; display: block; }
+
+    .tag-credit { background: #e8f4ff; color: #409eff; border: 1px solid #d9ecff; padding: 2px 6px; border-radius: 4px; font-size: 11px; }
+    .tag-deposit { background: #f0f9eb; color: #67c23a; border: 1px solid #e1f3d8; padding: 2px 6px; border-radius: 4px; font-size: 11px; }
   </style>
 </head>
 <body>
 
-  <h3>買家預存儲值金與對帳管理 (Deposits)</h3>
+  <h3>買家預存儲值金與抵用金對帳管理 (Deposits & Credits)</h3>
 
   <form id="depositForm" class="unified-form-box">
     <input type="hidden" id="editDepositId">
@@ -85,7 +88,7 @@
 
       <div>
         <label>備註說明</label>
-        <input type="text" id="depositNote" placeholder="例: 小狗首爾場用" style="width:100%;">
+        <input type="text" id="depositNote" placeholder="例: 溢繳或預存說明" style="width:100%;">
       </div>
 
       <div>
@@ -98,7 +101,7 @@
   <div class="summary-card">
     <div class="summary-grid">
       <div class="stat-col">
-        <span class="stat-title">📥 累積儲值總額</span>
+        <span class="stat-title">📥 累積儲值與抵用金總額</span>
         <span class="stat-num" style="color:#409eff;" id="statTotalDeposit">$0</span>
       </div>
       <div class="stat-col">
@@ -106,7 +109,7 @@
         <span class="stat-num" style="color:#e6a23c;" id="statTotalUsed">$0</span>
       </div>
       <div class="stat-col">
-        <span class="stat-title">🟢 目前剩餘儲值金總額</span>
+        <span class="stat-title">🟢 目前剩餘總金額</span>
         <span class="stat-num" style="color:#67c23a;" id="statTotalBalance">$0</span>
       </div>
     </div>
@@ -120,9 +123,9 @@
     <thead>
       <tr>
         <th style="width: 15%;">社群暱稱</th>
-        <th style="width: 48%;">儲值申報資料與銀行對帳核對</th>
-        <th style="width: 15%;">儲值金額</th>
-        <th style="width: 12%;">對帳狀態</th>
+        <th style="width: 48%;">申報資料與對帳紀錄</th>
+        <th style="width: 15%;">金額</th>
+        <th style="width: 12%;">類型 / 對帳</th>
         <th style="width: 10%;">操作</th>
       </tr>
     </thead>
@@ -150,6 +153,7 @@
 
     const BANK_OPTIONS = ['台銀', '樂天', '中信', '其他'];
     let depositsMap = {};
+    let creditsList = [];
     let usersSet = new Set();
     let activeFilterUser = 'ALL';
 
@@ -167,6 +171,18 @@
           if (u) usersSet.add(u);
         });
         updateUserDropdown();
+      });
+
+      onSnapshot(collection(db, "user_credits"), snap => {
+        creditsList = [];
+        snap.forEach(d => {
+          const data = { id: d.id, ...d.data(), isCreditSource: true };
+          creditsList.push(data);
+          const u = data.user || data.buyerName;
+          if (u) usersSet.add(u);
+        });
+        updateUserDropdown();
+        renderTable();
       });
 
       onSnapshot(collection(db, "user_deposits"), snap => {
@@ -193,6 +209,10 @@
       const activeDepositUsers = new Set();
       Object.values(depositsMap).forEach(d => {
         const u = d.user || d.buyerName;
+        if (u) activeDepositUsers.add(u);
+      });
+      creditsList.forEach(c => {
+        const u = c.user || c.buyerName;
         if (u) activeDepositUsers.add(u);
       });
 
@@ -234,18 +254,33 @@
         }
       });
 
+      creditsList.forEach(c => {
+        if (activeFilterUser === 'ALL' || (c.user === activeFilterUser || c.buyerName === activeFilterUser)) {
+          const crAmt = Number(c.credit) || Number(c.amount) || 0;
+          const usedAmt = Number(c.used) || 0;
+          totalDep += crAmt;
+          totalU += usedAmt;
+        }
+      });
+
       document.getElementById('statTotalDeposit').textContent = `$${totalDep.toLocaleString()}`;
       document.getElementById('statTotalUsed').textContent = `$${totalU.toLocaleString()}`;
       document.getElementById('statTotalBalance').textContent = `$${(totalDep - totalU).toLocaleString()}`;
 
-      if (list.length === 0) {
-        tb.innerHTML = '<tr><td colspan="5" style="text-align:center; color:#909399; padding:30px;">目前尚無儲值金對帳紀錄</td></tr>';
+      let filteredCredits = creditsList;
+      if (activeFilterUser !== 'ALL') {
+        filteredCredits = creditsList.filter(c => (c.user === activeFilterUser || c.buyerName === activeFilterUser));
+      }
+
+      if (list.length === 0 && filteredCredits.length === 0) {
+        tb.innerHTML = '<tr><td colspan="5" style="text-align:center; color:#909399; padding:30px;">目前尚無儲值或抵用金對帳紀錄</td></tr>';
         notifyHeight();
         return;
       }
 
       list.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
 
+      // 1. 渲染儲值紀錄 (user_deposits)
       list.forEach(item => {
         const docId = item.id;
         const uName = item.user || item.buyerName || '-';
@@ -254,7 +289,6 @@
         const buyerBank = item.bank || '-';
         const payDate = item.payDate || (item.createdAt ? item.createdAt.slice(0,10) : '-');
 
-        // 預設銀行下拉選單不預設台銀 -> 顯示「請選擇銀行」
         let inputs = item.bankInputs || [{ amt: '', last5: '', bank: '', date: new Date().toISOString().slice(0,10) }];
 
         let totalInputAmt = 0;
@@ -306,13 +340,46 @@
           </td>
           <td><b style="color:#67c23a; font-size:15px;">+$${expectedAmt}</b></td>
           <td>
-            <span class="badge-type ${isMatch ? 'badge-deposit' : 'badge-usage'}">
+            <span class="tag-deposit">💵 儲值金</span>
+            <div style="margin-top:4px; font-size:11px; font-weight:bold; color:${isMatch ? '#67c23a' : '#e6a23c'};">
               ${isMatch ? '🟢 已對帳' : '⏳ 待對帳'}
-            </span>
+            </div>
           </td>
           <td>
             <button class="btn-edit" onclick="editDeposit('${docId}')">✏️ 編輯</button>
             <button class="btn-danger" onclick="deleteDeposit('${docId}')" style="margin-top:4px;">🗑️ 刪除</button>
+          </td>
+        `;
+        tb.appendChild(tr);
+      });
+
+      // 2. 渲染抵用金紀錄 (user_credits)
+      filteredCredits.forEach(item => {
+        const uName = item.user || item.buyerName || '-';
+        const crAmt = Number(item.credit) || Number(item.amount) || 0;
+        const usedAmt = Number(item.used) || 0;
+        const remAmt = item.remaining !== undefined ? item.remaining : (crAmt - usedAmt);
+        const evTitle = item.fullEvent || '活動轉抵用金';
+        const memTitle = item.member ? ` (${item.member})` : '';
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><b>${uName}</b></td>
+          <td>
+            <div style="font-size:12px; color:#303133; font-weight:bold;">
+              📌 ${evTitle}${memTitle}
+            </div>
+            <div style="font-size:11px; color:#909399; margin-top:2px;">
+              已使用金額：<b>$${usedAmt}</b> ｜ 剩餘可用抵用金：<b style="color:#67c23a;">$${remAmt}</b>
+            </div>
+          </td>
+          <td><b style="color:#409eff; font-size:15px;">+$${crAmt}</b></td>
+          <td>
+            <span class="tag-credit">💳 抵用金</span>
+            <div style="margin-top:4px; font-size:11px; font-weight:bold; color:#67c23a;">🟢 系統轉入</div>
+          </td>
+          <td>
+            <span style="font-size:11px; color:#909399;">由活動結算管轄</span>
           </td>
         `;
         tb.appendChild(tr);
