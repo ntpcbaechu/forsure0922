@@ -129,7 +129,7 @@
 
       <div class="form-group">
         <label>匯款金額 ($) *</label>
-        <input type="number" id="amount" min="1" placeholder="請輸入匯款金額" required>
+        <input type="number" id="amount" min="0" placeholder="請輸入匯款金額" required>
         <div id="overpayTip" class="overpay-tip"></div>
       </div>
 
@@ -164,7 +164,6 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    // 1. 動態載入 bank_info.json
     function loadBankInfo() {
       fetch('../json/bank_info.json')
         .then(res => res.json())
@@ -188,7 +187,6 @@
         });
     }
 
-    // 2. 動態載入 banks.json
     function loadBankDropdown() {
       fetch('../json/banks.json')
         .then(res => res.json())
@@ -237,6 +235,9 @@
     let currentAvailableCredit = 0;
     let currentAvailableDeposit = 0;
     let currentCalculatedFinalTotal = 0;
+
+    let appliedCreditDeduction = 0;
+    let appliedDepositDeduction = 0;
 
     document.getElementById('paymentForm').addEventListener('keydown', (e) => {
       if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') {
@@ -565,6 +566,9 @@
         remainingToPay -= creditDeduction;
       }
 
+      appliedDepositDeduction = depositDeduction;
+      appliedCreditDeduction = creditDeduction;
+
       currentCalculatedFinalTotal = Math.max(0, remainingToPay);
 
       document.getElementById('pendingTotal').textContent = `$${orderSubtotal.toFixed(1).replace(/\.0$/, '')}`;
@@ -588,6 +592,20 @@
       }
 
       document.getElementById('finalPayTotal').textContent = `$${currentCalculatedFinalTotal.toFixed(1).replace(/\.0$/, '')}`;
+
+      // 全額折抵 ($0) 自動帶入邏輯
+      const bankSel = document.getElementById('bankName');
+      const amtInput = document.getElementById('amount');
+      const last5Input = document.getElementById('last5');
+
+      if (currentCalculatedFinalTotal === 0 && orderSubtotal > 0 && (useDeposit || useCredit)) {
+        if (Array.from(bankSel.options).some(o => o.value === '抵用金/儲值金')) {
+          bankSel.value = '抵用金/儲值金';
+        }
+        amtInput.value = '0';
+        last5Input.value = '00000';
+      }
+
       checkOverpayTip();
     }
 
@@ -600,8 +618,20 @@
         return;
       }
 
-      const inputAmount = parseFloat(document.getElementById('amount').value) || 0;
-      
+      const inputAmount = parseFloat(document.getElementById('amount').value);
+      if (isNaN(inputAmount)) {
+        alert('請輸入有效的匯款金額！');
+        return;
+      }
+
+      // 🔒 嚴格驗證機制：只有在應匯金額為 $0 且銀行選擇抵用金/儲值金時允許填 0
+      const isFullDeduction = (currentCalculatedFinalTotal === 0) && (bankNameVal === '抵用金/儲值金');
+
+      if (!isFullDeduction && inputAmount <= 0) {
+        alert('⚠️ 請選擇『抵用金/儲值金』或輸入有效的金額（不可為 0 元）！');
+        return;
+      }
+
       if (inputAmount < currentCalculatedFinalTotal) {
         alert(`⚠️ 金額不足！\n\n本次應匯款總金額是：$${currentCalculatedFinalTotal}\n您填寫的金額是：$${inputAmount}\n\n請重新確認匯款金額！`);
         return;
@@ -666,6 +696,8 @@
           note: document.getElementById('note').value.trim(),
           useDeposit: useDepositChecked,
           useCredit: useCreditChecked,
+          creditUsed: appliedCreditDeduction,
+          depositUsed: appliedDepositDeduction,
           relatedOrderIds: finalAllRelatedOrderIds,
           createdAt: new Date().toISOString(),
           status: '待對帳'
@@ -674,7 +706,7 @@
         // 1. 新增匯款紀錄
         await addDoc(collection(db, "payments"), data);
 
-        // 2. 溢繳邏輯：若實付 > 應付，將多餘金額自動寫入 user_deposits (預存儲值金)
+        // 2. 溢繳邏輯：若實付 > 應付，將多餘金額自動寫入 user_deposits
         const overpaidAmount = inputAmount - currentCalculatedFinalTotal;
         let overpayAlertMsg = '';
 

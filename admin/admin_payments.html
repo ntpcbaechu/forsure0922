@@ -74,7 +74,7 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore, collection, doc, deleteDoc, updateDoc, onSnapshot, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getFirestore, collection, doc, deleteDoc, updateDoc, addDoc, onSnapshot, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyDF7QySG1Jj4gdZvXwMRaKjRmI-lFKpj7k",
@@ -216,7 +216,6 @@
             date: p.checkDate || ''
           }];
         } else {
-          // 預設對帳日期與銀行均為空，要求手動選擇與填寫
           inputs = [{ amt: '', last5: '', bank: buyerBank, date: '' }];
         }
       }
@@ -261,7 +260,6 @@
         if (inp.amt !== '' && !isNaN(parseFloat(inp.amt))) {
           totalInputAmt += parseFloat(inp.amt);
           hasAnyInput = true;
-          // 驗證是否遺漏日期或銀行
           if (!inp.date || !inp.bank) {
             missingFields = true;
           }
@@ -311,6 +309,14 @@
         '<span class="' + (isMatch ? 'status-ok-msg' : 'status-warning') + '">' + diffMsg + '</span>' +
       '</div>';
 
+      let deductInfoHtml = '';
+      if (p.creditUsed > 0 || p.depositUsed > 0) {
+        let creditTxt = p.creditUsed > 0 ? `抵用金 $${p.creditUsed}` : '';
+        let depositTxt = p.depositUsed > 0 ? `儲值金 $${p.depositUsed}` : '';
+        let combineTxt = [creditTxt, depositTxt].filter(Boolean).join(' + ');
+        deductInfoHtml = `<br><small style="color:#67c23a; font-weight:bold;">(折抵: ${combineTxt})</small>`;
+      }
+
       const tr = document.createElement('tr');
       tr.id = 'pay-row-' + docId;
 
@@ -327,7 +333,7 @@
           '<td>' +
             '<b style="color:#f56c6c; font-size:14px;">$' + expectedAmt + '</b><br>' +
             '<small style="color:#606266;">買家填寫: <b>' + (buyerBank || '未選') + ' (' + (expectedLast5 || '-') + ')</b></small>' +
-            (p.creditUsed > 0 ? '<br><small style="color:#67c23a;">(折抵$' + p.creditUsed + ')</small>' : '') +
+            deductInfoHtml +
           '</td>' +
           '<td>' +
             '<button class="btn-toggle ' + (status === 'ok' ? 'ok-active' : '') + '" ' +
@@ -376,7 +382,6 @@
       let inputs = p.bankInputs || [{ amt: p.inputAmt || '', last5: p.inputLast5 || '', bank: p.bankName || '', date: p.checkDate || '' }];
       inputs[idx][key] = val;
       
-      // 取最新的對帳日期
       const latestDate = inputs.map(i => i.date).filter(Boolean).pop() || '';
       try {
         await updateDoc(doc(db, "payments", docId), { bankInputs: inputs, checkDate: latestDate });
@@ -428,7 +433,6 @@
       const pData = paymentDataMap[docId] || {};
       const inputs = pData.bankInputs || [];
 
-      // 設為「已對帳」時強制檢查是否選擇銀行與對帳日期
       if (newStatus === 'ok') {
         const hasMissing = inputs.some(i => !i.bank || !i.date || i.amt === '' || isNaN(parseFloat(i.amt)));
         if (inputs.length === 0 || hasMissing) {
@@ -449,11 +453,65 @@
             await syncOrdersStatus(relatedIds, buyerName, false, '對帳有問題', reason);
           }
         } else {
+          // 🟢 按下「已對帳」時：自動進行 user_credits 與 user_deposits 扣款連動
+          await processDeductionsOnApproval(pData);
+
           await updateDoc(doc(db, "payments", docId), { status: 'ok', errorNote: '', checkDate: todayStr });
           await syncOrdersStatus(relatedIds, buyerName, true, '已對帳', '');
         }
       } catch (err) { alert('更新失敗: ' + err.message); }
     };
+
+    // 🟢 核心連動扣款函數
+    async function processDeductionsOnApproval(pData) {
+      if (pData.hasDeducted) return; // 避免重複扣款
+
+      const buyerName = pData.user || pData.buyerName;
+      const creditAmt = Number(pData.creditUsed) || 0;
+      const depositAmt = Number(pData.depositUsed) || 0;
+
+      // 1. 扣除抵用金 (user_credits)
+      if (creditAmt > 0 && buyerName) {
+        const q = query(collection(db, "user_credits"), where("user", "==", buyerName));
+        const snap = await getDocs(q);
+        let remainToDeduct = creditAmt;
+
+        for (const docSnap of snap.docs) {
+          if (remainToDeduct <= 0) break;
+          const data = docSnap.data();
+          const total = Number(data.credit) || Number(data.amount) || 0;
+          const currentUsed = Number(data.used) || 0;
+          const remain = data.remaining !== undefined ? Number(data.remaining) : (total - currentUsed);
+
+          if (remain > 0) {
+            const deduct = Math.min(remain, remainToDeduct);
+            const newUsed = currentUsed + deduct;
+            const newRemain = total - newUsed;
+            await updateDoc(doc(db, "user_credits", docSnap.id), {
+              used: newUsed,
+              remaining: newRemain
+            });
+            remainToDeduct -= deduct;
+          }
+        }
+      }
+
+      // 2. 扣除預存儲值金 (user_deposits)
+      if (depositAmt > 0 && buyerName) {
+        await addDoc(collection(db, "user_deposits"), {
+          user: buyerName,
+          buyerName: buyerName,
+          payDate: new Date().toISOString().slice(0,10),
+          amount: depositAmt,
+          type: 'usage',
+          note: `訂單對帳扣抵消費`,
+          createdAt: new Date().toISOString()
+        });
+      }
+
+      // 標記已連動扣款完成
+      await updateDoc(doc(db, "payments", pData.id), { hasDeducted: true });
+    }
 
     window.togglePhotoSent = async (docId, shouldSetSent) => {
       const pData = paymentDataMap[docId] || {};
