@@ -115,13 +115,9 @@
         <label style="font-size:12px;">代拍名稱</label>
         <div style="display:flex; gap:4px;">
           <select id="evSellerSelect" style="width:100%;">
-            <option value="代拍1">代拍1</option>
-            <option value="代拍2">代拍2</option>
-            <option value="代拍3">代拍3</option>
-            <option value="預設代拍">預設代拍</option>
-            <option value="CUSTOM">+ 自訂新代拍...</option>
+            <option value="">載入代拍中...</option>
           </select>
-          <input type="text" id="evSellerCustom" placeholder="新代拍名稱" style="width:100%; display:none;">
+          <input type="text" id="evSellerCustom" placeholder="請輸入新代拍名稱" style="width:100%; display:none;">
         </div>
       </div>
     </div>
@@ -198,10 +194,12 @@
 
     let ordersList = [];
     let eventsDataMap = {};
+    let loadedSellersList = [];
     let currentSelectedMemberFilter = 'ALL';
 
     const sellerSelect = document.getElementById('evSellerSelect');
     const sellerCustom = document.getElementById('evSellerCustom');
+    
     sellerSelect.addEventListener('change', () => {
       if (sellerSelect.value === 'CUSTOM') {
         sellerCustom.style.display = 'block';
@@ -212,6 +210,29 @@
         sellerCustom.value = '';
       }
     });
+
+    function populateSellerOptions(defaultVal = '') {
+      sellerSelect.innerHTML = '';
+      
+      // 使用電腦系統標準排序
+      const sortedSellers = [...loadedSellersList].sort((a, b) => a.localeCompare(b, 'zh-TW'));
+
+      sortedSellers.forEach(s => {
+        sellerSelect.innerHTML += `<option value="${s}">${s}</option>`;
+      });
+      sellerSelect.innerHTML += `<option value="CUSTOM">➕ 其他 (手動輸入)...</option>`;
+
+      if (defaultVal) {
+        if (sortedSellers.includes(defaultVal)) {
+          sellerSelect.value = defaultVal;
+          sellerCustom.style.display = 'none';
+        } else {
+          sellerSelect.value = 'CUSTOM';
+          sellerCustom.style.display = 'block';
+          sellerCustom.value = defaultVal;
+        }
+      }
+    }
 
     const bigNoteArea = document.getElementById('evBigNote');
     function adjustTextareaHeight(el) {
@@ -259,6 +280,14 @@
           opt.textContent = m;
           evMemberSel.appendChild(opt);
         });
+      });
+
+      fetch('../json/sellers.json').then(res => res.json()).then(sellers => {
+        loadedSellersList = sellers;
+        populateSellerOptions();
+      }).catch(() => {
+        loadedSellersList = ["발탄 대리찍사", "준준", "대리찍사 포키", "대리찍사 네이비"];
+        populateSellerOptions();
       });
     });
 
@@ -456,7 +485,7 @@
             tr.innerHTML = `
               ${mergedCellsHtml}
               <td>
-                <div><b>${ev.seller || '代拍1'}</b>${closedBadge}</div>
+                <div><b>${ev.seller || '未填寫'}</b>${closedBadge}</div>
               </td>
               <td>
                 <div class="sub-info">訂: $${ev.deposit || 0} &nbsp; 尾: $${ev.balance || 0}</div>
@@ -543,7 +572,6 @@
         if (seller === 'CUSTOM') {
           seller = sellerCustom.value.trim();
         }
-        if (!seller) seller = '代拍1';
 
         const bigNote = document.getElementById('evBigNote').value.trim();
 
@@ -578,7 +606,7 @@
 
         const fullName = evDate ? `${evDate} ${evNameRaw}` : evNameRaw;
         const editId = document.getElementById('editEventId').value;
-        const docId = editId ? editId : `${fullName}_${member || 'all'}_${seller}_${Date.now()}`;
+        const docId = editId ? editId : `${fullName}_${member || 'all'}_${seller || 'default'}_${Date.now()}`;
 
         await setDoc(doc(db, "event_settings", docId), {
           name: fullName, rawDate: evDate, rawName: evNameRaw, member, seller, bigNote,
@@ -600,10 +628,7 @@
       document.getElementById('editEventId').value = '';
       discountContainer.innerHTML = '';
       document.getElementById('evIsClosed').checked = false;
-      sellerSelect.value = '代拍1';
-      sellerCustom.style.display = 'none';
-      sellerCustom.required = false;
-      sellerCustom.value = '';
+      populateSellerOptions();
       document.getElementById('cancelEditBtn').style.display = 'none';
       document.getElementById('saveEventBtn').textContent = '儲存活動設定';
       adjustTextareaHeight(bigNoteArea);
@@ -618,18 +643,7 @@
       document.getElementById('evName').value = ev.rawName || ev.name;
       document.getElementById('evMember').value = ev.member || '';
 
-      const sVal = ev.seller || '代拍1';
-      if (['代拍1', '代拍2', '代拍3', '預設代拍'].includes(sVal)) {
-        sellerSelect.value = sVal;
-        sellerCustom.style.display = 'none';
-        sellerCustom.required = false;
-        sellerCustom.value = '';
-      } else {
-        sellerSelect.value = 'CUSTOM';
-        sellerCustom.style.display = 'block';
-        sellerCustom.required = true;
-        sellerCustom.value = sVal;
-      }
+      populateSellerOptions(ev.seller || '');
 
       document.getElementById('evBigNote').value = ev.bigNote || '';
       adjustTextareaHeight(bigNoteArea);
@@ -669,9 +683,10 @@
 
           const eName = ev.name;
           const eMem = ev.member;
-          const eSeller = ev.seller || '代拍1';
+          const eSeller = ev.seller;
 
-          const progressDocId = `${eName}_${eMem}_${eSeller}`;
+          const cleanSeller = eSeller ? eSeller.trim() : 'default';
+          const progressDocId = `${eName}_${eMem}_${cleanSeller}`;
 
           try {
             await deleteDoc(doc(db, "photo_progress", progressDocId));
@@ -685,7 +700,7 @@
           const snap = await getDocs(q);
           snap.forEach(async (d) => {
             const pData = d.data();
-            if ((pData.seller || '').trim() === eSeller.trim()) {
+            if ((pData.seller || '').trim() === (eSeller || '').trim()) {
               await deleteDoc(doc(db, "photo_progress", d.id));
             }
           });
