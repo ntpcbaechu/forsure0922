@@ -78,7 +78,6 @@
           </div>
         </div>
 
-        <!-- 1. 折抵預存儲值金 -->
         <div class="info-row" style="margin-top:12px; padding-top:8px; border-top: 1px dashed #dcdfe6;">
           <label style="font-weight:normal; font-size:13px; margin:0; cursor:pointer; display:flex; align-items:center; gap:6px;">
             <input type="checkbox" id="useDepositChk" class="deposit-chk">
@@ -87,7 +86,6 @@
           <b style="color:#909399;" id="depositDeduct">-</b>
         </div>
 
-        <!-- 2. 折抵可用抵用金 -->
         <div class="info-row" style="margin-top:6px; padding-top:6px; border-top: 1px dashed #ebeef5;">
           <label style="font-weight:normal; font-size:13px; margin:0; cursor:pointer; display:flex; align-items:center; gap:6px;">
             <input type="checkbox" id="useCreditChk" class="credit-chk">
@@ -108,7 +106,6 @@
         </div>
       </div>
 
-      <!-- 銀行帳號卡片：動態讀取 json/bank_info.json -->
       <div class="bank-info-box" id="bankInfoCard">
         <div class="bank-info-title">🔸匯款帳號：</div>
         <div>載入帳號資料中...</div>
@@ -119,7 +116,6 @@
         <input type="date" id="payDate" required>
       </div>
 
-      <!-- 銀行選單：動態讀取 json/banks.json -->
       <div class="form-group">
         <label>匯款銀行 *</label>
         <select id="bankName" required>
@@ -352,10 +348,13 @@
         
         const ordEvent = o.event || o.fullEvent || o.eventName || '';
         const ordMember = o.member || '';
-        const progressStatus = photoProgressMap[`${ordEvent}_${ordMember}`];
-        const isNotWaitingPhoto = progressStatus !== '等圖中';
+        const progressStatus = photoProgressMap[`${ordEvent}_${ordMember}`] || '等圖中';
+        
+        // 嚴格解鎖條件：必須為「上傳中」、「已通知匯款」、「已發圖」才允許匯款
+        const allowedStatuses = ['上傳中', '已通知匯款', '已發圖'];
+        const isUnlocked = allowedStatuses.includes(progressStatus);
 
-        if (name && pendingMatch && isNotWaitingPhoto) {
+        if (name && pendingMatch && isUnlocked) {
           pendingBuyers.add(String(name).trim());
         }
       });
@@ -438,10 +437,12 @@
         
         const ordEvent = o.event || o.fullEvent || o.eventName || '';
         const ordMember = o.member || '';
-        const progressStatus = photoProgressMap[`${ordEvent}_${ordMember}`];
-        const isNotWaitingPhoto = progressStatus !== '等圖中';
+        const progressStatus = photoProgressMap[`${ordEvent}_${ordMember}`] || '等圖中';
+        
+        const allowedStatuses = ['上傳中', '已通知匯款', '已發圖'];
+        const isUnlocked = allowedStatuses.includes(progressStatus);
 
-        return nameMatch && pendingMatch && isNotWaitingPhoto;
+        return nameMatch && pendingMatch && isUnlocked;
       });
 
       userOrders.sort((a, b) => {
@@ -593,7 +594,6 @@
 
       document.getElementById('finalPayTotal').textContent = `$${currentCalculatedFinalTotal.toFixed(1).replace(/\.0$/, '')}`;
 
-      // 全額折抵 ($0) 自動帶入邏輯
       const bankSel = document.getElementById('bankName');
       const amtInput = document.getElementById('amount');
       const last5Input = document.getElementById('last5');
@@ -624,7 +624,6 @@
         return;
       }
 
-      // 🔒 嚴格驗證機制：只有在應匯金額為 $0 且銀行選擇抵用金/儲值金時允許填 0
       const isFullDeduction = (currentCalculatedFinalTotal === 0) && (bankNameVal === '抵用金/儲值金');
 
       if (!isFullDeduction && inputAmount <= 0) {
@@ -703,10 +702,8 @@
           status: '待對帳'
         };
 
-        // 1. 新增匯款紀錄
         await addDoc(collection(db, "payments"), data);
 
-        // 2. 溢繳邏輯：若實付 > 應付，將多餘金額自動寫入 user_deposits
         const overpaidAmount = inputAmount - currentCalculatedFinalTotal;
         let overpayAlertMsg = '';
 
@@ -725,7 +722,6 @@
           overpayAlertMsg = `\n\n💡 偵測到溢繳 $${overpaidAmount} 元，已自動為您轉入「預存儲值金」！`;
         }
 
-        // 3. 更新勾選訂單狀態為待對帳
         const updatePromises = selectedOrderIds.map(orderId => {
           return updateDoc(doc(db, "orders", orderId), {
             paymentStatus: '待對帳',
