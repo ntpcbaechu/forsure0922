@@ -1,0 +1,28 @@
+/forsure0922/
+├── index.html                     <-- Shared Public Homepage
+├── admin.html                     <-- Shared Admin Login & Console
+├── json/                          <-- Shared Base Lists
+│   ├── users.json                 (Shared buyer nicknames list)
+│   └── members.json               (Shared members list)
+│
+├── ntpcbaechu/                    <-- Your Private Folder (Independent Firebase Project A)
+│   ├── firebase-config.js         (Your Firebase settings: Protects your privacy & finances)
+│   ├── json/                      
+│   │   └── sellers.json           (Your exclusive proxy-shooting settings)
+│   ├── admin/                     
+│   │   ├── admin_progress.html    (Reads from your Firebase Project A)
+│   │   ├── admin_orders.html
+│   │   └── admin_deposit.html
+│   └── index/                     
+│       └── index_deposit_app.html
+│
+└── w.wu_fy/                       <-- Partner's Private Folder (Independent Firebase Project B)
+    ├── firebase-config.js         (Partner's Firebase settings: Total privacy isolation)
+    ├── json/                      
+    │   └── sellers.json           (Partner's exclusive proxy-shooting settings)
+    ├── admin/                     
+    │   ├── admin_progress.html    (Reads from partner's Firebase Project B)
+    │   ├── admin_orders.html
+    │   └── admin_deposit.html
+    └── index/                     
+        └── index_deposit_app.html
