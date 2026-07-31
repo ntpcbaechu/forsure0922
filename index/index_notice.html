@@ -15,20 +15,8 @@
       box-shadow: 0 2px 8px rgba(0,0,0,0.02);
     }
 
-    .notice-header {
-      text-align: center;
-      font-size: 18px;
-      font-weight: bold;
-      color: #303133;
-      margin-bottom: 4px;
-    }
-    
-    .notice-sub {
-      text-align: center;
-      font-size: 12px;
-      color: #909399;
-      margin-bottom: 16px;
-    }
+    .notice-header { text-align: center; font-size: 18px; font-weight: bold; color: #303133; margin-bottom: 4px; }
+    .notice-sub { text-align: center; font-size: 12px; color: #909399; margin-bottom: 16px; }
 
     .section-box {
       background: #fafafa;
@@ -38,70 +26,53 @@
       margin-bottom: 12px;
     }
 
-    .section-title {
-      font-size: 14px;
-      font-weight: bold;
-      margin-bottom: 6px;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .text-warning { color: #f56c6c; }
-    .text-line { color: #00b900; }
+    .section-title { font-size: 14px; font-weight: bold; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+    .text-warning { color: #606266; }
+    .text-line { color: #409eff; }
     .text-primary { color: #409eff; }
     .text-orange { color: #e6a23c; }
 
-    .line-card {
-      background: #f0fdf4;
-      border: 1px solid #bbf7d0;
+    .contact-card {
+      background: #fafafa;
+      border: 1px solid #ebeef5;
       border-radius: 10px;
       padding: 12px 15px;
       margin-bottom: 12px;
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 10px;
     }
 
-    .line-actions {
+    .contact-row {
       display: flex;
-      gap: 8px;
-      margin-top: 4px;
+      justify-content: space-between;
+      align-items: center;
+      background: #fff;
+      border: 1px solid #e4e7ed;
+      padding: 8px 12px;
+      border-radius: 8px;
     }
 
-    .btn-line {
-      background: #00b900;
-      color: #fff;
-      border: none;
-      padding: 6px 12px;
-      border-radius: 6px;
-      font-size: 12px;
-      font-weight: bold;
-      cursor: pointer;
-      text-decoration: none;
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      transition: background 0.2s;
-    }
-    .btn-line:hover { background: #009900; }
+    .contact-info { font-size: 13px; color: #303133; font-weight: 500; }
 
     .btn-copy {
-      background: #fff;
-      color: #00b900;
-      border: 1px solid #00b900;
-      padding: 6px 12px;
+      background: #f4f4f5;
+      color: #606266;
+      border: 1px solid #dcdfe6;
+      padding: 5px 10px;
       border-radius: 6px;
       font-size: 12px;
       font-weight: bold;
       cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
     }
-    .btn-copy:hover { background: #f0fdf4; }
+    .btn-copy:hover { background: #409eff; color: #fff; border-color: #409eff; }
 
     .alert-box {
-      background: #fef0f0;
-      border: 1px solid #fde2e2;
-      border-left: 4px solid #f56c6c;
+      background: #fafafa;
+      border: 1px solid #ebeef5;
+      border-left: 4px solid #909399;
       border-radius: 6px;
       padding: 10px 12px;
       margin-bottom: 12px;
@@ -117,26 +88,29 @@
 
   <div class="notice-card">
     <div class="notice-header">【注意事項】</div>
-    <div class="notice-sub">跟團視同同意以下事項 ｜ 20260731更新</div>
+    <div class="notice-sub">跟團視同同意以下事項 ｜ 2026-07-31更新</div>
 
-    <!-- 官方 Line 聯絡 -->
-    <div class="line-card">
-      <div class="section-title text-line" style="margin-bottom:0;">
-        <span>💬 官方 Line 聯絡管道</span>
+    <!-- 聯絡管道與客服 (同行複製按鈕) -->
+    <div class="contact-card">
+      <div class="section-title text-line" style="margin-bottom:2px;">
+        <span>💬 聯絡管道與客服</span>
       </div>
-      <div style="font-size:13px; color:#303133;">
-        有任何問題請隨時用官方 Line 跟我聯絡：<b>@115oyenv</b>
+      
+      <div class="contact-row">
+        <div class="contact-info">📷 <b>IG / Threads :</b> ntpcbaechu</div>
+        <button type="button" class="btn-copy" onclick="copyText('ntpcbaechu', 'IG / Threads 帳號')">📋 複製 IG</button>
       </div>
-      <div class="line-actions">
-        <a href="https://line.me/R/ti/p/@115oyenv" target="_blank" class="btn-line">💬 直接開啟 Line 連結</a>
-        <button type="button" class="btn-copy" onclick="copyLineId()">複製 ID</button>
+
+      <div class="contact-row">
+        <div class="contact-info">💬 <b>官方 LINE ID :</b> @115oyenv</div>
+        <button type="button" class="btn-copy" onclick="copyText('@115oyenv', '官方 LINE ID')">📋 複製 LINE</button>
       </div>
     </div>
 
-    <!-- 高售警告 -->
+    <!-- 高售警告 (改為柔和灰色底) -->
     <div class="alert-box">
-      <div style="font-weight:bold; color:#f56c6c; margin-bottom:4px;">🔺 高售一律封鎖 + 退群 🆕</div>
-      <div style="line-height:1.5;">
+      <div style="font-weight:bold; color:#303133; margin-bottom:4px;">🔺 高售一律封鎖 + 退群 🆕</div>
+      <div style="line-height:1.5; color:#606266;">
         抱歉我的心胸比較狹窄，只能接受原價或低價轉售。<br>
         我覺得已經是原價拆圖了，也都會多給，不需要的圖還高售真的很奇怪，請去別團拆圖好嗎！
       </div>
@@ -167,7 +141,7 @@
 
     <!-- 無卡存款 -->
     <div class="section-box">
-      <div class="section-title text-warning">🔸 無卡存款須知</div>
+      <div class="section-title text-warning" style="color:#e6a23c;">🔸 無卡存款須知</div>
       <ul>
         <li>可提供無卡，但請務必<b>先跟我聯絡取得同意</b>。</li>
         <li>未經同意擅自無卡者 ➡️ 加入黑名單 / 往後拒絕交易。</li>
@@ -198,16 +172,16 @@
   </div>
 
   <script>
-    function copyLineId() {
-      navigator.clipboard.writeText('@115oyenv').then(() => {
-        alert('✅ 已成功複製官方 Line ID: @115oyenv');
+    function copyText(text, label) {
+      navigator.clipboard.writeText(text).then(() => {
+        alert(`✅ 已成功複製 ${label}: ${text}`);
       }).catch(() => {
-        alert('Line ID: @115oyenv');
+        alert(`${label}: ${text}`);
       });
     }
 
     function notifyHeight() {
-      setTimeout(() => {
+      setTimeout => {
         window.parent.postMessage({ frameHeight: document.body.scrollHeight }, '*');
       }, 100);
     }
