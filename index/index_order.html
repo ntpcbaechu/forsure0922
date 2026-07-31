@@ -11,6 +11,7 @@
     select:disabled { background: #f5f7fa; color: #c0c4cc; cursor: not-allowed; }
     button { width: 100%; padding: 14px; background: #409eff; color: white; border: none; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; }
     button:disabled { background: #a0cfff; }
+    .dynamic-tip { font-size: 12px; color: #909399; margin-top: 4px; display: block; }
   </style>
 </head>
 <body>
@@ -30,12 +31,20 @@
       <select id="member" required disabled><option value="">請先選擇活動</option></select>
     </div>
     <div class="form-group">
-      <label>數量 *</label>
-      <input type="number" id="qty" min="1" placeholder="請輸入數量" required>
+      <label>數量 / 包 *</label>
+      <input type="number" id="qty" min="1" value="1" placeholder="請輸入包數" required>
+      <span id="qtyTip" class="dynamic-tip"></span>
+    </div>
+    <div class="form-group">
+      <label>訂單類別</label>
+      <select id="orderType">
+        <option value="一般">一般 (預設)</option>
+        <option value="追加">追加</option>
+      </select>
     </div>
     <div class="form-group">
       <label>備註欄位</label>
-      <input type="text" id="note" placeholder="#">
+      <input type="text" id="note" placeholder="">
     </div>
     <button type="submit" id="submitBtn">提交訂單</button>
   </form>
@@ -59,6 +68,7 @@
 
     const MEMBER_ORDER = ["方燦", "Lee Know", "彰彬", "鉉辰", "HAN", "Felix", "昇玟", "I.N"];
     let activeEventSettings = [];
+    let eventPricesMap = {};
 
     document.addEventListener('DOMContentLoaded', async () => {
       try {
@@ -73,9 +83,11 @@
 
       const eventSel = document.getElementById('eventName');
       const memberSel = document.getElementById('member');
+      const qtyInput = document.getElementById('qty');
 
       onSnapshot(collection(db, "event_settings"), snap => {
         activeEventSettings = [];
+        eventPricesMap = {};
         const uniqueEvents = new Set();
 
         snap.forEach(d => {
@@ -83,6 +95,11 @@
           if (!data.isClosed && data.name) {
             activeEventSettings.push(data);
             uniqueEvents.add(data.name.trim());
+            const key = data.name.trim() + '_' + (data.member || '');
+            eventPricesMap[key] = {
+              price: Number(data.actualPrice || data.price || data.estimatedPrice || data.unitPrice) || 0,
+              packQty: Number(data.packQty) || 1
+            };
           }
         });
 
@@ -100,6 +117,7 @@
           memberSel.disabled = true;
         }
 
+        updateQtyTip();
         notifyHeight();
       });
 
@@ -110,6 +128,7 @@
         if (!chosenEvent) {
           memberSel.innerHTML = '<option value="">請先選擇活動</option>';
           memberSel.disabled = true;
+          updateQtyTip();
           return;
         }
 
@@ -140,8 +159,32 @@
             memberSel.value = sortedMembers[0];
           }
         }
+        updateQtyTip();
       });
+
+      memberSel.addEventListener('change', updateQtyTip);
+      qtyInput.addEventListener('input', updateQtyTip);
     });
+
+    function updateQtyTip() {
+      const evName = document.getElementById('eventName').value;
+      const memName = document.getElementById('member').value;
+      const packs = parseInt(document.getElementById('qty').value) || 0;
+      const tipElem = document.getElementById('qtyTip');
+
+      if (!evName || !memName || packs <= 0) {
+        tipElem.textContent = '';
+        return;
+      }
+
+      const setting = eventPricesMap[evName + '_' + memName] || {};
+      const packQty = setting.packQty || 1;
+      const unitPrice = setting.price || 0;
+      const totalCards = packs * packQty;
+      const totalCost = packs * unitPrice;
+
+      tipElem.textContent = `(共 ${totalCards} 張 / $${totalCost.toLocaleString()} 元)`;
+    }
 
     document.getElementById('orderForm').addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -149,8 +192,13 @@
       const buyerVal = document.getElementById('buyerName').value;
       const eventVal = document.getElementById('eventName').value;
       const memberVal = document.getElementById('member').value;
+      const packs = parseInt(document.getElementById('qty').value) || 1;
+      const orderTypeVal = document.getElementById('orderType').value;
 
-      // 🛡️ 防呆機制：查詢是否有同買家、同活動、同成員的既有紀錄
+      const setting = eventPricesMap[eventVal + '_' + memberVal] || {};
+      const packQty = setting.packQty || 1;
+      const actualCardsQty = packs * packQty;
+
       const qDup = query(
         collection(db, "orders"),
         where("user", "==", buyerVal),
@@ -164,9 +212,7 @@
           const confirmDup = confirm(
             `⚠️ 重複登記提醒：\n\n偵測到您（${buyerVal}）先前已經登記過【${eventVal} - ${memberVal}】囉！\n\n請確認是否要再次加喊？`
           );
-          if (!confirmDup) {
-            return; // 買家點取消，中斷提交
-          }
+          if (!confirmDup) return;
         }
       } catch(err) {
         console.error("檢查重複單失敗:", err);
@@ -182,8 +228,9 @@
         event: eventVal,
         eventName: eventVal,
         member: memberVal,
-        qty: parseInt(document.getElementById('qty').value) || 1,
-        quantity: parseInt(document.getElementById('qty').value) || 1,
+        qty: actualCardsQty,
+        quantity: actualCardsQty,
+        orderType: orderTypeVal,
         note: document.getElementById('note').value.trim(),
         createdAt: new Date().toISOString(),
         paymentStatus: '待匯款',
@@ -195,8 +242,10 @@
         await addDoc(collection(db, "orders"), data);
         alert('🎉 登記成功！');
         document.getElementById('orderForm').reset();
+        document.getElementById('qty').value = '1';
         document.getElementById('member').innerHTML = '<option value="">請先選擇活動</option>';
         document.getElementById('member').disabled = true;
+        document.getElementById('qtyTip').textContent = '';
       } catch (err) {
         alert('提交失敗：' + err.message);
       } finally {
