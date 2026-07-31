@@ -42,7 +42,7 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore, collection, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, onSnapshot, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyDF7QySG1Jj4gdZvXwMRaKjRmI-lFKpj7k",
@@ -61,7 +61,6 @@
     let activeEventSettings = [];
 
     document.addEventListener('DOMContentLoaded', async () => {
-      // 載入買家名單
       try {
         const buyersRes = await fetch('../json/users.json');
         const buyers = await buyersRes.json();
@@ -75,7 +74,6 @@
       const eventSel = document.getElementById('eventName');
       const memberSel = document.getElementById('member');
 
-      // 監聽後台活動設定
       onSnapshot(collection(db, "event_settings"), snap => {
         activeEventSettings = [];
         const uniqueEvents = new Set();
@@ -105,7 +103,6 @@
         notifyHeight();
       });
 
-      // 當活動名稱改變時，動態更新成員選單
       eventSel.addEventListener('change', () => {
         const chosenEvent = eventSel.value;
         memberSel.innerHTML = '';
@@ -116,7 +113,6 @@
           return;
         }
 
-        // 過濾出後台此活動有設定的成員
         const availableMembers = new Set();
         activeEventSettings.forEach(s => {
           if ((s.name || '').trim() === chosenEvent && s.member) {
@@ -140,7 +136,6 @@
             memberSel.innerHTML += '<option value="' + m + '">' + m + '</option>';
           });
 
-          // 防呆：如果只有 1 個成員，直接幫買家自動選好
           if (sortedMembers.length === 1) {
             memberSel.value = sortedMembers[0];
           }
@@ -150,16 +145,43 @@
 
     document.getElementById('orderForm').addEventListener('submit', async (e) => {
       e.preventDefault();
+      
+      const buyerVal = document.getElementById('buyerName').value;
+      const eventVal = document.getElementById('eventName').value;
+      const memberVal = document.getElementById('member').value;
+
+      // 🛡️ 防呆機制：查詢是否有同買家、同活動、同成員的既有紀錄
+      const qDup = query(
+        collection(db, "orders"),
+        where("user", "==", buyerVal),
+        where("event", "==", eventVal),
+        where("member", "==", memberVal)
+      );
+
+      try {
+        const dupSnap = await getDocs(qDup);
+        if (!dupSnap.empty) {
+          const confirmDup = confirm(
+            `⚠️ 重複登記提醒：\n\n偵測到您（${buyerVal}）先前已經登記過【${eventVal} - ${memberVal}】囉！\n\n請確認是否要再次加喊？`
+          );
+          if (!confirmDup) {
+            return; // 買家點取消，中斷提交
+          }
+        }
+      } catch(err) {
+        console.error("檢查重複單失敗:", err);
+      }
+
       const btn = document.getElementById('submitBtn');
       btn.disabled = true;
       btn.textContent = '提交中...';
 
       const data = {
-        buyerName: document.getElementById('buyerName').value,
-        user: document.getElementById('buyerName').value,
-        event: document.getElementById('eventName').value,
-        eventName: document.getElementById('eventName').value,
-        member: document.getElementById('member').value,
+        buyerName: buyerVal,
+        user: buyerVal,
+        event: eventVal,
+        eventName: eventVal,
+        member: memberVal,
         qty: parseInt(document.getElementById('qty').value) || 1,
         quantity: parseInt(document.getElementById('qty').value) || 1,
         note: document.getElementById('note').value.trim(),
