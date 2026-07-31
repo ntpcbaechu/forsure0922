@@ -53,6 +53,7 @@
 
   <form id="depositForm" class="unified-form-box">
     <input type="hidden" id="editDepositId">
+    <input type="hidden" id="editItemType" value="deposit">
     
     <div class="form-row">
       <div>
@@ -60,14 +61,14 @@
         <select id="userSelect" required><option value="">載入買家名單中...</option></select>
       </div>
 
-      <div>
+      <div id="fieldPayDate">
         <label>匯款日期 *</label>
-        <input type="date" id="payDate" required style="width:100%;">
+        <input type="date" id="payDate" style="width:100%;">
       </div>
 
-      <div>
+      <div id="fieldBank">
         <label>匯款銀行 *</label>
-        <select id="bankSelect" required>
+        <select id="bankSelect">
           <option value="">請選擇銀行</option>
           <option value="台銀">台銀</option>
           <option value="樂天">樂天</option>
@@ -77,13 +78,18 @@
       </div>
 
       <div>
-        <label>儲值金額 ($) *</label>
-        <input type="number" id="depositAmt" placeholder="例如: 3000" min="1" required style="width:100%;">
+        <label id="lblAmt">儲值金額 ($) *</label>
+        <input type="number" id="depositAmt" placeholder="例如: 3000" min="0" required style="width:100%;">
       </div>
 
-      <div>
+      <div id="fieldUsed" style="display:none;">
+        <label>已使用金額 ($)</label>
+        <input type="number" id="usedAmt" placeholder="例如: 50" min="0" value="0" style="width:100%;">
+      </div>
+
+      <div id="fieldLast5">
         <label>帳號後五碼 *</label>
-        <input type="text" id="last5" placeholder="例如: 12345" required maxlength="5" style="width:100%;">
+        <input type="text" id="last5" placeholder="例如: 12345" maxlength="5" style="width:100%;">
       </div>
 
       <div>
@@ -153,7 +159,7 @@
 
     const BANK_OPTIONS = ['台銀', '樂天', '中信', '其他'];
     let depositsMap = {};
-    let creditsList = [];
+    let creditsMap = {};
     let usersSet = new Set();
     let activeFilterUser = 'ALL';
 
@@ -174,11 +180,10 @@
       });
 
       onSnapshot(collection(db, "user_credits"), snap => {
-        creditsList = [];
+        creditsMap = {};
         snap.forEach(d => {
-          const data = { id: d.id, ...d.data(), isCreditSource: true };
-          creditsList.push(data);
-          const u = data.user || data.buyerName;
+          creditsMap[d.id] = { id: d.id, ...d.data() };
+          const u = d.data().user || d.data().buyerName;
           if (u) usersSet.add(u);
         });
         updateUserDropdown();
@@ -211,7 +216,7 @@
         const u = d.user || d.buyerName;
         if (u) activeDepositUsers.add(u);
       });
-      creditsList.forEach(c => {
+      Object.values(creditsMap).forEach(c => {
         const u = c.user || c.buyerName;
         if (u) activeDepositUsers.add(u);
       });
@@ -237,51 +242,44 @@
       const tb = document.getElementById('depositTableBody');
       tb.innerHTML = '';
 
-      let list = Object.values(depositsMap);
+      let depList = Object.values(depositsMap);
+      let credList = Object.values(creditsMap);
 
       if (activeFilterUser !== 'ALL') {
-        list = list.filter(c => (c.user === activeFilterUser || c.buyerName === activeFilterUser));
+        depList = depList.filter(c => (c.user === activeFilterUser || c.buyerName === activeFilterUser));
+        credList = credList.filter(c => (c.user === activeFilterUser || c.buyerName === activeFilterUser));
       }
 
       let totalDep = 0;
       let totalU = 0;
       
-      Object.values(depositsMap).forEach(c => {
-        if (activeFilterUser === 'ALL' || (c.user === activeFilterUser || c.buyerName === activeFilterUser)) {
-          const amt = Number(c.amount) || 0;
-          if (c.type !== 'usage') totalDep += amt;
-          else totalU += amt;
-        }
+      depList.forEach(c => {
+        const amt = Number(c.amount) || 0;
+        if (c.type !== 'usage') totalDep += amt;
+        else totalU += amt;
       });
 
-      creditsList.forEach(c => {
-        if (activeFilterUser === 'ALL' || (c.user === activeFilterUser || c.buyerName === activeFilterUser)) {
-          const crAmt = Number(c.credit) || Number(c.amount) || 0;
-          const usedAmt = Number(c.used) || 0;
-          totalDep += crAmt;
-          totalU += usedAmt;
-        }
+      credList.forEach(c => {
+        const crAmt = Number(c.credit) || Number(c.amount) || 0;
+        const usedAmt = Number(c.used) || 0;
+        totalDep += crAmt;
+        totalU += usedAmt;
       });
 
       document.getElementById('statTotalDeposit').textContent = `$${totalDep.toLocaleString()}`;
       document.getElementById('statTotalUsed').textContent = `$${totalU.toLocaleString()}`;
       document.getElementById('statTotalBalance').textContent = `$${(totalDep - totalU).toLocaleString()}`;
 
-      let filteredCredits = creditsList;
-      if (activeFilterUser !== 'ALL') {
-        filteredCredits = creditsList.filter(c => (c.user === activeFilterUser || c.buyerName === activeFilterUser));
-      }
-
-      if (list.length === 0 && filteredCredits.length === 0) {
+      if (depList.length === 0 && credList.length === 0) {
         tb.innerHTML = '<tr><td colspan="5" style="text-align:center; color:#909399; padding:30px;">目前尚無儲值或抵用金對帳紀錄</td></tr>';
         notifyHeight();
         return;
       }
 
-      list.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+      depList.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
 
       // 1. 渲染儲值紀錄 (user_deposits)
-      list.forEach(item => {
+      depList.forEach(item => {
         const docId = item.id;
         const uName = item.user || item.buyerName || '-';
         const expectedAmt = Number(item.amount) || 0;
@@ -353,8 +351,9 @@
         tb.appendChild(tr);
       });
 
-      // 2. 渲染抵用金紀錄 (user_credits)
-      filteredCredits.forEach(item => {
+      // 2. 渲染抵用金紀錄 (user_credits) ➕ 開放編輯/刪除按鈕
+      credList.forEach(item => {
+        const docId = item.id;
         const uName = item.user || item.buyerName || '-';
         const crAmt = Number(item.credit) || Number(item.amount) || 0;
         const usedAmt = Number(item.used) || 0;
@@ -370,7 +369,7 @@
               📌 ${evTitle}${memTitle}
             </div>
             <div style="font-size:11px; color:#909399; margin-top:2px;">
-              已使用金額：<b>$${usedAmt}</b> ｜ 剩餘可用抵用金：<b style="color:#67c23a;">$${remAmt}</b>
+              已使用金額：<b style="color:#e6a23c;">$${usedAmt}</b> ｜ 剩餘可用抵用金：<b style="color:#67c23a;">$${remAmt}</b>
             </div>
           </td>
           <td><b style="color:#409eff; font-size:15px;">+$${crAmt}</b></td>
@@ -379,7 +378,8 @@
             <div style="margin-top:4px; font-size:11px; font-weight:bold; color:#67c23a;">🟢 系統轉入</div>
           </td>
           <td>
-            <span style="font-size:11px; color:#909399;">由活動結算管轄</span>
+            <button class="btn-edit" onclick="editCredit('${docId}')">✏️ 編輯</button>
+            <button class="btn-danger" onclick="deleteCredit('${docId}')" style="margin-top:4px;">🗑️ 刪除</button>
           </td>
         `;
         tb.appendChild(tr);
@@ -420,7 +420,35 @@
       saveBtn.disabled = true;
 
       const editId = document.getElementById('editDepositId').value;
+      const itemType = document.getElementById('editItemType').value;
       const user = document.getElementById('userSelect').value;
+
+      if (itemType === 'credit') {
+        // 編輯抵用金
+        const credit = parseFloat(document.getElementById('depositAmt').value) || 0;
+        const used = parseFloat(document.getElementById('usedAmt').value) || 0;
+        const remaining = Math.max(0, credit - used);
+        const note = document.getElementById('depositNote').value.trim();
+
+        try {
+          await updateDoc(doc(db, "user_credits", editId), {
+            user: user,
+            credit: credit,
+            used: used,
+            remaining: remaining,
+            note: note
+          });
+          alert('✅ 抵用金紀錄更新成功！');
+          resetDepositForm();
+        } catch (err) {
+          alert('更新失敗：' + err.message);
+        } finally {
+          saveBtn.disabled = false;
+        }
+        return;
+      }
+
+      // 新增/編輯預存儲值金
       const payDate = document.getElementById('payDate').value;
       const bank = document.getElementById('bankSelect').value;
       const amt = parseFloat(document.getElementById('depositAmt').value) || 0;
@@ -442,7 +470,7 @@
           createdAt: new Date().toISOString()
         }, { merge: true });
 
-        alert('✅ 預存儲值紀錄已成功送出對帳！');
+        alert('✅ 預存儲值紀錄已成功儲存！');
         resetDepositForm();
       } catch (err) {
         alert('儲存失敗：' + err.message);
@@ -456,21 +484,59 @@
       if (!item) return;
 
       document.getElementById('editDepositId').value = docId;
+      document.getElementById('editItemType').value = 'deposit';
+
+      document.getElementById('fieldPayDate').style.display = 'block';
+      document.getElementById('fieldBank').style.display = 'block';
+      document.getElementById('fieldLast5').style.display = 'block';
+      document.getElementById('fieldUsed').style.display = 'none';
+      document.getElementById('lblAmt').textContent = '儲值金額 ($) *';
+
       document.getElementById('userSelect').value = item.user || item.buyerName || '';
-      document.getElementById('payDate').value = item.payDate || item.createdAt.slice(0,10);
+      document.getElementById('payDate').value = item.payDate || (item.createdAt ? item.createdAt.slice(0,10) : '');
       document.getElementById('bankSelect').value = item.bank || '';
       document.getElementById('depositAmt').value = item.amount || '';
       document.getElementById('last5').value = item.last5 || '';
       document.getElementById('depositNote').value = item.note || '';
 
-      document.getElementById('saveBtn').textContent = '更新紀錄';
+      document.getElementById('saveBtn').textContent = '更新儲值';
+      document.getElementById('cancelBtn').style.display = 'inline-block';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    window.editCredit = (docId) => {
+      const item = creditsMap[docId];
+      if (!item) return;
+
+      document.getElementById('editDepositId').value = docId;
+      document.getElementById('editItemType').value = 'credit';
+
+      document.getElementById('fieldPayDate').style.display = 'none';
+      document.getElementById('fieldBank').style.display = 'none';
+      document.getElementById('fieldLast5').style.display = 'none';
+      document.getElementById('fieldUsed').style.display = 'block';
+      document.getElementById('lblAmt').textContent = '轉抵用金總額 ($) *';
+
+      document.getElementById('userSelect').value = item.user || item.buyerName || '';
+      document.getElementById('depositAmt').value = item.credit || item.amount || 0;
+      document.getElementById('usedAmt').value = item.used || 0;
+      document.getElementById('depositNote').value = item.note || item.fullEvent || '';
+
+      document.getElementById('saveBtn').textContent = '更新抵用金';
       document.getElementById('cancelBtn').style.display = 'inline-block';
       window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
     window.deleteDeposit = async (docId) => {
-      if (confirm('確定要刪除這筆儲值對帳紀錄嗎？')) {
+      if (confirm('確定要刪除這筆儲值紀錄嗎？')) {
         await deleteDoc(doc(db, "user_deposits", docId));
+        alert('已刪除');
+      }
+    };
+
+    window.deleteCredit = async (docId) => {
+      if (confirm('確定要刪除這筆抵用金紀錄嗎？')) {
+        await deleteDoc(doc(db, "user_credits", docId));
         alert('已刪除');
       }
     };
@@ -479,6 +545,14 @@
       document.getElementById('depositForm').reset();
       document.getElementById('payDate').value = new Date().toISOString().slice(0,10);
       document.getElementById('editDepositId').value = '';
+      document.getElementById('editItemType').value = 'deposit';
+
+      document.getElementById('fieldPayDate').style.display = 'block';
+      document.getElementById('fieldBank').style.display = 'block';
+      document.getElementById('fieldLast5').style.display = 'block';
+      document.getElementById('fieldUsed').style.display = 'none';
+      document.getElementById('lblAmt').textContent = '儲值金額 ($) *';
+
       document.getElementById('saveBtn').textContent = '新增儲值';
       document.getElementById('cancelBtn').style.display = 'none';
     };
