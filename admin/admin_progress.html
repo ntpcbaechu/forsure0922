@@ -7,7 +7,9 @@
     html, body { min-height: 500px !important; background: #fff; }
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 15px; margin: 0; color: #333; }
     
-    .progress-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 15px; }
+    .filter-bar { background: #f8f9fa; border: 1px solid #e4e7ed; border-radius: 8px; padding: 8px 12px; margin-bottom: 12px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    
+    .progress-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 10px; }
     @media (max-width: 768px) {
       .progress-grid { grid-template-columns: 1fr; }
     }
@@ -53,7 +55,7 @@
     .status-picker-label { font-size: 13px; font-weight: bold; color: #606266; }
     .status-options { display: flex; flex-wrap: wrap; gap: 6px; }
     .status-chip {
-      padding: 6px 12px;
+      padding: 5px 12px;
       border-radius: 16px;
       border: 1px solid #dcdfe6;
       background: #fff;
@@ -64,15 +66,7 @@
       transition: all 0.2s ease;
       user-select: none;
     }
-    .status-chip:hover { border-color: #409eff; color: #409eff; background: #f4f4f5; }
-    
-    .status-chip.selected[data-val="已預約"] { background: #f4f4f5; color: #909399; border-color: #e4e7ed; }
-    .status-chip.selected[data-val="等圖中"] { background: #fdf6ec; color: #e6a23c; border-color: #faebd7; }
-    .status-chip.selected[data-val="分圖中"] { background: #eef2ff; color: #4f46e5; border-color: #c7d2fe; }
-    .status-chip.selected[data-val="上傳中"] { background: #eef2ff; color: #4f46e5; border-color: #c7d2fe; }
-    .status-chip.selected[data-val="已通知匯款"] { background: #eef2ff; color: #4f46e5; border-color: #c7d2fe; }
-    .status-chip.selected[data-val="已發圖"] { background: #f4f4f5; color: #909399; border-color: #e4e7ed; }
-    .status-chip.selected[data-val="到期/已刪除"] { background: #f4f4f5; color: #909399; border-color: #e4e7ed; }
+    .status-chip:hover, .status-chip.selected { border-color: #409eff; color: #409eff; background: #ecf5ff; }
 
     .badge-status { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: bold; }
     .badge-status[data-val="已預約"] { background: #f4f4f5; color: #909399; }
@@ -125,6 +119,13 @@
     </div>
   </form>
 
+  <div class="filter-bar">
+    <span style="font-size:13px; font-weight:bold; color:#606266;">🔍 快速篩選成員：</span>
+    <div id="progressMemberCapsules" style="display:flex; gap:6px; flex-wrap:wrap;">
+      <button type="button" class="status-chip selected" onclick="filterProgressMember('ALL', this)">顯示全部</button>
+    </div>
+  </div>
+
   <div class="progress-grid" id="progressContainer">
     <p style="text-align:center; color:#909399; grid-column: span 2;">資料載入中...</p>
   </div>
@@ -149,17 +150,36 @@
     let rawEventSettings = [];
     let progressMap = {};
     let memberOrderList = ["方燦", "Lee Know", "彰彬", "鉉辰", "HAN", "Felix", "昇玟", "I.N"];
+    let activeMemberFilter = 'ALL';
 
-    fetch('../json/members.json').then(r => r.json()).then(arr => { memberOrderList = arr; }).catch(() => {});
+    fetch('../json/members.json').then(r => r.json()).then(arr => { 
+      memberOrderList = arr; 
+      initMemberFilterCapsules();
+    }).catch(() => { initMemberFilterCapsules(); });
+
+    function initMemberFilterCapsules() {
+      const box = document.getElementById('progressMemberCapsules');
+      box.innerHTML = `<button type="button" class="status-chip ${activeMemberFilter === 'ALL' ? 'selected' : ''}" onclick="filterProgressMember('ALL', this)">顯示全部</button>`;
+      memberOrderList.forEach(m => {
+        box.innerHTML += `<button type="button" class="status-chip ${activeMemberFilter === m ? 'selected' : ''}" onclick="filterProgressMember('${m}', this)">${m}</button>`;
+      });
+    }
+
+    window.filterProgressMember = (mName, btnElem) => {
+      activeMemberFilter = mName;
+      btnElem.parentElement.querySelectorAll('.status-chip').forEach(b => b.classList.remove('selected'));
+      btnElem.classList.add('selected');
+      renderProgressCards();
+    };
 
     const evSel = document.getElementById('eventSelect');
     const memSel = document.getElementById('memberSelect');
     const sellerSel = document.getElementById('sellerSelect');
     const statusInput = document.getElementById('statusSelect');
 
-    document.querySelectorAll('.status-chip').forEach(chip => {
+    document.querySelectorAll('.status-options .status-chip').forEach(chip => {
       chip.addEventListener('click', () => {
-        document.querySelectorAll('.status-chip').forEach(c => c.classList.remove('selected'));
+        document.querySelectorAll('.status-options .status-chip').forEach(c => c.classList.remove('selected'));
         chip.classList.add('selected');
         statusInput.value = chip.getAttribute('data-val');
       });
@@ -167,7 +187,7 @@
 
     function setStatusChipValue(val) {
       statusInput.value = val;
-      document.querySelectorAll('.status-chip').forEach(chip => {
+      document.querySelectorAll('.status-options .status-chip').forEach(chip => {
         if (chip.getAttribute('data-val') === val) {
           chip.classList.add('selected');
         } else {
@@ -246,97 +266,108 @@
       }
     });
 
+    let lastProgressList = [];
     onSnapshot(collection(db, "photo_progress"), snap => {
+      progressMap = {};
+      lastProgressList = [];
+      snap.forEach(d => {
+        const item = { id: d.id, ...d.data() };
+        progressMap[d.id] = item;
+        lastProgressList.push(item);
+      });
+      renderProgressCards();
+    });
+
+    function renderProgressCards() {
       const container = document.getElementById('progressContainer');
       container.innerHTML = '';
-      progressMap = {};
 
-      if (snap.empty) {
-        container.innerHTML = '<p style="text-align:center; color:#909399; grid-column: span 2;">目前無發圖進度紀錄。</p>';
-      } else {
-        let list = [];
-        snap.forEach(d => {
-          const item = { id: d.id, ...d.data() };
-          progressMap[d.id] = item;
-          list.push(item);
+      let list = [...lastProgressList];
+      if (activeMemberFilter !== 'ALL') {
+        list = list.filter(i => i.member === activeMemberFilter);
+      }
+
+      if (list.length === 0) {
+        container.innerHTML = '<p style="text-align:center; color:#909399; grid-column: span 2;">目前無符合條件的發圖進度紀錄。</p>';
+        notifyHeight();
+        return;
+      }
+
+      list.sort((a, b) => {
+        const eA = a.eventName || a.event || '';
+        const eB = b.eventName || b.event || '';
+        if (eA !== eB) return eA.localeCompare(eB);
+
+        const mA = a.member || '';
+        const mB = b.member || '';
+        let idxA = memberOrderList.indexOf(mA);
+        let idxB = memberOrderList.indexOf(mB);
+        if (idxA === -1) idxA = 99;
+        if (idxB === -1) idxB = 99;
+        return idxA - idxB;
+      });
+
+      const eventGroups = {};
+      list.forEach(item => {
+        const eName = item.eventName || item.event || '未命名活動';
+        if (!eventGroups[eName]) eventGroups[eName] = [];
+        eventGroups[eName].push(item);
+      });
+
+      for (const [eventName, items] of Object.entries(eventGroups)) {
+        const card = document.createElement('div');
+        card.className = 'progress-card';
+
+        let tableHtml = '<div class="progress-card-title">🗓️ ' + eventName + '</div>' +
+          '<table class="card-table"><thead><tr>' +
+            '<th style="width: 25%;">成員</th>' +
+            '<th style="width: 30%;">代拍名稱</th>' +
+            '<th style="width: 25%;">目前狀態</th>' +
+            '<th style="width: 20%;">操作</th>' +
+          '</tr></thead><tbody>';
+
+        const memberGroups = {};
+        const memberKeys = [];
+        items.forEach(item => {
+          const mName = item.member || '全體';
+          if (!memberGroups[mName]) {
+            memberGroups[mName] = [];
+            memberKeys.push(mName);
+          }
+          memberGroups[mName].push(item);
         });
 
-        list.sort((a, b) => {
-          const eA = a.eventName || a.event || '';
-          const eB = b.eventName || b.event || '';
-          if (eA !== eB) return eA.localeCompare(eB);
+        memberKeys.forEach(mName => {
+          const mItems = memberGroups[mName];
+          const mRowCount = mItems.length;
 
-          const mA = a.member || '';
-          const mB = b.member || '';
-          let idxA = memberOrderList.indexOf(mA);
-          let idxB = memberOrderList.indexOf(mB);
-          if (idxA === -1) idxA = 99;
-          if (idxB === -1) idxB = 99;
-          return idxA - idxB;
-        });
+          mItems.forEach((item, idx) => {
+            const sellerName = item.seller || '代拍1';
+            const statusText = item.status || '-';
 
-        const eventGroups = {};
-        list.forEach(item => {
-          const eName = item.eventName || item.event || '未命名活動';
-          if (!eventGroups[eName]) eventGroups[eName] = [];
-          eventGroups[eName].push(item);
-        });
-
-        for (const [eventName, items] of Object.entries(eventGroups)) {
-          const card = document.createElement('div');
-          card.className = 'progress-card';
-
-          let tableHtml = '<div class="progress-card-title">🗓️ ' + eventName + '</div>' +
-            '<table class="card-table"><thead><tr>' +
-              '<th style="width: 25%;">成員</th>' +
-              '<th style="width: 30%;">代拍名稱</th>' +
-              '<th style="width: 25%;">目前狀態</th>' +
-              '<th style="width: 20%;">操作</th>' +
-            '</tr></thead><tbody>';
-
-          const memberGroups = {};
-          const memberKeys = [];
-          items.forEach(item => {
-            const mName = item.member || '全體';
-            if (!memberGroups[mName]) {
-              memberGroups[mName] = [];
-              memberKeys.push(mName);
+            let memberCell = '';
+            if (idx === 0) {
+              memberCell = '<td rowspan="' + mRowCount + '" style="vertical-align:middle; font-weight:bold;">' + mName + '</td>';
             }
-            memberGroups[mName].push(item);
+
+            tableHtml += '<tr>' +
+              memberCell +
+              '<td>' + sellerName + '</td>' +
+              '<td><span class="badge-status" data-val="' + statusText + '">' + statusText + '</span></td>' +
+              '<td>' +
+                '<button class="btn-edit" onclick="editProgress(\'' + item.id + '\')">編輯</button>' +
+                '<button class="btn-danger" onclick="deleteProgress(\'' + item.id + '\')">刪除</button>' +
+              '</td>' +
+            '</tr>';
           });
+        });
 
-          memberKeys.forEach(mName => {
-            const mItems = memberGroups[mName];
-            const mRowCount = mItems.length;
-
-            mItems.forEach((item, idx) => {
-              const sellerName = item.seller || '代拍1';
-              const statusText = item.status || '-';
-
-              let memberCell = '';
-              if (idx === 0) {
-                memberCell = '<td rowspan="' + mRowCount + '" style="vertical-align:middle; font-weight:bold;">' + mName + '</td>';
-              }
-
-              tableHtml += '<tr>' +
-                memberCell +
-                '<td>' + sellerName + '</td>' +
-                '<td><span class="badge-status" data-val="' + statusText + '">' + statusText + '</span></td>' +
-                '<td>' +
-                  '<button class="btn-edit" onclick="editProgress(\'' + item.id + '\')">編輯</button>' +
-                  '<button class="btn-danger" onclick="deleteProgress(\'' + item.id + '\')">刪除</button>' +
-                '</td>' +
-              '</tr>';
-            });
-          });
-
-          tableHtml += '</tbody></table>';
-          card.innerHTML = tableHtml;
-          container.appendChild(card);
-        }
+        tableHtml += '</tbody></table>';
+        card.innerHTML = tableHtml;
+        container.appendChild(card);
       }
       notifyHeight();
-    });
+    }
 
     document.getElementById('progressForm').addEventListener('submit', async (e) => {
       e.preventDefault();
