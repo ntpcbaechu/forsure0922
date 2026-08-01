@@ -5,7 +5,6 @@
   <title>團員登記管理與一鍵發圖</title>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 15px; margin: 0; background: #fff; color: #333; }
-    h3 { margin-top: 0; margin-bottom: 12px; font-size: 16px; }
     table { width: 100%; border-collapse: collapse; margin-top: 10px; background: #fff; }
     th, td { padding: 10px 8px; border-bottom: 1px solid #e4e7ed; text-align: left; font-size: 13px; vertical-align: middle; }
     th { background: #f8f9fa; color: #606266; font-weight: bold; white-space: nowrap; }
@@ -15,17 +14,29 @@
     .btn-danger { background-color: #f56c6c; color: white; padding: 4px 8px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; }
     .btn-save { background-color: #67c23a; color: white; padding: 4px 8px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; }
     .btn-photo { background-color: #409eff; color: white; padding: 4px 8px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; font-weight: bold; }
-    .filter-bar { display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; background: #f8f9fa; padding: 10px; border-radius: 8px; border: 1px solid #ebeef5; align-items: center; }
+    .filter-bar { display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; background: #f8f9fa; padding: 12px; border-radius: 8px; border: 1px solid #ebeef5; align-items: center; }
+
+    .capsule-group { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+    .capsule-filter-btn { background: #f4f4f5; color: #606266; border: 1px solid #dcdfe6; padding: 5px 12px; border-radius: 16px; font-size: 12px; font-weight: bold; cursor: pointer; transition: all 0.2s; outline: none; }
+    .capsule-filter-btn:hover { background: #ecf5ff; color: #409eff; border-color: #c6e2ff; }
+    .capsule-filter-btn.active { background: #409eff; color: #fff; border-color: #409eff; box-shadow: 0 2px 6px rgba(64,158,255,0.25); }
   </style>
 </head>
 <body>
 
   <div class="filter-bar">
-    <input type="text" id="orderSearchInput" placeholder="🔍 搜尋買家暱稱、活動、成員..." onkeyup="renderOrdersTable()" style="width:250px;">
-    <select id="userFilterSelect" onchange="renderOrdersTable()" style="width:160px;">
-      <option value="ALL">顯示全部成員</option>
-    </select>
-    <span style="font-size:12px; color:#909399; margin-left:auto;">💡 可手動調整發圖日期，系統將自動計算 +8 天刪除期限，並與前台完美同步。</span>
+    <input type="text" id="orderSearchInput" placeholder="🔍 搜尋買家暱稱、活動、成員..." onkeyup="renderOrdersTable()" style="width:230px;">
+    
+    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-left:auto;">
+      <span style="font-size:12px; font-weight:bold; color:#606266;">活動篩選：</span>
+      <div id="eventCapsules" class="capsule-group">
+        <button class="capsule-filter-btn active" onclick="setEventFilter('ALL', this)">全部活動</button>
+      </div>
+      <span style="font-size:12px; font-weight:bold; color:#606266; margin-left:10px;">暱稱篩選：</span>
+      <div id="userCapsules" class="capsule-group">
+        <button class="capsule-filter-btn active" onclick="setUserFilter('ALL', this)">全部暱稱</button>
+      </div>
+    </div>
   </div>
 
   <table>
@@ -62,38 +73,66 @@
 
     let ordersMap = {};
     let editingRows = new Set();
+    let currentEventFilter = 'ALL';
+    let currentUserFilter = 'ALL';
 
     onSnapshot(collection(db, "orders"), snap => {
       ordersMap = {};
       snap.forEach(d => { ordersMap[d.id] = { id: d.id, ...d.data() }; });
-      updateUserDropdown();
+      updateCapsuleFilters();
       renderOrdersTable();
     });
 
-    function updateUserDropdown() {
-      const sel = document.getElementById('userFilterSelect');
-      const cur = sel.value;
+    function updateCapsuleFilters() {
+      const eventsSet = new Set();
       const usersSet = new Set();
-      Object.values(ordersMap).forEach(o => { if(o.user || o.buyerName) usersSet.add(o.user || o.buyerName); });
-      sel.innerHTML = '<option value="ALL">顯示全部成員</option>';
-      Array.from(usersSet).sort((a,b)=>a.localeCompare(b,'zh-TW')).forEach(u => {
-        sel.innerHTML += `<option value="${u}">${u}</option>`;
+      Object.values(ordersMap).forEach(o => {
+        if (o.event || o.eventName) eventsSet.add(o.event || o.eventName);
+        if (o.user || o.buyerName) usersSet.add(o.user || o.buyerName);
       });
-      if(cur && (cur==='ALL' || usersSet.has(cur))) sel.value = cur;
+
+      const evContainer = document.getElementById('eventCapsules');
+      let evHtml = `<button class="capsule-filter-btn ${currentEventFilter === 'ALL' ? 'active' : ''}" onclick="setEventFilter('ALL', this)">全部活動</button>`;
+      Array.from(eventsSet).sort().forEach(ev => {
+        evHtml += `<button class="capsule-filter-btn ${currentEventFilter === ev ? 'active' : ''}" onclick="setEventFilter('${ev}', this)">${ev}</button>`;
+      });
+      evContainer.innerHTML = evHtml;
+
+      const userContainer = document.getElementById('userCapsules');
+      let userHtml = `<button class="capsule-filter-btn ${currentUserFilter === 'ALL' ? 'active' : ''}" onclick="setUserFilter('ALL', this)">全部暱稱</button>`;
+      Array.from(usersSet).sort((a,b)=>a.localeCompare(b,'zh-TW')).forEach(u => {
+        userHtml += `<button class="capsule-filter-btn ${currentUserFilter === u ? 'active' : ''}" onclick="setUserFilter('${u}', this)">${u}</button>`;
+      });
+      userContainer.innerHTML = userHtml;
     }
+
+    window.setEventFilter = (ev, btn) => {
+      currentEventFilter = ev;
+      document.querySelectorAll('#eventCapsules .capsule-filter-btn').forEach(b => b.classList.remove('active'));
+      if(btn) btn.classList.add('active');
+      renderOrdersTable();
+    };
+
+    window.setUserFilter = (u, btn) => {
+      currentUserFilter = u;
+      document.querySelectorAll('#userCapsules .capsule-filter-btn').forEach(b => b.classList.remove('active'));
+      if(btn) btn.classList.add('active');
+      renderOrdersTable();
+    };
 
     window.renderOrdersTable = () => {
       const tb = document.getElementById('ordersTableBody');
       tb.innerHTML = '';
 
       const kw = document.getElementById('orderSearchInput').value.toLowerCase().trim();
-      const userFilter = document.getElementById('userFilterSelect').value;
       let list = Object.values(ordersMap);
 
-      if (userFilter !== 'ALL') {
-        list = list.filter(o => (o.user || o.buyerName) === userFilter);
+      if (currentEventFilter !== 'ALL') {
+        list = list.filter(o => (o.event || o.eventName) === currentEventFilter);
       }
-
+      if (currentUserFilter !== 'ALL') {
+        list = list.filter(o => (o.user || o.buyerName) === currentUserFilter);
+      }
       if (kw) {
         list = list.filter(o => `${o.user || ''} ${o.buyerName || ''} ${o.event || ''} ${o.eventName || ''} ${o.member || ''}`.toLowerCase().includes(kw));
       }
@@ -173,8 +212,7 @@
       if (!dateVal) return;
       const d = new Date(dateVal);
       d.setDate(d.getDate() + 8);
-      const expireStr = d.toISOString().slice(0,10);
-      document.getElementById(`expire-${docId}`).textContent = expireStr;
+      document.getElementById(`expire-${docId}`).textContent = d.toISOString().slice(0,10);
     };
 
     window.savePhotoDate = async (docId) => {

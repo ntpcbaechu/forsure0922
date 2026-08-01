@@ -30,16 +30,14 @@
     .warning-tip { color: #f56c6c; font-size: 12px; font-weight: bold; margin-top: 4px; display: none; line-height: 1.4; background: #fef0f0; border: 1px solid #fde2e2; padding: 6px 8px; border-radius: 6px; }
     .legal-warning { background: #fdf6ec; border: 1px solid #faebd7; color: #e6a23c; font-size: 11px; padding: 8px 10px; border-radius: 6px; margin-bottom: 10px; line-height: 1.4; font-weight: bold; }
 
-    .search-card { background: #fff; border: 1px solid #e4e7ed; border-radius: 12px; padding: 10px 14px; margin-bottom: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); }
+    .search-card { background: #fff; border: 1px solid #e4e7ed; border-radius: 12px; padding: 12px 14px; margin-bottom: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); display: flex; flex-direction: column; gap: 10px; }
     .search-inline-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
     .search-title { font-size: 13px; font-weight: bold; color: #303133; white-space: nowrap; }
 
-    /* 膠囊式篩選樣式：全部、有資料的成員 */
-    .capsule-filters { display: flex; gap: 6px; flex-wrap: wrap; margin-left: auto; align-items: center; }
-    .capsule-btn { background: #f4f4f5; color: #606266; border: 1px solid #dcdfe6; padding: 5px 14px; border-radius: 16px; font-size: 12px; font-weight: bold; cursor: pointer; transition: all 0.2s; outline: none; }
+    .capsule-filters { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+    .capsule-btn { background: #f4f4f5; color: #606266; border: 1px solid #dcdfe6; padding: 4px 12px; border-radius: 16px; font-size: 12px; font-weight: bold; cursor: pointer; transition: all 0.2s; outline: none; }
     .capsule-btn:hover { background: #ecf5ff; color: #409eff; border-color: #c6e2ff; }
     .capsule-btn.active { background: #409eff; color: #fff; border-color: #409eff; box-shadow: 0 2px 6px rgba(64,158,255,0.25); }
-    /* 已用完/歸零按鈕改回沉穩灰色調外框 */
     .capsule-btn.gray-style { background: #f8f9fa; color: #909399; border-color: #dcdfe6; }
     .capsule-btn.gray-style.active { background: #909399; color: #fff; border-color: #909399; box-shadow: 0 2px 6px rgba(144,147,153,0.25); }
 
@@ -47,8 +45,9 @@
     @media (max-width: 1024px) { .grid-container { grid-template-columns: repeat(2, 1fr); } }
     @media (max-width: 650px) { .grid-container { grid-template-columns: 1fr; } }
 
-    .user-block { background: #fff; border: 1px solid #e4e7ed; border-radius: 10px; padding: 12px 14px; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 2px 6px rgba(0,0,0,0.01); gap: 8px; }
-    .user-header { font-size: 14px; font-weight: bold; color: #303133; margin-bottom: 4px; padding-bottom: 6px; border-bottom: 1px solid #ebeef5; display: flex; justify-content: space-between; align-items: center; }
+    /* 內容置頂對齊 */
+    .user-block { background: #fff; border: 1px solid #e4e7ed; border-radius: 10px; padding: 12px 14px; display: flex; flex-direction: column; justify-content: flex-start; box-shadow: 0 2px 6px rgba(0,0,0,0.01); gap: 8px; }
+    .user-header { font-size: 14px; font-weight: bold; color: #303133; margin-bottom: 4px; padding-bottom: 6px; border-bottom: 1px solid #ebeef5; display: flex; justify-content: space-between; align-items: center; width: 100%; }
 
     .section-block { border-radius: 8px; padding: 8px 10px; font-size: 11px; display: flex; flex-direction: column; gap: 4px; }
     .block-credit { background: #f0f9eb; border: 1px solid #e1f3d8; }
@@ -74,7 +73,6 @@
       <button class="sub-tab-btn" onclick="switchSubTab('refund', this)">📤 申請退款</button>
     </div>
 
-    <!-- 預存儲值表單 -->
     <form id="depositForm" class="form-section active">
       <div class="form-grid-2rows">
         <div class="form-group">
@@ -118,7 +116,6 @@
       </div>
     </form>
 
-    <!-- 申請退款表單 (還原標準寬度) -->
     <form id="refundForm" class="form-section">
       <div class="form-grid-2rows">
         <div class="form-group">
@@ -159,14 +156,19 @@
     </form>
   </div>
 
-  <!-- 膠囊式快速篩選列 (全部 / 有資料的成員) -->
   <div class="search-card">
     <div class="search-inline-bar">
-      <span class="search-title">👤 快速篩選：</span>
+      <span class="search-title">👤 餘額狀態：</span>
       <div class="capsule-filters">
         <button class="capsule-btn active" onclick="setBalanceFilter('active', this)">🟢 尚有餘額</button>
         <button class="capsule-btn gray-style" onclick="setBalanceFilter('zero', this)">📁 已用完/歸零</button>
         <button class="capsule-btn" onclick="setBalanceFilter('all', this)">👤 顯示全部</button>
+      </div>
+    </div>
+    <div class="search-inline-bar" style="border-top:1px dashed #ebeef5; padding-top:8px;">
+      <span class="search-title">🏷️ 成員篩選：</span>
+      <div id="userCapsulesContainer" class="capsule-filters">
+        <button class="capsule-btn active" onclick="setUserFilter('ALL', this)">全部成員</button>
       </div>
     </div>
   </div>
@@ -197,6 +199,7 @@
     let allOrders = {};
 
     let balanceTabFilter = 'active';
+    let selectedUserFilter = 'ALL';
 
     window.switchSubTab = (tabName, btnElem) => {
       document.querySelectorAll('.sub-tab-btn').forEach(b => b.classList.remove('active'));
@@ -226,33 +229,66 @@
       onSnapshot(collection(db, "orders"), snap => {
         allOrders = {};
         snap.forEach(d => { allOrders[d.id] = d.data(); });
-        renderAllUserCards();
+        refreshData();
       });
 
       onSnapshot(collection(db, "payments"), snap => {
         allPayments = [];
         snap.forEach(d => { allPayments.push({ id: d.id, ...d.data() }); });
-        renderAllUserCards();
+        refreshData();
       });
 
       onSnapshot(collection(db, "user_deposits"), snap => {
         allDeposits = [];
         snap.forEach(d => allDeposits.push({ id: d.id, ...d.data() }));
-        renderAllUserCards();
+        refreshData();
       });
 
       onSnapshot(collection(db, "user_credits"), snap => {
         allCredits = [];
         snap.forEach(d => allCredits.push({ id: d.id, ...d.data() }));
-        renderAllUserCards();
+        refreshData();
       });
 
       onSnapshot(collection(db, "refund_requests"), snap => {
         allRefundRequests = [];
         snap.forEach(d => allRefundRequests.push({ id: d.id, ...d.data() }));
-        renderAllUserCards();
+        refreshData();
       });
     });
+
+    function refreshData() {
+      updateUserCapsules();
+      renderAllUserCards();
+    }
+
+    function updateUserCapsules() {
+      const container = document.getElementById('userCapsulesContainer');
+      const allUsersSet = new Set();
+      allDeposits.forEach(d => allUsersSet.add(d.user || d.buyerName));
+      allCredits.forEach(c => allUsersSet.add(c.user || c.buyerName));
+      allRefundRequests.forEach(r => allUsersSet.add(r.user || r.buyerName));
+
+      let html = `<button class="capsule-btn ${selectedUserFilter === 'ALL' ? 'active' : ''}" onclick="setUserFilter('ALL', this)">全部成員</button>`;
+      Array.from(allUsersSet).sort((a,b)=>a.localeCompare(b,'zh-TW')).forEach(uName => {
+        html += `<button class="capsule-btn ${selectedUserFilter === uName ? 'active' : ''}" onclick="setUserFilter('${uName}', this)">${uName}</button>`;
+      });
+      container.innerHTML = html;
+    }
+
+    window.setBalanceFilter = (filterType, btnElem) => {
+      balanceTabFilter = filterType;
+      document.querySelectorAll('.search-card .capsule-filters:first-child .capsule-btn').forEach(b => b.classList.remove('active'));
+      if (btnElem) btnElem.classList.add('active');
+      renderAllUserCards();
+    };
+
+    window.setUserFilter = (uName, btnElem) => {
+      selectedUserFilter = uName;
+      document.querySelectorAll('#userCapsulesContainer .capsule-btn').forEach(b => b.classList.remove('active'));
+      if (btnElem) btnElem.classList.add('active');
+      renderAllUserCards();
+    };
 
     function getUserAvailableBalance(uName) {
       if (!uName) return 0;
@@ -314,7 +350,7 @@
         alert('✅ 儲值申報已送出，已顯示在下方待對帳區塊！');
         document.getElementById('depositForm').reset();
       } catch (err) {
-        alert('提交失敗: ' + err.message);
+        alert('失敗: ' + err.message);
       } finally {
         btn.disabled = false;
         btn.textContent = '提交儲值申報';
@@ -344,19 +380,12 @@
         document.getElementById('refundForm').reset();
         document.getElementById('refWarning').style.display = 'none';
       } catch (err) {
-        alert('提交失敗: ' + err.message);
+        alert('失敗: ' + err.message);
       } finally {
         btn.disabled = false;
         btn.textContent = '提交退款申請';
       }
     });
-
-    window.setBalanceFilter = (filterType, btnElem) => {
-      balanceTabFilter = filterType;
-      document.querySelectorAll('.capsule-btn').forEach(b => b.classList.remove('active'));
-      if (btnElem) btnElem.classList.add('active');
-      renderAllUserCards();
-    };
 
     function renderAllUserCards() {
       const container = document.getElementById('recordsContainer');
@@ -377,6 +406,8 @@
       let renderCount = 0;
 
       sortedUsers.forEach(uName => {
+        if (selectedUserFilter !== 'ALL' && uName !== selectedUserFilter) return;
+
         let plus = 0, used = 0;
         let depositItems = allDeposits.filter(d => (d.user || d.buyerName) === uName);
         let creditItems = allCredits.filter(c => (c.user || c.buyerName) === uName);
@@ -484,11 +515,9 @@
 
         container.innerHTML += `
           <div class="user-block">
-            <div>
-              <div class="user-header">
-                <span>👤 ${uName}</span>
-                <span style="font-size:14px; font-weight:bold; color:#303133;">可用餘額: <b style="color:#67c23a;">$${available.toLocaleString()}</b></span>
-              </div>
+            <div class="user-header">
+              <span>👤 ${uName}</span>
+              <span style="font-size:14px; font-weight:bold; color:#303133;">可用餘額: <b style="color:#67c23a;">$${available.toLocaleString()}</b></span>
             </div>
 
             <div class="section-block block-credit">
