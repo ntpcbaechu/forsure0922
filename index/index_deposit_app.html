@@ -69,16 +69,16 @@
       <button class="sub-tab-btn" onclick="switchSubTab('refund', this)">📤 申請退款</button>
     </div>
 
-    <!-- 預存儲值表單 (兩行) -->
+    <!-- 預存儲值表單 (兩行，無預設日期) -->
     <form id="depositForm" class="form-section active">
       <div class="form-grid-2rows">
         <div class="form-group">
           <label>社群名稱 *</label>
-          <select id="depUser" required><option value="">載入中...</option></select>
+          <select id="depUser" required><option value="">請選擇</option></select>
         </div>
         <div class="form-group">
           <label>儲值原因 *</label>
-          <input type="text" id="depReason" placeholder="例: 預存 / 溢繳" required>
+          <input type="text" id="depReason" placeholder="請輸入儲值原因" required>
         </div>
         <div class="form-group">
           <label>匯款日期 *</label>
@@ -97,11 +97,11 @@
 
         <div class="form-group">
           <label>儲值金額 ($) *</label>
-          <input type="number" id="depAmt" min="1" placeholder="例如: 3000" required>
+          <input type="number" id="depAmt" min="1" placeholder="" required>
         </div>
         <div class="form-group">
           <label>帳號後 5 碼 *</label>
-          <input type="text" id="depLast5" maxlength="5" placeholder="例如: 12345" required>
+          <input type="text" id="depLast5" maxlength="5" placeholder="" required>
         </div>
         <div class="form-group">
           <label>備註</label>
@@ -118,11 +118,11 @@
       <div class="form-grid-2rows">
         <div class="form-group">
           <label>社群名稱 *</label>
-          <select id="refUser" required><option value="">請先選擇您的暱稱</option></select>
+          <select id="refUser" required><option value="">請選擇</option></select>
         </div>
         <div class="form-group">
           <label>退款金額 ($) *</label>
-          <input type="number" id="refAmt" min="1" placeholder="金額" required>
+          <input type="number" id="refAmt" min="1" placeholder="" required>
         </div>
         <div class="form-group">
           <label>退款原因 *</label>
@@ -135,7 +135,7 @@
 
         <div class="form-group">
           <label>退款帳號 *</label>
-          <input type="text" id="refAccount" placeholder="完整帳號" required>
+          <input type="text" id="refAccount" placeholder="" required>
         </div>
         <div class="form-group">
           <label>備註</label>
@@ -206,7 +206,8 @@
     };
 
     document.addEventListener('DOMContentLoaded', async () => {
-      document.getElementById('depDate').value = new Date().toISOString().slice(0,10);
+      // 移除強制預設當天日期，讓匯款日期保持空白讓用戶手動選擇
+      // document.getElementById('depDate').value = new Date().toISOString().slice(0,10);
 
       try {
         const res = await fetch('../json/users.json');
@@ -319,7 +320,6 @@
         });
         alert('✅ 儲值申報已送出，已顯示在下方待對帳區塊！');
         document.getElementById('depositForm').reset();
-        document.getElementById('depDate').value = new Date().toISOString().slice(0,10);
       } catch (err) {
         alert('提交失敗: ' + err.message);
       } finally {
@@ -431,7 +431,7 @@
 
         let creditHtml = '';
 
-        // 抵用金加值與扣款明細 (包含帶有日期的 ➕ 與 ➖)
+        // 全面修復抵用金加值與扣款明細 (帶有 M/D 日期)
         creditItems.forEach(c => {
           const crAmt = Number(c.credit) || Number(c.amount) || 0;
           const uAmt = Number(c.used) || 0;

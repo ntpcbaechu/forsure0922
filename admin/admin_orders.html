@@ -5,87 +5,42 @@
   <title>團員登記管理</title>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 15px; margin: 0; background: #fff; color: #333; }
-    
-    .filter-card { background: #f8f9fa; border: 1px solid #e4e7ed; border-radius: 10px; padding: 12px 14px; margin-bottom: 15px; }
-    .filter-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
-    .filter-title { font-size: 13px; font-weight: bold; color: #303133; white-space: nowrap; }
-
-    select, input[type="text"], input[type="number"] {
-      padding: 6px 10px;
-      border: 1px solid #dcdfe6;
-      border-radius: 6px;
-      font-size: 13px;
-      background-color: #fff;
-      outline: none;
-    }
-    select:focus, input:focus { border-color: #409eff; }
-
-    .status-filter-bar { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
-    .status-tab { padding: 5px 12px; border-radius: 16px; border: 1px solid #dcdfe6; background: #fff; font-size: 12px; font-weight: bold; cursor: pointer; color: #606266; }
-    .status-tab.active { background: #409eff; color: #fff; border-color: #409eff; }
-
-    .capsule-bar { display: flex; flex-wrap: wrap; gap: 6px; }
-    .capsule-btn { background: #fff; color: #409eff; border: 1px solid #d9ecff; padding: 4px 12px; border-radius: 16px; font-size: 12px; font-weight: bold; cursor: pointer; transition: all 0.2s; }
-    .capsule-btn:hover, .capsule-btn.active { background: #409eff; color: #fff; border-color: #409eff; }
-
-    .event-section { background: #fff; border: 1px solid #e4e7ed; border-radius: 12px; padding: 14px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); }
-    .event-header { font-size: 15px; font-weight: bold; color: #303133; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
-    .event-meta { font-size: 12px; color: #409eff; background: #ecf5ff; padding: 4px 8px; border-radius: 6px; }
-
-    .cards-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 8px; }
-    @media (max-width: 768px) { .cards-list { grid-template-columns: 1fr; } }
-
-    .order-card { background: #fafafa; border: 1px solid #ebeef5; border-radius: 8px; padding: 12px 14px; font-size: 13px; display: flex; flex-direction: column; justify-content: space-between; position: relative; }
-    .order-top { display: flex; justify-content: space-between; align-items: flex-start; font-weight: bold; margin-bottom: 6px; }
-    
-    .order-info { display: flex; flex-direction: column; gap: 4px; color: #606266; font-size: 12px; }
-    .order-bottom-row { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 6px; padding-top: 6px; border-top: 1px dashed #ebeef5; }
-
-    .status-badges-container { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
-    .status-badge { padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; display: inline-block; }
-    .status-paid { background: #f0f9eb; color: #67c23a; }
-    .status-checking { background: #fdf6ec; color: #e6a23c; border: 1px solid #faebd7; }
-    .status-pending { background: #fef0f0; color: #f56c6c; }
-    .status-issue { background: #fef0f0; color: #f56c6c; border: 1px solid #fde2e2; }
-
-    .photo-badge-pending { background: #f4f4f5; color: #909399; }
-    .photo-badge-sent { background: #ecf5ff; color: #409eff; border: 1px solid #b3d8ff; }
-
-    .btn-edit { background-color: #e6a23c; color: white; padding: 4px 8px; font-size: 11px; border-radius: 4px; border: none; cursor: pointer; }
-    .btn-save { background-color: #67c23a; color: white; padding: 4px 8px; font-size: 11px; border-radius: 4px; border: none; cursor: pointer; }
-    .btn-cancel { background-color: #909399; color: white; padding: 4px 8px; font-size: 11px; border-radius: 4px; border: none; cursor: pointer; }
-    .btn-danger { background-color: #f56c6c; color: white; padding: 4px 8px; font-size: 11px; border-radius: 4px; border: none; cursor: pointer; }
-
-    .type-badge { font-size: 10px; padding: 1px 4px; border-radius: 4px; background: #f4f4f5; color: #909399; margin-left: 4px; }
-    .type-add { background: #fdf6ec; color: #e6a23c; border: 1px solid #faebd7; }
-
-    .edit-box { background: #fff; border: 1px solid #409eff; padding: 10px; border-radius: 6px; margin-top: 6px; }
-    .edit-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 8px; }
+    h3 { margin-top: 0; margin-bottom: 15px; font-size: 18px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; background: #fff; }
+    th, td { padding: 10px 8px; border-bottom: 1px solid #e4e7ed; text-align: left; font-size: 13px; vertical-align: middle; }
+    th { background: #f8f9fa; color: #606266; font-weight: bold; white-space: nowrap; }
+    input[type="text"], input[type="number"], select { padding: 6px 8px; border: 1px solid #dcdfe6; border-radius: 4px; font-size: 13px; outline: none; }
+    input:focus, select:focus { border-color: #409eff; }
+    .btn-edit { background-color: #e6a23c; color: white; padding: 4px 8px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; }
+    .btn-danger { background-color: #f56c6c; color: white; padding: 4px 8px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; }
+    .btn-save { background-color: #67c23a; color: white; padding: 4px 8px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; }
+    .btn-photo { background-color: #409eff; color: white; padding: 4px 8px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; font-weight: bold; }
+    .filter-bar { display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; background: #f8f9fa; padding: 10px; border-radius: 8px; border: 1px solid #ebeef5; align-items: center; }
   </style>
 </head>
 <body>
 
-  <h3>團員登記管理</h3>
+  <h3>團員登記管理與一鍵發圖</h3>
 
-  <div class="filter-card">
-    <div class="status-filter-bar">
-      <button class="status-tab active" onclick="setPaymentFilter('ALL', this)">📌 全部</button>
-      <button class="status-tab" onclick="setPaymentFilter('pending', this)">⏳ 待匯款 / 未回報</button>
-      <button class="status-tab" onclick="setPaymentFilter('paid', this)">🟢 已匯款</button>
-    </div>
-    <div class="filter-row">
-      <span class="filter-title">🔍 篩選模式：</span>
-      <select id="modeSelect">
-        <option value="ALL">全部顯示</option>
-        <option value="user">依社群暱稱</option>
-        <option value="event">依活動與成員</option>
-      </select>
-      <input type="text" id="searchOrderInput" placeholder="直接關鍵字搜尋..." style="flex:1; min-width:180px;">
-    </div>
-    <div id="capsuleContainer" class="capsule-bar"></div>
+  <div class="filter-bar">
+    <input type="text" id="orderSearchInput" placeholder="🔍 搜尋買家暱稱、活動、成員..." onkeyup="renderOrdersTable()" style="width:250px;">
+    <span style="font-size:12px; color:#909399; margin-left:auto;">💡 可直接在後台針對未匯款訂單一鍵設為已發圖，自動帶入 8 天下載期限。</span>
   </div>
 
-  <div id="ordersContainer">載入中...</div>
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 15%;">買家暱稱</th>
+        <th style="width: 25%;">活動與成員 (數量)</th>
+        <th style="width: 15%;">金額 / 狀態</th>
+        <th style="width: 20%;">發圖與下載期限狀態</th>
+        <th style="width: 25%;">操作</th>
+      </tr>
+    </thead>
+    <tbody id="ordersTableBody">
+      <tr><td colspan="5" style="text-align:center; color:#909399; padding:20px;">載入中...</td></tr>
+    </tbody>
+  </table>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -104,362 +59,132 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    let usersList = [];
-    let membersList = ["方燦", "Lee Know", "彰彬", "鉉辰", "HAN", "Felix", "昇玟", "I.N"];
-    let eventList = [];
-    let ordersCache = {};
-    let eventPricesMap = {};
+    let ordersMap = {};
     let editingRows = new Set();
-    let activeFilterValue = 'ALL';
-    let paymentStatusFilter = 'ALL'; // 'ALL', 'pending', 'paid'
 
-    document.addEventListener('DOMContentLoaded', async () => {
-      try {
-        const [uRes, mRes] = await Promise.all([
-          fetch('../json/users.json'),
-          fetch('../json/members.json')
-        ]);
-        usersList = await uRes.json();
-        membersList = await mRes.json();
-      } catch(e) {}
-
-      onSnapshot(collection(db, "event_settings"), snap => {
-        const eventsSet = new Set();
-        eventPricesMap = {};
-        snap.forEach(d => {
-          const data = d.data();
-          const name = data.name || data.rawName;
-          if (name) {
-            eventsSet.add(name.trim());
-            const key = name.trim() + '_' + (data.member || '');
-            eventPricesMap[key] = {
-              price: Number(data.actualPrice || data.price || data.estimatedPrice || data.unitPrice) || 0,
-              packQty: Number(data.packQty) || 1
-            };
-          }
-        });
-        eventList = Array.from(eventsSet).sort();
-        renderCapsulesAndTable();
-      });
-
-      onSnapshot(collection(db, "orders"), snap => {
-        ordersCache = {};
-        snap.forEach(d => { ordersCache[d.id] = { id: d.id, ...d.data() }; });
-        renderCapsulesAndTable();
-      });
+    onSnapshot(collection(db, "orders"), snap => {
+      ordersMap = {};
+      snap.forEach(d => { ordersMap[d.id] = { id: d.id, ...d.data() }; });
+      renderOrdersTable();
     });
 
-    window.setPaymentFilter = (statusType, btnElem) => {
-      paymentStatusFilter = statusType;
-      document.querySelectorAll('.status-tab').forEach(b => b.classList.remove('active'));
-      if (btnElem) btnElem.classList.add('active');
-      renderTableContent();
-    };
+    window.renderOrdersTable = () => {
+      const tb = document.getElementById('ordersTableBody');
+      tb.innerHTML = '';
 
-    document.getElementById('modeSelect').addEventListener('change', () => {
-      activeFilterValue = 'ALL';
-      renderCapsulesAndTable();
-    });
+      const kw = document.getElementById('orderSearchInput').value.toLowerCase().trim();
+      let list = Object.values(ordersMap);
 
-    document.getElementById('searchOrderInput').addEventListener('input', () => {
-      renderTableContent();
-    });
-
-    function renderCapsulesAndTable() {
-      const mode = document.getElementById('modeSelect').value;
-      const container = document.getElementById('capsuleContainer');
-      container.innerHTML = '';
-
-      const allOrders = Object.values(ordersCache);
-
-      if (mode === 'user') {
-        const usersSet = new Set();
-        allOrders.forEach(o => {
-          const name = o.buyerName || o.user || o.nickname;
-          if (name) usersSet.add(name);
-        });
-        const sortedUsers = Array.from(usersSet).sort((a, b) => a.localeCompare(b, 'zh-TW'));
-
-        const allBtn = document.createElement('button');
-        allBtn.className = `capsule-btn ${activeFilterValue === 'ALL' ? 'active' : ''}`;
-        allBtn.textContent = '👤 全部';
-        allBtn.onclick = () => { activeFilterValue = 'ALL'; renderCapsulesAndTable(); };
-        container.appendChild(allBtn);
-
-        sortedUsers.forEach(userName => {
-          const btn = document.createElement('button');
-          btn.className = `capsule-btn ${activeFilterValue === userName ? 'active' : ''}`;
-          btn.textContent = `👤 ${userName}`;
-          btn.onclick = () => { activeFilterValue = userName; renderCapsulesAndTable(); };
-          container.appendChild(btn);
-        });
-      } else if (mode === 'event') {
-        const eventMemberSet = new Set();
-        allOrders.forEach(o => {
-          const ev = o.event || o.eventName || '未分類活動';
-          const mem = o.member || '全體';
-          if (ev) eventMemberSet.add(`${ev}__${mem}`);
-        });
-
-        const sortedEventMembers = Array.from(eventMemberSet).sort((a, b) => {
-          const [evA, memA] = a.split('__');
-          const [evB, memB] = b.split('__');
-
-          const matchA = evA.match(/\d{6}/); const matchB = evB.match(/\d{6}/);
-          const dateA = matchA ? parseInt(matchA[0], 10) : 0;
-          const dateB = matchB ? parseInt(matchB[0], 10) : 0;
-          if (dateA !== dateB) return dateA - dateB;
-          if (evA !== evB) return evA.localeCompare(evB, 'zh-TW');
-
-          let idxA = membersList.indexOf(memA);
-          let idxB = membersList.indexOf(memB);
-          if (idxA === -1) idxA = 99;
-          if (idxB === -1) idxB = 99;
-          return idxA - idxB;
-        });
-
-        const allBtn = document.createElement('button');
-        allBtn.className = `capsule-btn ${activeFilterValue === 'ALL' ? 'active' : ''}`;
-        allBtn.textContent = '📍 全部';
-        allBtn.onclick = () => { activeFilterValue = 'ALL'; renderCapsulesAndTable(); };
-        container.appendChild(allBtn);
-
-        sortedEventMembers.forEach(key => {
-          const [evTitle, memName] = key.split('__');
-          const btn = document.createElement('button');
-          btn.className = `capsule-btn ${activeFilterValue === key ? 'active' : ''}`;
-          btn.textContent = `📍 ${evTitle} - ${memName}`;
-          btn.onclick = () => { activeFilterValue = key; renderCapsulesAndTable(); };
-          container.appendChild(btn);
-        });
+      if (kw) {
+        list = list.filter(o => `${o.user || ''} ${o.buyerName || ''} ${o.event || ''} ${o.eventName || ''} ${o.member || ''}`.toLowerCase().includes(kw));
       }
 
-      renderTableContent();
-    }
-
-    function renderTableContent() {
-      const container = document.getElementById('ordersContainer');
-      container.innerHTML = '';
-
-      const mode = document.getElementById('modeSelect').value;
-      const kw = document.getElementById('searchOrderInput').value.toLowerCase();
-      const allOrders = Object.values(ordersCache);
-
-      const filtered = allOrders.filter(item => {
-        const user = String(item.buyerName || item.user || item.nickname || '');
-        const eName = String(item.event || item.eventName || '');
-        const member = String(item.member || '');
-        const status = item.paymentStatus || item.status || (item.hasPaid ? '已對帳' : '待匯款');
-        const isPaid = (status === '已對帳' || item.hasPaid === true);
-
-        // 匯款狀態篩選
-        if (paymentStatusFilter === 'pending' && isPaid) return false;
-        if (paymentStatusFilter === 'paid' && !isPaid) return false;
-
-        if (mode === 'user' && activeFilterValue !== 'ALL' && user !== activeFilterValue) return false;
-        if (mode === 'event' && activeFilterValue !== 'ALL') {
-          const targetKey = `${eName}__${member}`;
-          if (targetKey !== activeFilterValue) return false;
-        }
-
-        if (kw) {
-          const rowText = `${user} ${eName} ${member} ${item.orderType || ''}`.toLowerCase();
-          if (!rowText.includes(kw)) return false;
-        }
-        return true;
-      });
-
-      if (filtered.length === 0) {
-        container.innerHTML = '<div style="text-align:center; color:#909399; padding:30px;">查無符合條件的登記紀錄</div>';
+      if (list.length === 0) {
+        tb.innerHTML = '<tr><td colspan="5" style="text-align:center; color:#909399; padding:30px;">目前尚無符合的訂單紀錄</td></tr>';
         notifyHeight();
         return;
       }
 
-      const groups = {};
-      filtered.forEach(o => {
-        const key = (o.event || o.eventName || '未分類活動') + (o.member ? ' - ' + o.member : '');
-        if (!groups[key]) groups[key] = [];
-        groups[key].push(o);
+      list.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+
+      list.forEach(o => {
+        const docId = o.id;
+        const isEditing = editingRows.has(docId);
+        const uName = o.user || o.buyerName || '-';
+        const ev = o.event || o.eventName || '-';
+        const mem = o.member || '-';
+        const qty = o.qty !== undefined ? o.qty : (o.quantity || 1);
+        const amt = o.total !== undefined ? o.total : (o.amount || 0);
+        const payStatus = o.paymentStatus || o.status || '待匯款';
+        const isPhotoSent = o.isPhotoSent === true;
+        const sentAt = o.photoSentAt || '-';
+        const expireAt = o.photoExpireAt || '-';
+
+        const tr = document.createElement('tr');
+
+        if (!isEditing) {
+          tr.innerHTML = `
+            <td><b>${uName}</b></td>
+            <td><b>${ev}</b><br><small style="color:#606266;">成員: ${mem} (數量: ${qty}張)</small></td>
+            <td>$${amt}<br><span style="font-size:11px; color:#e6a23c; font-weight:bold;">${payStatus}</span></td>
+            <td>
+              ${isPhotoSent ? `<b style="color:#409eff;">🟢 已發圖</b><br><small style="color:#909399;">發圖: ${sentAt}<br>刪除: <span style="color:#f56c6c;">${expireAt}</span></small>` : `<span style="color:#909399;">尚未發圖</span>`}
+            </td>
+            <td>
+              ${isPhotoSent 
+                ? `<button class="btn-danger" onclick="toggleOrderPhoto('${docId}', false)" style="margin-bottom:4px;">取消發圖狀態</button>`
+                : `<button class="btn-photo" onclick="toggleOrderPhoto('${docId}', true)" style="margin-bottom:4px;">📷 設為已發圖</button>`
+              }<br>
+              <button class="btn-edit" onclick="toggleEdit('${docId}', true)">✏️ 編輯</button>
+              <button class="btn-danger" onclick="deleteOrder('${docId}')">🗑️ 刪除</button>
+            </td>
+          `;
+        } else {
+          tr.innerHTML = `
+            <td><input type="text" id="edit-user-${docId}" value="${uName}" style="width:100%;"></td>
+            <td>
+              活動: <input type="text" id="edit-ev-${docId}" value="${ev}" style="width:100%; margin-bottom:4px;"><br>
+              成員: <input type="text" id="edit-mem-${docId}" value="${mem}" style="width:45%;" placeholder="成員"> 
+              數量: <input type="number" id="edit-qty-${docId}" value="${qty}" style="width:45%;" placeholder="數量">
+            </td>
+            <td>金額: <input type="number" id="edit-amt-${docId}" value="${amt}" style="width:80px;"></td>
+            <td>編輯中</td>
+            <td>
+              <button class="btn-save" onclick="saveOrderEdit('${docId}')">💾 儲存</button>
+              <button class="btn-danger" onclick="toggleEdit('${docId}', false)">❌ 取消</button>
+            </td>
+          `;
+        }
+        tb.appendChild(tr);
       });
-
-      const sortedKeys = Object.keys(groups).sort((a, b) => {
-        const matchA = a.match(/\d{6}/); const matchB = b.match(/\d{6}/);
-        const dateA = matchA ? parseInt(matchA[0], 10) : 0;
-        const dateB = matchB ? parseInt(matchB[0], 10) : 0;
-        if (dateA !== dateB) return dateA - dateB;
-        return a.localeCompare(b, 'zh-TW');
-      });
-
-      for (const title of sortedKeys) {
-        const list = groups[title];
-        list.sort((a, b) => {
-          const tA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-          const tB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-          return tA - tB;
-        });
-
-        const totalPacks = list.reduce((sum, item) => sum + (Number(item.quantity) || Number(item.qty) || 1), 0);
-
-        let cardsHtml = '';
-        list.forEach((ord, idx) => {
-          const docId = ord.id;
-          const isEditing = editingRows.has(docId);
-
-          const user = ord.buyerName || ord.user || ord.nickname || '未知';
-          const eName = ord.event || ord.eventName || '';
-          const member = ord.member || '';
-          const orderType = ord.orderType || '一般';
-          const qty = Number(ord.qty !== undefined ? ord.qty : (ord.quantity !== undefined ? ord.quantity : 1));
-          
-          let fullTimeStr = '-';
-          if (ord.createdAt) {
-            try {
-              let dateObj = (typeof ord.createdAt === 'string') ? new Date(ord.createdAt) : new Date(ord.createdAt.seconds * 1000);
-              if (dateObj && !isNaN(dateObj.getTime())) {
-                fullTimeStr = dateObj.toLocaleString('zh-TW', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false });
-              }
-            } catch(e) {}
-          } else if (ord.time) {
-            fullTimeStr = ord.time;
-          }
-
-          const status = ord.paymentStatus || ord.status || (ord.hasPaid ? '已對帳' : '待匯款');
-          let payBadgeHtml = '<span class="status-badge status-pending">⏳ 待匯款</span>';
-          if (status === '已對帳') {
-            payBadgeHtml = '<span class="status-badge status-paid">🟢 已對帳</span>';
-          } else if (status === '待對帳' || status === '對帳中') {
-            payBadgeHtml = '<span class="status-badge status-checking">⏳ 待對帳</span>';
-          } else if (status === '對帳有問題' || status === '有問題') {
-            payBadgeHtml = `<span class="status-badge status-issue">⚠️ 有問題</span>`;
-          }
-
-          const isPhotoSent = ord.isPhotoSent === true || status === '已發圖';
-          const photoBadgeHtml = isPhotoSent ? '<span class="status-badge photo-badge-sent">🔵 已發圖</span>' : '<span class="status-badge photo-badge-pending">📷 待發圖</span>';
-
-          const setting = eventPricesMap[eName + '_' + member] || {};
-          const unitPrice = setting.price || Number(ord.price) || 0;
-          const packQty = setting.packQty || 1;
-          const packs = Math.round(qty / packQty);
-          const totalPrice = packs * unitPrice;
-
-          const typeBadge = (orderType === '追加') ? '<span class="type-badge type-add">追加</span>' : '<span class="type-badge">一般</span>';
-
-          if (!isEditing) {
-            cardsHtml += `
-              <div class="order-card">
-                <div class="order-top">
-                  <span>#${idx + 1} <b>${user}</b> ${typeBadge}</span>
-                  <div class="status-badges-container">
-                    ${payBadgeHtml}
-                    ${photoBadgeHtml}
-                  </div>
-                </div>
-                <div class="order-info">
-                  <span>⏱️ 登記時間：<b>${fullTimeStr}</b></span>
-                  <span>喊單內容：<b>${packs} 包 / ${qty} 張</b> (${member})</span>
-                </div>
-                <div class="order-bottom-row">
-                  <span style="font-weight:bold; color:#409eff;">總金額：$${totalPrice.toLocaleString()} ($${unitPrice}/包)</span>
-                  <div>
-                    <button class="btn-edit" onclick="toggleEdit('${docId}', true)">✏️ 編輯</button>
-                    <button class="btn-danger" onclick="deleteUserOrder('${docId}', '${user}', '${eName}', '${member}', '${fullTimeStr}')">🗑️ 刪除</button>
-                  </div>
-                </div>
-              </div>
-            `;
-          } else {
-            let userOptions = usersList.map(u => `<option value="${u}" ${u === user ? 'selected' : ''}>${u}</option>`).join('');
-            if (user && !usersList.includes(user)) userOptions = `<option value="${user}" selected>${user}</option>` + userOptions;
-
-            let eventOptions = eventList.map(e => `<option value="${e}" ${e === eName ? 'selected' : ''}>${e}</option>`).join('');
-            let memberOptions = membersList.map(m => `<option value="${m}" ${m === member ? 'selected' : ''}>${m}</option>`).join('');
-
-            cardsHtml += `
-              <div class="order-card edit-box">
-                <div style="font-weight:bold; color:#409eff; margin-bottom:6px;">✏️ 編輯紀錄 #${idx+1}</div>
-                <div class="edit-grid">
-                  <div>社群: <select id="user-${docId}">${userOptions}</select></div>
-                  <div>類別: <select id="type-${docId}"><option value="一般" ${orderType === '一般' ? 'selected' : ''}>一般</option><option value="追加" ${orderType === '追加' ? 'selected' : ''}>追加</option></select></div>
-                  <div>活動: <select id="event-${docId}">${eventOptions}</select></div>
-                  <div>成員: <select id="member-${docId}">${memberOptions}</select></div>
-                  <div>張數: <input type="number" id="qty-${docId}" value="${qty}" style="width:60px;"></div>
-                  <div>狀態: 
-                    <select id="status-${docId}">
-                      <option value="pending" ${status === '待匯款' ? 'selected' : ''}>⏳ 待匯款</option>
-                      <option value="checking" ${status === '待對帳' ? 'selected' : ''}>⏳ 待對帳</option>
-                      <option value="paid" ${status === '已對帳' ? 'selected' : ''}>🟢 已對帳</option>
-                    </select>
-                  </div>
-                </div>
-                <div style="text-align:right;">
-                  <button class="btn-save" onclick="saveOrder('${docId}')">💾 儲存</button>
-                  <button class="btn-cancel" onclick="toggleEdit('${docId}', false)">❌ 取消</button>
-                </div>
-              </div>
-            `;
-          }
-        });
-
-        container.innerHTML += `
-          <div class="event-section">
-            <div class="event-header">
-              <span>📌 ${title}</span>
-              <span class="event-meta">共 ${list.length} 筆 / ${totalPacks} 張</span>
-            </div>
-            <div class="cards-list">${cardsHtml}</div>
-          </div>
-        `;
-      }
 
       notifyHeight();
-    }
+    };
 
     window.toggleEdit = (docId, isEdit) => {
       if (isEdit) editingRows.add(docId);
       else editingRows.delete(docId);
-      renderTableContent();
+      renderOrdersTable();
     };
 
-    window.saveOrder = async (docId) => {
-      const user = document.getElementById(`user-${docId}`).value;
-      const eventName = document.getElementById(`event-${docId}`).value;
-      const member = document.getElementById(`member-${docId}`).value;
-      const orderType = document.getElementById(`type-${docId}`).value;
-      const qty = parseInt(document.getElementById(`qty-${docId}`).value) || 0;
-      const statusVal = document.getElementById(`status-${docId}`).value;
-
-      let paymentStatusStr = '待匯款';
-      let hasPaid = false;
-      if (statusVal === 'paid') { paymentStatusStr = '已對帳'; hasPaid = true; }
-      else if (statusVal === 'checking') { paymentStatusStr = '待對帳'; }
+    window.saveOrderEdit = async (docId) => {
+      const user = document.getElementById(`edit-user-${docId}`).value.trim();
+      const event = document.getElementById(`edit-ev-${docId}`).value.trim();
+      const member = document.getElementById(`edit-mem-${docId}`).value.trim();
+      const qty = parseInt(document.getElementById(`edit-qty-${docId}`).value) || 1;
+      const total = parseFloat(document.getElementById(`edit-amt-${docId}`).value) || 0;
 
       try {
-        await updateDoc(doc(db, "orders", docId), {
-          buyerName: user, user: user,
-          event: eventName, eventName: eventName,
-          member: member, orderType: orderType,
-          qty: qty, quantity: qty,
-          hasPaid: hasPaid, paymentStatus: paymentStatusStr, status: paymentStatusStr
-        });
+        await updateDoc(doc(db, "orders", docId), { user, buyerName: user, event, eventName: event, member, qty, quantity: qty, total, amount: total });
         editingRows.delete(docId);
-        alert('✅ 更新成功！');
+        alert('✅ 訂單修改成功！');
       } catch (err) { alert('儲存失敗: ' + err.message); }
     };
 
-    window.deleteUserOrder = async (docId, user, eName, member, timeStr) => {
-      const confirmMsg = `⚠️ 確定要刪除以下這筆登記紀錄嗎？\n\n👤 買家：${user}\n📌 活動：${eName} - ${member}\n⏱️ 登記時間：${timeStr}`;
-      if (confirm(confirmMsg)) {
-        try {
-          await deleteDoc(doc(db, "orders", docId));
-          alert('已成功刪除！');
-        } catch (err) { alert('刪除失敗: ' + err.message); }
+    window.toggleOrderPhoto = async (docId, shouldSend) => {
+      const todayObj = new Date();
+      const todayStr = todayObj.toISOString().slice(0,10);
+      const expireObj = new Date(todayObj.getTime() + 8 * 24 * 60 * 60 * 1000);
+      const expireStr = expireObj.toISOString().slice(0,10);
+
+      try {
+        await updateDoc(doc(db, "orders", docId), {
+          isPhotoSent: shouldSend,
+          photoSentAt: shouldSend ? todayStr : '',
+          photoExpireAt: shouldSend ? expireStr : ''
+        });
+        alert(shouldSend ? '✅ 已成功設為已發圖 (自動帶入 8 天刪除期限)' : '✅ 已取消發圖狀態');
+      } catch (err) { alert('更新發圖狀態失敗: ' + err.message); }
+    };
+
+    window.deleteOrder = async (docId) => {
+      if (confirm('確定要刪除這筆訂單嗎？')) {
+        try { await deleteDoc(doc(db, "orders", docId)); } catch (err) { alert('刪除失敗: ' + err.message); }
       }
     };
 
     function notifyHeight() {
-      setTimeout(() => {
-        window.parent.postMessage({ frameHeight: document.body.scrollHeight }, '*');
-      }, 100);
+      setTimeout(() => { window.parent.postMessage({ frameHeight: document.body.scrollHeight }, '*'); }, 100);
     }
   </script>
 </body>
