@@ -65,11 +65,11 @@
     <div style="font-size:16px; font-weight:bold; color:#303133; margin-bottom:10px;">💳 儲值 / 退款 / 抵用金確認專區</div>
     
     <div class="sub-tabs">
-      <button class="sub-tab-btn active" onclick="switchSubTab('deposit', this)">📥 預存儲值回報</button>
+      <button class="sub-tab-btn active" onclick="switchSubTab('deposit', this)">📥 儲值金額</button>
       <button class="sub-tab-btn" onclick="switchSubTab('refund', this)">📤 申請退款</button>
     </div>
 
-    <!-- 預存儲值表單 (兩行，無預設日期) -->
+    <!-- 預存儲值表單 (兩行) -->
     <form id="depositForm" class="form-section active">
       <div class="form-grid-2rows">
         <div class="form-group">
@@ -113,36 +113,36 @@
       </div>
     </form>
 
-    <!-- 申請退款表單 (兩行) -->
+    <!-- 申請退款表單 (按照您的精準順序排版) -->
     <form id="refundForm" class="form-section">
       <div class="form-grid-2rows">
         <div class="form-group">
           <label>社群名稱 *</label>
           <select id="refUser" required><option value="">請選擇</option></select>
         </div>
-        <div class="form-group">
-          <label>退款金額 ($) *</label>
-          <input type="number" id="refAmt" min="1" placeholder="" required>
-        </div>
-        <div class="form-group">
+        <div class="form-group" style="grid-column: span 3;">
           <label>退款原因 *</label>
           <input type="text" id="refReason" placeholder="請輸入退款原因" required>
         </div>
-        <div class="form-group">
-          <label>退款銀行 / 代號 *</label>
-          <input type="text" id="refBank" placeholder="例: 中信 822" required>
-        </div>
 
         <div class="form-group">
+          <label>匯款銀行 / 代號 *</label>
+          <input type="text" id="refBank" placeholder="例: 中信 822" required>
+        </div>
+        <div class="form-group">
           <label>退款帳號 *</label>
-          <input type="text" id="refAccount" placeholder="" required>
+          <input type="text" id="refAccount" placeholder="完整帳號" required>
         </div>
         <div class="form-group">
           <label>備註</label>
           <input type="text" id="refNote" placeholder="">
         </div>
-        <div style="grid-column: span 2;">
-          <button type="submit" class="btn-submit" style="background:#e6a23c;" id="refSubmitBtn">提交退款申請</button>
+        <div class="form-group">
+          <label>退款金額 ($) *</label>
+          <div style="display:flex; gap:8px;">
+            <input type="number" id="refAmt" min="1" placeholder="" required style="flex:1;">
+            <button type="submit" class="btn-submit" style="background:#e6a23c; width:110px; flex-shrink:0;" id="refSubmitBtn">提交退款</button>
+          </div>
         </div>
       </div>
 
@@ -206,9 +206,6 @@
     };
 
     document.addEventListener('DOMContentLoaded', async () => {
-      // 移除強制預設當天日期，讓匯款日期保持空白讓用戶手動選擇
-      // document.getElementById('depDate').value = new Date().toISOString().slice(0,10);
-
       try {
         const res = await fetch('../json/users.json');
         const users = await res.json();
@@ -354,7 +351,7 @@
         alert('提交失敗: ' + err.message);
       } finally {
         btn.disabled = false;
-        btn.textContent = '提交退款申請';
+        btn.textContent = '提交退款';
       }
     });
 
@@ -431,7 +428,6 @@
 
         let creditHtml = '';
 
-        // 全面修復抵用金加值與扣款明細 (帶有 M/D 日期)
         creditItems.forEach(c => {
           const crAmt = Number(c.credit) || Number(c.amount) || 0;
           const uAmt = Number(c.used) || 0;
@@ -495,17 +491,23 @@
 
         if (!creditHtml) creditHtml = '<div style="color:#909399; font-size:11px; padding:2px;">目前無已結算明細</div>';
 
+        // 檢查是否有待對帳申報，若無則不渲染此區塊
         let depPendingHtml = '';
-        depositItems.filter(d => d.status === '待對帳').forEach(d => {
-          depPendingHtml += `<div class="item-group-row"><div class="item-group-header"><span>📥 儲值 $${Number(d.amount).toLocaleString()} (${d.bank} / 後5碼:${d.last5})</span><b style="color:#e6a23c;">⏳ 待確認對帳中</b></div></div>`;
-        });
-        if (!depPendingHtml) depPendingHtml = '<div style="color:#909399; font-size:11px; padding:2px;">目前無待對帳申報</div>';
+        const pendingDeposits = depositItems.filter(d => d.status === '待對帳');
+        if (pendingDeposits.length > 0) {
+          pendingDeposits.forEach(d => {
+            depPendingHtml += `<div class="item-group-row"><div class="item-group-header"><span>📥 儲值 $${Number(d.amount).toLocaleString()} (${d.bank} / 後5碼:${d.last5})</span><b style="color:#e6a23c;">⏳ 待確認對帳中</b></div></div>`;
+          });
+        }
 
+        // 檢查是否有待審核退款，若無則不渲染此區塊
         let refPendingHtml = '';
-        refundItems.filter(r => r.status === '待退款').forEach(r => {
-          refPendingHtml += `<div class="item-group-row"><div class="item-group-header"><span>📤 退款 $${Number(r.amount).toLocaleString()} (${r.reason})</span><b style="color:#f56c6c;">⏳ 待退款審核中</b></div></div>`;
-        });
-        if (!refPendingHtml) refPendingHtml = '<div style="color:#909399; font-size:11px; padding:2px;">目前無待審核退款</div>';
+        const pendingRefunds = refundItems.filter(r => r.status === '待退款');
+        if (pendingRefunds.length > 0) {
+          pendingRefunds.forEach(r => {
+            refPendingHtml += `<div class="item-group-row"><div class="item-group-header"><span>📤 退款 $${Number(r.amount).toLocaleString()} (${r.reason})</span><b style="color:#f56c6c;">⏳ 待退款審核中</b></div></div>`;
+          });
+        }
 
         container.innerHTML += `
           <div class="user-block">
@@ -521,15 +523,17 @@
               ${creditHtml}
             </div>
 
+            ${pendingDeposits.length > 0 ? `
             <div class="section-block block-deposit">
               <div class="block-title" style="color:#606266;"><span>＋ 預存儲值申報確認</span></div>
               ${depPendingHtml}
-            </div>
+            </div>` : ''}
 
+            ${pendingRefunds.length > 0 ? `
             <div class="section-block block-refund">
               <div class="block-title" style="color:#606266;"><span>－ 退款申請確認</span></div>
               ${refPendingHtml}
-            </div>
+            </div>` : ''}
           </div>
         `;
       });
