@@ -34,9 +34,14 @@
     .search-inline-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
     .search-title { font-size: 13px; font-weight: bold; color: #303133; white-space: nowrap; }
 
-    .filter-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-left: auto; }
-    .tab-btn { background: #f4f4f5; color: #606266; border: 1px solid #dcdfe6; padding: 4px 10px; border-radius: 16px; font-size: 12px; font-weight: bold; cursor: pointer; transition: all 0.2s; }
-    .tab-btn:hover, .tab-btn.active { background: #409eff; color: #fff; border-color: #409eff; }
+    /* 膠囊式篩選樣式：全部、有資料的成員 */
+    .capsule-filters { display: flex; gap: 6px; flex-wrap: wrap; margin-left: auto; align-items: center; }
+    .capsule-btn { background: #f4f4f5; color: #606266; border: 1px solid #dcdfe6; padding: 5px 14px; border-radius: 16px; font-size: 12px; font-weight: bold; cursor: pointer; transition: all 0.2s; outline: none; }
+    .capsule-btn:hover { background: #ecf5ff; color: #409eff; border-color: #c6e2ff; }
+    .capsule-btn.active { background: #409eff; color: #fff; border-color: #409eff; box-shadow: 0 2px 6px rgba(64,158,255,0.25); }
+    /* 已用完/歸零按鈕改回沉穩灰色調外框 */
+    .capsule-btn.gray-style { background: #f8f9fa; color: #909399; border-color: #dcdfe6; }
+    .capsule-btn.gray-style.active { background: #909399; color: #fff; border-color: #909399; box-shadow: 0 2px 6px rgba(144,147,153,0.25); }
 
     .grid-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
     @media (max-width: 1024px) { .grid-container { grid-template-columns: repeat(2, 1fr); } }
@@ -69,7 +74,7 @@
       <button class="sub-tab-btn" onclick="switchSubTab('refund', this)">📤 申請退款</button>
     </div>
 
-    <!-- 預存儲值表單 (兩行) -->
+    <!-- 預存儲值表單 -->
     <form id="depositForm" class="form-section active">
       <div class="form-grid-2rows">
         <div class="form-group">
@@ -113,18 +118,17 @@
       </div>
     </form>
 
-    <!-- 申請退款表單 (按照您的精準順序排版) -->
+    <!-- 申請退款表單 (還原標準寬度) -->
     <form id="refundForm" class="form-section">
       <div class="form-grid-2rows">
         <div class="form-group">
           <label>社群名稱 *</label>
           <select id="refUser" required><option value="">請選擇</option></select>
         </div>
-        <div class="form-group" style="grid-column: span 3;">
+        <div class="form-group">
           <label>退款原因 *</label>
           <input type="text" id="refReason" placeholder="請輸入退款原因" required>
         </div>
-
         <div class="form-group">
           <label>匯款銀行 / 代號 *</label>
           <input type="text" id="refBank" placeholder="例: 中信 822" required>
@@ -133,16 +137,17 @@
           <label>退款帳號 *</label>
           <input type="text" id="refAccount" placeholder="完整帳號" required>
         </div>
+
+        <div class="form-group">
+          <label>退款金額 ($) *</label>
+          <input type="number" id="refAmt" min="1" placeholder="" required>
+        </div>
         <div class="form-group">
           <label>備註</label>
           <input type="text" id="refNote" placeholder="">
         </div>
-        <div class="form-group">
-          <label>退款金額 ($) *</label>
-          <div style="display:flex; gap:8px;">
-            <input type="number" id="refAmt" min="1" placeholder="" required style="flex:1;">
-            <button type="submit" class="btn-submit" style="background:#e6a23c; width:110px; flex-shrink:0;" id="refSubmitBtn">提交退款</button>
-          </div>
+        <div style="grid-column: span 2;">
+          <button type="submit" class="btn-submit" style="background:#e6a23c;" id="refSubmitBtn">提交退款申請</button>
         </div>
       </div>
 
@@ -154,17 +159,14 @@
     </form>
   </div>
 
-  <!-- 單行並排篩選列 -->
+  <!-- 膠囊式快速篩選列 (全部 / 有資料的成員) -->
   <div class="search-card">
     <div class="search-inline-bar">
       <span class="search-title">👤 快速篩選：</span>
-      <select id="userSelect" style="padding:4px 8px; font-size:12px; border-radius:6px; max-width:180px;">
-        <option value="ALL">顯示全部成員紀錄</option>
-      </select>
-      <div class="filter-tabs">
-        <button class="tab-btn active" onclick="setBalanceFilter('active', this)">🟢 尚有餘額</button>
-        <button class="tab-btn" onclick="setBalanceFilter('zero', this)">📁 已用完/歸零</button>
-        <button class="tab-btn" onclick="setBalanceFilter('all', this)">👤 顯示全部</button>
+      <div class="capsule-filters">
+        <button class="capsule-btn active" onclick="setBalanceFilter('active', this)">🟢 尚有餘額</button>
+        <button class="capsule-btn gray-style" onclick="setBalanceFilter('zero', this)">📁 已用完/歸零</button>
+        <button class="capsule-btn" onclick="setBalanceFilter('all', this)">👤 顯示全部</button>
       </div>
     </div>
   </div>
@@ -194,7 +196,6 @@
     let allPayments = [];
     let allOrders = {};
 
-    let selectedUserFilter = 'ALL';
     let balanceTabFilter = 'active';
 
     window.switchSubTab = (tabName, btnElem) => {
@@ -237,23 +238,18 @@
       onSnapshot(collection(db, "user_deposits"), snap => {
         allDeposits = [];
         snap.forEach(d => allDeposits.push({ id: d.id, ...d.data() }));
-        refreshDataView();
+        renderAllUserCards();
       });
 
       onSnapshot(collection(db, "user_credits"), snap => {
         allCredits = [];
         snap.forEach(d => allCredits.push({ id: d.id, ...d.data() }));
-        refreshDataView();
+        renderAllUserCards();
       });
 
       onSnapshot(collection(db, "refund_requests"), snap => {
         allRefundRequests = [];
         snap.forEach(d => allRefundRequests.push({ id: d.id, ...d.data() }));
-        refreshDataView();
-      });
-
-      document.getElementById('userSelect').addEventListener('change', (e) => {
-        selectedUserFilter = e.target.value;
         renderAllUserCards();
       });
     });
@@ -351,35 +347,16 @@
         alert('提交失敗: ' + err.message);
       } finally {
         btn.disabled = false;
-        btn.textContent = '提交退款';
+        btn.textContent = '提交退款申請';
       }
     });
 
     window.setBalanceFilter = (filterType, btnElem) => {
       balanceTabFilter = filterType;
-      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.capsule-btn').forEach(b => b.classList.remove('active'));
       if (btnElem) btnElem.classList.add('active');
       renderAllUserCards();
     };
-
-    function refreshDataView() {
-      const activeUsersSet = new Set();
-      allDeposits.forEach(d => { const u = d.user || d.buyerName || d.name; if (u) activeUsersSet.add(u); });
-      allCredits.forEach(c => { const u = c.user || c.buyerName || c.name; if (u) activeUsersSet.add(u); });
-      allRefundRequests.forEach(r => { const u = r.user || r.buyerName || r.name; if (u) activeUsersSet.add(u); });
-      updateUserDropdown(Array.from(activeUsersSet));
-      renderAllUserCards();
-    }
-
-    function updateUserDropdown(usersList) {
-      const sel = document.getElementById('userSelect');
-      const cur = sel.value;
-      sel.innerHTML = '<option value="ALL">顯示全部成員紀錄</option>';
-      usersList.sort((a, b) => a.localeCompare(b, 'zh-TW')).forEach(u => {
-        sel.innerHTML += `<option value="${u}">${u}</option>`;
-      });
-      if (cur && (cur === 'ALL' || usersList.includes(cur))) sel.value = cur;
-    }
 
     function renderAllUserCards() {
       const container = document.getElementById('recordsContainer');
@@ -400,8 +377,6 @@
       let renderCount = 0;
 
       sortedUsers.forEach(uName => {
-        if (selectedUserFilter !== 'ALL' && uName !== selectedUserFilter) return;
-
         let plus = 0, used = 0;
         let depositItems = allDeposits.filter(d => (d.user || d.buyerName) === uName);
         let creditItems = allCredits.filter(c => (c.user || c.buyerName) === uName);
@@ -491,7 +466,6 @@
 
         if (!creditHtml) creditHtml = '<div style="color:#909399; font-size:11px; padding:2px;">目前無已結算明細</div>';
 
-        // 檢查是否有待對帳申報，若無則不渲染此區塊
         let depPendingHtml = '';
         const pendingDeposits = depositItems.filter(d => d.status === '待對帳');
         if (pendingDeposits.length > 0) {
@@ -500,7 +474,6 @@
           });
         }
 
-        // 檢查是否有待審核退款，若無則不渲染此區塊
         let refPendingHtml = '';
         const pendingRefunds = refundItems.filter(r => r.status === '待退款');
         if (pendingRefunds.length > 0) {
