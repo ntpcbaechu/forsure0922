@@ -1,0 +1,63 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // 0. 活動場次清單 (events)
+    match /events/{document} {
+      allow read, write: if true;
+    }
+
+    // 1. 活動成本與單價設定 (event_settings)
+    match /event_settings/{document} {
+      allow read, write: if true;
+    }
+
+    // 2. 團員登記表單 (orders)
+    match /orders/{document} {
+      allow read, write: if true;
+    }
+
+    // 3. 匯款對帳紀錄 (payments)
+    match /payments/{document} {
+      allow read, write: if true;
+    }
+
+    // 4. 成員抵用金 (user_credits / credits)
+    match /user_credits/{document} {
+      allow read, write: if true;
+    }
+    match /credits/{document} {
+      allow read, write: if true;
+    }
+
+    // 5. 飯拍發圖進度 (photo_progress / event_progress / progress_list)
+    match /photo_progress/{document} {
+      allow read, write: if true;
+    }
+    match /event_progress/{document} {
+      allow read, write: if true;
+    }
+    match /progress_list/{document} {
+      allow read, write: if true;
+    }
+
+    // 6. 抽獎活動與名單 (lottery_events / lottery_participants)
+    match /lottery_events/{document} {
+      allow read, write: if true;
+    }
+    match /lottery_participants/{document} {
+      allow read, write: if true;
+    }
+
+    // 7. 買家預存儲值金 (user_deposits)
+    match /user_deposits/{document} {
+      allow read, write: if true;
+    }
+
+    // 8. 買家退款申請 (refund_requests) - 依據需求安全補上
+    match /refund_requests/{document} {
+      allow read, write: if true;
+    }
+
+  }
+}
