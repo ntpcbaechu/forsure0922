@@ -27,7 +27,6 @@
     .warning-tip { color: #f56c6c; font-size: 12px; font-weight: bold; margin-top: 4px; display: none; line-height: 1.4; background: #fef0f0; border: 1px solid #fde2e2; padding: 6px 8px; border-radius: 6px; }
     .legal-warning { background: #fdf6ec; border: 1px solid #faebd7; color: #e6a23c; font-size: 11px; padding: 8px 10px; border-radius: 6px; margin-bottom: 10px; line-height: 1.4; font-weight: bold; }
 
-    /* 查詢篩選區 */
     .search-card { background: #fff; border: 1px solid #e4e7ed; border-radius: 12px; padding: 14px; margin-bottom: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); }
     .search-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
     .search-title { font-size: 14px; font-weight: bold; color: #303133; white-space: nowrap; }
@@ -36,7 +35,7 @@
     .tab-btn { background: #f4f4f5; color: #606266; border: 1px solid #dcdfe6; padding: 5px 12px; border-radius: 16px; font-size: 12px; font-weight: bold; cursor: pointer; transition: all 0.2s; }
     .tab-btn:hover, .tab-btn.active { background: #409eff; color: #fff; border-color: #409eff; }
 
-    /* 🎯 預設 3 個一排，螢幕較小時自動變 2 個或 1 個一排 */
+    /* 固定 3 個一排 */
     .grid-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
     @media (max-width: 1024px) { .grid-container { grid-template-columns: repeat(2, 1fr); } }
     @media (max-width: 650px) { .grid-container { grid-template-columns: 1fr; } }
@@ -48,21 +47,19 @@
     .summary-bar b { color: #303133; }
     .summary-bar .green { color: #67c23a; font-size: 13px; font-weight: bold; }
 
-    /* 三種專屬底色的區塊樣式（申報與退款改回灰底） */
     .section-block { border-radius: 8px; padding: 8px 10px; font-size: 11px; display: flex; flex-direction: column; gap: 4px; }
-    .block-credit { background: #f0f9eb; border: 1px solid #e1f3d8; }     /* 綠底：抵用金與消費明細 */
-    .block-deposit { background: #f8f9fa; border: 1px solid #e4e7ed; }    /* 灰底：預存儲值申報 */
-    .block-refund { background: #f8f9fa; border: 1px solid #e4e7ed; }     /* 灰底：退款申請 */
+    .block-credit { background: #f0f9eb; border: 1px solid #e1f3d8; }
+    .block-deposit { background: #f8f9fa; border: 1px solid #e4e7ed; }
+    .block-refund { background: #f8f9fa; border: 1px solid #e4e7ed; }
 
     .block-title { font-weight: bold; font-size: 11px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px; }
-    .item-row { display: flex; justify-content: space-between; align-items: center; background: #fff; padding: 4px 8px; border-radius: 4px; border: 1px solid rgba(0,0,0,0.04); }
-
-    .empty-tip { text-align: center; color: #909399; padding: 30px 0; font-size: 13px; background: #fff; border-radius: 10px; border: 1px solid #e4e7ed; }
+    .item-row { display: flex; justify-content: space-between; align-items: flex-start; background: #fff; padding: 5px 8px; border-radius: 4px; border: 1px solid rgba(0,0,0,0.04); }
+    .item-title { display: flex; flex-direction: column; gap: 2px; }
+    .item-subtext { font-size: 10px; color: #909399; }
   </style>
 </head>
 <body>
 
-  <!-- 上半部：填單與退款申請區 -->
   <div class="app-card">
     <div style="font-size:16px; font-weight:bold; color:#303133; margin-bottom:10px;">💳 儲值 / 退款 / 抵用金確認專區</div>
     
@@ -71,13 +68,13 @@
       <button class="sub-tab-btn" onclick="switchSubTab('refund', this)">📤 申請退款</button>
     </div>
 
-    <!-- 1. 預存儲值表單 -->
+    <!-- 預存儲值表單 (改為 3 欄排版) -->
     <form id="depositForm" class="form-section active">
       <div class="form-group">
         <label>社群名稱 *</label>
         <select id="depUser" required><option value="">載入中...</option></select>
       </div>
-      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;">
+      <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:8px;">
         <div class="form-group">
           <label>匯款日期 *</label>
           <input type="date" id="depDate" required>
@@ -92,25 +89,25 @@
             <option value="其他">其他</option>
           </select>
         </div>
-      </div>
-      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;">
         <div class="form-group">
           <label>儲值金額 ($) *</label>
           <input type="number" id="depAmt" min="1" placeholder="例如: 3000" required>
         </div>
+      </div>
+      <div style="display:grid; grid-template-columns: 1fr 2fr; gap:8px;">
         <div class="form-group">
           <label>帳號後 5 碼 *</label>
           <input type="text" id="depLast5" maxlength="5" placeholder="例如: 12345" required>
         </div>
-      </div>
-      <div class="form-group">
-        <label>備註說明</label>
-        <input type="text" id="depNote" placeholder="如有特殊說明請在此註明...">
+        <div class="form-group">
+          <label>備註說明</label>
+          <input type="text" id="depNote" placeholder="如有特殊說明請在此註明...">
+        </div>
       </div>
       <button type="submit" class="btn-submit" id="depSubmitBtn">提交儲值申報 (等待對帳入帳)</button>
     </form>
 
-    <!-- 2. 申請退款表單 -->
+    <!-- 申請退款表單 -->
     <form id="refundForm" class="form-section">
       <div class="form-group">
         <label>社群名稱 *</label>
@@ -122,30 +119,29 @@
         <b id="refBalanceNum" style="font-size:16px;">$0</b>
       </div>
 
-      <div class="form-group">
-        <label>退款金額 ($) *</label>
-        <input type="number" id="refAmt" min="1" placeholder="請輸入退款金額" required>
-        <div id="refWarning" class="warning-tip">⚠️ 提醒：您填寫的退款金額已超過目前可用餘額，送出後將由管理者手動核對審核！</div>
-      </div>
-
-      <div class="form-group">
-        <label>退款原因 *</label>
-        <input type="text" id="refReason" placeholder="請自行輸入退款原因 (例: 成團未滿 / 溢繳退款)" required>
-      </div>
-
-      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;">
+      <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:8px;">
         <div class="form-group">
-          <label>退款銀行 / 銀行代號 *</label>
+          <label>退款金額 ($) *</label>
+          <input type="number" id="refAmt" min="1" placeholder="金額" required>
+        </div>
+        <div class="form-group">
+          <label>退款銀行 / 代號 *</label>
           <input type="text" id="refBank" placeholder="例: 中信 822" required>
         </div>
         <div class="form-group">
           <label>退款帳號 *</label>
-          <input type="text" id="refAccount" placeholder="請輸入您的完整帳號" required>
+          <input type="text" id="refAccount" placeholder="完整帳號" required>
         </div>
       </div>
 
+      <div class="form-group">
+        <label>退款原因 *</label>
+        <input type="text" id="refReason" placeholder="請輸入退款原因 (例: 成團未滿 / 溢繳退款)" required>
+        <div id="refWarning" class="warning-tip">⚠️ 提醒：填寫的退款金額已超過可用餘額，送出後將由管理者手動審核！</div>
+      </div>
+
       <div class="legal-warning">
-        ⚠️ 警語：請務必確認退款帳號與資料填寫正確，若因填寫錯誤導致匯款失敗或損失，後續恕不負責協助處理。
+        ⚠️ 警語：請務必確認退款帳號資料正確，若因填寫錯誤導致匯款失敗，後續恕不負責協助處理。
       </div>
 
       <div class="form-group">
@@ -157,7 +153,6 @@
     </form>
   </div>
 
-  <!-- 下半部：篩選與卡片顯示區 -->
   <div class="search-card">
     <div class="search-row">
       <span class="search-title">👤 快速篩選：</span>
@@ -194,6 +189,9 @@
     let allDeposits = [];
     let allCredits = [];
     let allRefundRequests = [];
+    let allPayments = [];
+    let allOrders = {};
+
     let selectedUserFilter = 'ALL';
     let balanceTabFilter = 'active';
 
@@ -223,6 +221,18 @@
 
       document.getElementById('refUser').addEventListener('change', updateRefundBalanceDisplay);
       document.getElementById('refAmt').addEventListener('input', checkRefundExceed);
+
+      onSnapshot(collection(db, "orders"), snap => {
+        allOrders = {};
+        snap.forEach(d => { allOrders[d.id] = d.data(); });
+        renderAllUserCards();
+      });
+
+      onSnapshot(collection(db, "payments"), snap => {
+        allPayments = [];
+        snap.forEach(d => { allPayments.push({ id: d.id, ...d.data() }); });
+        renderAllUserCards();
+      });
 
       onSnapshot(collection(db, "user_deposits"), snap => {
         allDeposits = [];
@@ -429,13 +439,38 @@
         creditItems.forEach(c => {
           const crAmt = Number(c.credit) || Number(c.amount) || 0;
           const uAmt = Number(c.used) || 0;
-          if (crAmt > 0) creditHtml += `<div class="item-row"><span>➕ [抵用金] ${c.fullEvent || c.eventName || '活動轉入'}</span><b style="color:#67c23a;">+$${crAmt.toLocaleString()}</b></div>`;
-          if (uAmt > 0) creditHtml += `<div class="item-row"><span>➖ [折抵消費] ${c.fullEvent || c.eventName || ''}</span><b style="color:#f56c6c;">-$${uAmt.toLocaleString()}</b></div>`;
+          if (crAmt > 0) creditHtml += `<div class="item-row"><div class="item-title"><span>➕ [抵用金] ${c.fullEvent || c.eventName || '活動轉入'}</span></div><b style="color:#67c23a;">+$${crAmt.toLocaleString()}</b></div>`;
+          if (uAmt > 0) creditHtml += `<div class="item-row"><div class="item-title"><span>➖ [折抵消費] ${c.fullEvent || c.eventName || ''}</span></div><b style="color:#f56c6c;">-$${uAmt.toLocaleString()}</b></div>`;
         });
+
         depositItems.filter(d => d.status !== '待對帳').forEach(d => {
           const isPlus = (d.type !== 'usage');
-          creditHtml += `<div class="item-row"><span>${isPlus ? '➕' : '➖'} ${d.note || (isPlus ? '預存儲值入帳' : '扣款折抵')}</span><b style="color:${isPlus ? '#67c23a' : '#f56c6c'};">${isPlus ? '+' : '-'}$${Number(d.amount).toLocaleString()}</b></div>`;
+          let noteDetails = d.note || (isPlus ? '預存儲值入帳' : '扣款折抵');
+          
+          // 如果是扣款，嘗試找出關聯的活動與內容
+          if (!isPlus) {
+            const matchedPay = allPayments.find(p => (p.user === uName || p.buyerName === uName) && p.depositUsed > 0);
+            if (matchedPay && matchedPay.relatedOrderIds) {
+              let orderDetails = [];
+              matchedPay.relatedOrderIds.forEach(oId => {
+                const o = allOrders[oId];
+                if (o) orderDetails.push(`• ${o.event || o.eventName} (${o.member} / ${o.qty || o.quantity}張)`);
+              });
+              if (orderDetails.length > 0) {
+                noteDetails = orderDetails.join('<br>');
+              }
+            }
+          }
+
+          creditHtml += `
+            <div class="item-row">
+              <div class="item-title">
+                <span>${isPlus ? '➕' : '➖'} ${noteDetails}</span>
+              </div>
+              <b style="color:${isPlus ? '#67c23a' : '#f56c6c'};">${isPlus ? '+' : '-'}$${Number(d.amount).toLocaleString()}</b>
+            </div>`;
         });
+
         if (!creditHtml) creditHtml = '<div style="color:#909399; font-size:11px; padding:2px;">目前無已結算明細</div>';
 
         let depPendingHtml = '';
@@ -463,19 +498,16 @@
               </div>
             </div>
 
-            <!-- 區塊 1：抵用金與消費明細 -->
             <div class="section-block block-credit">
               <div class="block-title" style="color:#67c23a;"><span>➕ 抵用金與消費明細</span></div>
               ${creditHtml}
             </div>
 
-            <!-- 區塊 2：預存儲值申報確認 -->
             <div class="section-block block-deposit">
               <div class="block-title" style="color:#606266;"><span>＋ 預存儲值申報確認</span></div>
               ${depPendingHtml}
             </div>
 
-            <!-- 區塊 3：退款申請確認 -->
             <div class="section-block block-refund">
               <div class="block-title" style="color:#606266;"><span>－ 退款申請確認</span></div>
               ${refPendingHtml}
