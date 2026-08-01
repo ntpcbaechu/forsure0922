@@ -87,18 +87,25 @@
       return 'pending';
     }
 
-    function renderTable() {
+    window.renderTable = () => {
       const container = document.getElementById('groupContainer');
       container.innerHTML = '';
+
+      const kwElem = document.getElementById('paymentSearchInput');
+      const kw = kwElem ? kwElem.value.toLowerCase().trim() : '';
 
       let list = Object.values(paymentDataMap).filter(p => {
         const isOk = getNormalizedPayStatus(p) === 'ok';
         const isPhotoSent = p.isPhotoSent === true || p.status === 'photo_sent';
-        return isOk && !isPhotoSent; // 顯示已對帳但尚未發圖的項目
+        return isOk && !isPhotoSent;
       });
 
+      if (kw) {
+        list = list.filter(p => `${p.user || ''} ${p.buyerName || ''} ${p.bankLast5 || ''} ${p.last5 || ''}`.toLowerCase().includes(kw));
+      }
+
       if (list.length === 0) {
-        container.innerHTML = '<div style="text-align:center; color:#909399; padding:30px;">目前尚無已對帳且未發圖的紀錄</div>';
+        container.innerHTML = '<div style="text-align:center; color:#909399; padding:30px;">目前尚無符合的已對帳 (未發圖) 紀錄</div>';
         notifyHeight();
         return;
       }
@@ -111,15 +118,18 @@
 
       const card = document.createElement('div');
       card.className = 'group-card';
-      card.innerHTML = '<div class="group-header"><span>🟢 已對帳 (未發圖)</span><span class="group-badge">共 ' + list.length + ' 筆</span></div>' +
-        '<table><thead><tr><th style="width:15%;">社群名稱</th><th style="width:45%;">買家勾選與明細 & 銀行實際對帳輸入</th><th style="width:15%;">買家填寫資料</th><th style="width:13%;">對帳狀態</th><th style="width:12%;">操作</th></tr></thead><tbody></tbody></table>';
+      card.innerHTML = '<div class="group-header">' +
+        '<span>🟢 已對帳 (未發圖) (共 ' + list.length + ' 筆)</span>' +
+        '<input type="text" id="paymentSearchInput" value="' + kw + '" placeholder="🔍 搜尋暱稱 / 後五碼..." onkeyup="renderTable()" style="padding:4px 8px; border:1px solid #cbd5e1; border-radius:6px; font-size:12px; width:180px;">' +
+      '</div>' +
+      '<table><thead><tr><th style="width:15%;">社群名稱</th><th style="width:45%;">買家勾選與明細 & 銀行實際對帳輸入</th><th style="width:15%;">買家填寫資料</th><th style="width:13%;">對帳狀態</th><th style="width:12%;">操作</th></tr></thead><tbody></tbody></table>';
 
       const tb = card.querySelector('tbody');
       list.forEach(p => tb.appendChild(renderPaymentRow(p)));
       container.appendChild(card);
 
       notifyHeight();
-    }
+    };
 
     function renderPaymentRow(p) {
       const docId = p.id;
