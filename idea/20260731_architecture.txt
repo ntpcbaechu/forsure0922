@@ -3,7 +3,7 @@
 ├── admin.html                     <-- Shared Admin Login & Console
 ├── json/                          <-- Shared Base Lists
 │   ├── users.json                 (Shared buyer nicknames list)
-│   └── members.json               (Shared members list)
+│   └── members_skz.json               (Shared members list)
 │
 ├── ntpcbaechu/                    <-- Your Private Folder (Independent Firebase Project A)
 │   ├── firebase-config.js         (Your Firebase settings: Protects your privacy & finances)

@@ -134,7 +134,7 @@
     let eventSettingsMap = {};
 
     document.addEventListener('DOMContentLoaded', () => {
-      fetch('../json/members.json').then(res => res.json()).then(members => {
+      fetch('../json/members_skz.json').then(res => res.json()).then(members => {
         const memSel = document.getElementById('lotteryMember');
         memSel.innerHTML = '<option value="">請選擇成員</option>';
         members.forEach(m => memSel.innerHTML += `<option value="${m}">${m}</option>`);

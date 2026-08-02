@@ -108,7 +108,7 @@
     const db = getFirestore(app);
 
     let memberOrderList = ["方燦", "Lee Know", "彰彬", "鉉辰", "HAN", "Felix", "昇玟", "I.N"];
-    fetch('../json/members.json').then(r => r.json()).then(arr => { memberOrderList = arr; }).catch(() => {});
+    fetch('../json/members_skz.json').then(r => r.json()).then(arr => { memberOrderList = arr; }).catch(() => {});
 
     let rawProgress = [];
     let ordersCache = {};

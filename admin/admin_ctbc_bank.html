@@ -208,7 +208,7 @@
       }
 
       try {
-        const mRes = await fetch('../json/members.json');
+        const mRes = await fetch('../json/members_skz.json');
         const members = await mRes.json();
         document.getElementById('memberSelect').innerHTML = members.map(m => `<option value="${m}">${m}</option>`).join('');
       } catch(e) {

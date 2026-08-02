@@ -152,7 +152,7 @@
     let memberOrderList = ["方燦", "Lee Know", "彰彬", "鉉辰", "HAN", "Felix", "昇玟", "I.N"];
     let activeMemberFilter = 'ALL';
 
-    fetch('../json/members.json').then(r => r.json()).then(arr => { 
+    fetch('../json/members_skz.json').then(r => r.json()).then(arr => { 
       memberOrderList = arr; 
       initMemberFilterCapsules();
     }).catch(() => { initMemberFilterCapsules(); });
