@@ -90,8 +90,12 @@
         <option value="">請選擇活動</option>
       </select>
 
-      <select id="memberSelect" required style="min-width: 130px;">
-        <option value="">請先選擇活動</option>
+      <select id="groupSelect" style="min-width: 130px;">
+        <option value="">請選擇團體</option>
+      </select>
+
+      <select id="memberSelect" required disabled style="min-width: 130px;">
+        <option value="">請先選擇團體</option>
       </select>
 
       <select id="sellerSelect" required style="min-width: 140px;">
@@ -149,33 +153,36 @@
 
     let rawEventSettings = [];
     let progressMap = {};
-    let memberOrderList = ["方燦", "Lee Know", "彰彬", "鉉辰", "HAN", "Felix", "昇玟", "I.N"];
     let activeMemberFilter = 'ALL';
 
-    fetch('../json/members_skz.json').then(r => r.json()).then(arr => { 
-      memberOrderList = arr; 
-      initMemberFilterCapsules();
-    }).catch(() => { initMemberFilterCapsules(); });
-
-    function initMemberFilterCapsules() {
-      const box = document.getElementById('progressMemberCapsules');
-      box.innerHTML = `<button type="button" class="status-chip ${activeMemberFilter === 'ALL' ? 'selected' : ''}" onclick="filterProgressMember('ALL', this)">顯示全部</button>`;
-      memberOrderList.forEach(m => {
-        box.innerHTML += `<button type="button" class="status-chip ${activeMemberFilter === m ? 'selected' : ''}" onclick="filterProgressMember('${m}', this)">${m}</button>`;
-      });
-    }
-
-    window.filterProgressMember = (mName, btnElem) => {
-      activeMemberFilter = mName;
-      btnElem.parentElement.querySelectorAll('.status-chip').forEach(b => b.classList.remove('selected'));
-      btnElem.classList.add('selected');
-      renderProgressCards();
-    };
-
     const evSel = document.getElementById('eventSelect');
+    const groupSel = document.getElementById('groupSelect');
     const memSel = document.getElementById('memberSelect');
     const sellerSel = document.getElementById('sellerSelect');
     const statusInput = document.getElementById('statusSelect');
+
+    fetch('../json/group.json').then(r => r.json()).then(groups => {
+      groupSel.innerHTML = '<option value="">請選擇團體</option>';
+      groups.forEach(g => groupSel.innerHTML += `<option value="${g}">${g}</option>`);
+    });
+
+    groupSel.addEventListener('change', () => {
+      const g = groupSel.value;
+      memSel.innerHTML = '';
+      if (!g) {
+        memSel.innerHTML = '<option value="">請先選擇團體</option>';
+        memSel.disabled = true;
+        return;
+      }
+      const file = (g === 'Stray Kids') ? 'members_skz.json' : (g === 'ATEEZ' ? 'members_atz.json' : '');
+      if (file) {
+        fetch(`../json/${file}`).then(r => r.json()).then(arr => {
+          memSel.disabled = false;
+          memSel.innerHTML = '<option value="">請選擇成員</option>';
+          arr.forEach(m => memSel.innerHTML += `<option value="${m}">${m}</option>`);
+        });
+      }
+    });
 
     document.querySelectorAll('.status-options .status-chip').forEach(chip => {
       chip.addEventListener('click', () => {
@@ -214,55 +221,19 @@
 
     evSel.addEventListener('change', () => {
       const selectedEvent = evSel.value;
-      memSel.innerHTML = '<option value="">請選擇成員</option>';
-      sellerSel.innerHTML = '<option value="">請選擇代拍</option>';
-
       if (!selectedEvent) return;
-
-      const membersSet = new Set();
-      rawEventSettings.forEach(s => {
-        const eName = s.name;
-        if (eName === selectedEvent && s.member) {
-          membersSet.add(s.member.trim());
-        }
-      });
-
-      const sortedMembers = Array.from(membersSet).sort((a, b) => {
-        let idxA = memberOrderList.indexOf(a);
-        let idxB = memberOrderList.indexOf(b);
-        if (idxA === -1) idxA = 99;
-        if (idxB === -1) idxB = 99;
-        return idxA - idxB;
-      });
-
-      sortedMembers.forEach(m => {
-        memSel.innerHTML += '<option value="' + m + '">' + m + '</option>';
-      });
-    });
-
-    memSel.addEventListener('change', () => {
-      const selectedEvent = evSel.value;
-      const selectedMember = memSel.value;
-      sellerSel.innerHTML = '<option value="">請選擇代拍</option>';
-
-      if (!selectedEvent || !selectedMember) return;
 
       const sellerSet = new Set();
       rawEventSettings.forEach(s => {
-        const eName = s.name;
-        if (eName === selectedEvent && s.member === selectedMember && s.seller) {
-          sellerSet.add(s.seller.trim());
-        }
+        if (s.name === selectedEvent && s.seller) sellerSet.add(s.seller.trim());
       });
 
       const sellers = Array.from(sellerSet).sort((a, b) => a.localeCompare(b, 'zh-TW'));
+      sellerSel.innerHTML = '<option value="">請選擇代拍</option>';
       if (sellers.length === 0) {
-        sellerSel.innerHTML = '<option value="代拍1">代拍1 (預設)</option>';
+        sellerSel.innerHTML += '<option value="代拍1">代拍1 (預設)</option>';
       } else {
-        sellerSel.innerHTML = '<option value="">請選擇代拍</option>';
-        sellers.forEach(p => {
-          sellerSel.innerHTML += '<option value="' + p + '">' + p + '</option>';
-        });
+        sellers.forEach(p => sellerSel.innerHTML += '<option value="' + p + '">' + p + '</option>');
       }
     });
 
@@ -293,20 +264,6 @@
         return;
       }
 
-      list.sort((a, b) => {
-        const eA = a.eventName || a.event || '';
-        const eB = b.eventName || b.event || '';
-        if (eA !== eB) return eA.localeCompare(eB);
-
-        const mA = a.member || '';
-        const mB = b.member || '';
-        let idxA = memberOrderList.indexOf(mA);
-        let idxB = memberOrderList.indexOf(mB);
-        if (idxA === -1) idxA = 99;
-        if (idxB === -1) idxB = 99;
-        return idxA - idxB;
-      });
-
       const eventGroups = {};
       list.forEach(item => {
         const eName = item.eventName || item.event || '未命名活動';
@@ -326,40 +283,20 @@
             '<th style="width: 20%;">操作</th>' +
           '</tr></thead><tbody>';
 
-        const memberGroups = {};
-        const memberKeys = [];
-        items.forEach(item => {
+        items.forEach((item) => {
           const mName = item.member || '全體';
-          if (!memberGroups[mName]) {
-            memberGroups[mName] = [];
-            memberKeys.push(mName);
-          }
-          memberGroups[mName].push(item);
-        });
+          const sellerName = item.seller || '代拍1';
+          const statusText = item.status || '-';
 
-        memberKeys.forEach(mName => {
-          const mItems = memberGroups[mName];
-          const mRowCount = mItems.length;
-
-          mItems.forEach((item, idx) => {
-            const sellerName = item.seller || '代拍1';
-            const statusText = item.status || '-';
-
-            let memberCell = '';
-            if (idx === 0) {
-              memberCell = '<td rowspan="' + mRowCount + '" style="vertical-align:middle; font-weight:bold;">' + mName + '</td>';
-            }
-
-            tableHtml += '<tr>' +
-              memberCell +
-              '<td>' + sellerName + '</td>' +
-              '<td><span class="badge-status" data-val="' + statusText + '">' + statusText + '</span></td>' +
-              '<td>' +
-                '<button class="btn-edit" onclick="editProgress(\'' + item.id + '\')">編輯</button>' +
-                '<button class="btn-danger" onclick="deleteProgress(\'' + item.id + '\')">刪除</button>' +
-              '</td>' +
-            '</tr>';
-          });
+          tableHtml += '<tr>' +
+            '<td style="font-weight:bold;">' + mName + '</td>' +
+            '<td>' + sellerName + '</td>' +
+            '<td><span class="badge-status" data-val="' + statusText + '">' + statusText + '</span></td>' +
+            '<td>' +
+              '<button class="btn-edit" onclick="editProgress(\'' + item.id + '\')">編輯</button>' +
+              '<button class="btn-danger" onclick="deleteProgress(\'' + item.id + '\')">刪除</button>' +
+            '</td>' +
+          '</tr>';
         });
 
         tableHtml += '</tbody></table>';
@@ -380,9 +317,10 @@
       const saveBtn = document.getElementById('saveProgressBtn');
       saveBtn.disabled = true;
 
-      const eventName = document.getElementById('eventSelect').value;
-      const member = document.getElementById('memberSelect').value;
-      const seller = document.getElementById('sellerSelect').value;
+      const eventName = evSel.value;
+      const group = groupSel.value;
+      const member = memSel.value;
+      const seller = sellerSel.value;
 
       const cleanSeller = seller ? seller.trim() : '代拍1';
       const docId = eventName + '_' + member + '_' + cleanSeller;
@@ -390,6 +328,7 @@
       try {
         await setDoc(doc(db, "photo_progress", docId), {
           eventName: eventName,
+          group: group,
           member: member,
           seller: cleanSeller,
           status: status,
@@ -436,23 +375,18 @@
       if (!item) return;
 
       document.getElementById('editProgressId').value = docId;
-      
-      const evSel = document.getElementById('eventSelect');
       evSel.value = item.eventName || item.event || '';
-      evSel.dispatchEvent(new Event('change'));
-
-      setTimeout(() => {
-        const memSel = document.getElementById('memberSelect');
-        memSel.value = item.member || '';
-        memSel.dispatchEvent(new Event('change'));
-
+      
+      if (item.group) {
+        groupSel.value = item.group;
+        groupSel.dispatchEvent(new Event('change'));
         setTimeout(() => {
-          document.getElementById('sellerSelect').value = item.seller || '';
-        }, 50);
-      }, 50);
+          memSel.value = item.member || '';
+          sellerSel.value = item.seller || '';
+        }, 100);
+      }
 
       setStatusChipValue(item.status || '');
-
       document.getElementById('saveProgressBtn').textContent = '更新進度';
       document.getElementById('cancelBtn').style.display = 'inline-block';
     };
@@ -466,8 +400,9 @@
     window.resetForm = () => {
       document.getElementById('progressForm').reset();
       document.getElementById('editProgressId').value = '';
-      document.getElementById('memberSelect').innerHTML = '<option value="">請先選擇活動</option>';
-      document.getElementById('sellerSelect').innerHTML = '<option value="">請選擇代拍</option>';
+      memSel.innerHTML = '<option value="">請先選擇團體</option>';
+      memSel.disabled = true;
+      sellerSel.innerHTML = '<option value="">請選擇代拍</option>';
       setStatusChipValue('');
       document.getElementById('saveProgressBtn').textContent = '發佈進度';
       document.getElementById('cancelBtn').style.display = 'none';

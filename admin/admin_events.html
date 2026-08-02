@@ -27,7 +27,7 @@
       gap: 10px;
     }
     .form-row { display: grid; gap: 10px; align-items: end; }
-    .row-4 { grid-template-columns: 1fr 1.5fr 1.2fr 1.5fr; }
+    .row-5 { grid-template-columns: 1fr 1.2fr 1fr 1fr 1.2fr; }
     .row-pack-spec { grid-template-columns: 1fr 1fr 1fr 1fr auto; }
     .row-cost-act { grid-template-columns: 1fr 1fr 1.2fr 1fr 1fr auto; }
     .row-discount { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
@@ -90,7 +90,7 @@
     .summary-col { display: flex; flex-direction: column; gap: 4px; }
 
     @media (max-width: 768px) {
-      .row-4, .row-pack-spec, .row-cost-act { grid-template-columns: 1fr; }
+      .row-5, .row-pack-spec, .row-cost-act { grid-template-columns: 1fr; }
       .summary-grid { grid-template-columns: 1fr; }
     }
   </style>
@@ -102,13 +102,19 @@
   <form id="eventForm" class="unified-form-box">
     <input type="hidden" id="editEventId">
 
-    <div class="form-row row-4">
+    <div class="form-row row-5">
       <div><label style="font-size:12px;">日期 (例: 260725)</label><input type="text" id="evDate" placeholder="260725" style="width:100%;"></div>
       <div><label style="font-size:12px;">活動名稱</label><input type="text" id="evName" placeholder="RUN IT (Day1)" required style="width:100%;"></div>
       <div>
+        <label style="font-size:12px;">團體</label>
+        <select id="evGroup" required style="width:100%;">
+          <option value="">載入團體中...</option>
+        </select>
+      </div>
+      <div>
         <label style="font-size:12px;">成員</label>
-        <select id="evMember" required style="width:100%;">
-          <option value="">載入成員中...</option>
+        <select id="evMember" required disabled style="width:100%;">
+          <option value="">請先選擇團體</option>
         </select>
       </div>
       <div>
@@ -190,8 +196,6 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    const MEMBER_ORDER = ["方燦", "Lee Know", "彰彬", "鉉辰", "HAN", "Felix", "昇玟", "I.N"];
-
     let ordersList = [];
     let eventsDataMap = {};
     let loadedSellersList = [];
@@ -213,9 +217,7 @@
 
     function populateSellerOptions(defaultVal = '') {
       sellerSelect.innerHTML = '<option value="">請選擇代拍</option>';
-      
       const sortedSellers = [...loadedSellersList].sort((a, b) => a.localeCompare(b, 'zh-TW'));
-
       sortedSellers.forEach(s => {
         sellerSelect.innerHTML += `<option value="${s}">${s}</option>`;
       });
@@ -270,15 +272,31 @@
     }
 
     document.addEventListener('DOMContentLoaded', () => {
-      fetch('../json/members_skz.json').then(res => res.json()).then(members => {
-        const evMemberSel = document.getElementById('evMember');
-        evMemberSel.innerHTML = '<option value="">請選擇成員</option>';
-        members.forEach(m => {
-          const opt = document.createElement('option');
-          opt.value = m;
-          opt.textContent = m;
-          evMemberSel.appendChild(opt);
-        });
+      const groupSel = document.getElementById('evGroup');
+      const memberSel = document.getElementById('evMember');
+
+      fetch('../json/group.json').then(res => res.json()).then(groups => {
+        groupSel.innerHTML = '<option value="">請選擇團體</option>';
+        groups.forEach(g => groupSel.innerHTML += `<option value="${g}">${g}</option>`);
+      });
+
+      groupSel.addEventListener('change', () => {
+        const selectedGroup = groupSel.value;
+        memberSel.innerHTML = '';
+        if (!selectedGroup) {
+          memberSel.innerHTML = '<option value="">請先選擇團體</option>';
+          memberSel.disabled = true;
+          return;
+        }
+
+        const file = (selectedGroup === 'Stray Kids') ? 'members_skz.json' : (selectedGroup === 'ATEEZ' ? 'members_atz.json' : '');
+        if (file) {
+          fetch(`../json/${file}`).then(res => res.json()).then(members => {
+            memberSel.disabled = false;
+            memberSel.innerHTML = '<option value="">請選擇成員</option>';
+            members.forEach(m => memberSel.innerHTML += `<option value="${m}">${m}</option>`);
+          });
+        }
       });
 
       fetch('../json/sellers.json').then(res => res.json()).then(sellers => {
@@ -324,13 +342,7 @@
         const prevSelected = currentSelectedMemberFilter;
         filterSelectEl.innerHTML = '<option value="ALL">顯示全部成員</option>';
         
-        const sortedActiveMembers = Array.from(activeMembersSet).sort((a, b) => {
-          const idxA = MEMBER_ORDER.indexOf(a);
-          const idxB = MEMBER_ORDER.indexOf(b);
-          return (idxA === -1 ? 99 : idxA) - (idxB === -1 ? 99 : idxB);
-        });
-
-        sortedActiveMembers.forEach(m => {
+        Array.from(activeMembersSet).sort().forEach(m => {
           const opt = document.createElement('option');
           opt.value = m;
           opt.textContent = `${m} (進行中)`;
@@ -347,11 +359,7 @@
         eventsList.sort((a, b) => {
           const nameA = a.name || a.rawDate || '';
           const nameB = b.name || b.rawDate || '';
-          if (nameA !== nameB) return nameA.localeCompare(nameB);
-
-          const idxA = MEMBER_ORDER.indexOf(a.member);
-          const idxB = MEMBER_ORDER.indexOf(b.member);
-          return (idxA === -1 ? 99 : idxA) - (idxB === -1 ? 99 : idxB);
+          return nameA.localeCompare(nameB);
         });
 
         const groupedEvents = {};
@@ -375,13 +383,14 @@
           let memberTotalActQty = 0;
           const eventName = evArray[0].name;
           const memberName = evArray[0].member || '全體/無';
+          const groupName = evArray[0].group ? `[${evArray[0].group}] ` : '';
           const isClosed = evArray.some(e => e.isClosed);
 
           const headerTr = document.createElement('tr');
           headerTr.innerHTML = `
             <td colspan="6" style="padding:0; border-bottom:none;">
               <div class="event-group-header">
-                🗓️ 活動場次：${eventName} - <span style="color:#409eff;">${memberName}</span> (${evArray.length} 筆代拍紀錄)
+                🗓️ 活動場次：${groupName}${eventName} - <span style="color:#409eff;">${memberName}</span> (${evArray.length} 筆代拍紀錄)
               </div>
             </td>
           `;
@@ -563,6 +572,7 @@
       try {
         const evDate = document.getElementById('evDate').value.trim();
         const evNameRaw = document.getElementById('evName').value.trim();
+        const group = document.getElementById('evGroup').value;
         const member = document.getElementById('evMember').value;
 
         let seller = sellerSelect.value;
@@ -606,7 +616,7 @@
         const docId = editId ? editId : `${fullName}_${member || 'all'}_${seller || 'default'}_${Date.now()}`;
 
         await setDoc(doc(db, "event_settings", docId), {
-          name: fullName, rawDate: evDate, rawName: evNameRaw, member, seller, bigNote,
+          name: fullName, rawDate: evDate, rawName: evNameRaw, group, member, seller, bigNote,
           packQty, estimatedPrice, actualPrice, price, packsCount, discounts, deposit, balance, cost, actPhoto, actVideo, actQty, isClosed
         });
 
@@ -624,6 +634,8 @@
       document.getElementById('eventForm').reset();
       document.getElementById('editEventId').value = '';
       discountContainer.innerHTML = '';
+      document.getElementById('evMember').innerHTML = '<option value="">請先選擇團體</option>';
+      document.getElementById('evMember').disabled = true;
       document.getElementById('evIsClosed').checked = false;
       populateSellerOptions();
       document.getElementById('cancelEditBtn').style.display = 'none';
@@ -638,7 +650,22 @@
       document.getElementById('editEventId').value = docId;
       document.getElementById('evDate').value = ev.rawDate || '';
       document.getElementById('evName').value = ev.rawName || ev.name;
-      document.getElementById('evMember').value = ev.member || '';
+
+      const groupSel = document.getElementById('evGroup');
+      const memberSel = document.getElementById('evMember');
+      groupSel.value = ev.group || '';
+
+      if (ev.group) {
+        const file = (ev.group === 'Stray Kids') ? 'members_skz.json' : (ev.group === 'ATEEZ' ? 'members_atz.json' : '');
+        if (file) {
+          fetch(`../json/${file}`).then(res => res.json()).then(members => {
+            memberSel.disabled = false;
+            memberSel.innerHTML = '<option value="">請選擇成員</option>';
+            members.forEach(m => memberSel.innerHTML += `<option value="${m}">${m}</option>`);
+            memberSel.value = ev.member || '';
+          });
+        }
+      }
 
       populateSellerOptions(ev.seller || '');
 

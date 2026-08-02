@@ -120,7 +120,7 @@
 
     document.addEventListener('DOMContentLoaded', async () => {
       try {
-        const buyersRes = await fetch('../json/users.json');
+        const buyersRes = await fetch('json/users.json');
         const buyers = await buyersRes.json();
         const buyerSel = document.getElementById('buyerName');
         buyerSel.innerHTML = '<option value="">請選擇您的名稱</option>';

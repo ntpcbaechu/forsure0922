@@ -16,12 +16,11 @@
 
     .form-section { background: #f8f9fa; border: 1px solid #ebeef5; border-radius: 8px; padding: 14px; margin-bottom: 12px; }
     .form-row { display: grid; gap: 10px; margin-bottom: 8px; align-items: end; }
-    .row-2 { grid-template-columns: 1fr 1fr; }
+    .row-3 { grid-template-columns: 1fr 1fr 1fr; }
     .dynamic-row { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
 
     .auto-textarea { width: 100%; min-height: 50px; resize: none; overflow-y: hidden; line-height: 1.5; }
 
-    /* 表格與按鈕樣式 */
     table { width: 100%; border-collapse: collapse; margin-top: 10px; }
     th, td { padding: 10px 8px; border-bottom: 1px solid #e4e7ed; text-align: left; font-size: 13px; vertical-align: top; }
     th { background: #f8f9fa; color: #606266; font-weight: bold; white-space: nowrap; }
@@ -33,14 +32,13 @@
     .winner-tag { background: #fdf6ec; border: 1px solid #faebd7; padding: 4px 8px; border-radius: 6px; font-size: 12px; color: #e6a23c; }
     .winner-tag.special { background: #fef0f0; border-color: #fde2e2; color: #f56c6c; }
 
-    @media (max-width: 768px) { .row-2 { grid-template-columns: 1fr; } }
+    @media (max-width: 768px) { .row-3 { grid-template-columns: 1fr; } }
   </style>
 </head>
 <body>
 
   <h3>🎁 抽獎活動管理與結果發佈</h3>
 
-  <!-- 建立/編輯表單 -->
   <form id="lotteryForm" style="margin-bottom:20px;">
     <input type="hidden" id="editLotteryId">
 
@@ -61,14 +59,18 @@
         </div>
       </div>
 
-      <div class="form-row row-2">
+      <div class="form-row row-3">
         <div>
           <label style="font-size:12px; font-weight:bold;">抽獎活動標題 *</label>
           <input type="text" id="lotteryTitle" required style="width:100%;">
         </div>
         <div>
-          <label style="font-size:12px; font-weight:bold;">抽獎對應成員</label>
-          <select id="lotteryMember" style="width:100%;"><option value="">請選擇成員</option></select>
+          <label style="font-size:12px; font-weight:bold;">對應團體</label>
+          <select id="lotteryGroup" style="width:100%;"><option value="">載入團體中...</option></select>
+        </div>
+        <div>
+          <label style="font-size:12px; font-weight:bold;">對應成員</label>
+          <select id="lotteryMember" disabled style="width:100%;"><option value="">請先選擇團體</option></select>
         </div>
       </div>
     </div>
@@ -98,7 +100,6 @@
     <button type="button" id="cancelLotteryBtn" style="background:#909399; width:100%; padding:10px; margin-top:5px; display:none;" onclick="resetLotteryForm()">取消編輯</button>
   </form>
 
-  <!-- 直覺化歷史清單 -->
   <h3>📜 歷史抽獎公告與發圖進度</h3>
   <table>
     <thead>
@@ -134,11 +135,31 @@
     let eventSettingsMap = {};
 
     document.addEventListener('DOMContentLoaded', () => {
-      fetch('../json/members_skz.json').then(res => res.json()).then(members => {
-        const memSel = document.getElementById('lotteryMember');
-        memSel.innerHTML = '<option value="">請選擇成員</option>';
-        members.forEach(m => memSel.innerHTML += `<option value="${m}">${m}</option>`);
-        memSel.innerHTML += '<option value="團體/全體">團體/全體</option>';
+      const gSel = document.getElementById('lotteryGroup');
+      const mSel = document.getElementById('lotteryMember');
+
+      fetch('../json/group.json').then(res => res.json()).then(groups => {
+        gSel.innerHTML = '<option value="">請選擇團體</option>';
+        groups.forEach(g => gSel.innerHTML += `<option value="${g}">${g}</option>`);
+      });
+
+      gSel.addEventListener('change', () => {
+        const g = gSel.value;
+        mSel.innerHTML = '';
+        if (!g) {
+          mSel.innerHTML = '<option value="">請先選擇團體</option>';
+          mSel.disabled = true;
+          return;
+        }
+        const file = (g === 'Stray Kids') ? 'members_skz.json' : (g === 'ATEEZ' ? 'members_atz.json' : '');
+        if (file) {
+          fetch(`../json/${file}`).then(res => res.json()).then(members => {
+            mSel.disabled = false;
+            mSel.innerHTML = '<option value="">請選擇成員</option>';
+            members.forEach(m => mSel.innerHTML += `<option value="${m}">${m}</option>`);
+            mSel.innerHTML += '<option value="團體/全體">團體/全體</option>';
+          });
+        }
       });
     });
 
@@ -246,6 +267,7 @@
 
       try {
         const title = document.getElementById('lotteryTitle').value.trim();
+        const group = document.getElementById('lotteryGroup').value;
         const member = document.getElementById('lotteryMember').value;
         const prizes = Array.from(document.querySelectorAll('.prize-input')).map(el => el.value.trim()).filter(Boolean);
         const participants = document.getElementById('lotteryParticipants').value.split(',').map(s => s.trim()).filter(Boolean);
@@ -266,7 +288,7 @@
         const docId = editId || `lottery_${Date.now()}`;
 
         await setDoc(doc(db, "lottery_events", docId), {
-          title, member, prizes, participants, winners,
+          title, group, member, prizes, participants, winners,
           updatedAt: serverTimestamp(),
           createdAt: editId ? (lotteryMap[editId]?.createdAt || serverTimestamp()) : serverTimestamp()
         }, { merge: true });
@@ -379,7 +401,23 @@
 
       document.getElementById('editLotteryId').value = docId;
       document.getElementById('lotteryTitle').value = item.title || '';
-      document.getElementById('lotteryMember').value = item.member || '';
+      
+      const gSel = document.getElementById('lotteryGroup');
+      const mSel = document.getElementById('lotteryMember');
+      gSel.value = item.group || '';
+      if (item.group) {
+        const file = (item.group === 'Stray Kids') ? 'members_skz.json' : (item.group === 'ATEEZ' ? 'members_atz.json' : '');
+        if (file) {
+          fetch(`../json/${file}`).then(res => res.json()).then(members => {
+            mSel.disabled = false;
+            mSel.innerHTML = '<option value="">請選擇成員</option>';
+            members.forEach(m => mSel.innerHTML += `<option value="${m}">${m}</option>`);
+            mSel.innerHTML += '<option value="團體/全體">團體/全體</option>';
+            mSel.value = item.member || '';
+          });
+        }
+      }
+
       document.getElementById('lotteryParticipants').value = (item.participants || []).join(', ');
 
       prizesContainer.innerHTML = '';
@@ -402,6 +440,8 @@
       document.getElementById('editLotteryId').value = '';
       prizesContainer.innerHTML = '';
       winnersContainer.innerHTML = '';
+      document.getElementById('lotteryMember').innerHTML = '<option value="">請先選擇團體</option>';
+      document.getElementById('lotteryMember').disabled = true;
       document.getElementById('saveLotteryBtn').textContent = '儲存並發佈抽獎公告';
       document.getElementById('cancelLotteryBtn').style.display = 'none';
     };
