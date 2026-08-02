@@ -61,7 +61,6 @@
     .page-btn:disabled { opacity: 0.5; cursor: not-allowed; }
   </style>
 
-  <!-- 引用數據檔 -->
   <script src="ctbc_data.js"></script>
 </head>
 <body>
@@ -69,7 +68,6 @@
   <h2>🏦 中國信託 存款交易明細對帳系統</h2>
   <div class="meta-info">帳號: 783540130964 | 幣別: TWD | 區間: 2026/01/01 - 2026/07/28</div>
 
-  <!-- 區塊 1：團員匯款登記填單 -->
   <div class="card">
     <h3>📝 1. 團員匯款登記填單</h3>
     <form id="orderForm" class="compact-form">
@@ -100,8 +98,12 @@
         <input type="text" id="customEventInput" placeholder="請輸入場次">
       </div>
       <div class="form-group w-member">
+        <label class="required">3. 團體</label>
+        <select id="groupSelect" required><option value="">載入中...</option></select>
+      </div>
+      <div class="form-group w-member">
         <label class="required">4. 成員</label>
-        <select id="memberSelect" required><option value="">載入中...</option></select>
+        <select id="memberSelect" required disabled><option value="">請先選擇團體</option></select>
       </div>
       <div class="form-group w-qty">
         <label class="required">5. 張數</label>
@@ -127,7 +129,6 @@
     </form>
   </div>
 
-  <!-- 區塊 2：對帳審核區 -->
   <div class="card">
     <h3>🔍 2. 對帳審核區</h3>
     <div class="compact-form">
@@ -152,7 +153,6 @@
     </div>
   </div>
 
-  <!-- 搜尋與過濾條 -->
   <div class="search-bar">
     <input type="text" id="searchInput" placeholder="🔍 搜尋日期、金額、後五碼、備註..." onkeyup="onSearchChange()">
     <button class="btn-filter active" onclick="setFilter('all', this)">全部</button>
@@ -164,7 +164,6 @@
 
   <div class="stats-info" id="statsInfo">載入中...</div>
 
-  <!-- 區塊 3：中信流水對帳表 -->
   <div style="overflow-x:auto;">
     <table>
       <thead>
@@ -181,18 +180,13 @@
     </table>
   </div>
 
-  <!-- 分頁控制元件 -->
   <div class="pagination" id="pagination"></div>
 
   <script>
     let rawTransactions = window.rawTransactions || [];
     let transactions = rawTransactions.filter(d => d.date !== '日期');
 
-    let orderRecords = [
-      { id: 101, status: "已匯款", name: "🐶小明", event: "260328 D1", member: "成員A", amount: "4266", last5: "86876" },
-      { id: 102, status: "已匯款", name: "🐱小華", event: "260329 D2", member: "成員B", amount: "580", last5: "29556" }
-    ];
-
+    let orderRecords = [];
     let auditState = {};
     let currentFilter = 'all';
     let currentPage = 1;
@@ -203,17 +197,33 @@
         const uRes = await fetch('../json/users.json');
         const users = await uRes.json();
         document.getElementById('userSelect').innerHTML = users.map(u => `<option value="${u}">${u}</option>`).join('');
-      } catch(e) {
-        document.getElementById('userSelect').innerHTML = '<option value="白菜">白菜</option>';
-      }
+      } catch(e) {}
 
-      try {
-        const mRes = await fetch('../json/members_skz.json');
-        const members = await mRes.json();
-        document.getElementById('memberSelect').innerHTML = members.map(m => `<option value="${m}">${m}</option>`).join('');
-      } catch(e) {
-        document.getElementById('memberSelect').innerHTML = '<option value="方燦">方燦</option>';
-      }
+      const gSel = document.getElementById('groupSelect');
+      const mSel = document.getElementById('memberSelect');
+
+      fetch('../json/group.json').then(r => r.json()).then(groups => {
+        gSel.innerHTML = '<option value="">請選擇團體</option>';
+        groups.forEach(g => gSel.innerHTML += `<option value="${g}">${g}</option>`);
+      });
+
+      gSel.addEventListener('change', () => {
+        const g = gSel.value;
+        mSel.innerHTML = '';
+        if (!g) {
+          mSel.innerHTML = '<option value="">請先選擇團體</option>';
+          mSel.disabled = true;
+          return;
+        }
+        const file = (g === 'Stray Kids') ? 'members_skz.json' : (g === 'ATEEZ' ? 'members_atz.json' : '');
+        if (file) {
+          fetch(`../json/${file}`).then(r => r.json()).then(arr => {
+            mSel.disabled = false;
+            mSel.innerHTML = '<option value="">請選擇成員</option>';
+            arr.forEach(m => mSel.innerHTML += `<option value="${m}">${m}</option>`);
+          });
+        }
+      });
 
       initCtbcDropdown();
       renderTable();
@@ -228,6 +238,7 @@
       const name = document.getElementById('userSelect').value;
       const eventSel = document.getElementById('eventSelect').value;
       const event = eventSel === 'other' ? document.getElementById('customEventInput').value : eventSel;
+      const group = document.getElementById('groupSelect').value;
       const member = document.getElementById('memberSelect').value;
       const qty = document.getElementById('qtyInput').value;
       const amount = document.getElementById('amountInput').value;
@@ -235,31 +246,18 @@
       const payAmount = document.getElementById('payAmountInput').value;
       const last5 = document.getElementById('payLast5Input').value;
 
-      if(!name || !event || !member || !qty || !amount) {
-        alert("請填寫所有必填欄位（暱稱、場次、成員、張數、金額）！");
+      if(!name || !event || !group || !member || !qty || !amount) {
+        alert("請填寫所有必填欄位！");
         return;
       }
 
       const newRecord = { 
-        id: Date.now(), 
-        status: payStatus, 
-        name, 
-        event, 
-        member, 
-        qty, 
-        amount, 
-        payDate: payDate || '-', 
-        payAmount: payAmount || '-', 
-        last5: last5 || '-' 
+        id: Date.now(), status: payStatus, name, event, group, member, qty, amount, 
+        payDate: payDate || '-', payAmount: payAmount || '-', last5: last5 || '-' 
       };
 
       orderRecords.push(newRecord);
       alert("新增填單成功！");
-      
-      document.getElementById('payDateInput').value = '';
-      document.getElementById('payAmountInput').value = '';
-      document.getElementById('payLast5Input').value = '';
-
       renderTable();
     }
 
@@ -298,11 +296,10 @@
         const isInc = t.inc !== "";
         if(currentFilter === 'income' && !isInc) return false;
 
-        const matchSearch = t.date.toLowerCase().includes(searchVal) || 
-                            t.acc.toLowerCase().includes(searchVal) || 
-                            (t.inc && t.inc.includes(searchVal)) ||
-                            (t.exp && t.exp.includes(searchVal));
-        return matchSearch;
+        return t.date.toLowerCase().includes(searchVal) || 
+               t.acc.toLowerCase().includes(searchVal) || 
+               (t.inc && t.inc.includes(searchVal)) ||
+               (t.exp && t.exp.includes(searchVal));
       });
     }
 
@@ -334,7 +331,7 @@
 
         const orderOpts = orderRecords.map(o => {
           const last5Display = o.last5 !== '-' ? `後5碼:${o.last5}` : '未填後5碼';
-          return `<option value="${o.id}">[${o.status}] ${o.event} | ${o.name} | $${o.amount} (${last5Display})</option>`;
+          return `<option value="${o.id}">[${o.status}] ${o.event} (${o.group}-${o.member}) | ${o.name} | $${o.amount} (${last5Display})</option>`;
         }).join('');
 
         tr.innerHTML = `
@@ -359,7 +356,7 @@
       });
 
       document.getElementById('statsInfo').innerHTML = 
-        `符合條件: ${filteredList.length} / 全部 ${transactions.length} 筆 (第 ${currentPage} / ${totalPages} 頁，每頁 50 筆) | 存入總金額: <span id="totalIncome">$${totalInc.toLocaleString()}</span>`;
+        `符合條件: ${filteredList.length} / 全部 ${transactions.length} 筆 (第 ${currentPage} / ${totalPages} 頁) | 存入總金額: <span id="totalIncome">$${totalInc.toLocaleString()}</span>`;
 
       renderPagination(totalPages);
     }
@@ -367,7 +364,6 @@
     function renderPagination(totalPages) {
       const pContainer = document.getElementById('pagination');
       pContainer.innerHTML = '';
-
       if (totalPages <= 1) return;
 
       const prevBtn = document.createElement('button');
@@ -382,7 +378,6 @@
           if (i === 2 || i === totalPages - 1) {
             const dots = document.createElement('span');
             dots.innerText = '...';
-            dots.style.fontSize = '12px';
             pContainer.appendChild(dots);
           }
           continue;

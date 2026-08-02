@@ -68,8 +68,9 @@
             <div class="custom-form-grid">
               <input type="text" id="custDate" placeholder="日期 (例: 260801)">
               <input type="text" id="custEvent" placeholder="活動名稱 (例: 周邊加購)">
-              <select id="custMember"><option value="">選擇成員</option></select>
-              <input type="number" id="custPrice" min="1" placeholder="金額 ($)">
+              <select id="custGroup"><option value="">選擇團體</option></select>
+              <select id="custMember" disabled><option value="">請先選擇團體</option></select>
+              <input type="number" id="custPrice" min="1" placeholder="金額 ($)" style="grid-column: span 2;">
             </div>
             <div style="display:flex; gap:6px;">
               <button type="button" id="addCustomItemBtn" style="padding:6px 10px; font-size:12px; margin-top:0; background:#67c23a;">確認加入勾選清單</button>
@@ -173,14 +174,7 @@
           card.innerHTML = html;
           notifyHeight();
         })
-        .catch(() => {
-          document.getElementById('bankInfoCard').innerHTML = `
-            <div class="bank-info-title">🔸匯款帳號：</div>
-            <div> 1️⃣ 台銀(004) 012-0085-86876</div>
-            <div> 2️⃣ 樂天(826) 81201-0028-03081</div>
-            <div> 3️⃣ 中信(822) 7835401-30964</div>
-          `;
-        });
+        .catch(() => {});
     }
 
     function loadBankDropdown() {
@@ -192,34 +186,36 @@
           bankList.forEach(b => {
             bankSel.innerHTML += `<option value="${b}">${b}</option>`;
           });
-        })
-        .catch(() => {
-          const bankSel = document.getElementById('bankName');
-          bankSel.innerHTML = `
-            <option value="">請選擇匯款銀行</option>
-            <option value="台銀">台銀</option>
-            <option value="樂天">樂天</option>
-            <option value="中信">中信</option>
-            <option value="台新">台新</option>
-            <option value="抵用金/儲值金">抵用金/儲值金</option>
-          `;
         });
     }
 
-    let memberOrderList = ["方燦", "Lee Know", "彰彬", "鉉辰", "HAN", "Felix", "昇玟", "I.N"];
-    fetch('../json/members_skz.json').then(r => r.json()).then(arr => { 
-      memberOrderList = arr; 
-      initCustMemberDropdown();
-    }).catch(() => { initCustMemberDropdown(); });
+    document.addEventListener('DOMContentLoaded', () => {
+      const custGroupSel = document.getElementById('custGroup');
+      const custMemberSel = document.getElementById('custMember');
 
-    function initCustMemberDropdown() {
-      const sel = document.getElementById('custMember');
-      if (!sel) return;
-      sel.innerHTML = '<option value="">選擇成員</option>';
-      memberOrderList.forEach(m => {
-        sel.innerHTML += `<option value="${m}">${m}</option>`;
+      fetch('../json/group.json').then(r => r.json()).then(groups => {
+        custGroupSel.innerHTML = '<option value="">選擇團體</option>';
+        groups.forEach(g => custGroupSel.innerHTML += `<option value="${g}">${g}</option>`);
       });
-    }
+
+      custGroupSel.addEventListener('change', () => {
+        const g = custGroupSel.value;
+        custMemberSel.innerHTML = '';
+        if (!g) {
+          custMemberSel.innerHTML = '<option value="">請先選擇團體</option>';
+          custMemberSel.disabled = true;
+          return;
+        }
+        const file = (g === 'Stray Kids') ? 'members_skz.json' : (g === 'ATEEZ' ? 'members_atz.json' : '');
+        if (file) {
+          fetch(`../json/${file}`).then(r => r.json()).then(arr => {
+            custMemberSel.disabled = false;
+            custMemberSel.innerHTML = '<option value="">選擇成員</option>';
+            arr.forEach(m => custMemberSel.innerHTML += `<option value="${m}">${m}</option>`);
+          });
+        }
+      });
+    });
 
     let allCredits = [];
     let allDeposits = [];
@@ -350,7 +346,6 @@
         const ordMember = o.member || '';
         const progressStatus = photoProgressMap[`${ordEvent}_${ordMember}`] || '等圖中';
         
-        // 嚴格解鎖條件：必須為「上傳中」、「已通知匯款」、「已發圖」才允許匯款
         const allowedStatuses = ['上傳中', '已通知匯款', '已發圖'];
         const isUnlocked = allowedStatuses.includes(progressStatus);
 
@@ -379,6 +374,7 @@
     function addCustomItem() {
       const dt = document.getElementById('custDate').value.trim();
       const ev = document.getElementById('custEvent').value.trim();
+      const group = document.getElementById('custGroup').value;
       const mem = document.getElementById('custMember').value;
       const price = parseFloat(document.getElementById('custPrice').value) || 0;
 
@@ -393,13 +389,16 @@
       customAddedItems.push({
         id: customId,
         event: fullEvName,
+        group: group,
         member: mem || '全體',
         price: price
       });
 
       document.getElementById('custDate').value = '';
       document.getElementById('custEvent').value = '';
+      document.getElementById('custGroup').value = '';
       document.getElementById('custMember').value = '';
+      document.getElementById('custMember').disabled = true;
       document.getElementById('custPrice').value = '';
       document.getElementById('customFormBox').style.display = 'none';
 
@@ -445,27 +444,6 @@
         return nameMatch && pendingMatch && isUnlocked;
       });
 
-      userOrders.sort((a, b) => {
-        const evA = a.event || a.fullEvent || a.eventName || '';
-        const evB = b.event || b.fullEvent || b.eventName || '';
-
-        const matchA = evA.match(/\d{6}/);
-        const matchB = evB.match(/\d{6}/);
-        const dateA = matchA ? parseInt(matchA[0], 10) : 0;
-        const dateB = matchB ? parseInt(matchB[0], 10) : 0;
-
-        if (dateA !== dateB) return dateA - dateB;
-
-        const memA = a.member || '';
-        const memB = b.member || '';
-        let idxA = memberOrderList.indexOf(memA);
-        let idxB = memberOrderList.indexOf(memB);
-        if (idxA === -1) idxA = 99;
-        if (idxB === -1) idxB = 99;
-
-        return idxA - idxB;
-      });
-
       const ordersList = document.getElementById('ordersList');
       ordersList.innerHTML = '';
 
@@ -478,6 +456,7 @@
           const qty = Number(ord.quantity !== undefined ? ord.quantity : (ord.qty !== undefined ? ord.qty : ord.count)) || 1;
           const ordEvent = ord.event || ord.fullEvent || ord.eventName || '';
           const ordMember = ord.member || '';
+          const ordGroup = ord.group ? `[${ord.group}] ` : '';
           
           const setting = eventSettingsMap[`${ordEvent}_${ordMember}`] || {};
           const packQty = setting.packQty || 1;
@@ -516,7 +495,7 @@
             <div class="order-item">
               <div class="order-left">
                 <input type="checkbox" class="order-chk" value="${ord.id}" data-price="${calculatedFinalPrice}">
-                <span>📌 ${ordEvent || '未命名活動'} (${ordMember || '全體'}) - ${qty} 張</span>
+                <span>📌 ${ordGroup}${ordEvent || '未命名活動'} (${ordMember || '全體'}) - ${qty} 張</span>
               </div>
               <div class="price-box">${priceHtml}</div>
             </div>
@@ -527,7 +506,7 @@
           ordersList.innerHTML += `
             <div class="order-item" style="background:#f0f9eb; padding:6px 8px; border-radius:6px; margin-bottom:4px;">
               <div class="order-left">
-                <input type="checkbox" class="order-chk custom-chk" value="${cItem.id}" data-price="${cItem.price}" data-is-custom="true" data-event="${cItem.event}" data-member="${cItem.member}" checked>
+                <input type="checkbox" class="order-chk custom-chk" value="${cItem.id}" data-price="${cItem.price}" data-is-custom="true" data-event="${cItem.event}" data-group="${cItem.group}" data-member="${cItem.member}" checked>
                 <span>➕ [自訂補款] ${cItem.event} (${cItem.member})</span>
               </div>
               <div class="price-box"><span class="price-final">$${cItem.price}</span></div>
@@ -647,6 +626,7 @@
         if (cb.getAttribute('data-is-custom') === 'true') {
           customItemsToCreate.push({
             event: cb.getAttribute('data-event'),
+            group: cb.getAttribute('data-group'),
             member: cb.getAttribute('data-member'),
             price: Number(cb.getAttribute('data-price')) || 0
           });
@@ -665,6 +645,7 @@
             buyerName: buyerNameVal,
             user: buyerNameVal,
             event: cItem.event,
+            group: cItem.group,
             member: cItem.member,
             qty: 1,
             price: cItem.price,
