@@ -87,6 +87,7 @@
     const db = getFirestore(app);
 
     let ordersMap = {};
+    let eventPricesMap = {};
     let editingRows = new Set();
     
     let activeGroup = 'Stray Kids';
@@ -113,6 +114,20 @@
 
       renderGroupCapsules();
 
+      onSnapshot(collection(db, "event_settings"), snap => {
+        eventPricesMap = {};
+        snap.forEach(d => {
+          const data = d.data();
+          const key = (data.name || data.rawName) + '_' + (data.member || '');
+          eventPricesMap[key] = {
+            price: Number(data.actualPrice || data.price || data.estimatedPrice || data.unitPrice) || 0,
+            packQty: Number(data.packQty) || 1,
+            discounts: data.discounts || []
+          };
+        });
+        renderOrdersTable();
+      });
+
       onSnapshot(collection(db, "orders"), snap => {
         ordersMap = {};
         snap.forEach(d => {
@@ -124,6 +139,32 @@
         renderOrdersTable();
       });
     });
+
+    function getItemPriceInfo(item) {
+      const eventName = item.event || item.eventName || '';
+      const member = item.member || '';
+      const userName = item.user || item.buyerName || item.nickname || '';
+      const key = eventName + '_' + member;
+      const setting = eventPricesMap[key] || {};
+      
+      const pricePerPack = setting.price || Number(item.price) || 0;
+      const packQty = setting.packQty || 1;
+      const qty = Number(item.quantity) || Number(item.qty) || 0;
+      const packs = (packQty > 0) ? Math.round(qty / packQty) : 1;
+
+      let totalPrice = packs * pricePerPack;
+
+      if (setting.discounts && Array.isArray(setting.discounts)) {
+        const userDisc = setting.discounts.find(d => d.targetUser === userName);
+        if (userDisc) {
+          const discCount = Math.min(packs, Number(userDisc.count) || 0);
+          const discPrice = Number(userDisc.price) || 0;
+          totalPrice = (discCount * discPrice) + ((packs - discCount) * pricePerPack);
+        }
+      }
+
+      return { pricePerPack, totalPrice, qty, packs };
+    }
 
     function renderGroupCapsules() {
       const container = document.getElementById('groupCapsules');
@@ -270,7 +311,10 @@
         const ev = o.event || o.eventName || '-';
         const mem = o.member || '-';
         const qty = o.qty !== undefined ? o.qty : (o.quantity || 1);
-        const amt = o.total !== undefined ? o.total : (o.amount || 0);
+        
+        const priceInfo = getItemPriceInfo(o);
+        const amt = priceInfo.totalPrice;
+
         const payStatus = o.paymentStatus || o.status || '待匯款';
         const isPhotoSent = o.isPhotoSent === true;
         const todayStr = new Date().toISOString().slice(0,10);
@@ -282,8 +326,8 @@
         if (!isEditing) {
           tr.innerHTML = `
             <td><b>${uName}</b></td>
-            <td><b>${ev}</b><br><small style="color:#606266;">成員: ${mem} (數量: ${qty}張)</small></td>
-            <td>$${amt}<br><span style="font-size:11px; color:#e6a23c; font-weight:bold;">${payStatus}</span></td>
+            <td><b>${ev}</b><br><small style="color:#606266;">成員: ${mem} (數量: ${qty}張 / ${priceInfo.packs}包)</small></td>
+            <td>$${amt.toLocaleString()}<br><span style="font-size:11px; color:#e6a23c; font-weight:bold;">${payStatus}</span></td>
             <td>
               ${isPhotoSent ? `
                 <div style="background:#f0f9eb; border:1px solid #e1f3d8; border-radius:6px; padding:6px; font-size:12px;">
