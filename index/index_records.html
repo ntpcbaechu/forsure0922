@@ -29,14 +29,10 @@
       .cards-list { grid-template-columns: 1fr; }
     }
 
-    /* 調整卡片高度與間距 */
     .order-card { background: #fafafa; border: 1px solid #ebeef5; border-radius: 8px; padding: 12px 14px; font-size: 13px; display: flex; flex-direction: column; justify-content: space-between; }
     .order-top { display: flex; justify-content: space-between; align-items: flex-start; font-weight: bold; margin-bottom: 2px; }
     
-    /* 左側資訊整體上移，緊貼買家暱稱 */
     .order-info { display: flex; flex-direction: column; gap: 3px; color: #606266; font-size: 13px; margin-top: -2px; }
-    
-    /* 下方左右水平對齊的金額列 (左：每包金額，右：總金額) */
     .order-bottom-row { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 4px; }
 
     .status-badges-container { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
@@ -116,8 +112,13 @@
     });
 
     onSnapshot(collection(db, "orders"), snap => {
-      allOrders = [];
-      snap.forEach(d => allOrders.push({ id: d.id, ...d.data() }));
+      const ordersMap = new Map();
+      snap.forEach(d => {
+        const data = d.data();
+        const group = data.group || "Stray Kids";
+        ordersMap.set(d.id, { id: d.id, ...data, group });
+      });
+      allOrders = Array.from(ordersMap.values());
       renderCapsulesAndRecords();
     });
 
@@ -222,7 +223,8 @@
       } else if (mode === 'event') {
         const eventsSet = new Set();
         allOrders.forEach(o => {
-          const key = (o.event || o.eventName || '未分類活動') + (o.member ? ' - ' + o.member : '');
+          const groupTag = o.group ? `[${o.group}] ` : '';
+          const key = groupTag + (o.event || o.eventName || '未分類活動') + (o.member ? ' - ' + o.member : '');
           eventsSet.add(key);
         });
 
@@ -251,7 +253,8 @@
         let filteredOrders = allOrders;
         if (activeFilterValue !== 'ALL') {
           filteredOrders = allOrders.filter(o => {
-            const key = (o.event || o.eventName || '未分類活動') + (o.member ? ' - ' + o.member : '');
+            const groupTag = o.group ? `[${o.group}] ` : '';
+            const key = groupTag + (o.event || o.eventName || '未分類活動') + (o.member ? ' - ' + o.member : '');
             return key === activeFilterValue;
           });
         }
@@ -265,7 +268,8 @@
 
       const groups = {};
       orders.forEach(o => {
-        const key = (o.event || o.eventName || '未分類活動') + (o.member ? ' - ' + o.member : '');
+        const groupTag = o.group ? `[${o.group}] ` : '';
+        const key = groupTag + (o.event || o.eventName || '未分類活動') + (o.member ? ' - ' + o.member : '');
         if (!groups[key]) groups[key] = [];
         groups[key].push(o);
       });
