@@ -7,8 +7,16 @@
     html, body { min-height: 500px !important; background: #fff; }
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 15px; margin: 0; color: #333; }
     
-    .filter-bar { background: #f8f9fa; border: 1px solid #e4e7ed; border-radius: 8px; padding: 8px 12px; margin-bottom: 12px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-    
+    .filter-card { background: #f8f9fa; border: 1px solid #ebeef5; border-radius: 10px; padding: 12px 15px; margin-bottom: 12px; display: flex; flex-direction: column; gap: 8px; }
+    .filter-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .filter-label { font-size: 12px; font-weight: bold; color: #606266; min-width: 80px; }
+
+    .capsule-group { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+    .capsule-filter-btn { background: #fff; color: #606266; border: 1px solid #dcdfe6; padding: 4px 12px; border-radius: 16px; font-size: 12px; font-weight: bold; cursor: pointer; transition: all 0.2s; outline: none; }
+    .capsule-filter-btn:hover { background: #ecf5ff; color: #409eff; border-color: #c6e2ff; }
+    .capsule-filter-btn.active { background: #409eff; color: #fff; border-color: #409eff; box-shadow: 0 2px 6px rgba(64,158,255,0.25); }
+    .capsule-filter-btn.sub-active { background: #67c23a; color: #fff; border-color: #67c23a; box-shadow: 0 2px 6px rgba(103,194,58,0.25); }
+
     .progress-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 10px; }
     @media (max-width: 768px) {
       .progress-grid { grid-template-columns: 1fr; }
@@ -123,10 +131,23 @@
     </div>
   </form>
 
-  <div class="filter-bar">
-    <span style="font-size:13px; font-weight:bold; color:#606266;">🔍 快速篩選成員：</span>
-    <div id="progressMemberCapsules" style="display:flex; gap:6px; flex-wrap:wrap;">
-      <button type="button" class="status-chip selected" onclick="filterProgressMember('ALL', this)">顯示全部</button>
+  <div class="filter-card">
+    <div class="filter-row">
+      <span class="filter-label">1. 團體：</span>
+      <div id="groupCapsules" class="capsule-group"></div>
+    </div>
+
+    <div class="filter-row">
+      <span class="filter-label">2. 檢視模式：</span>
+      <div id="modeCapsules" class="capsule-group">
+        <button class="capsule-filter-btn active" onclick="setModeFilter('member', this)">👥 依成員</button>
+        <button class="capsule-filter-btn" onclick="setModeFilter('event', this)">🗓️ 依活動</button>
+      </div>
+    </div>
+
+    <div class="filter-row">
+      <span class="filter-label">3. 細項篩選：</span>
+      <div id="detailCapsules" class="capsule-group"></div>
     </div>
   </div>
 
@@ -153,7 +174,14 @@
 
     let rawEventSettings = [];
     let progressMap = {};
-    let activeMemberFilter = 'ALL';
+    let lastProgressList = [];
+
+    let activeGroup = 'Stray Kids';
+    let activeMode = 'member';
+    let activeDetail = 'ALL';
+
+    let groupList = [];
+    let memberMap = {};
 
     const evSel = document.getElementById('eventSelect');
     const groupSel = document.getElementById('groupSelect');
@@ -161,28 +189,118 @@
     const sellerSel = document.getElementById('sellerSelect');
     const statusInput = document.getElementById('statusSelect');
 
-    fetch('../json/group.json').then(r => r.json()).then(groups => {
+    document.addEventListener('DOMContentLoaded', async () => {
+      try {
+        const gRes = await fetch('../json/group.json');
+        groupList = await gRes.json();
+
+        for (const g of groupList) {
+          const file = (g === 'Stray Kids') ? 'members_skz.json' : (g === 'ATEEZ' ? 'members_atz.json' : '');
+          if (file) {
+            const mRes = await fetch(`../json/${file}`);
+            memberMap[g] = await mRes.json();
+          }
+        }
+      } catch(e) {}
+
+      renderGroupCapsules();
+
       groupSel.innerHTML = '<option value="">請選擇團體</option>';
-      groups.forEach(g => groupSel.innerHTML += `<option value="${g}">${g}</option>`);
+      groupList.forEach(g => groupSel.innerHTML += `<option value="${g}">${g}</option>`);
+
+      groupSel.addEventListener('change', () => {
+        const g = groupSel.value;
+        memSel.innerHTML = '';
+        if (!g) {
+          memSel.innerHTML = '<option value="">請先選擇團體</option>';
+          memSel.disabled = true;
+          return;
+        }
+        const members = memberMap[g] || [];
+        memSel.disabled = false;
+        memSel.innerHTML = '<option value="">請選擇成員</option>';
+        members.forEach(m => memSel.innerHTML += `<option value="${m}">${m}</option>`);
+      });
     });
 
-    groupSel.addEventListener('change', () => {
-      const g = groupSel.value;
-      memSel.innerHTML = '';
-      if (!g) {
-        memSel.innerHTML = '<option value="">請先選擇團體</option>';
-        memSel.disabled = true;
-        return;
-      }
-      const file = (g === 'Stray Kids') ? 'members_skz.json' : (g === 'ATEEZ' ? 'members_atz.json' : '');
-      if (file) {
-        fetch(`../json/${file}`).then(r => r.json()).then(arr => {
-          memSel.disabled = false;
-          memSel.innerHTML = '<option value="">請選擇成員</option>';
-          arr.forEach(m => memSel.innerHTML += `<option value="${m}">${m}</option>`);
+    function renderGroupCapsules() {
+      const container = document.getElementById('groupCapsules');
+      container.innerHTML = '';
+      groupList.forEach(g => {
+        const btn = document.createElement('button');
+        btn.className = `capsule-filter-btn ${activeGroup === g ? 'active' : ''}`;
+        btn.textContent = g;
+        btn.onclick = () => {
+          activeGroup = g;
+          document.querySelectorAll('#groupCapsules .capsule-filter-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          activeDetail = 'ALL';
+          updateDetailCapsules();
+          renderProgressCards();
+        };
+        container.appendChild(btn);
+      });
+    }
+
+    window.setModeFilter = (mode, btn) => {
+      activeMode = mode;
+      document.querySelectorAll('#modeCapsules .capsule-filter-btn').forEach(b => b.classList.remove('active'));
+      if(btn) btn.classList.add('active');
+      activeDetail = 'ALL';
+      updateDetailCapsules();
+      renderProgressCards();
+    };
+
+    function updateDetailCapsules() {
+      const container = document.getElementById('detailCapsules');
+      container.innerHTML = '';
+
+      const allBtn = document.createElement('button');
+      allBtn.className = `capsule-filter-btn ${activeDetail === 'ALL' ? 'sub-active' : ''}`;
+      allBtn.textContent = '全部顯示';
+      allBtn.onclick = () => {
+        activeDetail = 'ALL';
+        document.querySelectorAll('#detailCapsules .capsule-filter-btn').forEach(b => b.classList.remove('sub-active'));
+        allBtn.classList.add('sub-active');
+        renderProgressCards();
+      };
+      container.appendChild(allBtn);
+
+      const filteredList = lastProgressList.filter(i => (i.group || 'Stray Kids') === activeGroup);
+
+      if (activeMode === 'member') {
+        const members = memberMap[activeGroup] || [];
+        members.forEach(m => {
+          const btn = document.createElement('button');
+          btn.className = `capsule-filter-btn ${activeDetail === m ? 'sub-active' : ''}`;
+          btn.textContent = m;
+          btn.onclick = () => {
+            activeDetail = m;
+            document.querySelectorAll('#detailCapsules .capsule-filter-btn').forEach(b => b.classList.remove('sub-active'));
+            btn.classList.add('sub-active');
+            renderProgressCards();
+          };
+          container.appendChild(btn);
+        });
+      } else if (activeMode === 'event') {
+        const eventsSet = new Set();
+        filteredList.forEach(i => {
+          if (i.eventName || i.event) eventsSet.add(i.eventName || i.event);
+        });
+        Array.from(eventsSet).sort().forEach(ev => {
+          const btn = document.createElement('button');
+          btn.className = `capsule-filter-btn ${activeDetail === ev ? 'sub-active' : ''}`;
+          btn.textContent = ev;
+          btn.onclick = () => {
+            activeDetail = ev;
+            document.querySelectorAll('#detailCapsules .capsule-filter-btn').forEach(b => b.classList.remove('sub-active'));
+            btn.classList.add('sub-active');
+            renderProgressCards();
+          };
+          container.appendChild(btn);
         });
       }
-    });
+    }
 
     document.querySelectorAll('.status-options .status-chip').forEach(chip => {
       chip.addEventListener('click', () => {
@@ -237,15 +355,15 @@
       }
     });
 
-    let lastProgressList = [];
     onSnapshot(collection(db, "photo_progress"), snap => {
       progressMap = {};
       lastProgressList = [];
       snap.forEach(d => {
-        const item = { id: d.id, ...d.data() };
+        const item = { id: d.id, group: "Stray Kids", ...d.data() };
         progressMap[d.id] = item;
         lastProgressList.push(item);
       });
+      updateDetailCapsules();
       renderProgressCards();
     });
 
@@ -253,9 +371,11 @@
       const container = document.getElementById('progressContainer');
       container.innerHTML = '';
 
-      let list = [...lastProgressList];
-      if (activeMemberFilter !== 'ALL') {
-        list = list.filter(i => i.member === activeMemberFilter);
+      let list = lastProgressList.filter(i => (i.group || 'Stray Kids') === activeGroup);
+
+      if (activeDetail !== 'ALL') {
+        if (activeMode === 'member') list = list.filter(i => i.member === activeDetail);
+        else if (activeMode === 'event') list = list.filter(i => (i.eventName || i.event) === activeDetail);
       }
 
       if (list.length === 0) {

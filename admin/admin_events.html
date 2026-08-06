@@ -33,16 +33,15 @@
     .row-discount { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
     .form-divider { border-top: 1px dashed #dcdfe6; margin: 2px 0; }
 
-    .filter-bar {
-      background: #f8f9fa;
-      border: 1px solid #e4e7ed;
-      border-radius: 6px;
-      padding: 8px 12px;
-      margin: 10px 0;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
+    .filter-card { background: #f8f9fa; border: 1px solid #ebeef5; border-radius: 10px; padding: 12px 15px; margin: 15px 0; display: flex; flex-direction: column; gap: 8px; }
+    .filter-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .filter-label { font-size: 12px; font-weight: bold; color: #606266; min-width: 80px; }
+
+    .capsule-group { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+    .capsule-filter-btn { background: #fff; color: #606266; border: 1px solid #dcdfe6; padding: 4px 12px; border-radius: 16px; font-size: 12px; font-weight: bold; cursor: pointer; transition: all 0.2s; outline: none; }
+    .capsule-filter-btn:hover { background: #ecf5ff; color: #409eff; border-color: #c6e2ff; }
+    .capsule-filter-btn.active { background: #409eff; color: #fff; border-color: #409eff; box-shadow: 0 2px 6px rgba(64,158,255,0.25); }
+    .capsule-filter-btn.sub-active { background: #67c23a; color: #fff; border-color: #67c23a; box-shadow: 0 2px 6px rgba(103,194,58,0.25); }
 
     .event-group-header {
       background: #eef5fe;
@@ -168,11 +167,24 @@
     <button type="button" id="cancelEditBtn" style="background:#909399; width:100%; padding:8px; margin-top:4px; display:none;" onclick="resetEventForm()">取消編輯</button>
   </form>
 
-  <div class="filter-bar">
-    <span style="font-size:13px; font-weight:bold; color:#606266;">🔍 快速篩選成員：</span>
-    <select id="memberFilterSelect" style="margin:0; padding:4px 8px; width:auto; min-width:160px;">
-      <option value="ALL">顯示全部成員</option>
-    </select>
+  <div class="filter-card">
+    <div class="filter-row">
+      <span class="filter-label">1. 團體：</span>
+      <div id="groupCapsules" class="capsule-group"></div>
+    </div>
+
+    <div class="filter-row">
+      <span class="filter-label">2. 檢視模式：</span>
+      <div id="modeCapsules" class="capsule-group">
+        <button class="capsule-filter-btn active" onclick="setModeFilter('member', this)">👥 依成員</button>
+        <button class="capsule-filter-btn" onclick="setModeFilter('event', this)">🗓️ 依活動</button>
+      </div>
+    </div>
+
+    <div class="filter-row">
+      <span class="filter-label">3. 細項篩選：</span>
+      <div id="detailCapsules" class="capsule-group"></div>
+    </div>
   </div>
 
   <table>
@@ -199,7 +211,13 @@
     let ordersList = [];
     let eventsDataMap = {};
     let loadedSellersList = [];
-    let currentSelectedMemberFilter = 'ALL';
+
+    let activeGroup = 'Stray Kids';
+    let activeMode = 'member';
+    let activeDetail = 'ALL';
+
+    let groupList = [];
+    let memberMap = {};
 
     const sellerSelect = document.getElementById('evSellerSelect');
     const sellerCustom = document.getElementById('evSellerCustom');
@@ -271,14 +289,27 @@
       discountContainer.appendChild(div);
     }
 
-    document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('DOMContentLoaded', async () => {
+      try {
+        const gRes = await fetch('../json/group.json');
+        groupList = await gRes.json();
+
+        for (const g of groupList) {
+          const file = (g === 'Stray Kids') ? 'members_skz.json' : (g === 'ATEEZ' ? 'members_atz.json' : '');
+          if (file) {
+            const mRes = await fetch(`../json/${file}`);
+            memberMap[g] = await mRes.json();
+          }
+        }
+      } catch(e) {}
+
+      renderGroupCapsules();
+
       const groupSel = document.getElementById('evGroup');
       const memberSel = document.getElementById('evMember');
 
-      fetch('../json/group.json').then(res => res.json()).then(groups => {
-        groupSel.innerHTML = '<option value="">請選擇團體</option>';
-        groups.forEach(g => groupSel.innerHTML += `<option value="${g}">${g}</option>`);
-      });
+      groupSel.innerHTML = '<option value="">請選擇團體</option>';
+      groupList.forEach(g => groupSel.innerHTML += `<option value="${g}">${g}</option>`);
 
       groupSel.addEventListener('change', () => {
         const selectedGroup = groupSel.value;
@@ -289,14 +320,10 @@
           return;
         }
 
-        const file = (selectedGroup === 'Stray Kids') ? 'members_skz.json' : (selectedGroup === 'ATEEZ' ? 'members_atz.json' : '');
-        if (file) {
-          fetch(`../json/${file}`).then(res => res.json()).then(members => {
-            memberSel.disabled = false;
-            memberSel.innerHTML = '<option value="">請選擇成員</option>';
-            members.forEach(m => memberSel.innerHTML += `<option value="${m}">${m}</option>`);
-          });
-        }
+        const members = memberMap[selectedGroup] || [];
+        memberSel.disabled = false;
+        memberSel.innerHTML = '<option value="">請選擇成員</option>';
+        members.forEach(m => memberSel.innerHTML += `<option value="${m}">${m}</option>`);
       });
 
       fetch('../json/sellers.json').then(res => res.json()).then(sellers => {
@@ -308,11 +335,84 @@
       });
     });
 
-    const filterSelectEl = document.getElementById('memberFilterSelect');
-    filterSelectEl.addEventListener('change', (e) => {
-      currentSelectedMemberFilter = e.target.value;
+    function renderGroupCapsules() {
+      const container = document.getElementById('groupCapsules');
+      container.innerHTML = '';
+      groupList.forEach(g => {
+        const btn = document.createElement('button');
+        btn.className = `capsule-filter-btn ${activeGroup === g ? 'active' : ''}`;
+        btn.textContent = g;
+        btn.onclick = () => {
+          activeGroup = g;
+          document.querySelectorAll('#groupCapsules .capsule-filter-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          activeDetail = 'ALL';
+          updateDetailCapsules();
+          loadEvents();
+        };
+        container.appendChild(btn);
+      });
+    }
+
+    window.setModeFilter = (mode, btn) => {
+      activeMode = mode;
+      document.querySelectorAll('#modeCapsules .capsule-filter-btn').forEach(b => b.classList.remove('active'));
+      if(btn) btn.classList.add('active');
+      activeDetail = 'ALL';
+      updateDetailCapsules();
       loadEvents();
-    });
+    };
+
+    function updateDetailCapsules() {
+      const container = document.getElementById('detailCapsules');
+      container.innerHTML = '';
+
+      const allBtn = document.createElement('button');
+      allBtn.className = `capsule-filter-btn ${activeDetail === 'ALL' ? 'sub-active' : ''}`;
+      allBtn.textContent = '全部顯示';
+      allBtn.onclick = () => {
+        activeDetail = 'ALL';
+        document.querySelectorAll('#detailCapsules .capsule-filter-btn').forEach(b => b.classList.remove('sub-active'));
+        allBtn.classList.add('sub-active');
+        loadEvents();
+      };
+      container.appendChild(allBtn);
+
+      const filteredEvents = Object.values(eventsDataMap).filter(e => (e.group || 'Stray Kids') === activeGroup);
+
+      if (activeMode === 'member') {
+        const members = memberMap[activeGroup] || [];
+        members.forEach(m => {
+          const btn = document.createElement('button');
+          btn.className = `capsule-filter-btn ${activeDetail === m ? 'sub-active' : ''}`;
+          btn.textContent = m;
+          btn.onclick = () => {
+            activeDetail = m;
+            document.querySelectorAll('#detailCapsules .capsule-filter-btn').forEach(b => b.classList.remove('sub-active'));
+            btn.classList.add('sub-active');
+            loadEvents();
+          };
+          container.appendChild(btn);
+        });
+      } else if (activeMode === 'event') {
+        const eventsSet = new Set();
+        filteredEvents.forEach(e => {
+          if (e.name || e.rawName) eventsSet.add(e.rawName || e.name);
+        });
+        Array.from(eventsSet).sort().forEach(ev => {
+          const btn = document.createElement('button');
+          btn.className = `capsule-filter-btn ${activeDetail === ev ? 'sub-active' : ''}`;
+          btn.textContent = ev;
+          btn.onclick = () => {
+            activeDetail = ev;
+            document.querySelectorAll('#detailCapsules .capsule-filter-btn').forEach(b => b.classList.remove('sub-active'));
+            btn.classList.add('sub-active');
+            loadEvents();
+          };
+          container.appendChild(btn);
+        });
+      }
+    }
 
     onSnapshot(collection(db, "orders"), snap => {
       ordersList = [];
@@ -327,33 +427,20 @@
 
         eventsDataMap = {};
         let eventsList = [];
-        let activeMembersSet = new Set();
 
         snap.forEach(d => {
-          const data = { id: d.id, ...d.data() };
+          const data = { id: d.id, group: "Stray Kids", ...d.data() };
           eventsList.push(data);
           eventsDataMap[d.id] = data;
-
-          if (!data.isClosed && data.member) {
-            activeMembersSet.add(data.member);
-          }
         });
 
-        const prevSelected = currentSelectedMemberFilter;
-        filterSelectEl.innerHTML = '<option value="ALL">顯示全部成員</option>';
-        
-        Array.from(activeMembersSet).sort().forEach(m => {
-          const opt = document.createElement('option');
-          opt.value = m;
-          opt.textContent = `${m} (進行中)`;
-          filterSelectEl.appendChild(opt);
-        });
+        updateDetailCapsules();
 
-        if (Array.from(filterSelectEl.options).some(o => o.value === prevSelected)) {
-          filterSelectEl.value = prevSelected;
-        } else {
-          filterSelectEl.value = 'ALL';
-          currentSelectedMemberFilter = 'ALL';
+        eventsList = eventsList.filter(e => e.group === activeGroup);
+
+        if (activeDetail !== 'ALL') {
+          if (activeMode === 'member') eventsList = eventsList.filter(e => e.member === activeDetail);
+          else if (activeMode === 'event') eventsList = eventsList.filter(e => (e.rawName || e.name) === activeDetail);
         }
 
         eventsList.sort((a, b) => {
@@ -365,10 +452,6 @@
         const groupedEvents = {};
         eventsList.forEach(ev => {
           const mName = ev.member || '全體/無';
-          if (currentSelectedMemberFilter !== 'ALL' && mName !== currentSelectedMemberFilter) {
-            return;
-          }
-
           const groupKey = `${ev.name}__${mName}`;
           if (!groupedEvents[groupKey]) {
             groupedEvents[groupKey] = [];
@@ -653,19 +736,13 @@
 
       const groupSel = document.getElementById('evGroup');
       const memberSel = document.getElementById('evMember');
-      groupSel.value = ev.group || '';
+      groupSel.value = ev.group || 'Stray Kids';
 
-      if (ev.group) {
-        const file = (ev.group === 'Stray Kids') ? 'members_skz.json' : (ev.group === 'ATEEZ' ? 'members_atz.json' : '');
-        if (file) {
-          fetch(`../json/${file}`).then(res => res.json()).then(members => {
-            memberSel.disabled = false;
-            memberSel.innerHTML = '<option value="">請選擇成員</option>';
-            members.forEach(m => memberSel.innerHTML += `<option value="${m}">${m}</option>`);
-            memberSel.value = ev.member || '';
-          });
-        }
-      }
+      const members = memberMap[ev.group || 'Stray Kids'] || [];
+      memberSel.disabled = false;
+      memberSel.innerHTML = '<option value="">請選擇成員</option>';
+      members.forEach(m => memberSel.innerHTML += `<option value="${m}">${m}</option>`);
+      memberSel.value = ev.member || '';
 
       populateSellerOptions(ev.seller || '');
 
