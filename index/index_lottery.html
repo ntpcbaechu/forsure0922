@@ -6,10 +6,15 @@
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 0; margin: 0; background: transparent; color: #333; }
     
-    .filter-card { background: #fff; border: 1px solid #e4e7ed; border-radius: 12px; padding: 12px 14px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); }
-    .capsule-bar { display: flex; flex-wrap: wrap; gap: 8px; }
-    .capsule-btn { background: #ecf5ff; color: #409eff; border: 1px solid #d9ecff; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; cursor: pointer; transition: all 0.2s; }
-    .capsule-btn:hover, .capsule-btn.active { background: #409eff; color: #fff; border-color: #409eff; }
+    .filter-card { background: #fff; border: 1px solid #e4e7ed; border-radius: 12px; padding: 12px 14px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); display: flex; flex-direction: column; gap: 8px; }
+    .filter-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .filter-label { font-size: 12px; font-weight: bold; color: #606266; min-width: 80px; }
+
+    .capsule-group { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+    .capsule-filter-btn { background: #ecf5ff; color: #409eff; border: 1px solid #d9ecff; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; cursor: pointer; transition: all 0.2s; outline: none; }
+    .capsule-filter-btn:hover { background: #409eff; color: #fff; border-color: #409eff; }
+    .capsule-filter-btn.active { background: #409eff; color: #fff; border-color: #409eff; }
+    .capsule-filter-btn.sub-active { background: #67c23a; color: #fff; border-color: #67c23a; }
 
     .lottery-card { background: #fff; border: 1px solid #e4e7ed; border-radius: 12px; padding: 16px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); }
     .lottery-top { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid #f0f2f5; padding-bottom: 10px; margin-bottom: 12px; }
@@ -22,7 +27,6 @@
     .photo-badge-sent { background: #ecf5ff; color: #409eff; border: 1px solid #b3d8ff; }
     .photo-dates-box { font-size: 11px; color: #606266; margin-top: 2px; text-align: right; line-height: 1.3; }
 
-    /* 雙欄精緻小卡格 (告別死板長黃條) */
     .winner-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 10px; }
     @media (max-width: 650px) { .winner-grid { grid-template-columns: 1fr; } }
 
@@ -41,8 +45,14 @@
   <h3 style="margin-top:0; margin-bottom:12px; font-size:18px;">🎉 抽獎結果與發圖進度</h3>
 
   <div class="filter-card">
-    <div class="capsule-bar" id="memberCapsules">
-      <button class="capsule-btn active" onclick="filterByMember('ALL', this)">全體成員</button>
+    <div class="filter-row">
+      <span class="filter-label">1. 團體：</span>
+      <div id="groupCapsules" class="capsule-group"></div>
+    </div>
+
+    <div class="filter-row">
+      <span class="filter-label">2. 細項篩選：</span>
+      <div id="detailCapsules" class="capsule-group"></div>
     </div>
   </div>
 
@@ -66,41 +76,93 @@
     const db = getFirestore(app);
 
     let allLotteries = [];
-    let activeMemberFilter = 'ALL';
+    let activeGroup = 'Stray Kids';
+    let activeDetail = 'ALL';
 
-    window.filterByMember = (mem, btnElem) => {
-      activeMemberFilter = mem;
-      document.querySelectorAll('.capsule-btn').forEach(b => b.classList.remove('active'));
-      if (btnElem) btnElem.classList.add('active');
-      renderLotteryCards();
-    };
+    let groupList = [];
+    let memberMap = {};
 
-    onSnapshot(collection(db, "lottery_events"), snap => {
-      allLotteries = [];
-      const memberSet = new Set();
+    document.addEventListener('DOMContentLoaded', async () => {
+      try {
+        const gRes = await fetch('../json/group.json');
+        groupList = await gRes.json();
 
-      snap.forEach(d => {
-        const data = { id: d.id, ...d.data() };
-        allLotteries.push(data);
-        if (data.member) memberSet.add(data.member);
+        for (const g of groupList) {
+          const file = (g === 'Stray Kids') ? 'members_skz.json' : (g === 'ATEEZ' ? 'members_atz.json' : '');
+          if (file) {
+            const mRes = await fetch(`../json/${file}`);
+            memberMap[g] = await mRes.json();
+          }
+        }
+      } catch(e) {}
+
+      renderGroupCapsules();
+
+      onSnapshot(collection(db, "lottery_events"), snap => {
+        allLotteries = [];
+        snap.forEach(d => {
+          allLotteries.push({ id: d.id, group: "Stray Kids", ...d.data() });
+        });
+        updateDetailCapsules();
+        renderLotteryCards();
       });
-
-      const capsuleBox = document.getElementById('memberCapsules');
-      capsuleBox.innerHTML = `<button class="capsule-btn ${activeMemberFilter === 'ALL' ? 'active' : ''}" onclick="filterByMember('ALL', this)">全體成員</button>`;
-      
-      Array.from(memberSet).sort().forEach(m => {
-        capsuleBox.innerHTML += `<button class="capsule-btn ${activeMemberFilter === m ? 'active' : ''}" onclick="filterByMember('${m}', this)">${m}</button>`;
-      });
-
-      renderLotteryCards();
     });
+
+    function renderGroupCapsules() {
+      const container = document.getElementById('groupCapsules');
+      container.innerHTML = '';
+      groupList.forEach(g => {
+        const btn = document.createElement('button');
+        btn.className = `capsule-filter-btn ${activeGroup === g ? 'active' : ''}`;
+        btn.textContent = g;
+        btn.onclick = () => {
+          activeGroup = g;
+          document.querySelectorAll('#groupCapsules .capsule-filter-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          activeDetail = 'ALL';
+          updateDetailCapsules();
+          renderLotteryCards();
+        };
+        container.appendChild(btn);
+      });
+    }
+
+    function updateDetailCapsules() {
+      const container = document.getElementById('detailCapsules');
+      container.innerHTML = '';
+
+      const allBtn = document.createElement('button');
+      allBtn.className = `capsule-filter-btn ${activeDetail === 'ALL' ? 'sub-active' : ''}`;
+      allBtn.textContent = '全部顯示';
+      allBtn.onclick = () => {
+        activeDetail = 'ALL';
+        document.querySelectorAll('#detailCapsules .capsule-filter-btn').forEach(b => b.classList.remove('sub-active'));
+        allBtn.classList.add('sub-active');
+        renderLotteryCards();
+      };
+      container.appendChild(allBtn);
+
+      const members = memberMap[activeGroup] || [];
+      members.forEach(m => {
+        const btn = document.createElement('button');
+        btn.className = `capsule-filter-btn ${activeDetail === m ? 'sub-active' : ''}`;
+        btn.textContent = m;
+        btn.onclick = () => {
+          activeDetail = m;
+          document.querySelectorAll('#detailCapsules .capsule-filter-btn').forEach(b => b.classList.remove('sub-active'));
+          btn.classList.add('sub-active');
+          renderLotteryCards();
+        };
+        container.appendChild(btn);
+      });
+    }
 
     function renderLotteryCards() {
       const container = document.getElementById('lotteryList');
       container.innerHTML = '';
 
-      let list = allLotteries;
-      if (activeMemberFilter !== 'ALL') list = list.filter(l => l.member === activeMemberFilter);
+      let list = allLotteries.filter(l => l.group === activeGroup);
+      if (activeDetail !== 'ALL') list = list.filter(l => l.member === activeDetail);
 
       if (list.length === 0) {
         container.innerHTML = '<p style="color:#909399; padding:20px 0; text-align:center;">目前尚無相關的抽獎結果公告。</p>';
@@ -118,18 +180,13 @@
         }
 
         const isPhotoSent = item.isPhotoSent === true || item.photoStatus === '已發圖';
-        let photoBadgeHtml = '';
-        let photoDatesHtml = '';
+        let photoBadgeHtml = isPhotoSent
+          ? '<span class="status-badge photo-badge-sent">🔵 已發圖</span>'
+          : '<span class="status-badge photo-badge-pending">📷 待發圖</span>';
 
-        if (isPhotoSent) {
-          photoBadgeHtml = '<span class="status-badge photo-badge-sent">🔵 已發圖</span>';
-          photoDatesHtml = `<div class="photo-dates-box">
-            📅 發圖日：${item.photoSentAt || '-'}<br>
-            ⏳ 刪除日：<b style="color:#f56c6c;">${item.photoExpireAt || '-'}</b>
-          </div>`;
-        } else {
-          photoBadgeHtml = '<span class="status-badge photo-badge-pending">📷 待發圖</span>';
-        }
+        let photoDatesHtml = (isPhotoSent && item.photoSentAt)
+          ? `<div class="photo-dates-box">📅 發圖日：${item.photoSentAt}<br>⏳ 刪除日：<b style="color:#f56c6c;">${item.photoExpireAt || '-'}</b></div>`
+          : '';
 
         let winnersHtml = '';
         if (item.winners && item.winners.length > 0) {
@@ -152,7 +209,7 @@
           <div class="lottery-card">
             <div class="lottery-top">
               <div>
-                <div class="lottery-title">🎁 ${item.title}</div>
+                <div class="lottery-title">🎁 [${activeGroup}] ${item.title}</div>
                 <div class="lottery-meta">
                   成員：<b>${item.member || '全體'}</b> ｜ 總籤數：<b>${item.participants?.length || 0}</b> 籤 ｜ 發佈日期：${dateStr}
                 </div>
@@ -162,7 +219,6 @@
                 ${photoDatesHtml}
               </div>
             </div>
-            
             <div class="winner-grid">${winnersHtml}</div>
           </div>
         `;

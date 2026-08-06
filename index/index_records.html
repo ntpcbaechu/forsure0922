@@ -6,16 +6,16 @@
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 0; margin: 0; background: transparent; color: #333; }
     
-    .filter-card { background: #fff; border: 1px solid #e4e7ed; border-radius: 12px; padding: 14px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); }
-    .filter-row { display: flex; align-items: center; gap: 10px; }
-    .filter-title { font-size: 14px; font-weight: bold; color: #303133; white-space: nowrap; }
+    .filter-card { background: #fff; border: 1px solid #e4e7ed; border-radius: 12px; padding: 14px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); display: flex; flex-direction: column; gap: 8px; }
+    .filter-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .filter-label { font-size: 12px; font-weight: bold; color: #606266; min-width: 80px; }
 
-    select { padding: 8px 12px; border: 1px solid #dcdfe6; border-radius: 8px; font-size: 13px; background: #fff; outline: none; cursor: pointer; }
-    select:focus { border-color: #409eff; }
-
-    .capsule-bar { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
-    .capsule-btn { background: #ecf5ff; color: #409eff; border: 1px solid #d9ecff; padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: bold; cursor: pointer; transition: all 0.2s; }
-    .capsule-btn:hover, .capsule-btn.active { background: #409eff; color: #fff; border-color: #409eff; }
+    .capsule-group { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+    .capsule-filter-btn { background: #f4f4f5; color: #606266; border: 1px solid #dcdfe6; padding: 4px 12px; border-radius: 16px; font-size: 12px; font-weight: bold; cursor: pointer; transition: all 0.2s; outline: none; }
+    .capsule-filter-btn:hover { background: #ecf5ff; color: #409eff; border-color: #c6e2ff; }
+    .capsule-filter-btn.active { background: #409eff; color: #fff; border-color: #409eff; box-shadow: 0 2px 6px rgba(64,158,255,0.25); }
+    .capsule-filter-btn.sub-active { background: #67c23a; color: #fff; border-color: #67c23a; box-shadow: 0 2px 6px rgba(103,194,58,0.25); }
+    .capsule-filter-btn.user-active { background: #e6a23c; color: #fff; border-color: #e6a23c; box-shadow: 0 2px 6px rgba(230,162,60,0.25); }
 
     .summary-card { background: #ecf5ff; border: 1px solid #d9ecff; border-radius: 10px; padding: 12px 14px; margin-bottom: 15px; font-size: 13px; color: #409eff; line-height: 1.8; }
     .summary-card b { font-size: 15px; }
@@ -25,18 +25,14 @@
     .event-meta { font-size: 12px; color: #409eff; background: #ecf5ff; padding: 4px 8px; border-radius: 6px; }
 
     .cards-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 8px; }
-    @media (max-width: 680px) {
-      .cards-list { grid-template-columns: 1fr; }
-    }
+    @media (max-width: 680px) { .cards-list { grid-template-columns: 1fr; } }
 
     .order-card { background: #fafafa; border: 1px solid #ebeef5; border-radius: 8px; padding: 12px 14px; font-size: 13px; display: flex; flex-direction: column; justify-content: space-between; }
     .order-top { display: flex; justify-content: space-between; align-items: flex-start; font-weight: bold; margin-bottom: 2px; }
-    
     .order-info { display: flex; flex-direction: column; gap: 3px; color: #606266; font-size: 13px; margin-top: -2px; }
     .order-bottom-row { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 4px; }
 
     .status-badges-container { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
-    
     .status-badge { padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; display: inline-block; }
     .status-paid { background: #f0f9eb; color: #67c23a; }
     .status-checking { background: #fdf6ec; color: #e6a23c; border: 1px solid #faebd7; }
@@ -45,7 +41,6 @@
     
     .photo-badge-pending { background: #f4f4f5; color: #909399; }
     .photo-badge-sent { background: #ecf5ff; color: #409eff; border: 1px solid #b3d8ff; }
-    
     .photo-dates-box { font-size: 11px; color: #606266; margin-top: 2px; text-align: right; line-height: 1.3; }
 
     .type-badge { font-size: 11px; padding: 1px 5px; border-radius: 4px; background: #f4f4f5; color: #909399; margin-left: 4px; }
@@ -58,15 +53,27 @@
   
   <div class="filter-card">
     <div class="filter-row">
-      <span class="filter-title">🔍 請選擇篩選模式：</span>
-      <select id="modeSelect">
-        <option value="ALL">全部</option>
-        <option value="user">依社群暱稱</option>
-        <option value="event">依活動日期與場次</option>
-      </select>
+      <span class="filter-label">1. 團體：</span>
+      <div id="groupCapsules" class="capsule-group"></div>
     </div>
 
-    <div id="capsuleContainer" class="capsule-bar"></div>
+    <div class="filter-row">
+      <span class="filter-label">2. 檢視模式：</span>
+      <div id="modeCapsules" class="capsule-group">
+        <button class="capsule-filter-btn active" onclick="setModeFilter('member', this)">👥 依成員</button>
+        <button class="capsule-filter-btn" onclick="setModeFilter('event', this)">🗓️ 依活動</button>
+      </div>
+    </div>
+
+    <div class="filter-row">
+      <span class="filter-label">3. 細項篩選：</span>
+      <div id="detailCapsules" class="capsule-group"></div>
+    </div>
+
+    <div class="filter-row" style="border-top:1px dashed #dcdfe6; padding-top:8px; margin-top:2px;">
+      <span class="filter-label">👤 買家暱稱：</span>
+      <div id="userCapsules" class="capsule-group"></div>
+    </div>
   </div>
 
   <div id="userSummary"></div>
@@ -91,36 +98,171 @@
 
     let allOrders = [];
     let eventPricesMap = {};
-    let activeFilterValue = 'ALL';
 
-    onSnapshot(collection(db, "event_settings"), snap => {
-      eventPricesMap = {};
-      snap.forEach(d => {
-        const data = d.data();
-        const key = (data.name || data.rawName) + '_' + (data.member || '');
-        eventPricesMap[key] = {
-          price: Number(data.actualPrice || data.price || data.estimatedPrice || data.unitPrice) || 0,
-          packQty: Number(data.packQty) || 1,
-          discounts: data.discounts || []
+    let activeGroup = 'Stray Kids';
+    let activeMode = 'member';
+    let activeDetail = 'ALL';
+    let activeUser = 'ALL';
+
+    let groupList = [];
+    let memberMap = {};
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      try {
+        const gRes = await fetch('../json/group.json');
+        groupList = await gRes.json();
+
+        for (const g of groupList) {
+          const file = (g === 'Stray Kids') ? 'members_skz.json' : (g === 'ATEEZ' ? 'members_atz.json' : '');
+          if (file) {
+            const mRes = await fetch(`../json/${file}`);
+            memberMap[g] = await mRes.json();
+          }
+        }
+      } catch(e) {}
+
+      renderGroupCapsules();
+
+      onSnapshot(collection(db, "event_settings"), snap => {
+        eventPricesMap = {};
+        snap.forEach(d => {
+          const data = d.data();
+          const key = (data.name || data.rawName) + '_' + (data.member || '');
+          eventPricesMap[key] = {
+            price: Number(data.actualPrice || data.price || data.estimatedPrice || data.unitPrice) || 0,
+            packQty: Number(data.packQty) || 1,
+            discounts: data.discounts || []
+          };
+        });
+      });
+
+      onSnapshot(collection(db, "orders"), snap => {
+        const ordersMap = new Map();
+        snap.forEach(d => {
+          const data = d.data();
+          ordersMap.set(d.id, { id: d.id, ...data, group: data.group || "Stray Kids" });
+        });
+        allOrders = Array.from(ordersMap.values());
+        updateDetailCapsules();
+        updateUserCapsules();
+        renderCapsulesAndRecords();
+      });
+    });
+
+    function renderGroupCapsules() {
+      const container = document.getElementById('groupCapsules');
+      container.innerHTML = '';
+      groupList.forEach(g => {
+        const btn = document.createElement('button');
+        btn.className = `capsule-filter-btn ${activeGroup === g ? 'active' : ''}`;
+        btn.textContent = g;
+        btn.onclick = () => {
+          activeGroup = g;
+          document.querySelectorAll('#groupCapsules .capsule-filter-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          activeDetail = 'ALL';
+          updateDetailCapsules();
+          updateUserCapsules();
+          renderCapsulesAndRecords();
         };
+        container.appendChild(btn);
       });
-    });
+    }
 
-    document.getElementById('modeSelect').addEventListener('change', () => {
-      activeFilterValue = 'ALL';
+    window.setModeFilter = (mode, btn) => {
+      activeMode = mode;
+      document.querySelectorAll('#modeCapsules .capsule-filter-btn').forEach(b => b.classList.remove('active'));
+      if(btn) btn.classList.add('active');
+      activeDetail = 'ALL';
+      updateDetailCapsules();
       renderCapsulesAndRecords();
-    });
+    };
 
-    onSnapshot(collection(db, "orders"), snap => {
-      const ordersMap = new Map();
-      snap.forEach(d => {
-        const data = d.data();
-        const group = data.group || "Stray Kids";
-        ordersMap.set(d.id, { id: d.id, ...data, group });
+    function updateDetailCapsules() {
+      const container = document.getElementById('detailCapsules');
+      container.innerHTML = '';
+
+      const allBtn = document.createElement('button');
+      allBtn.className = `capsule-filter-btn ${activeDetail === 'ALL' ? 'sub-active' : ''}`;
+      allBtn.textContent = '全部顯示';
+      allBtn.onclick = () => {
+        activeDetail = 'ALL';
+        document.querySelectorAll('#detailCapsules .capsule-filter-btn').forEach(b => b.classList.remove('sub-active'));
+        allBtn.classList.add('sub-active');
+        renderCapsulesAndRecords();
+      };
+      container.appendChild(allBtn);
+
+      const filtered = allOrders.filter(o => o.group === activeGroup);
+
+      if (activeMode === 'member') {
+        const members = memberMap[activeGroup] || [];
+        members.forEach(m => {
+          const btn = document.createElement('button');
+          btn.className = `capsule-filter-btn ${activeDetail === m ? 'sub-active' : ''}`;
+          btn.textContent = m;
+          btn.onclick = () => {
+            activeDetail = m;
+            document.querySelectorAll('#detailCapsules .capsule-filter-btn').forEach(b => b.classList.remove('sub-active'));
+            btn.classList.add('sub-active');
+            renderCapsulesAndRecords();
+          };
+          container.appendChild(btn);
+        });
+      } else if (activeMode === 'event') {
+        const eventsSet = new Set();
+        filtered.forEach(o => {
+          if (o.event || o.eventName) eventsSet.add(o.event || o.eventName);
+        });
+        Array.from(eventsSet).sort().forEach(ev => {
+          const btn = document.createElement('button');
+          btn.className = `capsule-filter-btn ${activeDetail === ev ? 'sub-active' : ''}`;
+          btn.textContent = ev;
+          btn.onclick = () => {
+            activeDetail = ev;
+            document.querySelectorAll('#detailCapsules .capsule-filter-btn').forEach(b => b.classList.remove('sub-active'));
+            btn.classList.add('sub-active');
+            renderCapsulesAndRecords();
+          };
+          container.appendChild(btn);
+        });
+      }
+    }
+
+    function updateUserCapsules() {
+      const container = document.getElementById('userCapsules');
+      container.innerHTML = '';
+
+      const allBtn = document.createElement('button');
+      allBtn.className = `capsule-filter-btn ${activeUser === 'ALL' ? 'user-active' : ''}`;
+      allBtn.textContent = '全部買家';
+      allBtn.onclick = () => {
+        activeUser = 'ALL';
+        document.querySelectorAll('#userCapsules .capsule-filter-btn').forEach(b => b.classList.remove('user-active'));
+        allBtn.classList.add('user-active');
+        renderCapsulesAndRecords();
+      };
+      container.appendChild(allBtn);
+
+      const usersSet = new Set();
+      allOrders.filter(o => o.group === activeGroup).forEach(o => {
+        const name = o.buyerName || o.user || o.nickname;
+        if (name) usersSet.add(name);
       });
-      allOrders = Array.from(ordersMap.values());
-      renderCapsulesAndRecords();
-    });
+
+      Array.from(usersSet).sort((a,b)=>a.localeCompare(b,'zh-TW')).forEach(uName => {
+        const btn = document.createElement('button');
+        btn.className = `capsule-filter-btn ${activeUser === uName ? 'user-active' : ''}`;
+        btn.textContent = uName;
+        btn.onclick = () => {
+          activeUser = uName;
+          document.querySelectorAll('#userCapsules .capsule-filter-btn').forEach(b => b.classList.remove('user-active'));
+          btn.classList.add('user-active');
+          renderCapsulesAndRecords();
+        };
+        container.appendChild(btn);
+      });
+    }
 
     function getItemPriceInfo(item) {
       const eventName = item.event || item.eventName || '';
@@ -149,141 +291,65 @@
     }
 
     function renderCapsulesAndRecords() {
-      const mode = document.getElementById('modeSelect').value;
-      const container = document.getElementById('capsuleContainer');
       const recordsList = document.getElementById('recordsList');
       const summary = document.getElementById('userSummary');
-
-      container.innerHTML = '';
       recordsList.innerHTML = '';
       summary.innerHTML = '';
 
-      if (allOrders.length === 0) {
-        recordsList.innerHTML = '<p style="color:#909399;">目前無登記紀錄。</p>';
+      let list = allOrders.filter(o => o.group === activeGroup);
+
+      if (activeDetail !== 'ALL') {
+        if (activeMode === 'member') list = list.filter(o => o.member === activeDetail);
+        else if (activeMode === 'event') list = list.filter(o => (o.event || o.eventName) === activeDetail);
+      }
+
+      if (activeUser !== 'ALL') {
+        list = list.filter(o => (o.buyerName || o.user || o.nickname) === activeUser);
+
+        const userEventsSet = new Set();
+        let paidCount = 0, checkingCount = 0, pendingCount = 0, issueCount = 0, grandTotal = 0;
+
+        list.forEach(o => {
+          userEventsSet.add((o.event || o.eventName) + '_' + o.member);
+          const status = o.paymentStatus || o.status || (o.hasPaid ? '已對帳' : '待匯款');
+          if (status === '已對帳') paidCount++;
+          else if (status === '待對帳' || status === '對帳中') checkingCount++;
+          else if (status === '對帳有問題' || status === '有問題') issueCount++;
+          else pendingCount++;
+
+          const info = getItemPriceInfo(o);
+          grandTotal += info.totalPrice;
+        });
+
+        summary.innerHTML = `<div class="summary-card">
+          <b>👤 ${activeUser} 的喊單個人統計：</b><br>
+          • 已登記場次：<b>${userEventsSet.size}</b> 場<br>
+          • 對帳狀態：🟢 已對帳 <b>${paidCount}</b> 筆 ｜ ⏳ 待對帳 <b>${checkingCount}</b> 筆 ｜ ⏳ 待匯款 <b>${pendingCount}</b> 筆 ｜ ⚠️ 對帳有問題 <b>${issueCount}</b> 筆<br>
+          • 喊單總金額：<b>$${grandTotal.toLocaleString()}</b>
+        </div>`;
+      }
+
+      if (list.length === 0) {
+        recordsList.innerHTML = '<p style="color:#909399;">目前無符合條件的登記紀錄。</p>';
         notifyHeight();
         return;
       }
 
-      if (mode === 'ALL') {
-        renderCardsGrouped(allOrders);
-      } else if (mode === 'user') {
-        const usersSet = new Set();
-        allOrders.forEach(o => {
-          const name = o.buyerName || o.user || o.nickname;
-          if (name) usersSet.add(name);
-        });
-
-        const sortedUsers = Array.from(usersSet).sort((a, b) => a.localeCompare(b, 'zh-TW'));
-
-        const allBtn = document.createElement('button');
-        allBtn.className = 'capsule-btn ' + (activeFilterValue === 'ALL' ? 'active' : '');
-        allBtn.textContent = '👤 全部';
-        allBtn.onclick = () => { activeFilterValue = 'ALL'; renderCapsulesAndRecords(); };
-        container.appendChild(allBtn);
-
-        sortedUsers.forEach(userName => {
-          const btn = document.createElement('button');
-          btn.className = 'capsule-btn ' + (activeFilterValue === userName ? 'active' : '');
-          btn.textContent = '👤 ' + userName;
-          btn.onclick = () => { activeFilterValue = userName; renderCapsulesAndRecords(); };
-          container.appendChild(btn);
-        });
-
-        if (activeFilterValue === 'ALL') {
-          renderCardsGrouped(allOrders);
-        } else {
-          const userOrders = allOrders.filter(o => (o.buyerName || o.user || o.nickname) === activeFilterValue);
-          
-          const userEventsSet = new Set();
-          let paidCount = 0, checkingCount = 0, pendingCount = 0, issueCount = 0, grandTotal = 0;
-
-          userOrders.forEach(o => {
-            const key = (o.event || o.eventName) + '_' + o.member;
-            userEventsSet.add(key);
-
-            const status = o.paymentStatus || o.status || (o.hasPaid ? '已對帳' : '待匯款');
-            if (status === '已對帳') paidCount++;
-            else if (status === '待對帳' || status === '對帳中') checkingCount++;
-            else if (status === '對帳有問題' || status === '有問題') issueCount++;
-            else pendingCount++;
-
-            const info = getItemPriceInfo(o);
-            grandTotal += info.totalPrice;
-          });
-
-          summary.innerHTML = '<div class="summary-card">' +
-            '<b>👤 ' + activeFilterValue + ' 的喊單個人統計：</b><br>' +
-            '• 已登記場次：<b>' + userEventsSet.size + '</b> 場<br>' +
-            '• 對帳狀態：🟢 已對帳 <b>' + paidCount + '</b> 筆 ｜ ⏳ 待對帳 <b>' + checkingCount + '</b> 筆 ｜ ⏳ 待匯款 <b>' + pendingCount + '</b> 筆 ｜ ⚠️ 對帳有問題 <b>' + issueCount + '</b> 筆<br>' +
-            '• 喊單總金額：<b>$' + grandTotal.toLocaleString() + '</b>' +
-          '</div>';
-
-          renderCardsGrouped(userOrders);
-        }
-      } else if (mode === 'event') {
-        const eventsSet = new Set();
-        allOrders.forEach(o => {
-          const groupTag = o.group ? `[${o.group}] ` : '';
-          const key = groupTag + (o.event || o.eventName || '未分類活動') + (o.member ? ' - ' + o.member : '');
-          eventsSet.add(key);
-        });
-
-        const sortedEvents = Array.from(eventsSet).sort((a, b) => {
-          const matchA = a.match(/\d{6}/); const matchB = b.match(/\d{6}/);
-          const dateA = matchA ? parseInt(matchA[0], 10) : 0;
-          const dateB = matchB ? parseInt(matchB[0], 10) : 0;
-          if (dateA !== dateB) return dateA - dateB;
-          return a.localeCompare(b, 'zh-TW');
-        });
-
-        const allBtn = document.createElement('button');
-        allBtn.className = 'capsule-btn ' + (activeFilterValue === 'ALL' ? 'active' : '');
-        allBtn.textContent = '📍 全部';
-        allBtn.onclick = () => { activeFilterValue = 'ALL'; renderCapsulesAndRecords(); };
-        container.appendChild(allBtn);
-
-        sortedEvents.forEach(evTitle => {
-          const btn = document.createElement('button');
-          btn.className = 'capsule-btn ' + (activeFilterValue === evTitle ? 'active' : '');
-          btn.textContent = '📍 ' + evTitle;
-          btn.onclick = () => { activeFilterValue = evTitle; renderCapsulesAndRecords(); };
-          container.appendChild(btn);
-        });
-
-        let filteredOrders = allOrders;
-        if (activeFilterValue !== 'ALL') {
-          filteredOrders = allOrders.filter(o => {
-            const groupTag = o.group ? `[${o.group}] ` : '';
-            const key = groupTag + (o.event || o.eventName || '未分類活動') + (o.member ? ' - ' + o.member : '');
-            return key === activeFilterValue;
-          });
-        }
-        renderCardsGrouped(filteredOrders);
-      }
+      renderCardsGrouped(list);
       notifyHeight();
     }
 
     function renderCardsGrouped(orders) {
       const recordsList = document.getElementById('recordsList');
-
       const groups = {};
+
       orders.forEach(o => {
-        const groupTag = o.group ? `[${o.group}] ` : '';
-        const key = groupTag + (o.event || o.eventName || '未分類活動') + (o.member ? ' - ' + o.member : '');
+        const key = `[${activeGroup}] ` + (o.event || o.eventName || '未分類活動') + (o.member ? ' - ' + o.member : '');
         if (!groups[key]) groups[key] = [];
         groups[key].push(o);
       });
 
-      const sortedKeys = Object.keys(groups).sort((a, b) => {
-        const matchA = a.match(/\d{6}/); const matchB = b.match(/\d{6}/);
-        const dateA = matchA ? parseInt(matchA[0], 10) : 0;
-        const dateB = matchB ? parseInt(matchB[0], 10) : 0;
-        if (dateA !== dateB) return dateA - dateB;
-        return a.localeCompare(b, 'zh-TW');
-      });
-
-      for (const title of sortedKeys) {
-        const list = groups[title];
+      for (const [title, list] of Object.entries(groups)) {
         const totalPacks = list.reduce((sum, item) => sum + (Number(item.quantity) || Number(item.qty) || 1), 0);
 
         let cardsHtml = '';
@@ -291,68 +357,49 @@
           const status = ord.paymentStatus || ord.status || (ord.hasPaid ? '已對帳' : '待匯款');
           
           let payBadgeHtml = '<span class="status-badge status-pending">⏳ 待匯款</span>';
-          if (status === '已對帳') {
-            payBadgeHtml = '<span class="status-badge status-paid">🟢 已對帳</span>';
-          } else if (status === '待對帳' || status === '對帳中') {
-            payBadgeHtml = '<span class="status-badge status-checking">⏳ 待對帳</span>';
-          } else if (status === '對帳有問題' || status === '有問題') {
+          if (status === '已對帳') payBadgeHtml = '<span class="status-badge status-paid">🟢 已對帳</span>';
+          else if (status === '待對帳' || status === '對帳中') payBadgeHtml = '<span class="status-badge status-checking">⏳ 待對帳</span>';
+          else if (status === '對帳有問題' || status === '有問題') {
             const reason = ord.errorNote ? ' : ' + ord.errorNote : '';
             payBadgeHtml = '<span class="status-badge status-issue">⚠️ 對帳有問題' + reason + '</span>';
           }
 
           const isPhotoSent = ord.isPhotoSent === true || status === '已發圖';
-          let photoBadgeHtml = '';
-          let photoDatesHtml = '';
-
-          if (isPhotoSent) {
-            photoBadgeHtml = '<span class="status-badge photo-badge-sent">🔵 已發圖</span>';
-            if (ord.photoSentAt) {
-              photoDatesHtml = '<div class="photo-dates-box">' +
-                '📅 發圖日：' + ord.photoSentAt + '<br>' +
-                '⏳ 刪除日：' + (ord.photoExpireAt || '-') +
-              '</div>';
-            }
-          } else {
-            photoBadgeHtml = '<span class="status-badge photo-badge-pending">📷 待發圖</span>';
-          }
+          let photoBadgeHtml = isPhotoSent ? '<span class="status-badge photo-badge-sent">🔵 已發圖</span>' : '<span class="status-badge photo-badge-pending">📷 待發圖</span>';
+          let photoDatesHtml = (isPhotoSent && ord.photoSentAt) ? `<div class="photo-dates-box">📅 發圖日：${ord.photoSentAt}<br>⏳ 刪除日：${ord.photoExpireAt || '-'}</div>` : '';
 
           const typeBadge = (ord.orderType === '追加') ? '<span class="type-badge type-add">追加</span>' : '<span class="type-badge">一般</span>';
           const name = ord.user || ord.buyerName || ord.nickname || '未知';
           const info = getItemPriceInfo(ord);
 
-          cardsHtml += '<div class="order-card">' +
-            '<div class="order-top">' +
-              '<span>#' + (idx + 1) + ' ' + name + ' ' + typeBadge + '</span>' +
-              '<div class="status-badges-container">' +
-                payBadgeHtml +
-                photoBadgeHtml +
-                photoDatesHtml +
-              '</div>' +
-            '</div>' +
-            '<div class="order-info">' +
-              '<span>喊單內容：<b>' + info.packs + ' 包 / ' + info.qty + ' 張</b></span>' +
-              '<div class="order-bottom-row">' +
-                '<span>每包金額：<b>$' + info.pricePerPack + '</b></span>' +
-                '<span style="color:#409eff;">總金額：<b>$' + info.totalPrice.toLocaleString() + '</b></span>' +
-              '</div>' +
-            '</div>' +
-          '</div>';
+          cardsHtml += `<div class="order-card">
+            <div class="order-top">
+              <span>#${idx + 1} ${name} ${typeBadge}</span>
+              <div class="status-badges-container">${payBadgeHtml}${photoBadgeHtml}${photoDatesHtml}</div>
+            </div>
+            <div class="order-info">
+              <span>喊單內容：<b>${info.packs} 包 / ${info.qty} 張</b></span>
+              <div class="order-bottom-row">
+                <span>每包金額：<b>$${info.pricePerPack}</b></span>
+                <span style="color:#409eff;">總金額：<b>$${info.totalPrice.toLocaleString()}</b></span>
+              </div>
+            </div>
+          </div>`;
         });
 
-        recordsList.innerHTML += '<div class="event-section">' +
-          '<div class="event-header">' +
-            '<span>📌 ' + title + '</span>' +
-            '<span class="event-meta">共 ' + list.length + ' 筆 / ' + totalPacks + ' 張</span>' +
-          '</div>' +
-          '<div class="cards-list">' + cardsHtml + '</div>' +
-        '</div>';
+        recordsList.innerHTML += `<div class="event-section">
+          <div class="event-header">
+            <span>📌 ${title}</span>
+            <span class="event-meta">共 ${list.length} 筆 / ${totalPacks} 張</span>
+          </div>
+          <div class="cards-list">${cardsHtml}</div>
+        </div>`;
       }
     }
 
     function notifyHeight() {
       setTimeout(() => {
-        const h = Math.max(document.body.scrollHeight, 500);
-        window.parent.postMessage({ frameHeight: h }, '*');
+        window.parent.postMessage({ frameHeight: document.body.scrollHeight }, '*');
       }, 200);
     }
   </script>
