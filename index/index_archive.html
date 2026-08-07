@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <title>歷年已結束歸檔</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 0; margin: 0; background: transparent; color: #333; }
+    
+    .archive-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+    .archive-title { font-size: 18px; font-weight: bold; margin: 0; }
+
+    .sub-tab-group { display: flex; gap: 8px; margin-bottom: 16px; border-bottom: 2px solid #e4e7ed; padding-bottom: 8px; }
+    .sub-tab-btn { background: #f4f4f5; color: #606266; border: 1px solid #dcdfe6; padding: 6px 16px; border-radius: 20px; font-size: 13px; font-weight: bold; cursor: pointer; transition: all 0.2s; outline: none; }
+    .sub-tab-btn:hover { background: #ecf5ff; color: #409eff; border-color: #c6e2ff; }
+    .sub-tab-btn.active { background: #409eff; color: #fff; border-color: #409eff; box-shadow: 0 2px 6px rgba(64,158,255,0.25); }
+
+    iframe { width: 100%; border: none; min-height: 500px; transition: height 0.2s ease; }
+  </style>
+</head>
+<body>
+
+  <div class="archive-header">
+    <h3 class="archive-title">📦 歷年已結束活動與對帳歸檔</h3>
+  </div>
+
+  <div class="sub-tab-group">
+    <button class="sub-tab-btn active" onclick="switchArchiveTab(0, 'archive/archive_progress.html')">🗂️ 開團與發圖進度歸檔</button>
+    <button class="sub-tab-btn" onclick="switchArchiveTab(1, 'archive/archive_records.html')">📜 歷史喊單與對帳紀錄歸檔</button>
+  </div>
+
+  <iframe id="archiveFrame" src="archive/archive_progress.html"></iframe>
+
+  <script>
+    function switchArchiveTab(idx, pageUrl) {
+      document.querySelectorAll('.sub-tab-btn').forEach((btn, index) => {
+        btn.classList.toggle('active', index === idx);
+      });
+      document.getElementById('archiveFrame').src = pageUrl;
+    }
+
+    window.addEventListener('message', (e) => {
+      if (e.data && e.data.frameHeight) {
+        document.getElementById('archiveFrame').style.height = (e.data.frameHeight + 20) + 'px';
+        window.parent.postMessage({ frameHeight: document.body.scrollHeight }, '*');
+      }
+    });
+  </script>
+</body>
+</html>

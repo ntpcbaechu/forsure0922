@@ -50,7 +50,10 @@
     table.compact-records-table th, table.compact-records-table td { padding: 10px 8px; border-bottom: 1px solid #ebeef5; text-align: left; vertical-align: middle; }
     table.compact-records-table th { background: #f8f9fa; color: #606266; font-weight: bold; white-space: nowrap; }
 
-    .event-section { background: #fff; border: 1px solid #e4e7ed; border-radius: 12px; padding: 14px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); }
+    #recordsListGrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(480px, 1fr)); gap: 16px; }
+    @media (max-width: 650px) { #recordsListGrid { grid-template-columns: 1fr; } }
+
+    .event-section { background: #fff; border: 1px solid #e4e7ed; border-radius: 12px; padding: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); display: flex; flex-direction: column; }
     .event-header { font-size: 15px; font-weight: bold; color: #303133; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f0f2f5; padding-bottom: 8px; }
     .event-meta { font-size: 12px; color: #409eff; background: #ecf5ff; padding: 4px 8px; border-radius: 6px; font-weight: bold; }
 
@@ -121,6 +124,7 @@
     const db = getFirestore(app);
 
     let allOrders = [];
+    let progressMap = {};
     let eventSettingsMap = {};
     let paymentsMap = {};
 
@@ -149,6 +153,18 @@
 
       renderGroupCapsules();
 
+      onSnapshot(collection(db, "photo_progress"), snap => {
+        progressMap = {};
+        snap.forEach(d => {
+          const data = d.data();
+          const key = (data.eventName || data.event || '') + '_' + (data.member || '');
+          progressMap[key] = data.status || '';
+        });
+        updateDetailCapsules();
+        updateUserCapsules();
+        renderCapsulesAndRecords();
+      });
+
       onSnapshot(collection(db, "event_settings"), snap => {
         eventSettingsMap = {};
         snap.forEach(d => {
@@ -169,13 +185,9 @@
         snap.forEach(d => {
           const data = d.data();
           const relatedIds = data.relatedOrderIds || [];
-          relatedIds.forEach(oId => {
-            paymentsMap[oId] = data;
-          });
+          relatedIds.forEach(oId => { paymentsMap[oId] = data; });
           const buyer = data.user || data.buyerName;
-          if (buyer) {
-            paymentsMap[buyer] = data;
-          }
+          if (buyer) { paymentsMap[buyer] = data; }
         });
         renderCapsulesAndRecords();
       });
@@ -192,6 +204,12 @@
         renderCapsulesAndRecords();
       });
     });
+
+    function isArchivedOrder(ord) {
+      const key = (ord.event || ord.eventName || '') + '_' + (ord.member || '');
+      const st = progressMap[key] || '';
+      return st === '已結束' || st === '到期/已刪除';
+    }
 
     function renderGroupCapsules() {
       const container = document.getElementById('groupCapsules');
@@ -243,7 +261,7 @@
       };
       container.appendChild(allBtn);
 
-      const filtered = allOrders.filter(o => o.group === activeGroup);
+      const filtered = allOrders.filter(o => o.group === activeGroup && !isArchivedOrder(o));
 
       if (activeMode === 'member') {
         const membersInJson = memberMap[activeGroup] || [];
@@ -299,7 +317,7 @@
       container.appendChild(allBtn);
 
       const usersSet = new Set();
-      allOrders.filter(o => o.group === activeGroup).forEach(o => {
+      allOrders.filter(o => o.group === activeGroup && !isArchivedOrder(o)).forEach(o => {
         const name = o.buyerName || o.user || o.nickname;
         if (name) usersSet.add(name);
       });
@@ -375,7 +393,7 @@
       recordsList.innerHTML = '';
       summary.innerHTML = '';
 
-      let list = allOrders.filter(o => o.group === activeGroup);
+      let list = allOrders.filter(o => o.group === activeGroup && !isArchivedOrder(o));
 
       if (activeDetail !== 'ALL') {
         if (activeMode === 'member') list = list.filter(o => o.member === activeDetail);
@@ -398,7 +416,7 @@
         let paidCount = 0, checkingCount = 0, pendingCount = 0, issueCount = 0;
         let grandTotal = 0, paidTotal = 0, pendingTotal = 0;
 
-        allOrders.filter(o => o.group === activeGroup && (o.buyerName || o.user || o.nickname) === activeUser).forEach(o => {
+        allOrders.filter(o => o.group === activeGroup && !isArchivedOrder(o) && (o.buyerName || o.user || o.nickname) === activeUser).forEach(o => {
           userEventsSet.add((o.event || o.eventName) + '_' + o.member);
           const status = o.paymentStatus || o.status || (o.hasPaid ? '已對帳' : '待匯款');
           const info = getItemPriceAndUnit(o);
@@ -414,7 +432,7 @@
         summary.innerHTML = `
           <div class="user-stat-card">
             <div class="user-stat-header">
-              <span>👤 ${activeUser} 的喊單個人統計</span>
+              <span>👤 ${activeUser} 的進行中喊單個人統計</span>
               <span style="font-size:13px; color:#409eff;">已登記 ${userEventsSet.size} 場活動</span>
             </div>
 
@@ -502,7 +520,7 @@
       }
 
       if (list.length === 0) {
-        recordsList.innerHTML = '<p style="color:#909399; padding:20px 0; text-align:center;">目前無符合條件的登記紀錄。</p>';
+        recordsList.innerHTML = '<p style="color:#909399; padding:20px 0; text-align:center;">目前無符合條件的進行中對帳紀錄。</p>';
         notifyHeight();
         return;
       }
@@ -566,6 +584,7 @@
         groups[key].push(o);
       });
 
+      let gridHtml = '<div id="recordsListGrid">';
       for (const [title, list] of Object.entries(groups)) {
         const totalPacks = list.reduce((sum, item) => sum + (Number(item.quantity) || Number(item.qty) || 1), 0);
         const sampleKey = (list[0].event || list[0].eventName || '') + '_' + (list[0].member || '');
@@ -590,7 +609,7 @@
           `;
         });
 
-        recordsList.innerHTML += `
+        gridHtml += `
           <div class="event-section">
             <div class="event-header">
               <span>📌 ${title}</span>
@@ -612,6 +631,8 @@
           </div>
         `;
       }
+      gridHtml += '</div>';
+      recordsList.innerHTML = gridHtml;
     }
 
     function notifyHeight() {

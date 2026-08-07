@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
-  <title>目前開團與飯拍發放進度</title>
+  <title>歷年喊單與對帳紀錄歸檔</title>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 0; margin: 0; background: transparent; color: #333; }
     
@@ -17,31 +17,24 @@
     .capsule-filter-btn.sub-active { background: #67c23a; color: #fff; border-color: #67c23a; box-shadow: 0 2px 6px rgba(103,194,58,0.25); }
     .capsule-filter-btn.user-active { background: #e6a23c; color: #fff; border-color: #e6a23c; box-shadow: 0 2px 6px rgba(230,162,60,0.25); }
 
-    #progressList { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
+    .compact-table-card { background: #fff; border: 1px solid #e4e7ed; border-radius: 12px; padding: 14px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); }
+    table.compact-records-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    table.compact-records-table th, table.compact-records-table td { padding: 10px 8px; border-bottom: 1px solid #ebeef5; text-align: left; vertical-align: middle; }
+    table.compact-records-table th { background: #f8f9fa; color: #606266; font-weight: bold; white-space: nowrap; }
 
-    .event-group-card { background: #fff; border: 1px solid #e4e7ed; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.02); display: flex; flex-direction: column; }
-    .event-group-header { background: #eef5fe; border-left: 4px solid #409eff; color: #1a252f; font-size: 15px; font-weight: bold; padding: 10px 14px; display: flex; align-items: center; gap: 6px; }
+    #recordsListGrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(480px, 1fr)); gap: 16px; }
+    @media (max-width: 650px) { #recordsListGrid { grid-template-columns: 1fr; } }
 
-    .progress-list-box { padding: 12px 14px; display: flex; flex-direction: column; gap: 12px; }
-    .member-block { display: flex; flex-direction: column; gap: 6px; border-bottom: 1px dashed #ebeef5; padding-bottom: 10px; }
-    .member-block:last-child { border-bottom: none; padding-bottom: 0; }
+    .event-section { background: #fff; border: 1px solid #e4e7ed; border-radius: 12px; padding: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); display: flex; flex-direction: column; }
+    .event-header { font-size: 15px; font-weight: bold; color: #303133; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f0f2f5; padding-bottom: 8px; }
+    .event-meta { font-size: 12px; color: #909399; background: #f4f4f5; padding: 4px 8px; border-radius: 6px; font-weight: bold; }
 
-    .member-box-card { background: #f8f9fa; border: 1px solid #e4e7ed; border-radius: 8px; padding: 8px 12px; display: flex; flex-direction: column; gap: 4px; }
-    .member-header-row { display: flex; justify-content: space-between; align-items: center; font-size: 14px; font-weight: bold; color: #303133; }
-    .buyer-row { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: #606266; padding-left: 12px; margin-top: 2px; }
-    .buyer-status-group { display: flex; align-items: center; gap: 6px; }
-
-    .status-badge { padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: bold; white-space: nowrap; }
-    .status-waiting { background: #fef0f0; color: #f56c6c; border: 1px solid #fde2e2; }
-    .status-sorting { background: #fdf6ec; color: #e6a23c; border: 1px solid #faebd7; }
-    .status-checking { background: #eef2ff; color: #4f46e5; border: 1px solid #c7d2fe; }
-    .status-issue { background: #fef0f0; color: #f56c6c; border: 1px solid #fde2e2; }
-    .status-done { background: #f4f4f5; color: #909399; border: 1px solid #e4e7ed; }
+    .status-badge { padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: bold; display: inline-block; white-space: nowrap; }
+    .status-paid { background: #f0f9eb; color: #67c23a; border: 1px solid #e1f3d8; }
+    .photo-badge-sent { background: #f4f4f5; color: #909399; border: 1px solid #e4e7ed; }
   </style>
 </head>
 <body>
-
-  <h3 style="margin-top:0; margin-bottom:12px; font-size:18px;">目前開團與飯拍發放進度</h3>
 
   <div class="filter-card">
     <div class="filter-row">
@@ -68,7 +61,7 @@
     </div>
   </div>
 
-  <div id="progressList">載入中...</div>
+  <div id="recordsList">載入中...</div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -87,9 +80,10 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    let rawProgress = [];
-    let ordersCache = {};
-    
+    let allOrders = [];
+    let progressMap = {};
+    let eventSettingsMap = {};
+
     let activeGroup = 'Stray Kids';
     let activeMode = 'member';
     let activeDetail = 'ALL';
@@ -100,13 +94,13 @@
 
     document.addEventListener('DOMContentLoaded', async () => {
       try {
-        const gRes = await fetch('../json/group.json');
+        const gRes = await fetch('../../json/group.json');
         groupList = await gRes.json();
 
         for (const g of groupList) {
           const file = (g === 'Stray Kids') ? 'members_skz.json' : (g === 'ATEEZ' ? 'members_atz.json' : '');
           if (file) {
-            const mRes = await fetch(`../json/${file}`);
+            const mRes = await fetch(`../../json/${file}`);
             memberMap[g] = await mRes.json();
           }
         }
@@ -114,25 +108,50 @@
 
       renderGroupCapsules();
 
-      onSnapshot(collection(db, "orders"), snap => {
-        ordersCache = {};
-        snap.forEach(d => { ordersCache[d.id] = { id: d.id, ...d.data(), group: d.data().group || 'Stray Kids' }; });
-        updateUserCapsules();
-        renderView();
-      });
-
       onSnapshot(collection(db, "photo_progress"), snap => {
-        rawProgress = [];
+        progressMap = {};
         snap.forEach(d => {
           const data = d.data();
-          if (data.status !== '已結束' && data.status !== '到期/已刪除') {
-            rawProgress.push({ id: d.id, group: 'Stray Kids', ...data });
-          }
+          const key = (data.eventName || data.event || '') + '_' + (data.member || '');
+          progressMap[key] = data.status || '';
         });
         updateDetailCapsules();
-        renderView();
+        updateUserCapsules();
+        renderRecords();
+      });
+
+      onSnapshot(collection(db, "event_settings"), snap => {
+        eventSettingsMap = {};
+        snap.forEach(d => {
+          const data = d.data();
+          const key = (data.name || data.rawName) + '_' + (data.member || '');
+          eventSettingsMap[key] = {
+            price: Number(data.actualPrice || data.price || data.estimatedPrice || data.unitPrice) || 0,
+            packQty: Number(data.packQty) || 1,
+            actVideo: Number(data.actVideo) || 0
+          };
+        });
+        renderRecords();
+      });
+
+      onSnapshot(collection(db, "orders"), snap => {
+        const ordersMap = new Map();
+        snap.forEach(d => {
+          const data = d.data();
+          ordersMap.set(d.id, { id: d.id, ...data, group: data.group || "Stray Kids" });
+        });
+        allOrders = Array.from(ordersMap.values());
+        updateDetailCapsules();
+        updateUserCapsules();
+        renderRecords();
       });
     });
+
+    function isArchivedOrder(ord) {
+      const key = (ord.event || ord.eventName || '') + '_' + (ord.member || '');
+      const st = progressMap[key] || '';
+      return st === '已結束' || st === '到期/已刪除';
+    }
 
     function renderGroupCapsules() {
       const container = document.getElementById('groupCapsules');
@@ -148,7 +167,7 @@
           activeDetail = 'ALL';
           updateDetailCapsules();
           updateUserCapsules();
-          renderView();
+          renderRecords();
         };
         container.appendChild(btn);
       });
@@ -160,7 +179,7 @@
       if(btn) btn.classList.add('active');
       activeDetail = 'ALL';
       updateDetailCapsules();
-      renderView();
+      renderRecords();
     };
 
     function updateDetailCapsules() {
@@ -174,15 +193,15 @@
         activeDetail = 'ALL';
         document.querySelectorAll('#detailCapsules .capsule-filter-btn').forEach(b => b.classList.remove('sub-active'));
         allBtn.classList.add('sub-active');
-        renderView();
+        renderRecords();
       };
       container.appendChild(allBtn);
 
-      const filtered = rawProgress.filter(i => i.group === activeGroup);
+      const filtered = allOrders.filter(o => o.group === activeGroup && isArchivedOrder(o));
 
       if (activeMode === 'member') {
         const membersInJson = memberMap[activeGroup] || [];
-        const activeMembersWithData = new Set(filtered.map(i => i.member).filter(Boolean));
+        const activeMembersWithData = new Set(filtered.map(o => o.member).filter(Boolean));
 
         membersInJson.forEach(m => {
           if (activeMembersWithData.has(m)) {
@@ -193,15 +212,15 @@
               activeDetail = m;
               document.querySelectorAll('#detailCapsules .capsule-filter-btn').forEach(b => b.classList.remove('sub-active'));
               btn.classList.add('sub-active');
-              renderView();
+              renderRecords();
             };
             container.appendChild(btn);
           }
         });
       } else if (activeMode === 'event') {
         const eventsSet = new Set();
-        filtered.forEach(i => {
-          if (i.eventName || i.event) eventsSet.add(i.eventName || i.event);
+        filtered.forEach(o => {
+          if (o.event || o.eventName) eventsSet.add(o.event || o.eventName);
         });
         Array.from(eventsSet).sort().forEach(ev => {
           const btn = document.createElement('button');
@@ -211,7 +230,7 @@
             activeDetail = ev;
             document.querySelectorAll('#detailCapsules .capsule-filter-btn').forEach(b => b.classList.remove('sub-active'));
             btn.classList.add('sub-active');
-            renderView();
+            renderRecords();
           };
           container.appendChild(btn);
         });
@@ -229,21 +248,14 @@
         activeUser = 'ALL';
         document.querySelectorAll('#userCapsules .capsule-filter-btn').forEach(b => b.classList.remove('user-active'));
         allBtn.classList.add('user-active');
-        renderView();
+        renderRecords();
       };
       container.appendChild(allBtn);
 
-      const activeEventKeys = new Set(rawProgress.map(p => (p.eventName || p.event) + '_' + (p.member || '')));
-
       const usersSet = new Set();
-      Object.values(ordersCache).forEach(ord => {
-        if (ord.group === activeGroup) {
-          const key = (ord.event || ord.eventName || '') + '_' + (ord.member || '');
-          if (activeEventKeys.has(key)) {
-            const name = ord.buyerName || ord.user || ord.nickname;
-            if (name) usersSet.add(name);
-          }
-        }
+      allOrders.filter(o => o.group === activeGroup && isArchivedOrder(o)).forEach(o => {
+        const name = o.buyerName || o.user || o.nickname;
+        if (name) usersSet.add(name);
       });
 
       Array.from(usersSet).sort((a,b)=>a.localeCompare(b,'zh-TW')).forEach(uName => {
@@ -254,135 +266,110 @@
           activeUser = uName;
           document.querySelectorAll('#userCapsules .capsule-filter-btn').forEach(b => b.classList.remove('user-active'));
           btn.classList.add('user-active');
-          renderView();
+          renderRecords();
         };
         container.appendChild(btn);
       });
     }
 
-    function renderView() {
-      const container = document.getElementById('progressList');
-      container.innerHTML = '';
+    function getItemPriceAndUnit(item) {
+      const eventName = item.event || item.eventName || '';
+      const member = item.member || '';
+      const key = eventName + '_' + member;
+      const setting = eventSettingsMap[key] || {};
+      
+      const pricePerPack = setting.price || Number(item.price) || 0;
+      const packQty = setting.packQty || 1;
+      const qty = Number(item.quantity) || Number(item.qty) || 0;
+      const packs = (packQty > 0) ? Math.round(qty / packQty) : 1;
+      const totalPrice = packs * pricePerPack;
 
-      let list = rawProgress.filter(i => i.group === activeGroup);
+      const unitLabel = setting.actVideo > 0 ? '個' : '張';
+      const qtyText = `${packs}包 (${qty}${unitLabel})`;
+
+      return { totalPrice, qtyText };
+    }
+
+    function renderRecords() {
+      const recordsList = document.getElementById('recordsList');
+      recordsList.innerHTML = '';
+
+      let list = allOrders.filter(o => o.group === activeGroup && isArchivedOrder(o));
 
       if (activeDetail !== 'ALL') {
-        if (activeMode === 'member') list = list.filter(i => i.member === activeDetail);
-        else if (activeMode === 'event') list = list.filter(i => (i.eventName || i.event) === activeDetail);
+        if (activeMode === 'member') list = list.filter(o => o.member === activeDetail);
+        else if (activeMode === 'event') list = list.filter(o => (o.event || o.eventName) === activeDetail);
+      }
+
+      if (activeUser !== 'ALL') {
+        list = list.filter(o => (o.buyerName || o.user || o.nickname) === activeUser);
       }
 
       if (list.length === 0) {
-        container.innerHTML = '<p style="color:#909399; font-size:14px; grid-column: 1 / -1;">目前尚無進行中的開團進度。</p>';
+        recordsList.innerHTML = '<p style="color:#909399; padding:20px 0; text-align:center;">目前無符合條件的歷史歸檔紀錄。</p>';
         notifyHeight();
         return;
       }
 
-      const eventGroups = {};
-      list.forEach(item => {
-        const eTitle = item.eventName || item.event || '未命名活動';
-        if (!eventGroups[eTitle]) eventGroups[eTitle] = [];
-        eventGroups[eTitle].push(item);
+      const groups = {};
+      list.forEach(o => {
+        const key = `[${activeGroup}] ` + (o.event || o.eventName || '未分類活動') + (o.member ? ' - ' + o.member : '');
+        if (!groups[key]) groups[key] = [];
+        groups[key].push(o);
       });
 
-      let htmlContent = '';
-      const currentMemberList = memberMap[activeGroup] || [];
+      let gridHtml = '<div id="recordsListGrid">';
+      for (const [title, listItems] of Object.entries(groups)) {
+        const totalPacks = listItems.reduce((sum, item) => sum + (Number(item.quantity) || Number(item.qty) || 1), 0);
 
-      Object.keys(eventGroups).sort().forEach(eventName => {
-        const items = eventGroups[eventName];
+        let rowsHtml = '';
+        listItems.forEach((ord, idx) => {
+          const name = ord.user || ord.buyerName || ord.nickname || '未知';
+          const info = getItemPriceAndUnit(ord);
 
-        items.sort((a, b) => {
-          let idxA = currentMemberList.indexOf(a.member || '');
-          let idxB = currentMemberList.indexOf(b.member || '');
-          return (idxA === -1 ? 99 : idxA) - (idxB === -1 ? 99 : idxB);
-        });
-
-        const memberMapObj = {};
-        items.forEach(item => {
-          const m = item.member || '全體';
-          if (!memberMapObj[m]) memberMapObj[m] = [];
-          memberMapObj[m].push(item);
-        });
-
-        let membersHtml = '';
-
-        Object.keys(memberMapObj).forEach(mName => {
-          const mItems = memberMapObj[mName];
-          
-          const matchedBuyers = new Set();
-          Object.values(ordersCache).forEach(ord => {
-            if (ord.group === activeGroup && (ord.event || ord.eventName) === eventName && ord.member === mName) {
-              const bName = ord.buyerName || ord.user || ord.nickname;
-              if (bName) {
-                if (activeUser === 'ALL' || bName === activeUser) matchedBuyers.add(bName);
-              }
-            }
-          });
-
-          if (activeUser !== 'ALL' && matchedBuyers.size === 0) return;
-
-          let buyersHtml = '';
-          Array.from(matchedBuyers).sort().forEach(bName => {
-            let payStatusText = '🚨 待匯款', payBadgeClass = 'status-waiting';
-            let photoStatusText = '📷 待發圖', photoBadgeClass = 'status-waiting';
-
-            Object.values(ordersCache).forEach(ord => {
-              const b = ord.buyerName || ord.user || ord.nickname;
-              if (b === bName && (ord.event || ord.eventName) === eventName && ord.member === mName) {
-                const st = ord.paymentStatus || ord.status || (ord.hasPaid ? '已對帳' : '待匯款');
-                if (st === '已對帳' || ord.hasPaid) { payStatusText = '⚫ 已對帳'; payBadgeClass = 'status-done'; }
-                else if (st === '待對帳' || st === '對帳中') { payStatusText = '⏳ 待對帳'; payBadgeClass = 'status-checking'; }
-                else if (st === '對帳有問題' || st === '有問題') { payStatusText = '⚠️ 帳有問題'; payBadgeClass = 'status-issue'; }
-
-                if (ord.isPhotoSent === true || ord.status === '已發圖') { photoStatusText = '⚪ 已發圖'; photoBadgeClass = 'status-done'; }
-              }
-            });
-
-            buyersHtml += `
-              <div class="buyer-row">
-                <span>- ${bName}</span>
-                <div class="buyer-status-group">
-                  <span class="status-badge ${payBadgeClass}">${payStatusText}</span>
-                  <span class="status-badge ${photoBadgeClass}">${photoStatusText}</span>
-                </div>
-              </div>
-            `;
-          });
-
-          let badgeClass = 'status-sorting';
-          const st = mItems[0].status || '等圖中';
-          if (['已完工', '已發圖', '已結束', '已預約'].includes(st)) badgeClass = 'status-done';
-
-          membersHtml += `
-            <div class="member-block">
-              <div class="member-box-card">
-                <div class="member-header-row">
-                  <span>👤 ${mName}</span>
-                  <span class="status-badge ${badgeClass}">${st}</span>
-                </div>
-              </div>
-              ${buyersHtml}
-            </div>
+          rowsHtml += `
+            <tr>
+              <td>#${idx + 1}</td>
+              <td><b>${name}</b></td>
+              <td>${info.qtyText}</td>
+              <td><b>$${info.totalPrice.toLocaleString()}</b></td>
+              <td><span class="status-badge status-paid">🟢 已結案</span></td>
+              <td><span class="status-badge photo-badge-sent">📦 歷史歸檔</span></td>
+            </tr>
           `;
         });
 
-        if (membersHtml) {
-          htmlContent += `
-            <div class="event-group-card">
-              <div class="event-group-header">📅 [${activeGroup}] ${eventName}</div>
-              <div class="progress-list-box">${membersHtml}</div>
+        gridHtml += `
+          <div class="event-section">
+            <div class="event-header">
+              <span>📦 ${title} (歷史歸檔)</span>
+              <span class="event-meta">共 ${listItems.length} 筆 / ${totalPacks} 份</span>
             </div>
-          `;
-        }
-      });
-
-      container.innerHTML = htmlContent || '<p style="color:#909399; font-size:14px; grid-column: 1 / -1;">目前尚無進行中的開團進度。</p>';
+            <table class="compact-records-table">
+              <thead>
+                <tr>
+                  <th style="width:5%;">#</th>
+                  <th style="width:25%;">買家暱稱</th>
+                  <th style="width:20%;">喊單數量</th>
+                  <th style="width:15%;">小計</th>
+                  <th style="width:15%;">對帳狀態</th>
+                  <th style="width:20%;">發圖與歸檔狀態</th>
+                </tr>
+              </thead>
+              <tbody>${rowsHtml}</tbody>
+            </table>
+          </div>
+        `;
+      }
+      gridHtml += '</div>';
+      recordsList.innerHTML = gridHtml;
       notifyHeight();
     }
 
     function notifyHeight() {
       setTimeout(() => {
         window.parent.postMessage({ frameHeight: document.body.scrollHeight }, '*');
-      }, 100);
+      }, 200);
     }
   </script>
 </body>
