@@ -17,9 +17,7 @@
     .capsule-filter-btn.sub-active { background: #67c23a; color: #fff; border-color: #67c23a; box-shadow: 0 2px 6px rgba(103,194,58,0.25); }
     .capsule-filter-btn.user-active { background: #e6a23c; color: #fff; border-color: #e6a23c; box-shadow: 0 2px 6px rgba(230,162,60,0.25); }
 
-    #progressList { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
-    @media (max-width: 1024px) { #progressList { grid-template-columns: repeat(2, 1fr); } }
-    @media (max-width: 650px) { #progressList { grid-template-columns: repeat(1, 1fr); } }
+    #progressList { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
 
     .event-group-card { background: #fff; border: 1px solid #e4e7ed; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.02); display: flex; flex-direction: column; }
     .event-group-header { background: #eef5fe; border-left: 4px solid #409eff; color: #1a252f; font-size: 15px; font-weight: bold; padding: 10px 14px; display: flex; align-items: center; gap: 6px; }
@@ -225,7 +223,7 @@
       allBtn.onclick = () => {
         activeUser = 'ALL';
         document.querySelectorAll('#userCapsules .capsule-filter-btn').forEach(b => b.classList.remove('user-active'));
-        allBtn.classList.add('user-active');
+        btn.classList.add('user-active');
         renderView();
       };
       container.appendChild(allBtn);
@@ -264,7 +262,7 @@
       }
 
       if (list.length === 0) {
-        container.innerHTML = '<p style="color:#909399; font-size:14px; grid-column: span 3;">目前尚無符合條件的進度紀錄。</p>';
+        container.innerHTML = '<p style="color:#909399; font-size:14px; grid-column: 1 / -1;">目前尚無符合條件的進度紀錄。</p>';
         notifyHeight();
         return;
       }
@@ -367,7 +365,7 @@
         }
       });
 
-      container.innerHTML = htmlContent || '<p style="color:#909399; font-size:14px; grid-column: span 3;">目前尚無符合條件的進度紀錄。</p>';
+      container.innerHTML = htmlContent || '<p style="color:#909399; font-size:14px; grid-column: 1 / -1;">目前尚無符合條件的進度紀錄。</p>';
       notifyHeight();
     }
 
