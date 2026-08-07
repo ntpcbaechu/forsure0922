@@ -18,7 +18,6 @@
     label { font-size: 12px; font-weight: bold; color: #303133; display: block; margin-bottom: 4px; }
     input, select, textarea { width: 100%; padding: 8px 10px; border: 1px solid #dcdfe6; border-radius: 8px; font-size: 13px; box-sizing: border-box; background: #fff; outline: none; font-family: inherit; }
     input:focus, select:focus, textarea:focus { border-color: #409eff; }
-    textarea { height: 38px; resize: vertical; }
 
     .btn-submit { width: 100%; padding: 9px; background: #409eff; color: white; border: none; border-radius: 8px; font-size: 13px; font-weight: bold; cursor: pointer; height: 37px; }
     .btn-submit:disabled { background: #a0cfff; }
@@ -26,6 +25,8 @@
     .form-grid-2rows { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px 12px; align-items: end; }
     @media (max-width: 900px) { .form-grid-2rows { grid-template-columns: repeat(2, 1fr); } }
     @media (max-width: 600px) { .form-grid-2rows { grid-template-columns: 1fr; } }
+
+    .bank-account-tip { background: #fffbe6; border: 1px solid #ffe58f; color: #d46b08; font-size: 12px; padding: 8px 12px; border-radius: 8px; margin-top: 10px; font-weight: bold; display: none; line-height: 1.5; }
 
     .warning-tip { color: #f56c6c; font-size: 12px; font-weight: bold; margin-top: 4px; display: none; line-height: 1.4; background: #fef0f0; border: 1px solid #fde2e2; padding: 6px 8px; border-radius: 6px; }
     .legal-warning { background: #fdf6ec; border: 1px solid #faebd7; color: #e6a23c; font-size: 11px; padding: 8px 10px; border-radius: 6px; margin-bottom: 10px; line-height: 1.4; font-weight: bold; }
@@ -38,23 +39,20 @@
     .capsule-btn { background: #f4f4f5; color: #606266; border: 1px solid #dcdfe6; padding: 4px 12px; border-radius: 16px; font-size: 12px; font-weight: bold; cursor: pointer; transition: all 0.2s; outline: none; }
     .capsule-btn:hover { background: #ecf5ff; color: #409eff; border-color: #c6e2ff; }
     .capsule-btn.active { background: #409eff; color: #fff; border-color: #409eff; box-shadow: 0 2px 6px rgba(64,158,255,0.25); }
-    /* 已用完/歸零按鈕專屬灰色系樣式 */
     .capsule-btn.gray-style { background: #f8f9fa; color: #909399; border-color: #dcdfe6; }
-    .capsule-btn.gray-style:hover { background: #f1f2f3; color: #606266; border-color: #c0c4cc; }
-    .capsule-btn.gray-style.active { background: #909399 !important; color: #fff !important; border-color: #909399 !important; box-shadow: 0 2px 6px rgba(144,147,153,0.25); }
+    .capsule-btn.gray-style.active { background: #909399 !important; color: #fff !important; border-color: #909399 !important; }
 
     .grid-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
     @media (max-width: 1024px) { .grid-container { grid-template-columns: repeat(2, 1fr); } }
     @media (max-width: 650px) { .grid-container { grid-template-columns: 1fr; } }
 
-    .user-block { background: #fff; border: 1px solid #e4e7ed; border-radius: 10px; padding: 12px 14px; display: flex; flex-direction: column; justify-content: flex-start; box-shadow: 0 2px 6px rgba(0,0,0,0.01); gap: 8px; }
-    .user-header { font-size: 14px; font-weight: bold; color: #303133; margin-bottom: 4px; padding-bottom: 6px; border-bottom: 1px solid #ebeef5; display: flex; justify-content: space-between; align-items: center; width: 100%; }
+    .user-block { background: #fff; border: 1px solid #e4e7ed; border-radius: 10px; padding: 12px 14px; display: flex; flex-direction: column; box-shadow: 0 2px 6px rgba(0,0,0,0.01); gap: 8px; }
+    .user-header { font-size: 14px; font-weight: bold; color: #303133; margin-bottom: 4px; padding-bottom: 6px; border-bottom: 1px solid #ebeef5; display: flex; justify-content: space-between; align-items: center; }
 
     .section-block { border-radius: 8px; padding: 8px 10px; font-size: 11px; display: flex; flex-direction: column; gap: 4px; }
     .block-credit { background: #f0f9eb; border: 1px solid #e1f3d8; }
     .block-deposit { background: #f8f9fa; border: 1px solid #e4e7ed; }
     .block-refund { background: #f8f9fa; border: 1px solid #e4e7ed; }
-
     .block-title { font-weight: bold; font-size: 11px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px; }
     
     .item-group-row { background: #fff; padding: 6px 8px; border-radius: 6px; border: 1px solid rgba(0,0,0,0.04); margin-bottom: 4px; }
@@ -92,9 +90,9 @@
           <label>匯款銀行 *</label>
           <select id="depBank" required>
             <option value="">請選擇銀行</option>
-            <option value="台銀">台銀</option>
-            <option value="樂天">樂天</option>
-            <option value="中信">中信</option>
+            <option value="台銀">台銀 (004)</option>
+            <option value="樂天">樂天 (826)</option>
+            <option value="中信">中信 (822)</option>
             <option value="其他">其他</option>
           </select>
         </div>
@@ -115,6 +113,8 @@
           <button type="submit" class="btn-submit" id="depSubmitBtn">提交儲值申報</button>
         </div>
       </div>
+
+      <div id="bankAccountDisplay" class="bank-account-tip"></div>
     </form>
 
     <form id="refundForm" class="form-section">
@@ -150,7 +150,6 @@
       </div>
 
       <div id="refWarning" class="warning-tip" style="margin-top:8px;">⚠️ 提醒：填寫的退款金額已超過可用餘額，送出後將由管理者手動審核！</div>
-
       <div class="legal-warning" style="margin-top:8px;">
         ⚠️ 警語：請務必確認退款帳號資料正確，若因填寫錯誤導致匯款失敗，後續恕不負責協助處理。
       </div>
@@ -198,6 +197,7 @@
     let allRefundRequests = [];
     let allPayments = [];
     let allOrders = {};
+    let bankAccountsData = {};
 
     let balanceTabFilter = 'active';
     let selectedUserFilter = 'ALL';
@@ -223,6 +223,33 @@
           refSel.innerHTML += `<option value="${u}">${u}</option>`;
         });
       } catch (e) {}
+
+      fetch('../json/bank_info.json').then(r => r.json()).then(data => {
+        bankAccountsData = data;
+      }).catch(() => {});
+
+      document.getElementById('depBank').addEventListener('change', (e) => {
+        const val = e.target.value;
+        const display = document.getElementById('bankAccountDisplay');
+        if (!val || val === '其他' || !bankAccountsData.accounts) {
+          display.style.display = 'none';
+          notifyHeight();
+          return;
+        }
+
+        let matched = '';
+        if (val === '台銀') matched = bankAccountsData.accounts.find(a => a.includes('台銀'));
+        else if (val === '樂天') matched = bankAccountsData.accounts.find(a => a.includes('樂天'));
+        else if (val === '中信') matched = bankAccountsData.accounts.find(a => a.includes('中信'));
+
+        if (matched) {
+          display.innerHTML = `🏦 轉帳收款帳號資訊：<br><b>${matched}</b>`;
+          display.style.display = 'block';
+        } else {
+          display.style.display = 'none';
+        }
+        notifyHeight();
+      });
 
       document.getElementById('refUser').addEventListener('change', checkRefundExceed);
       document.getElementById('refAmt').addEventListener('input', checkRefundExceed);
@@ -350,6 +377,7 @@
         });
         alert('✅ 儲值申報已送出，已顯示在下方待對帳區塊！');
         document.getElementById('depositForm').reset();
+        document.getElementById('bankAccountDisplay').style.display = 'none';
       } catch (err) {
         alert('失敗: ' + err.message);
       } finally {
@@ -444,7 +472,6 @@
             creditHtml += `<div class="item-group-row"><div class="item-group-header"><span>➕ ${dateStr ? dateStr + ' ' : ''}${c.fullEvent || c.eventName || '活動轉入'}</span><b style="color:#67c23a;">+$${crAmt.toLocaleString()}</b></div></div>`;
           }
           if (uAmt > 0) {
-            // 強制確保抵用金折抵行完整帶出 M/D 日期格式
             creditHtml += `<div class="item-group-row"><div class="item-group-header"><span>➖ ${dateStr ? dateStr + ' ' : ''}抵用金折抵</span><b style="color:#f56c6c;">-$${uAmt.toLocaleString()}</b></div></div>`;
           }
         });
