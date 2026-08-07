@@ -16,16 +16,7 @@
     .btn-danger { background-color: #f56c6c; color: white; padding: 4px 10px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; }
     .btn-edit { background-color: #e6a23c; color: white; padding: 4px 10px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; }
 
-    .unified-form-box { 
-      background: #f8f9fa; 
-      border: 1px solid #e4e7ed; 
-      border-radius: 8px; 
-      padding: 12px 15px; 
-      margin-bottom: 15px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
+    .unified-form-box { background: #f8f9fa; border: 1px solid #e4e7ed; border-radius: 8px; padding: 12px 15px; margin-bottom: 15px; display: flex; flex-direction: column; gap: 10px; }
     .form-row { display: grid; gap: 10px; align-items: end; }
     .row-5 { grid-template-columns: 1fr 1.2fr 1fr 1fr 1.2fr; }
     .row-pack-spec { grid-template-columns: 1fr 1fr 1fr 1fr auto; }
@@ -43,47 +34,19 @@
     .capsule-filter-btn.active { background: #409eff; color: #fff; border-color: #409eff; box-shadow: 0 2px 6px rgba(64,158,255,0.25); }
     .capsule-filter-btn.sub-active { background: #67c23a; color: #fff; border-color: #67c23a; box-shadow: 0 2px 6px rgba(103,194,58,0.25); }
 
-    .event-group-header {
-      background: #eef5fe;
-      border-left: 4px solid #409eff;
-      color: #1a252f;
-      font-size: 15px;
-      font-weight: bold;
-      padding: 8px 12px;
-      margin-top: 20px;
-      border-radius: 0 6px 6px 0;
-    }
-
+    .event-group-header { background: #eef5fe; border-left: 4px solid #409eff; color: #1a252f; font-size: 15px; font-weight: bold; padding: 8px 12px; margin-top: 20px; border-radius: 0 6px 6px 0; }
     .spec-title { font-size: 15px; font-weight: bold; color: #1a252f; margin-bottom: 2px; }
     .tag-discount { background: #fdf6ec; color: #e6a23c; border: 1px solid #faebd7; padding: 1px 5px; border-radius: 4px; font-size: 11px; display: inline-block; margin-top: 3px; }
     .sub-info { font-size: 12px; color: #606266; line-height: 1.4; }
     .divider-line { border-top: 1px dashed #dcdfe6; margin: 3px 0; }
     .closed-tag { background: #f4f4f5; color: #909399; padding: 2px 6px; border-radius: 4px; font-size: 11px; margin-left: 6px; }
 
-    .minimal-note-box { 
-      border: 1px solid #e4e7ed; 
-      border-left: 3px solid #909399; 
-      padding: 8px 12px; 
-      font-size: 13px; 
-      color: #303133; 
-      margin: 6px 0 12px 0; 
-      line-height: 1.6; 
-      background: #f8f9fa;
-      border-radius: 0 6px 6px 0;
-    }
+    .minimal-note-box { border: 1px solid #e4e7ed; border-left: 3px solid #909399; padding: 8px 12px; font-size: 13px; color: #303133; margin: 6px 0 12px 0; line-height: 1.6; background: #f8f9fa; border-radius: 0 6px 6px 0; }
     .minimal-note-title { font-weight: bold; color: #606266; margin-bottom: 2px; }
     .minimal-note-content { white-space: pre-wrap; word-break: break-all; }
-
     .auto-textarea { width: 100%; min-height: 38px; resize: none; overflow-y: hidden; line-height: 1.5; font-family: inherit; }
 
-    .summary-card { 
-      background: #f0f9eb; 
-      border: 1px solid #e1f3d8; 
-      border-radius: 8px; 
-      padding: 12px 14px; 
-      font-size: 13px; 
-      margin: 8px 0 40px 0; 
-    }
+    .summary-card { background: #f0f9eb; border: 1px solid #e1f3d8; border-radius: 8px; padding: 12px 14px; font-size: 13px; margin: 8px 0 40px 0; }
     .summary-title { font-weight: bold; color: #67c23a; margin-bottom: 8px; font-size: 14px; }
     .summary-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; border-top: 1px dashed #c0c4cc; padding-top: 8px; }
     .summary-col { display: flex; flex-direction: column; gap: 4px; }
@@ -381,18 +344,22 @@
       const filteredEvents = Object.values(eventsDataMap).filter(e => (e.group || 'Stray Kids') === activeGroup);
 
       if (activeMode === 'member') {
-        const members = memberMap[activeGroup] || [];
-        members.forEach(m => {
-          const btn = document.createElement('button');
-          btn.className = `capsule-filter-btn ${activeDetail === m ? 'sub-active' : ''}`;
-          btn.textContent = m;
-          btn.onclick = () => {
-            activeDetail = m;
-            document.querySelectorAll('#detailCapsules .capsule-filter-btn').forEach(b => b.classList.remove('sub-active'));
-            btn.classList.add('sub-active');
-            loadEvents();
-          };
-          container.appendChild(btn);
+        const membersInJson = memberMap[activeGroup] || [];
+        const activeMembersWithData = new Set(filteredEvents.map(e => e.member).filter(Boolean));
+
+        membersInJson.forEach(m => {
+          if (activeMembersWithData.has(m)) {
+            const btn = document.createElement('button');
+            btn.className = `capsule-filter-btn ${activeDetail === m ? 'sub-active' : ''}`;
+            btn.textContent = m;
+            btn.onclick = () => {
+              activeDetail = m;
+              document.querySelectorAll('#detailCapsules .capsule-filter-btn').forEach(b => b.classList.remove('sub-active'));
+              btn.classList.add('sub-active');
+              loadEvents();
+            };
+            container.appendChild(btn);
+          }
         });
       } else if (activeMode === 'event') {
         const eventsSet = new Set();

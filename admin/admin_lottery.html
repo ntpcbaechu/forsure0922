@@ -234,18 +234,23 @@
       };
       container.appendChild(allBtn);
 
-      const members = memberMap[activeGroup] || [];
-      members.forEach(m => {
-        const btn = document.createElement('button');
-        btn.className = `capsule-filter-btn ${activeDetail === m ? 'sub-active' : ''}`;
-        btn.textContent = m;
-        btn.onclick = () => {
-          activeDetail = m;
-          document.querySelectorAll('#detailCapsules .capsule-filter-btn').forEach(b => b.classList.remove('sub-active'));
-          btn.classList.add('sub-active');
-          renderLotteryTable();
-        };
-        container.appendChild(btn);
+      const filteredList = Object.values(lotteryMap).filter(i => (i.group || 'Stray Kids') === activeGroup);
+      const membersInJson = memberMap[activeGroup] || [];
+      const activeMembersWithData = new Set(filteredList.map(l => l.member).filter(Boolean));
+
+      membersInJson.forEach(m => {
+        if (activeMembersWithData.has(m)) {
+          const btn = document.createElement('button');
+          btn.className = `capsule-filter-btn ${activeDetail === m ? 'sub-active' : ''}`;
+          btn.textContent = m;
+          btn.onclick = () => {
+            activeDetail = m;
+            document.querySelectorAll('#detailCapsules .capsule-filter-btn').forEach(b => b.classList.remove('sub-active'));
+            btn.classList.add('sub-active');
+            renderLotteryTable();
+          };
+          container.appendChild(btn);
+        }
       });
     }
 
