@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <title>目前開團與飯拍發放進度</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 0; margin: 0; background: transparent; color: #333; }
+    
+    .filter-card { background: #fff; border: 1px solid #e4e7ed; border-radius: 12px; padding: 14px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); display: flex; flex-direction: column; gap: 8px; }
+    .filter-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .filter-label { font-size: 12px; font-weight: bold; color: #606266; min-width: 80px; }
+
+    .capsule-group { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+    .capsule-filter-btn { background: #f4f4f5; color: #606266; border: 1px solid #dcdfe6; padding: 4px 12px; border-radius: 16px; font-size: 12px; font-weight: bold; cursor: pointer; transition: all 0.2s; outline: none; }
+    .capsule-filter-btn:hover { background: #ecf5ff; color: #409eff; border-color: #c6e2ff; }
+    .capsule-filter-btn.active { background: #409eff; color: #fff; border-color: #409eff; box-shadow: 0 2px 6px rgba(64,158,255,0.25); }
+    .capsule-filter-btn.sub-active { background: #67c23a; color: #fff; border-color: #67c23a; box-shadow: 0 2px 6px rgba(103,194,58,0.25); }
+    .capsule-filter-btn.user-active { background: #e6a23c; color: #fff; border-color: #e6a23c; box-shadow: 0 2px 6px rgba(230,162,60,0.25); }
+
+    #progressList { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
+
+    .event-group-card { background: #fff; border: 1px solid #e4e7ed; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.02); display: flex; flex-direction: column; }
+    .event-group-header { background: #eef5fe; border-left: 4px solid #409eff; color: #1a252f; font-size: 15px; font-weight: bold; padding: 10px 14px; display: flex; align-items: center; gap: 6px; }
+
+    .progress-list-box { padding: 12px 14px; display: flex; flex-direction: column; gap: 12px; }
+    .member-block { display: flex; flex-direction: column; gap: 6px; border-bottom: 1px dashed #ebeef5; padding-bottom: 10px; }
+    .member-block:last-child { border-bottom: none; padding-bottom: 0; }
+
+    .member-box-card { background: #f8f9fa; border: 1px solid #e4e7ed; border-radius: 8px; padding: 8px 12px; display: flex; flex-direction: column; gap: 4px; }
+    .member-header-row { display: flex; justify-content: space-between; align-items: center; font-size: 14px; font-weight: bold; color: #303133; }
+    .buyer-row { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: #606266; padding-left: 12px; margin-top: 2px; }
+    .buyer-status-group { display: flex; align-items: center; gap: 6px; }
+
+    .status-badge { padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: bold; white-space: nowrap; }
+    .status-waiting { background: #fef0f0; color: #f56c6c; border: 1px solid #fde2e2; }
+    .status-sorting { background: #fdf6ec; color: #e6a23c; border: 1px solid #faebd7; }
+    .status-checking { background: #eef2ff; color: #4f46e5; border: 1px solid #c7d2fe; }
+    .status-issue { background: #fef0f0; color: #f56c6c; border: 1px solid #fde2e2; }
+    .status-done { background: #f4f4f5; color: #909399; border: 1px solid #e4e7ed; }
+  </style>
+</head>
+<body>
+
+  <h3 style="margin-top:0; margin-bottom:12px; font-size:18px;">目前開團與飯拍發放進度</h3>
+
+  <div class="filter-card">
+    <div class="filter-row">
+      <span class="filter-label">1. 團體：</span>
+      <div id="groupCapsules" class="capsule-group"></div>
+    </div>
+
+    <div class="filter-row">
+      <span class="filter-label">2. 檢視模式：</span>
+      <div id="modeCapsules" class="capsule-group">
+        <button class="capsule-filter-btn active" onclick="setModeFilter('member', this)">👥 依成員</button>
+        <button class="capsule-filter-btn" onclick="setModeFilter('event', this)">🗓️ 依活動</button>
+      </div>
+    </div>
+
+    <div class="filter-row">
+      <span class="filter-label">3. 細項篩選：</span>
+      <div id="detailCapsules" class="capsule-group"></div>
+    </div>
+
+    <div class="filter-row" style="border-top:1px dashed #dcdfe6; padding-top:8px; margin-top:2px;">
+      <span class="filter-label">👤 買家暱稱：</span>
+      <div id="userCapsules" class="capsule-group"></div>
+    </div>
+  </div>
+
+  <div id="progressList">載入中...</div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getFirestore, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDF7QySG1Jj4gdZvXwMRaKjRmI-lFKpj7k",
+      authDomain: "forsure0922.firebaseapp.com",
+      databaseURL: "https://forsure0922-default-rtdb.firebaseio.com",
+      projectId: "forsure0922",
+      storageBucket: "forsure0922.firebasestorage.app",
+      messagingSenderId: "817449290174",
+      appId: "1:817449290174:web:6b4ec1d36c171ff97011ef"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const MEMBER_EMOJI_MAP = {
+      '方燦': '🐺', 'Lee Know': '🐰', '彰彬': '🐷', '鉉辰': '🥟', 'HAN': '🐹', 'Felix': '🐥', '昇玟': '🐶', 'I.N': '🦊',
+      '弘中': '🐿️', '星化': '🐰', '潤浩': '🐶', '呂尚': '🐥', '傘': '⛰️', '旼琦': '🐥', '友榮': '🐈‍⬛', '鍾浩': '🐻'
+    };
+
+    const GROUP_EMOJI_MAP = {
+      'Stray Kids': '🧭 Stray Kids',
+      'ATEEZ': '🏴‍☠️ ATEEZ'
+    };
+
+    let rawProgress = [];
+    let ordersCache = {};
+    
+    let activeGroup = 'Stray Kids';
+    let activeMode = 'member';
+    let activeDetail = 'ALL';
+    let activeUser = 'ALL';
+
+    let groupList = [];
+    let memberMap = {};
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      try {
+        const gRes = await fetch('../json/group.json');
+        groupList = await gRes.json();
+
+        for (const g of groupList) {
+          const file = (g === 'Stray Kids') ? 'members_skz.json' : (g === 'ATEEZ' ? 'members_atz.json' : '');
+          if (file) {
+            const mRes = await fetch(`../json/${file}`);
+            memberMap[g] = await mRes.json();
+          }
+        }
+      } catch(e) {}
+
+      renderGroupCapsules();
+
+      onSnapshot(collection(db, "orders"), snap => {
+        ordersCache = {};
+        snap.forEach(d => { ordersCache[d.id] = { id: d.id, ...d.data(), group: d.data().group || 'Stray Kids' }; });
+        updateUserCapsules();
+        renderView();
+      });
+
+      onSnapshot(collection(db, "photo_progress"), snap => {
+        rawProgress = [];
+        snap.forEach(d => {
+          const data = d.data();
+          if (data.status !== '已結束' && data.status !== '到期/已刪除') {
+            rawProgress.push({ id: d.id, group: 'Stray Kids', ...data });
+          }
+        });
+        updateDetailCapsules();
+        renderView();
+      });
+    });
+
+    function renderGroupCapsules() {
+      const container = document.getElementById('groupCapsules');
+      container.innerHTML = '';
+      groupList.forEach(g => {
+        const btn = document.createElement('button');
+        btn.className = `capsule-filter-btn ${activeGroup === g ? 'active' : ''}`;
+        btn.textContent = GROUP_EMOJI_MAP[g] || g;
+        btn.onclick = () => {
+          activeGroup = g;
+          document.querySelectorAll('#groupCapsules .capsule-filter-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          activeDetail = 'ALL';
+          updateDetailCapsules();
+          updateUserCapsules();
+          renderView();
+        };
+        container.appendChild(btn);
+      });
+    }
+
+    window.setModeFilter = (mode, btn) => {
+      activeMode = mode;
+      document.querySelectorAll('#modeCapsules .capsule-filter-btn').forEach(b => b.classList.remove('active'));
+      if(btn) btn.classList.add('active');
+      activeDetail = 'ALL';
+      updateDetailCapsules();
+      renderView();
+    };
+
+    function updateDetailCapsules() {
+      const container = document.getElementById('detailCapsules');
+      container.innerHTML = '';
+
+      const allBtn = document.createElement('button');
+      allBtn.className = `capsule-filter-btn ${activeDetail === 'ALL' ? 'sub-active' : ''}`;
+      allBtn.textContent = '全部顯示';
+      allBtn.onclick = () => {
+        activeDetail = 'ALL';
+        document.querySelectorAll('#detailCapsules .capsule-filter-btn').forEach(b => b.classList.remove('sub-active'));
+        allBtn.classList.add('sub-active');
+        renderView();
+      };
+      container.appendChild(allBtn);
+
+      const filtered = rawProgress.filter(i => i.group === activeGroup);
+
+      if (activeMode === 'member') {
+        const membersInJson = memberMap[activeGroup] || [];
+        const activeMembersWithData = new Set(filtered.map(i => i.member).filter(Boolean));
+
+        membersInJson.forEach(m => {
+          if (activeMembersWithData.has(m)) {
+            const btn = document.createElement('button');
+            btn.className = `capsule-filter-btn ${activeDetail === m ? 'sub-active' : ''}`;
+            btn.textContent = (MEMBER_EMOJI_MAP[m] ? `${MEMBER_EMOJI_MAP[m]} ` : '') + m;
+            btn.onclick = () => {
+              activeDetail = m;
+              document.querySelectorAll('#detailCapsules .capsule-filter-btn').forEach(b => b.classList.remove('sub-active'));
+              btn.classList.add('sub-active');
+              renderView();
+            };
+            container.appendChild(btn);
+          }
+        });
+      } else if (activeMode === 'event') {
+        const eventsSet = new Set();
+        filtered.forEach(i => {
+          if (i.eventName || i.event) eventsSet.add(i.eventName || i.event);
+        });
+        Array.from(eventsSet).sort().forEach(ev => {
+          const btn = document.createElement('button');
+          btn.className = `capsule-filter-btn ${activeDetail === ev ? 'sub-active' : ''}`;
+          btn.textContent = ev;
+          btn.onclick = () => {
+            activeDetail = ev;
+            document.querySelectorAll('#detailCapsules .capsule-filter-btn').forEach(b => b.classList.remove('sub-active'));
+            btn.classList.add('sub-active');
+            renderView();
+          };
+          container.appendChild(btn);
+        });
+      }
+    }
+
+    function updateUserCapsules() {
+      const container = document.getElementById('userCapsules');
+      container.innerHTML = '';
+
+      const allBtn = document.createElement('button');
+      allBtn.className = `capsule-filter-btn ${activeUser === 'ALL' ? 'user-active' : ''}`;
+      allBtn.textContent = '全部買家';
+      allBtn.onclick = () => {
+        activeUser = 'ALL';
+        document.querySelectorAll('#userCapsules .capsule-filter-btn').forEach(b => b.classList.remove('user-active'));
+        allBtn.classList.add('user-active');
+        renderView();
+      };
+      container.appendChild(allBtn);
+
+      const activeEventKeys = new Set(rawProgress.map(p => (p.eventName || p.event) + '_' + (p.member || '')));
+
+      const usersSet = new Set();
+      Object.values(ordersCache).forEach(ord => {
+        if (ord.group === activeGroup) {
+          const key = (ord.event || ord.eventName || '') + '_' + (ord.member || '');
+          if (activeEventKeys.has(key)) {
+            const name = ord.buyerName || ord.user || ord.nickname;
+            if (name) usersSet.add(name);
+          }
+        }
+      });
+
+      Array.from(usersSet).sort((a,b)=>a.localeCompare(b,'zh-TW')).forEach(uName => {
+        const btn = document.createElement('button');
+        btn.className = `capsule-filter-btn ${activeUser === uName ? 'user-active' : ''}`;
+        btn.textContent = uName;
+        btn.onclick = () => {
+          activeUser = uName;
+          document.querySelectorAll('#userCapsules .capsule-filter-btn').forEach(b => b.classList.remove('user-active'));
+          btn.classList.add('user-active');
+          renderView();
+        };
+        container.appendChild(btn);
+      });
+    }
+
+    function renderView() {
+      const container = document.getElementById('progressList');
+      container.innerHTML = '';
+
+      let list = rawProgress.filter(i => i.group === activeGroup);
+
+      if (activeDetail !== 'ALL') {
+        if (activeMode === 'member') list = list.filter(i => i.member === activeDetail);
+        else if (activeMode === 'event') list = list.filter(i => (i.eventName || i.event) === activeDetail);
+      }
+
+      if (list.length === 0) {
+        container.innerHTML = '<p style="color:#909399; font-size:14px; grid-column: 1 / -1;">目前尚無進行中的開團進度。</p>';
+        notifyHeight();
+        return;
+      }
+
+      const eventGroups = {};
+      list.forEach(item => {
+        const eTitle = item.eventName || item.event || '未命名活動';
+        if (!eventGroups[eTitle]) eventGroups[eTitle] = [];
+        eventGroups[eTitle].push(item);
+      });
+
+      let htmlContent = '';
+      const currentMemberList = memberMap[activeGroup] || [];
+
+      Object.keys(eventGroups).sort().forEach(eventName => {
+        const items = eventGroups[eventName];
+
+        items.sort((a, b) => {
+          let idxA = currentMemberList.indexOf(a.member || '');
+          let idxB = currentMemberList.indexOf(b.member || '');
+          return (idxA === -1 ? 99 : idxA) - (idxB === -1 ? 99 : idxB);
+        });
+
+        const memberMapObj = {};
+        items.forEach(item => {
+          const m = item.member || '全體';
+          if (!memberMapObj[m]) memberMapObj[m] = [];
+          memberMapObj[m].push(item);
+        });
+
+        let membersHtml = '';
+
+        Object.keys(memberMapObj).forEach(mName => {
+          const mItems = memberMapObj[mName];
+          
+          const matchedBuyers = new Set();
+          Object.values(ordersCache).forEach(ord => {
+            if (ord.group === activeGroup && (ord.event || ord.eventName) === eventName && ord.member === mName) {
+              const bName = ord.buyerName || ord.user || ord.nickname;
+              if (bName) {
+                if (activeUser === 'ALL' || bName === activeUser) matchedBuyers.add(bName);
+              }
+            }
+          });
+
+          if (activeUser !== 'ALL' && matchedBuyers.size === 0) return;
+
+          let buyersHtml = '';
+          Array.from(matchedBuyers).sort().forEach(bName => {
+            let payStatusText = '🚨 待匯款', payBadgeClass = 'status-waiting';
+            let photoStatusText = '📷 待發圖', photoBadgeClass = 'status-waiting';
+
+            Object.values(ordersCache).forEach(ord => {
+              const b = ord.buyerName || ord.user || ord.nickname;
+              if (b === bName && (ord.event || ord.eventName) === eventName && ord.member === mName) {
+                const st = ord.paymentStatus || ord.status || (ord.hasPaid ? '已對帳' : '待匯款');
+                if (st === '已對帳' || ord.hasPaid) { payStatusText = '⚫ 已對帳'; payBadgeClass = 'status-done'; }
+                else if (st === '待對帳' || st === '對帳中') { payStatusText = '⏳ 待對帳'; payBadgeClass = 'status-checking'; }
+                else if (st === '對帳有問題' || st === '有問題') { payStatusText = '⚠️ 帳有問題'; payBadgeClass = 'status-issue'; }
+
+                if (ord.isPhotoSent === true || ord.status === '已發圖') { photoStatusText = '⚪ 已發圖'; photoBadgeClass = 'status-done'; }
+              }
+            });
+
+            buyersHtml += `
+              <div class="buyer-row">
+                <span>- ${bName}</span>
+                <div class="buyer-status-group">
+                  <span class="status-badge ${payBadgeClass}">${payStatusText}</span>
+                  <span class="status-badge ${photoBadgeClass}">${photoStatusText}</span>
+                </div>
+              </div>
+            `;
+          });
+
+          let badgeClass = 'status-sorting';
+          const st = mItems[0].status || '等圖中';
+          if (['已完工', '已發圖', '已結束', '已預約'].includes(st)) badgeClass = 'status-done';
+
+          const memEmoji = MEMBER_EMOJI_MAP[mName] || '👤';
+
+          membersHtml += `
+            <div class="member-block">
+              <div class="member-box-card">
+                <div class="member-header-row">
+                  <span>${memEmoji} ${mName}</span>
+                  <span class="status-badge ${badgeClass}">${st}</span>
+                </div>
+              </div>
+              ${buyersHtml}
+            </div>
+          `;
+        });
+
+        if (membersHtml) {
+          htmlContent += `
+            <div class="event-group-card">
+              <div class="event-group-header">📅 [${activeGroup}] ${eventName}</div>
+              <div class="progress-list-box">${membersHtml}</div>
+            </div>
+          `;
+        }
+      });
+
+      container.innerHTML = htmlContent || '<p style="color:#909399; font-size:14px; grid-column: 1 / -1;">目前尚無進行中的開團進度。</p>';
+      notifyHeight();
+    }
+
+    function notifyHeight() {
+      setTimeout(() => {
+        window.parent.postMessage({ frameHeight: document.body.scrollHeight }, '*');
+      }, 100);
+    }
+  </script>
+</body>
+</html>

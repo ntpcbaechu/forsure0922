@@ -83,7 +83,7 @@
     const db = getFirestore(app);
 
     let currentTab = 'pending';
-    let activeGroup = 'Stray Kids';
+    let activeGroup = '🧭 Stray Kids';
     let activeMode = 'member';
     let activeDetail = 'ALL';
     let activeUser = 'ALL';
@@ -99,7 +99,7 @@
         groupList = await gRes.json();
 
         for (const g of groupList) {
-          const file = (g === 'Stray Kids') ? 'members_skz.json' : (g === 'ATEEZ' ? 'members_atz.json' : '');
+          const file = (g === '🧭 Stray Kids') ? 'members_skz.json' : (g === '🏴‍☠️ ATEEZ' ? 'members_atz.json' : '');
           if (file) {
             const mRes = await fetch(`json/${file}`);
             memberMap[g] = await mRes.json();
@@ -198,7 +198,7 @@
       } else if (activeMode === 'event') {
         const eventsSet = new Set();
         Object.values(ordersCache).forEach(o => {
-          if ((o.group || 'Stray Kids') === activeGroup && (o.event || o.eventName)) {
+          if ((o.group || '🧭 Stray Kids') === activeGroup && (o.event || o.eventName)) {
             eventsSet.add(o.event || o.eventName);
           }
         });
