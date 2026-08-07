@@ -17,7 +17,7 @@
     .capsule-filter-btn.active { background: #409eff; color: #fff; border-color: #409eff; box-shadow: 0 2px 6px rgba(64,158,255,0.25); }
     .capsule-filter-btn.sub-active { background: #67c23a; color: #fff; border-color: #67c23a; box-shadow: 0 2px 6px rgba(103,194,58,0.25); }
 
-    .progress-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 10px; }
+    .progress-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 10px; align-items: start; }
     @media (max-width: 768px) {
       .progress-grid { grid-template-columns: 1fr; }
     }
@@ -30,7 +30,7 @@
       box-shadow: 0 2px 6px rgba(0,0,0,0.02);
       display: flex;
       flex-direction: column;
-      justify-content: space-between;
+      justify-content: flex-start;
     }
     .progress-card-title {
       font-size: 15px;
@@ -45,17 +45,20 @@
     }
 
     table.card-table { width: 100%; border-collapse: collapse; background: transparent; }
-    table.card-table th, table.card-table td { padding: 6px 4px; border-bottom: 1px solid #ebeef5; text-align: left; font-size: 12px; vertical-align: middle; }
+    table.card-table th, table.card-table td { padding: 6px 4px; border-bottom: 1px solid #ebeef5; text-align: left; font-size: 12px; vertical-align: top; }
     table.card-table tr:last-child td { border-bottom: none; }
     table.card-table th { background: #edf2fc; color: #606266; font-weight: bold; }
+
+    .action-cell { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
+    .action-sub-row { display: flex; gap: 4px; }
 
     select, button, input { padding: 8px 10px; border: 1px solid #dcdfe6; border-radius: 6px; font-size: 13px; box-sizing: border-box; outline: none; }
     select:focus, input:focus { border-color: #409eff; }
     
     button { background-color: #409eff; color: white; border: none; font-weight: bold; cursor: pointer; }
     .btn-danger { background-color: #f56c6c; color: white; padding: 3px 6px; font-size: 11px; border-radius: 4px; border: none; cursor: pointer; }
-    .btn-edit { background-color: #e6a23c; color: white; padding: 3px 6px; font-size: 11px; border-radius: 4px; border: none; cursor: pointer; margin-right: 4px; }
-    .btn-notify { background-color: #409eff; color: white; padding: 3px 6px; font-size: 11px; border-radius: 4px; border: none; cursor: pointer; margin-right: 4px; font-weight: bold; }
+    .btn-edit { background-color: #e6a23c; color: white; padding: 3px 6px; font-size: 11px; border-radius: 4px; border: none; cursor: pointer; }
+    .btn-notify { background-color: #409eff; color: white; padding: 3px 6px; font-size: 11px; border-radius: 4px; border: none; cursor: pointer; font-weight: bold; }
     
     .form-row { display: flex; flex-direction: column; gap: 12px; margin-bottom: 15px; background: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px solid #ebeef5; }
     .form-selects { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
@@ -151,8 +154,8 @@
     </div>
 
     <div class="filter-row">
-      <span class="filter-label">3. 細項篩選：</span>
-      <div id="detailCapsules" class="capsule-group"></div>
+      <span class="filter-label">3. 狀態篩選：</span>
+      <div id="statusCapsules" class="capsule-group"></div>
     </div>
   </div>
 
@@ -183,10 +186,12 @@
 
     let activeGroup = 'Stray Kids';
     let activeMode = 'member';
-    let activeDetail = 'ALL';
+    let activeStatus = 'ALL';
 
     let groupList = [];
     let memberMap = {};
+
+    const allStatuses = ['未開放', '已預約', '等圖中', '分圖中', '上傳中', '已通知匯款', '已發圖', '已結束', '到期/已刪除'];
 
     const evSel = document.getElementById('eventSelect');
     const groupSel = document.getElementById('groupSelect');
@@ -209,6 +214,7 @@
       } catch(e) {}
 
       renderGroupCapsules();
+      updateStatusCapsules();
 
       groupSel.innerHTML = '<option value="">請選擇團體</option>';
       groupList.forEach(g => groupSel.innerHTML += `<option value="${g}">${g}</option>`);
@@ -239,8 +245,8 @@
           activeGroup = g;
           document.querySelectorAll('#groupCapsules .capsule-filter-btn').forEach(b => b.classList.remove('active'));
           btn.classList.add('active');
-          activeDetail = 'ALL';
-          updateDetailCapsules();
+          activeStatus = 'ALL';
+          updateStatusCapsules();
           renderProgressCards();
         };
         container.appendChild(btn);
@@ -251,64 +257,36 @@
       activeMode = mode;
       document.querySelectorAll('#modeCapsules .capsule-filter-btn').forEach(b => b.classList.remove('active'));
       if(btn) btn.classList.add('active');
-      activeDetail = 'ALL';
-      updateDetailCapsules();
       renderProgressCards();
     };
 
-    function updateDetailCapsules() {
-      const container = document.getElementById('detailCapsules');
+    function updateStatusCapsules() {
+      const container = document.getElementById('statusCapsules');
       container.innerHTML = '';
 
       const allBtn = document.createElement('button');
-      allBtn.className = `capsule-filter-btn ${activeDetail === 'ALL' ? 'sub-active' : ''}`;
+      allBtn.className = `capsule-filter-btn ${activeStatus === 'ALL' ? 'sub-active' : ''}`;
       allBtn.textContent = '全部顯示';
       allBtn.onclick = () => {
-        activeDetail = 'ALL';
-        document.querySelectorAll('#detailCapsules .capsule-filter-btn').forEach(b => b.classList.remove('sub-active'));
+        activeStatus = 'ALL';
+        document.querySelectorAll('#statusCapsules .capsule-filter-btn').forEach(b => b.classList.remove('sub-active'));
         allBtn.classList.add('sub-active');
         renderProgressCards();
       };
       container.appendChild(allBtn);
 
-      const filteredList = lastProgressList.filter(i => (i.group || 'Stray Kids') === activeGroup);
-
-      if (activeMode === 'member') {
-        const membersInJson = memberMap[activeGroup] || [];
-        const activeMembersWithData = new Set(filteredList.map(i => i.member).filter(Boolean));
-
-        membersInJson.forEach(m => {
-          if (activeMembersWithData.has(m)) {
-            const btn = document.createElement('button');
-            btn.className = `capsule-filter-btn ${activeDetail === m ? 'sub-active' : ''}`;
-            btn.textContent = m;
-            btn.onclick = () => {
-              activeDetail = m;
-              document.querySelectorAll('#detailCapsules .capsule-filter-btn').forEach(b => b.classList.remove('sub-active'));
-              btn.classList.add('sub-active');
-              renderProgressCards();
-            };
-            container.appendChild(btn);
-          }
-        });
-      } else if (activeMode === 'event') {
-        const eventsSet = new Set();
-        filteredList.forEach(i => {
-          if (i.eventName || i.event) eventsSet.add(i.eventName || i.event);
-        });
-        Array.from(eventsSet).sort().forEach(ev => {
-          const btn = document.createElement('button');
-          btn.className = `capsule-filter-btn ${activeDetail === ev ? 'sub-active' : ''}`;
-          btn.textContent = ev;
-          btn.onclick = () => {
-            activeDetail = ev;
-            document.querySelectorAll('#detailCapsules .capsule-filter-btn').forEach(b => b.classList.remove('sub-active'));
-            btn.classList.add('sub-active');
-            renderProgressCards();
-          };
-          container.appendChild(btn);
-        });
-      }
+      allStatuses.forEach(st => {
+        const btn = document.createElement('button');
+        btn.className = `capsule-filter-btn ${activeStatus === st ? 'sub-active' : ''}`;
+        btn.textContent = st;
+        btn.onclick = () => {
+          activeStatus = st;
+          document.querySelectorAll('#statusCapsules .capsule-filter-btn').forEach(b => b.classList.remove('sub-active'));
+          btn.classList.add('sub-active');
+          renderProgressCards();
+        };
+        container.appendChild(btn);
+      });
     }
 
     document.querySelectorAll('.status-options .status-chip').forEach(chip => {
@@ -372,7 +350,6 @@
         progressMap[d.id] = item;
         lastProgressList.push(item);
       });
-      updateDetailCapsules();
       renderProgressCards();
     });
 
@@ -382,9 +359,8 @@
 
       let list = lastProgressList.filter(i => (i.group || 'Stray Kids') === activeGroup);
 
-      if (activeDetail !== 'ALL') {
-        if (activeMode === 'member') list = list.filter(i => i.member === activeDetail);
-        else if (activeMode === 'event') list = list.filter(i => (i.eventName || i.event) === activeDetail);
+      if (activeStatus !== 'ALL') {
+        list = list.filter(i => i.status === activeStatus);
       }
 
       if (list.length === 0) {
@@ -406,10 +382,10 @@
 
         let tableHtml = '<div class="progress-card-title">🗓️ ' + eventName + '</div>' +
           '<table class="card-table"><thead><tr>' +
-            '<th style="width: 20%;">成員</th>' +
+            '<th style="width: 18%;">成員</th>' +
             '<th style="width: 25%;">代拍名稱</th>' +
-            '<th style="width: 25%;">目前狀態</th>' +
-            '<th style="width: 30%;">操作</th>' +
+            '<th style="width: 22%;">目前狀態</th>' +
+            '<th style="width: 35%;">操作</th>' +
           '</tr></thead><tbody>';
 
         items.forEach((item) => {
@@ -422,9 +398,13 @@
             '<td>' + sellerName + '</td>' +
             '<td><span class="badge-status" data-val="' + statusText + '">' + statusText + '</span></td>' +
             '<td>' +
-              '<button class="btn-notify" onclick="triggerManualPayment(\'' + (item.eventName || item.event) + '\', \'' + mName + '\', \'' + item.id + '\')">📢 發起匯款</button>' +
-              '<button class="btn-edit" onclick="editProgress(\'' + item.id + '\')">編輯</button>' +
-              '<button class="btn-danger" onclick="deleteProgress(\'' + item.id + '\')">刪除</button>' +
+              '<div class="action-cell">' +
+                '<button class="btn-notify" onclick="triggerManualPayment(\'' + (item.eventName || item.event) + '\', \'' + mName + '\', \'' + item.id + '\')">📢 發起匯款</button>' +
+                '<div class="action-sub-row">' +
+                  '<button class="btn-edit" onclick="editProgress(\'' + item.id + '\')">編輯</button>' +
+                  '<button class="btn-danger" onclick="deleteProgress(\'' + item.id + '\')">刪除</button>' +
+                '</div>' +
+              '</div>' +
             '</td>' +
           '</tr>';
         });
