@@ -66,6 +66,22 @@
 
     const BANK_OPTIONS = ['台銀', '樂天', '中信', '台新', '其他'];
 
+    let currentCapsuleFilter = { group: 'Stray Kids', mode: 'member', detail: 'ALL', user: 'ALL' };
+
+    window.addEventListener('message', (e) => {
+      if (e.data && e.data.type === 'PAYMENT_CAPSULE_FILTER') {
+        currentCapsuleFilter = {
+          group: e.data.group || 'Stray Kids',
+          mode: e.data.mode || 'member',
+          detail: e.data.detail || 'ALL',
+          user: e.data.user || 'ALL'
+        };
+        renderTable();
+      }
+    });
+
+    window.parent.postMessage({ type: 'IFRAME_READY' }, '*');
+
     let paymentDataMap = {};
     let editingRows = new Set();
     let ordersCache = {};
@@ -97,6 +113,30 @@
       const kw = kwElem ? kwElem.value.toLowerCase().trim() : '';
 
       let list = Object.values(paymentDataMap).filter(p => getNormalizedPayStatus(p) === 'pending');
+
+      if (currentCapsuleFilter.user !== 'ALL') {
+        list = list.filter(p => (p.user || p.buyerName) === currentCapsuleFilter.user);
+      }
+
+      if (currentCapsuleFilter.detail !== 'ALL') {
+        if (currentCapsuleFilter.mode === 'member') {
+          list = list.filter(p => {
+            const relatedIds = p.relatedOrderIds || [];
+            if (relatedIds.length > 0) {
+              return relatedIds.some(id => ordersCache[id] && ordersCache[id].member === currentCapsuleFilter.detail);
+            }
+            return p.member === currentCapsuleFilter.detail;
+          });
+        } else if (currentCapsuleFilter.mode === 'event') {
+          list = list.filter(p => {
+            const relatedIds = p.relatedOrderIds || [];
+            if (relatedIds.length > 0) {
+              return relatedIds.some(id => ordersCache[id] && (ordersCache[id].event || ordersCache[id].eventName) === currentCapsuleFilter.detail);
+            }
+            return (p.event || p.eventName) === currentCapsuleFilter.detail;
+          });
+        }
+      }
 
       if (kw) {
         list = list.filter(p => `${p.user || ''} ${p.buyerName || ''} ${p.bankLast5 || ''} ${p.last5 || ''}`.toLowerCase().includes(kw));
