@@ -30,8 +30,7 @@
 
     .member-box-card { background: #f8f9fa; border: 1px solid #e4e7ed; border-radius: 8px; padding: 8px 12px; display: flex; flex-direction: column; gap: 4px; }
     .member-header-row { display: flex; justify-content: space-between; align-items: center; font-size: 14px; font-weight: bold; color: #303133; }
-    .seller-row { display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: #606266; padding-left: 12px; }
-    .buyer-row { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: #606266; padding-left: 24px; margin-top: 2px; }
+    .buyer-row { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: #606266; padding-left: 12px; margin-top: 2px; }
     .buyer-status-group { display: flex; align-items: center; gap: 6px; }
 
     .status-badge { padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: bold; white-space: nowrap; }
@@ -179,18 +178,22 @@
       const filtered = rawProgress.filter(i => i.group === activeGroup);
 
       if (activeMode === 'member') {
-        const members = memberMap[activeGroup] || [];
-        members.forEach(m => {
-          const btn = document.createElement('button');
-          btn.className = `capsule-filter-btn ${activeDetail === m ? 'sub-active' : ''}`;
-          btn.textContent = m;
-          btn.onclick = () => {
-            activeDetail = m;
-            document.querySelectorAll('#detailCapsules .capsule-filter-btn').forEach(b => b.classList.remove('sub-active'));
-            btn.classList.add('sub-active');
-            renderView();
-          };
-          container.appendChild(btn);
+        const membersInJson = memberMap[activeGroup] || [];
+        const activeMembersWithData = new Set(filtered.map(i => i.member).filter(Boolean));
+
+        membersInJson.forEach(m => {
+          if (activeMembersWithData.has(m)) {
+            const btn = document.createElement('button');
+            btn.className = `capsule-filter-btn ${activeDetail === m ? 'sub-active' : ''}`;
+            btn.textContent = m;
+            btn.onclick = () => {
+              activeDetail = m;
+              document.querySelectorAll('#detailCapsules .capsule-filter-btn').forEach(b => b.classList.remove('sub-active'));
+              btn.classList.add('sub-active');
+              renderView();
+            };
+            container.appendChild(btn);
+          }
         });
       } else if (activeMode === 'event') {
         const eventsSet = new Set();
@@ -311,7 +314,7 @@
 
           let buyersHtml = '';
           Array.from(matchedBuyers).sort().forEach(bName => {
-            let payStatusText = '⏳ 待匯款', payBadgeClass = 'status-waiting';
+            let payStatusText = '🚨 待匯款', payBadgeClass = 'status-waiting';
             let photoStatusText = '📷 待發圖', photoBadgeClass = 'status-waiting';
 
             Object.values(ordersCache).forEach(ord => {
@@ -321,7 +324,6 @@
                 if (st === '已對帳' || ord.hasPaid) { payStatusText = '⚫ 已對帳'; payBadgeClass = 'status-done'; }
                 else if (st === '待對帳' || st === '對帳中') { payStatusText = '⏳ 待對帳'; payBadgeClass = 'status-checking'; }
                 else if (st === '對帳有問題' || st === '有問題') { payStatusText = '⚠️ 帳有問題'; payBadgeClass = 'status-issue'; }
-                else if (st === '已通知匯款') { payStatusText = '📢 已通知匯款'; payBadgeClass = 'status-checking'; }
 
                 if (ord.isPhotoSent === true || ord.status === '已發圖') { photoStatusText = '⚪ 已發圖'; photoBadgeClass = 'status-done'; }
               }
