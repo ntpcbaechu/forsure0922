@@ -14,28 +14,43 @@
     .btn-danger { background-color: #f56c6c; color: white; padding: 4px 8px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; }
     .btn-save { background-color: #67c23a; color: white; padding: 4px 8px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; }
     .btn-photo { background-color: #409eff; color: white; padding: 4px 8px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; font-weight: bold; }
-    .filter-bar { display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; background: #f8f9fa; padding: 12px; border-radius: 8px; border: 1px solid #ebeef5; align-items: center; }
+    
+    .filter-card { background: #f8f9fa; border: 1px solid #ebeef5; border-radius: 10px; padding: 12px 15px; margin-bottom: 15px; display: flex; flex-direction: column; gap: 8px; }
+    .filter-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .filter-label { font-size: 12px; font-weight: bold; color: #606266; min-width: 80px; }
 
     .capsule-group { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
-    .capsule-filter-btn { background: #f4f4f5; color: #606266; border: 1px solid #dcdfe6; padding: 5px 12px; border-radius: 16px; font-size: 12px; font-weight: bold; cursor: pointer; transition: all 0.2s; outline: none; }
+    .capsule-filter-btn { background: #fff; color: #606266; border: 1px solid #dcdfe6; padding: 4px 12px; border-radius: 16px; font-size: 12px; font-weight: bold; cursor: pointer; transition: all 0.2s; outline: none; }
     .capsule-filter-btn:hover { background: #ecf5ff; color: #409eff; border-color: #c6e2ff; }
     .capsule-filter-btn.active { background: #409eff; color: #fff; border-color: #409eff; box-shadow: 0 2px 6px rgba(64,158,255,0.25); }
+    .capsule-filter-btn.sub-active { background: #67c23a; color: #fff; border-color: #67c23a; box-shadow: 0 2px 6px rgba(103,194,58,0.25); }
+    .capsule-filter-btn.user-active { background: #e6a23c; color: #fff; border-color: #e6a23c; box-shadow: 0 2px 6px rgba(230,162,60,0.25); }
   </style>
 </head>
 <body>
 
-  <div class="filter-bar">
-    <input type="text" id="orderSearchInput" placeholder="🔍 搜尋買家暱稱、活動、成員..." onkeyup="renderOrdersTable()" style="width:230px;">
-    
-    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-left:auto;">
-      <span style="font-size:12px; font-weight:bold; color:#606266;">活動篩選：</span>
-      <div id="eventCapsules" class="capsule-group">
-        <button class="capsule-filter-btn active" onclick="setEventFilter('ALL', this)">全部活動</button>
+  <div class="filter-card">
+    <div class="filter-row">
+      <span class="filter-label">1. 團體：</span>
+      <div id="groupCapsules" class="capsule-group"></div>
+    </div>
+
+    <div class="filter-row">
+      <span class="filter-label">2. 檢視模式：</span>
+      <div id="modeCapsules" class="capsule-group">
+        <button class="capsule-filter-btn active" onclick="setModeFilter('member', this)">👥 依成員</button>
+        <button class="capsule-filter-btn" onclick="setModeFilter('event', this)">🗓️ 依活動</button>
       </div>
-      <span style="font-size:12px; font-weight:bold; color:#606266; margin-left:10px;">暱稱篩選：</span>
-      <div id="userCapsules" class="capsule-group">
-        <button class="capsule-filter-btn active" onclick="setUserFilter('ALL', this)">全部暱稱</button>
-      </div>
+    </div>
+
+    <div class="filter-row">
+      <span class="filter-label">3. 細項篩選：</span>
+      <div id="detailCapsules" class="capsule-group"></div>
+    </div>
+
+    <div class="filter-row" style="border-top:1px dashed #dcdfe6; padding-top:8px; margin-top:2px;">
+      <span class="filter-label">👤 買家暱稱：</span>
+      <div id="userCapsules" class="capsule-group"></div>
     </div>
   </div>
 
@@ -72,69 +87,217 @@
     const db = getFirestore(app);
 
     let ordersMap = {};
+    let eventPricesMap = {};
     let editingRows = new Set();
-    let currentEventFilter = 'ALL';
-    let currentUserFilter = 'ALL';
+    
+    let activeGroup = 'Stray Kids';
+    let activeMode = 'member';
+    let activeDetail = 'ALL';
+    let activeUser = 'ALL';
 
-    onSnapshot(collection(db, "orders"), snap => {
-      ordersMap = {};
-      snap.forEach(d => { ordersMap[d.id] = { id: d.id, ...d.data() }; });
-      updateCapsuleFilters();
-      renderOrdersTable();
+    let groupList = [];
+    let memberMap = {};
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      try {
+        const gRes = await fetch('json/group.json');
+        groupList = await gRes.json();
+
+        for (const g of groupList) {
+          const file = (g === 'Stray Kids') ? 'members_skz.json' : (g === 'ATEEZ' ? 'members_atz.json' : '');
+          if (file) {
+            const mRes = await fetch(`json/${file}`);
+            memberMap[g] = await mRes.json();
+          }
+        }
+      } catch(e) {}
+
+      renderGroupCapsules();
+
+      onSnapshot(collection(db, "event_settings"), snap => {
+        eventPricesMap = {};
+        snap.forEach(d => {
+          const data = d.data();
+          const key = (data.name || data.rawName) + '_' + (data.member || '');
+          eventPricesMap[key] = {
+            price: Number(data.actualPrice || data.price || data.estimatedPrice || data.unitPrice) || 0,
+            packQty: Number(data.packQty) || 1,
+            discounts: data.discounts || []
+          };
+        });
+        renderOrdersTable();
+      });
+
+      onSnapshot(collection(db, "orders"), snap => {
+        ordersMap = {};
+        snap.forEach(d => {
+          const data = d.data();
+          ordersMap[d.id] = { id: d.id, ...data, group: data.group || "Stray Kids" };
+        });
+        updateDetailCapsules();
+        updateUserCapsules();
+        renderOrdersTable();
+      });
     });
 
-    function updateCapsuleFilters() {
-      const eventsSet = new Set();
+    function getItemPriceInfo(item) {
+      const eventName = item.event || item.eventName || '';
+      const member = item.member || '';
+      const userName = item.user || item.buyerName || item.nickname || '';
+      const key = eventName + '_' + member;
+      const setting = eventPricesMap[key] || {};
+      
+      const pricePerPack = setting.price || Number(item.price) || 0;
+      const packQty = setting.packQty || 1;
+      const qty = Number(item.quantity) || Number(item.qty) || 0;
+      const packs = (packQty > 0) ? Math.round(qty / packQty) : 1;
+
+      let totalPrice = packs * pricePerPack;
+
+      if (setting.discounts && Array.isArray(setting.discounts)) {
+        const userDisc = setting.discounts.find(d => d.targetUser === userName);
+        if (userDisc) {
+          const discCount = Math.min(packs, Number(userDisc.count) || 0);
+          const discPrice = Number(userDisc.price) || 0;
+          totalPrice = (discCount * discPrice) + ((packs - discCount) * pricePerPack);
+        }
+      }
+
+      return { pricePerPack, totalPrice, qty, packs };
+    }
+
+    function renderGroupCapsules() {
+      const container = document.getElementById('groupCapsules');
+      container.innerHTML = '';
+      groupList.forEach(g => {
+        const btn = document.createElement('button');
+        btn.className = `capsule-filter-btn ${activeGroup === g ? 'active' : ''}`;
+        btn.textContent = g;
+        btn.onclick = () => {
+          activeGroup = g;
+          document.querySelectorAll('#groupCapsules .capsule-filter-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          activeDetail = 'ALL';
+          updateDetailCapsules();
+          updateUserCapsules();
+          renderOrdersTable();
+        };
+        container.appendChild(btn);
+      });
+    }
+
+    window.setModeFilter = (mode, btn) => {
+      activeMode = mode;
+      document.querySelectorAll('#modeCapsules .capsule-filter-btn').forEach(b => b.classList.remove('active'));
+      if(btn) btn.classList.add('active');
+      activeDetail = 'ALL';
+      updateDetailCapsules();
+      renderOrdersTable();
+    };
+
+    function updateDetailCapsules() {
+      const container = document.getElementById('detailCapsules');
+      container.innerHTML = '';
+
+      const allBtn = document.createElement('button');
+      allBtn.className = `capsule-filter-btn ${activeDetail === 'ALL' ? 'sub-active' : ''}`;
+      allBtn.textContent = '全部顯示';
+      allBtn.onclick = () => {
+        activeDetail = 'ALL';
+        document.querySelectorAll('#detailCapsules .capsule-filter-btn').forEach(b => b.classList.remove('sub-active'));
+        allBtn.classList.add('sub-active');
+        renderOrdersTable();
+      };
+      container.appendChild(allBtn);
+
+      const filteredOrders = Object.values(ordersMap).filter(o => o.group === activeGroup);
+
+      if (activeMode === 'member') {
+        const membersInJson = memberMap[activeGroup] || [];
+        const activeMembersWithData = new Set(filteredOrders.map(o => o.member).filter(Boolean));
+
+        membersInJson.forEach(m => {
+          if (activeMembersWithData.has(m)) {
+            const btn = document.createElement('button');
+            btn.className = `capsule-filter-btn ${activeDetail === m ? 'sub-active' : ''}`;
+            btn.textContent = m;
+            btn.onclick = () => {
+              activeDetail = m;
+              document.querySelectorAll('#detailCapsules .capsule-filter-btn').forEach(b => b.classList.remove('sub-active'));
+              btn.classList.add('sub-active');
+              renderOrdersTable();
+            };
+            container.appendChild(btn);
+          }
+        });
+      } else if (activeMode === 'event') {
+        const eventsSet = new Set();
+        filteredOrders.forEach(o => {
+          if (o.event || o.eventName) eventsSet.add(o.event || o.eventName);
+        });
+        Array.from(eventsSet).sort().forEach(ev => {
+          const btn = document.createElement('button');
+          btn.className = `capsule-filter-btn ${activeDetail === ev ? 'sub-active' : ''}`;
+          btn.textContent = ev;
+          btn.onclick = () => {
+            activeDetail = ev;
+            document.querySelectorAll('#detailCapsules .capsule-filter-btn').forEach(b => b.classList.remove('sub-active'));
+            btn.classList.add('sub-active');
+            renderOrdersTable();
+          };
+          container.appendChild(btn);
+        });
+      }
+    }
+
+    function updateUserCapsules() {
+      const container = document.getElementById('userCapsules');
+      container.innerHTML = '';
+
+      const allBtn = document.createElement('button');
+      allBtn.className = `capsule-filter-btn ${activeUser === 'ALL' ? 'user-active' : ''}`;
+      allBtn.textContent = '全部買家';
+      allBtn.onclick = () => {
+        activeUser = 'ALL';
+        document.querySelectorAll('#userCapsules .capsule-filter-btn').forEach(b => b.classList.remove('user-active'));
+        allBtn.classList.add('user-active');
+        renderOrdersTable();
+      };
+      container.appendChild(allBtn);
+
+      const filteredOrders = Object.values(ordersMap).filter(o => o.group === activeGroup);
       const usersSet = new Set();
-      Object.values(ordersMap).forEach(o => {
-        if (o.event || o.eventName) eventsSet.add(o.event || o.eventName);
+      filteredOrders.forEach(o => {
         if (o.user || o.buyerName) usersSet.add(o.user || o.buyerName);
       });
 
-      const evContainer = document.getElementById('eventCapsules');
-      let evHtml = `<button class="capsule-filter-btn ${currentEventFilter === 'ALL' ? 'active' : ''}" onclick="setEventFilter('ALL', this)">全部活動</button>`;
-      Array.from(eventsSet).sort().forEach(ev => {
-        evHtml += `<button class="capsule-filter-btn ${currentEventFilter === ev ? 'active' : ''}" onclick="setEventFilter('${ev}', this)">${ev}</button>`;
-      });
-      evContainer.innerHTML = evHtml;
-
-      const userContainer = document.getElementById('userCapsules');
-      let userHtml = `<button class="capsule-filter-btn ${currentUserFilter === 'ALL' ? 'active' : ''}" onclick="setUserFilter('ALL', this)">全部暱稱</button>`;
       Array.from(usersSet).sort((a,b)=>a.localeCompare(b,'zh-TW')).forEach(u => {
-        userHtml += `<button class="capsule-filter-btn ${currentUserFilter === u ? 'active' : ''}" onclick="setUserFilter('${u}', this)">${u}</button>`;
+        const btn = document.createElement('button');
+        btn.className = `capsule-filter-btn ${activeUser === u ? 'user-active' : ''}`;
+        btn.textContent = u;
+        btn.onclick = () => {
+          activeUser = u;
+          document.querySelectorAll('#userCapsules .capsule-filter-btn').forEach(b => b.classList.remove('user-active'));
+          btn.classList.add('user-active');
+          renderOrdersTable();
+        };
+        container.appendChild(btn);
       });
-      userContainer.innerHTML = userHtml;
     }
-
-    window.setEventFilter = (ev, btn) => {
-      currentEventFilter = ev;
-      document.querySelectorAll('#eventCapsules .capsule-filter-btn').forEach(b => b.classList.remove('active'));
-      if(btn) btn.classList.add('active');
-      renderOrdersTable();
-    };
-
-    window.setUserFilter = (u, btn) => {
-      currentUserFilter = u;
-      document.querySelectorAll('#userCapsules .capsule-filter-btn').forEach(b => b.classList.remove('active'));
-      if(btn) btn.classList.add('active');
-      renderOrdersTable();
-    };
 
     window.renderOrdersTable = () => {
       const tb = document.getElementById('ordersTableBody');
       tb.innerHTML = '';
 
-      const kw = document.getElementById('orderSearchInput').value.toLowerCase().trim();
-      let list = Object.values(ordersMap);
+      let list = Object.values(ordersMap).filter(o => o.group === activeGroup);
 
-      if (currentEventFilter !== 'ALL') {
-        list = list.filter(o => (o.event || o.eventName) === currentEventFilter);
+      if (activeDetail !== 'ALL') {
+        if (activeMode === 'member') list = list.filter(o => o.member === activeDetail);
+        else if (activeMode === 'event') list = list.filter(o => (o.event || o.eventName) === activeDetail);
       }
-      if (currentUserFilter !== 'ALL') {
-        list = list.filter(o => (o.user || o.buyerName) === currentUserFilter);
-      }
-      if (kw) {
-        list = list.filter(o => `${o.user || ''} ${o.buyerName || ''} ${o.event || ''} ${o.eventName || ''} ${o.member || ''}`.toLowerCase().includes(kw));
+
+      if (activeUser !== 'ALL') {
+        list = list.filter(o => (o.user || o.buyerName) === activeUser);
       }
 
       if (list.length === 0) {
@@ -152,7 +315,10 @@
         const ev = o.event || o.eventName || '-';
         const mem = o.member || '-';
         const qty = o.qty !== undefined ? o.qty : (o.quantity || 1);
-        const amt = o.total !== undefined ? o.total : (o.amount || 0);
+        
+        const priceInfo = getItemPriceInfo(o);
+        const amt = priceInfo.totalPrice;
+
         const payStatus = o.paymentStatus || o.status || '待匯款';
         const isPhotoSent = o.isPhotoSent === true;
         const todayStr = new Date().toISOString().slice(0,10);
@@ -164,8 +330,8 @@
         if (!isEditing) {
           tr.innerHTML = `
             <td><b>${uName}</b></td>
-            <td><b>${ev}</b><br><small style="color:#606266;">成員: ${mem} (數量: ${qty}張)</small></td>
-            <td>$${amt}<br><span style="font-size:11px; color:#e6a23c; font-weight:bold;">${payStatus}</span></td>
+            <td><b>${ev}</b><br><small style="color:#606266;">成員: ${mem} (數量: ${qty}張 / ${priceInfo.packs}包)</small></td>
+            <td>$${amt.toLocaleString()}<br><span style="font-size:11px; color:#e6a23c; font-weight:bold;">${payStatus}</span></td>
             <td>
               ${isPhotoSent ? `
                 <div style="background:#f0f9eb; border:1px solid #e1f3d8; border-radius:6px; padding:6px; font-size:12px;">
