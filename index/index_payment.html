@@ -126,7 +126,7 @@
 
       <div class="form-group">
         <label>匯款金額 ($) *</label>
-        <input type="number" id="amount" min="0" placeholder="請輸入匯款金額 (允許 0 元)" required>
+        <input type="number" id="amount" min="0" placeholder="請輸入匯款金額 (選擇『其他』或 0 元均可提交)" required>
         <div id="overpayTip" class="overpay-tip"></div>
       </div>
 
@@ -601,7 +601,9 @@
         return;
       }
 
-      if (inputAmount < currentCalculatedFinalTotal && currentCalculatedFinalTotal > 0) {
+      // 如果選擇「其他」，直接放行；否則才檢查金額是否足夠
+      const isOtherBank = (bankNameVal === '其他');
+      if (!isOtherBank && inputAmount < currentCalculatedFinalTotal && currentCalculatedFinalTotal > 0) {
         alert(`⚠️ 金額不足！\n\n本次應匯款總金額是：$${currentCalculatedFinalTotal}\n您填寫的金額是：$${inputAmount}\n\n請重新確認匯款金額！`);
         return;
       }
@@ -679,7 +681,7 @@
         const overpaidAmount = inputAmount - currentCalculatedFinalTotal;
         let overpayAlertMsg = '';
 
-        if (overpaidAmount > 0) {
+        if (!isOtherBank && overpaidAmount > 0) {
           await addDoc(collection(db, "user_deposits"), {
             user: buyerNameVal,
             buyerName: buyerNameVal,
