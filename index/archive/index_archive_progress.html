@@ -15,13 +15,12 @@
     .capsule-filter-btn:hover { background: #ecf5ff; color: #409eff; border-color: #c6e2ff; }
     .capsule-filter-btn.active { background: #409eff; color: #fff; border-color: #409eff; box-shadow: 0 2px 6px rgba(64,158,255,0.25); }
     .capsule-filter-btn.sub-active { background: #67c23a; color: #fff; border-color: #67c23a; box-shadow: 0 2px 6px rgba(103,194,58,0.25); }
+    .capsule-filter-btn.user-active { background: #e6a23c; color: #fff; border-color: #e6a23c; box-shadow: 0 2px 6px rgba(230,162,60,0.25); }
 
-    #progressList { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
-    @media (max-width: 900px) { #progressList { grid-template-columns: repeat(2, 1fr); } }
-    @media (max-width: 600px) { #progressList { grid-template-columns: 1fr; } }
+    #progressList { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
 
-    .event-group-card { background: #fff; border: 1px solid #e4e7ed; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.02); display: flex; flex-direction: column; }
-    .event-group-header { background: #f4f4f5; border-left: 4px solid #909399; color: #606266; font-size: 15px; font-weight: bold; padding: 10px 14px; display: flex; align-items: center; gap: 6px; }
+    .event-group-card { background: #fff; border: 1px solid #e4e7ed; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.02); display: flex; flex-direction: column; margin-bottom: 12px; }
+    .event-group-header { background: #f4f4f5; border-left: 4px solid #909399; color: #606266; font-size: 15px; font-weight: bold; padding: 10px 14px; display: flex; align-items: center; gap: 6px; cursor: pointer; user-select: none; }
 
     .progress-list-box { padding: 12px 14px; display: flex; flex-direction: column; gap: 12px; }
     .member-block { display: flex; flex-direction: column; gap: 6px; border-bottom: 1px dashed #ebeef5; padding-bottom: 10px; }
@@ -53,8 +52,13 @@
     </div>
 
     <div class="filter-row">
-      <span class="filter-label">3. 狀態篩選：</span>
-      <div id="statusCapsules" class="capsule-group"></div>
+      <span class="filter-label">3. 細項篩選：</span>
+      <div id="detailCapsules" class="capsule-group"></div>
+    </div>
+
+    <div class="filter-row" style="border-top:1px dashed #dcdfe6; padding-top:8px; margin-top:2px;">
+      <span class="filter-label">👤 買家暱稱：</span>
+      <div id="userCapsules" class="capsule-group"></div>
     </div>
   </div>
 
@@ -82,32 +86,32 @@
     
     let activeGroup = 'Stray Kids';
     let activeMode = 'member';
-    let activeStatus = 'ALL';
+    let activeDetail = 'ALL';
+    let activeUser = 'ALL';
 
     let groupList = [];
     let memberMap = {};
-    const allStatuses = ['已結束', '到期/已刪除'];
 
     document.addEventListener('DOMContentLoaded', async () => {
       try {
-        const gRes = await fetch('../../json/group.json');
+        const gRes = await fetch('../json/group.json');
         groupList = await gRes.json();
 
         for (const g of groupList) {
           const file = (g === 'Stray Kids') ? 'members_skz.json' : (g === 'ATEEZ' ? 'members_atz.json' : '');
           if (file) {
-            const mRes = await fetch(`../../json/${file}`);
+            const mRes = await fetch(`../json/${file}`);
             memberMap[g] = await mRes.json();
           }
         }
       } catch(e) {}
 
       renderGroupCapsules();
-      updateStatusCapsules();
 
       onSnapshot(collection(db, "orders"), snap => {
         ordersCache = {};
         snap.forEach(d => { ordersCache[d.id] = { id: d.id, ...d.data(), group: d.data().group || 'Stray Kids' }; });
+        updateUserCapsules();
         renderView();
       });
 
@@ -119,6 +123,7 @@
             rawProgress.push({ id: d.id, group: 'Stray Kids', ...data });
           }
         });
+        updateDetailCapsules();
         renderView();
       });
     });
@@ -134,8 +139,9 @@
           activeGroup = g;
           document.querySelectorAll('#groupCapsules .capsule-filter-btn').forEach(b => b.classList.remove('active'));
           btn.classList.add('active');
-          activeStatus = 'ALL';
-          updateStatusCapsules();
+          activeDetail = 'ALL';
+          updateDetailCapsules();
+          updateUserCapsules();
           renderView();
         };
         container.appendChild(btn);
@@ -146,32 +152,102 @@
       activeMode = mode;
       document.querySelectorAll('#modeCapsules .capsule-filter-btn').forEach(b => b.classList.remove('active'));
       if(btn) btn.classList.add('active');
+      activeDetail = 'ALL';
+      updateDetailCapsules();
       renderView();
     };
 
-    function updateStatusCapsules() {
-      const container = document.getElementById('statusCapsules');
+    function updateDetailCapsules() {
+      const container = document.getElementById('detailCapsules');
       container.innerHTML = '';
 
       const allBtn = document.createElement('button');
-      allBtn.className = `capsule-filter-btn ${activeStatus === 'ALL' ? 'sub-active' : ''}`;
+      allBtn.className = `capsule-filter-btn ${activeDetail === 'ALL' ? 'sub-active' : ''}`;
       allBtn.textContent = '全部顯示';
       allBtn.onclick = () => {
-        activeStatus = 'ALL';
-        document.querySelectorAll('#statusCapsules .capsule-filter-btn').forEach(b => b.classList.remove('sub-active'));
+        activeDetail = 'ALL';
+        document.querySelectorAll('#detailCapsules .capsule-filter-btn').forEach(b => b.classList.remove('sub-active'));
         allBtn.classList.add('sub-active');
         renderView();
       };
       container.appendChild(allBtn);
 
-      allStatuses.forEach(st => {
+      const filtered = rawProgress.filter(i => i.group === activeGroup);
+
+      if (activeMode === 'member') {
+        const membersInJson = memberMap[activeGroup] || [];
+        const activeMembersWithData = new Set(filtered.map(i => i.member).filter(Boolean));
+
+        membersInJson.forEach(m => {
+          if (activeMembersWithData.has(m)) {
+            const btn = document.createElement('button');
+            btn.className = `capsule-filter-btn ${activeDetail === m ? 'sub-active' : ''}`;
+            btn.textContent = m;
+            btn.onclick = () => {
+              activeDetail = m;
+              document.querySelectorAll('#detailCapsules .capsule-filter-btn').forEach(b => b.classList.remove('sub-active'));
+              btn.classList.add('sub-active');
+              renderView();
+            };
+            container.appendChild(btn);
+          }
+        });
+      } else if (activeMode === 'event') {
+        const eventsSet = new Set();
+        filtered.forEach(i => {
+          if (i.eventName || i.event) eventsSet.add(i.eventName || i.event);
+        });
+        Array.from(eventsSet).sort().forEach(ev => {
+          const btn = document.createElement('button');
+          btn.className = `capsule-filter-btn ${activeDetail === ev ? 'sub-active' : ''}`;
+          btn.textContent = ev;
+          btn.onclick = () => {
+            activeDetail = ev;
+            document.querySelectorAll('#detailCapsules .capsule-filter-btn').forEach(b => b.classList.remove('sub-active'));
+            btn.classList.add('sub-active');
+            renderView();
+          };
+          container.appendChild(btn);
+        });
+      }
+    }
+
+    function updateUserCapsules() {
+      const container = document.getElementById('userCapsules');
+      container.innerHTML = '';
+
+      const allBtn = document.createElement('button');
+      allBtn.className = `capsule-filter-btn ${activeUser === 'ALL' ? 'user-active' : ''}`;
+      allBtn.textContent = '全部買家';
+      allBtn.onclick = () => {
+        activeUser = 'ALL';
+        document.querySelectorAll('#userCapsules .capsule-filter-btn').forEach(b => b.classList.remove('user-active'));
+        allBtn.classList.add('user-active');
+        renderView();
+      };
+      container.appendChild(allBtn);
+
+      const archivedKeys = new Set(rawProgress.map(p => (p.eventName || p.event) + '_' + (p.member || '')));
+
+      const usersSet = new Set();
+      Object.values(ordersCache).forEach(ord => {
+        if (ord.group === activeGroup) {
+          const key = (ord.event || ord.eventName || '') + '_' + (ord.member || '');
+          if (archivedKeys.has(key)) {
+            const name = ord.buyerName || ord.user || ord.nickname;
+            if (name) usersSet.add(name);
+          }
+        }
+      });
+
+      Array.from(usersSet).sort((a,b)=>a.localeCompare(b,'zh-TW')).forEach(uName => {
         const btn = document.createElement('button');
-        btn.className = `capsule-filter-btn ${activeStatus === st ? 'sub-active' : ''}`;
-        btn.textContent = st;
+        btn.className = `capsule-filter-btn ${activeUser === uName ? 'user-active' : ''}`;
+        btn.textContent = uName;
         btn.onclick = () => {
-          activeStatus = st;
-          document.querySelectorAll('#statusCapsules .capsule-filter-btn').forEach(b => b.classList.remove('sub-active'));
-          btn.classList.add('sub-active');
+          activeUser = uName;
+          document.querySelectorAll('#userCapsules .capsule-filter-btn').forEach(b => b.classList.remove('user-active'));
+          btn.classList.add('user-active');
           renderView();
         };
         container.appendChild(btn);
@@ -184,8 +260,9 @@
 
       let list = rawProgress.filter(i => i.group === activeGroup);
 
-      if (activeStatus !== 'ALL') {
-        list = list.filter(i => i.status === activeStatus);
+      if (activeDetail !== 'ALL') {
+        if (activeMode === 'member') list = list.filter(i => i.member === activeDetail);
+        else if (activeMode === 'event') list = list.filter(i => (i.eventName || i.event) === activeDetail);
       }
 
       if (list.length === 0) {
@@ -224,23 +301,33 @@
 
         Object.keys(memberMapObj).forEach(mName => {
           const mItems = memberMapObj[mName];
-
-          let buyersHtml = '';
+          
+          const matchedBuyers = new Set();
           Object.values(ordersCache).forEach(ord => {
             if (ord.group === activeGroup && (ord.event || ord.eventName) === eventName && ord.member === mName) {
               const bName = ord.buyerName || ord.user || ord.nickname;
               if (bName) {
-                buyersHtml += `
-                  <div class="buyer-row">
-                    <span>- ${bName}</span>
-                    <div class="buyer-status-group">
-                      <span class="status-badge status-done">⚫ 已結案</span>
-                      <span class="status-badge status-done">⚪ 已發圖</span>
-                    </div>
-                  </div>
-                `;
+                if (activeUser === 'ALL' || bName === activeUser) matchedBuyers.add(bName);
               }
             }
+          });
+
+          if (activeUser !== 'ALL' && matchedBuyers.size === 0) return;
+
+          let buyersHtml = '';
+          Array.from(matchedBuyers).sort().forEach(bName => {
+            let payStatusText = '⚫ 已結案', payBadgeClass = 'status-done';
+            let photoStatusText = '⚪ 已發圖', photoBadgeClass = 'status-done';
+
+            buyersHtml += `
+              <div class="buyer-row">
+                <span>- ${bName}</span>
+                <div class="buyer-status-group">
+                  <span class="status-badge ${payBadgeClass}">${payStatusText}</span>
+                  <span class="status-badge ${photoBadgeClass}">${photoStatusText}</span>
+                </div>
+              </div>
+            `;
           });
 
           const st = mItems[0].status || '已結束';
@@ -260,10 +347,10 @@
 
         if (membersHtml) {
           htmlContent += `
-            <div class="event-group-card">
-              <div class="event-group-header">📦 [${activeGroup}] ${eventName} (已歸檔)</div>
+            <details class="event-group-card">
+              <summary class="event-group-header">📦 [${activeGroup}] ${eventName} (已歸檔)</summary>
               <div class="progress-list-box">${membersHtml}</div>
-            </div>
+            </details>
           `;
         }
       });

@@ -19,8 +19,8 @@
 
     #progressList { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
 
-    .event-group-card { background: #fff; border: 1px solid #e4e7ed; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.02); display: flex; flex-direction: column; }
-    .event-group-header { background: #f4f4f5; border-left: 4px solid #909399; color: #606266; font-size: 15px; font-weight: bold; padding: 10px 14px; display: flex; align-items: center; gap: 6px; }
+    .event-group-card { background: #fff; border: 1px solid #e4e7ed; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.02); display: flex; flex-direction: column; margin-bottom: 12px; }
+    .event-group-header { background: #f4f4f5; border-left: 4px solid #909399; color: #606266; font-size: 15px; font-weight: bold; padding: 10px 14px; display: flex; align-items: center; gap: 6px; cursor: pointer; user-select: none; }
 
     .progress-list-box { padding: 12px 14px; display: flex; flex-direction: column; gap: 12px; }
     .member-block { display: flex; flex-direction: column; gap: 6px; border-bottom: 1px dashed #ebeef5; padding-bottom: 10px; }
@@ -94,13 +94,13 @@
 
     document.addEventListener('DOMContentLoaded', async () => {
       try {
-        const gRes = await fetch('../../json/group.json');
+        const gRes = await fetch('../json/group.json');
         groupList = await gRes.json();
 
         for (const g of groupList) {
           const file = (g === 'Stray Kids') ? 'members_skz.json' : (g === 'ATEEZ' ? 'members_atz.json' : '');
           if (file) {
-            const mRes = await fetch(`../../json/${file}`);
+            const mRes = await fetch(`../json/${file}`);
             memberMap[g] = await mRes.json();
           }
         }
@@ -222,7 +222,7 @@
       allBtn.onclick = () => {
         activeUser = 'ALL';
         document.querySelectorAll('#userCapsules .capsule-filter-btn').forEach(b => b.classList.remove('user-active'));
-        btn.classList.add('user-active');
+        allBtn.classList.add('user-active');
         renderView();
       };
       container.appendChild(allBtn);
@@ -347,10 +347,10 @@
 
         if (membersHtml) {
           htmlContent += `
-            <div class="event-group-card">
-              <div class="event-group-header">📦 [${activeGroup}] ${eventName} (已歸檔)</div>
+            <details class="event-group-card">
+              <summary class="event-group-header">📦 [${activeGroup}] ${eventName} (已歸檔)</summary>
               <div class="progress-list-box">${membersHtml}</div>
-            </div>
+            </details>
           `;
         }
       });
