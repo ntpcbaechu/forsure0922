@@ -17,34 +17,45 @@
     .capsule-filter-btn.sub-active { background: #67c23a; color: #fff; border-color: #67c23a; box-shadow: 0 2px 6px rgba(103,194,58,0.25); }
     .capsule-filter-btn.user-active { background: #e6a23c; color: #fff; border-color: #e6a23c; box-shadow: 0 2px 6px rgba(230,162,60,0.25); }
     
-    /* 待匯款紅色篩選鈕專屬樣式 */
     .capsule-filter-btn.pending-red-btn { background: #fef0f0; color: #f56c6c; border-color: #fde2e2; }
     .capsule-filter-btn.pending-red-btn:hover { background: #f56c6c; color: #fff; border-color: #f56c6c; }
     .capsule-filter-btn.pending-red-btn.active { background: #f56c6c; color: #fff; border-color: #f56c6c; box-shadow: 0 2px 6px rgba(245,108,108,0.3); }
 
-    .summary-card { background: #ecf5ff; border: 1px solid #d9ecff; border-radius: 10px; padding: 12px 14px; margin-bottom: 15px; font-size: 13px; color: #409eff; line-height: 1.8; }
-    .summary-card b { font-size: 15px; }
+    /* 高對比彩色個人統計卡片 */
+    .user-stat-card { background: #fff; border: 1px solid #e4e7ed; border-radius: 12px; padding: 16px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.03); }
+    .user-stat-header { font-size: 16px; font-weight: bold; color: #303133; margin-bottom: 12px; border-bottom: 1px solid #f0f2f5; padding-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
+    
+    .status-badges-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+    .badge-chip { padding: 4px 10px; border-radius: 16px; font-size: 12px; font-weight: bold; display: inline-flex; align-items: center; gap: 4px; }
+    .chip-paid { background: #f0f9eb; color: #67c23a; border: 1px solid #e1f3d8; }
+    .chip-checking { background: #fdf6ec; color: #e6a23c; border: 1px solid #faebd7; }
+    .chip-pending { background: #fef0f0; color: #f56c6c; border: 1px solid #fde2e2; }
+    .chip-issue { background: #fef0f0; color: #f56c6c; border: 1px solid #fde2e2; }
 
-    /* 待匯款彙總獨立高亮卡片 */
-    .pending-summary-box { background: #fef0f0; border: 1px solid #fde2e2; border-radius: 10px; padding: 14px; margin-bottom: 15px; color: #f56c6c; font-size: 13px; line-height: 1.6; box-shadow: 0 2px 8px rgba(245,108,108,0.08); }
-    .pending-summary-title { font-size: 15px; font-weight: bold; border-bottom: 1px dashed #fde2e2; padding-bottom: 6px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
+    .amount-three-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; background: #f8f9fa; padding: 12px; border-radius: 8px; border: 1px solid #ebeef5; text-align: center; }
+    @media (max-width: 600px) { .amount-three-grid { grid-template-columns: 1fr; } }
+    .amount-col-item { display: flex; flex-direction: column; gap: 4px; }
+    .amount-col-label { font-size: 12px; color: #606266; font-weight: bold; }
+    .amount-col-val { font-size: 18px; font-weight: bold; }
 
+    /* 待匯款買家彙總卡片 */
+    .pending-group-card { background: #fff; border: 1px solid #fde2e2; border-radius: 12px; margin-bottom: 16px; overflow: hidden; box-shadow: 0 2px 8px rgba(245,108,108,0.05); }
+    .pending-group-header { background: #fef0f0; color: #f56c6c; padding: 12px 16px; font-size: 15px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #fde2e2; }
+    .pending-group-body { padding: 12px 16px; display: flex; flex-direction: column; gap: 8px; }
+    .pending-item-row { display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: #606266; border-bottom: 1px dashed #f0f2f5; padding-bottom: 6px; }
+    .pending-item-row:last-child { border-bottom: none; padding-bottom: 0; }
+
+    /* 方案 A：單一買家緊湊明細表 */
+    .compact-table-card { background: #fff; border: 1px solid #e4e7ed; border-radius: 12px; padding: 14px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); }
+    table.compact-records-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    table.compact-records-table th, table.compact-records-table td { padding: 10px 8px; border-bottom: 1px solid #ebeef5; text-align: left; vertical-align: middle; }
+    table.compact-records-table th { background: #f8f9fa; color: #606266; font-weight: bold; white-space: nowrap; }
+
+    /* 全頁一般場次群組卡片 */
     .event-section { background: #fff; border: 1px solid #e4e7ed; border-radius: 12px; padding: 14px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); }
     .event-header { font-size: 15px; font-weight: bold; color: #303133; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f0f2f5; padding-bottom: 8px; }
     .event-meta { font-size: 12px; color: #409eff; background: #ecf5ff; padding: 4px 8px; border-radius: 6px; font-weight: bold; }
 
-    .cards-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
-    @media (max-width: 680px) { .cards-list { grid-template-columns: 1fr; } }
-
-    .order-card { background: #f8f9fa; border: 1px solid #e4e7ed; border-radius: 10px; padding: 12px 14px; font-size: 13px; display: flex; flex-direction: column; justify-content: space-between; gap: 8px; transition: border-color 0.2s; }
-    .order-card:hover { border-color: #c6e2ff; }
-    .order-card.pending-highlight { border-left: 4px solid #f56c6c; background: #fff; }
-
-    .order-top { display: flex; justify-content: space-between; align-items: flex-start; font-weight: bold; }
-    .order-info { display: flex; flex-direction: column; gap: 4px; color: #606266; font-size: 13px; background: #fff; padding: 8px; border-radius: 6px; border: 1px solid #ebeef5; }
-    .order-bottom-row { display: flex; justify-content: space-between; align-items: center; margin-top: 2px; }
-
-    .status-badges-container { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
     .status-badge { padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: bold; display: inline-block; white-space: nowrap; }
     .status-paid { background: #f0f9eb; color: #67c23a; border: 1px solid #e1f3d8; }
     .status-checking { background: #fdf6ec; color: #e6a23c; border: 1px solid #faebd7; }
@@ -53,10 +64,6 @@
     
     .photo-badge-pending { background: #f4f4f5; color: #909399; }
     .photo-badge-sent { background: #ecf5ff; color: #409eff; border: 1px solid #b3d8ff; }
-    .photo-dates-box { font-size: 10px; color: #909399; margin-top: 2px; text-align: right; line-height: 1.3; }
-
-    .type-badge { font-size: 11px; padding: 1px 5px; border-radius: 4px; background: #f4f4f5; color: #909399; margin-left: 4px; }
-    .type-add { background: #fdf6ec; color: #e6a23c; border: 1px solid #faebd7; }
   </style>
 </head>
 <body>
@@ -344,50 +351,108 @@
         });
       }
 
+      // 🎨 情境 1: 選擇「指定買家」時的高對比個人統計卡
       if (activeUser !== 'ALL' && !isPendingOnly) {
         const userEventsSet = new Set();
-        let paidCount = 0, checkingCount = 0, pendingCount = 0, issueCount = 0, grandTotal = 0;
+        let paidCount = 0, checkingCount = 0, pendingCount = 0, issueCount = 0;
+        let grandTotal = 0, paidTotal = 0, pendingTotal = 0;
 
         allOrders.filter(o => o.group === activeGroup && (o.buyerName || o.user || o.nickname) === activeUser).forEach(o => {
           userEventsSet.add((o.event || o.eventName) + '_' + o.member);
           const status = o.paymentStatus || o.status || (o.hasPaid ? '已對帳' : '待匯款');
-          if (status === '已對帳') paidCount++;
+          const info = getItemPriceInfo(o);
+
+          if (status === '已對帳') { paidCount++; paidTotal += info.totalPrice; }
           else if (status === '待對帳' || status === '對帳中') checkingCount++;
           else if (status === '對帳有問題' || status === '有問題') issueCount++;
-          else pendingCount++;
+          else { pendingCount++; pendingTotal += info.totalPrice; }
 
-          const info = getItemPriceInfo(o);
           grandTotal += info.totalPrice;
         });
 
-        summary.innerHTML = `<div class="summary-card">
-          <b>👤 ${activeUser} 的喊單個人統計：</b><br>
-          • 已登記場次：<b>${userEventsSet.size}</b> 場<br>
-          • 對帳狀態：🟢 已對帳 <b>${paidCount}</b> 筆 ｜ ⏳ 待對帳 <b>${checkingCount}</b> 筆 ｜ 🚨 待匯款 <b>${pendingCount}</b> 筆 ｜ ⚠️ 對帳有問題 <b>${issueCount}</b> 筆<br>
-          • 喊單總金額：<b>$${grandTotal.toLocaleString()}</b>
-        </div>`;
-      } else if (isPendingOnly) {
-        let pendingTotalAmt = 0;
-        let pendingLinesHtml = '';
+        summary.innerHTML = `
+          <div class="user-stat-card">
+            <div class="user-stat-header">
+              <span>👤 ${activeUser} 的喊單個人統計</span>
+              <span style="font-size:13px; color:#409eff;">已登記 ${userEventsSet.size} 場活動</span>
+            </div>
 
-        list.forEach((ord, idx) => {
-          const info = getItemPriceInfo(ord);
-          pendingTotalAmt += info.totalPrice;
+            <div class="status-badges-row">
+              <span class="badge-chip chip-paid">🟢 已對帳 ${paidCount} 筆</span>
+              <span class="badge-chip chip-checking">⏳ 待對帳 ${checkingCount} 筆</span>
+              <span class="badge-chip chip-pending">🚨 待匯款 ${pendingCount} 筆</span>
+              <span class="badge-chip chip-issue">⚠️ 帳有問題 ${issueCount} 筆</span>
+            </div>
+
+            <div class="amount-three-grid">
+              <div class="amount-col-item">
+                <span class="amount-col-label">💰 喊單總金額</span>
+                <span class="amount-col-val" style="color:#303133;">$${grandTotal.toLocaleString()}</span>
+              </div>
+              <div class="amount-col-item">
+                <span class="amount-col-label">🟢 已對帳付清</span>
+                <span class="amount-col-val" style="color:#67c23a;">$${paidTotal.toLocaleString()}</span>
+              </div>
+              <div class="amount-col-item">
+                <span class="amount-col-label">🚨 待匯款金額</span>
+                <span class="amount-col-val" style="color:#f56c6c;">$${pendingTotal.toLocaleString()}</span>
+              </div>
+            </div>
+          </div>
+        `;
+      } 
+      // 🎨 情境 2: 按「🚨 僅顯示待匯款」時，依「買家暱稱分組歸戶」
+      else if (isPendingOnly) {
+        const userPendingGroups = {};
+        let grandPendingTotal = 0;
+
+        list.forEach(ord => {
           const uName = ord.user || ord.buyerName || ord.nickname || '未知';
-          const evName = ord.event || ord.eventName || '活動';
-          pendingLinesHtml += `<div style="display:flex; justify-content:space-between; margin-bottom:4px; font-size:12px;">
-            <span>#${idx+1} [${uName}] ${evName} (${ord.member || '全體'} - ${info.packs}包)</span>
-            <b>$${info.totalPrice.toLocaleString()}</b>
-          </div>`;
+          if (!userPendingGroups[uName]) userPendingGroups[uName] = [];
+          userPendingGroups[uName].push(ord);
         });
 
-        summary.innerHTML = `<div class="pending-summary-box">
-          <div class="pending-summary-title">
-            <span>🚨 待匯款項目彙總列表 (${list.length} 筆)</span>
-            <span style="font-size:16px;">總應匯款：<b>$${pendingTotalAmt.toLocaleString()}</b></span>
+        let userCardsHtml = '';
+        Object.keys(userPendingGroups).sort((a,b)=>a.localeCompare(b,'zh-TW')).forEach(uName => {
+          const uOrders = userPendingGroups[uName];
+          let userSubTotal = 0;
+          let itemsHtml = '';
+
+          uOrders.forEach(ord => {
+            const info = getItemPriceInfo(ord);
+            userSubTotal += info.totalPrice;
+            grandPendingTotal += info.totalPrice;
+            const evName = ord.event || ord.eventName || '活動';
+
+            itemsHtml += `
+              <div class="pending-item-row">
+                <span>• ${evName} (<b>${ord.member || '全體'}</b> - ${info.packs}包 / ${info.qty}張)</span>
+                <b>$${info.totalPrice.toLocaleString()}</b>
+              </div>
+            `;
+          });
+
+          userCardsHtml += `
+            <div class="pending-group-card">
+              <div class="pending-group-header">
+                <span>👤 ${uName} (${uOrders.length} 筆未匯款)</span>
+                <span>待匯款總額：<b>$${userSubTotal.toLocaleString()}</b></span>
+              </div>
+              <div class="pending-group-body">${itemsHtml}</div>
+            </div>
+          `;
+        });
+
+        summary.innerHTML = `
+          <div style="background:#fef0f0; border:1px solid #fde2e2; border-radius:10px; padding:12px 16px; margin-bottom:15px; color:#f56c6c; font-size:15px; font-weight:bold; display:flex; justify-content:space-between; align-items:center;">
+            <span>🚨 全站待匯款買家彙總 (共 ${Object.keys(userPendingGroups).length} 位買家 / ${list.length} 筆項目)</span>
+            <span style="font-size:18px;">總應匯款：<b>$${grandPendingTotal.toLocaleString()}</b></span>
           </div>
-          ${pendingLinesHtml || '<div>無待匯款項目</div>'}
-        </div>`;
+          ${userCardsHtml || '<p style="color:#909399; text-align:center; padding:20px;">目前尚無任何待匯款項目</p>'}
+        `;
+
+        notifyHeight();
+        return;
       }
 
       if (list.length === 0) {
@@ -396,8 +461,68 @@
         return;
       }
 
-      renderCardsGrouped(list);
+      // 🎨 情境 3: 指定買家時改用方案 A (緊湊式表格)，其餘情況用全頁一般場次群組
+      if (activeUser !== 'ALL') {
+        renderCompactUserTable(list);
+      } else {
+        renderCardsGrouped(list);
+      }
+
       notifyHeight();
+    }
+
+    // 🎨 方案 A：單一買家緊湊式明細表 (Table)
+    function renderCompactUserTable(orders) {
+      const recordsList = document.getElementById('recordsList');
+      let rowsHtml = '';
+
+      orders.forEach((ord, idx) => {
+        const status = ord.paymentStatus || ord.status || (ord.hasPaid ? '已對帳' : '待匯款');
+        
+        let payBadgeHtml = '<span class="status-badge status-pending">🚨 待匯款</span>';
+        if (status === '已對帳') payBadgeHtml = '<span class="status-badge status-paid">🟢 已對帳</span>';
+        else if (status === '待對帳' || status === '對帳中') payBadgeHtml = '<span class="status-badge status-checking">⏳ 待對帳</span>';
+        else if (status === '對帳有問題' || status === '有問題') payBadgeHtml = '<span class="status-badge status-issue">⚠️ 帳有問題</span>';
+
+        const isPhotoSent = ord.isPhotoSent === true || status === '已發圖';
+        let photoBadgeHtml = isPhotoSent ? '<span class="status-badge photo-badge-sent">🔵 已發圖</span>' : '<span class="status-badge photo-badge-pending">📷 待發圖</span>';
+
+        const info = getItemPriceInfo(ord);
+        const evName = ord.event || ord.eventName || '未分類活動';
+
+        rowsHtml += `
+          <tr>
+            <td>#${idx + 1}</td>
+            <td><b>${evName}</b></td>
+            <td>${ord.member || '全體'}</td>
+            <td>${info.packs} 包 / ${info.qty} 張</td>
+            <td>$${info.pricePerPack}</td>
+            <td><b style="color:#f56c6c;">$${info.totalPrice.toLocaleString()}</b></td>
+            <td>${payBadgeHtml}</td>
+            <td>${photoBadgeHtml}</td>
+          </tr>
+        `;
+      });
+
+      recordsList.innerHTML = `
+        <div class="compact-table-card">
+          <table class="compact-records-table">
+            <thead>
+              <tr>
+                <th style="width:5%;">#</th>
+                <th style="width:30%;">活動名稱</th>
+                <th style="width:12%;">成員</th>
+                <th style="width:15%;">喊單數量</th>
+                <th style="width:10%;">每包單價</th>
+                <th style="width:12%;">小計</th>
+                <th style="width:10%;">對帳狀態</th>
+                <th style="width:10%;">發圖進度</th>
+              </tr>
+            </thead>
+            <tbody>${rowsHtml}</tbody>
+          </table>
+        </div>
+      `;
     }
 
     function renderCardsGrouped(orders) {
@@ -413,52 +538,58 @@
       for (const [title, list] of Object.entries(groups)) {
         const totalPacks = list.reduce((sum, item) => sum + (Number(item.quantity) || Number(item.qty) || 1), 0);
 
-        let cardsHtml = '';
+        let rowsHtml = '';
         list.forEach((ord, idx) => {
           const status = ord.paymentStatus || ord.status || (ord.hasPaid ? '已對帳' : '待匯款');
           
           let payBadgeHtml = '<span class="status-badge status-pending">🚨 待匯款</span>';
           if (status === '已對帳') payBadgeHtml = '<span class="status-badge status-paid">🟢 已對帳</span>';
           else if (status === '待對帳' || status === '對帳中') payBadgeHtml = '<span class="status-badge status-checking">⏳ 待對帳</span>';
-          else if (status === '對帳有問題' || status === '有問題') {
-            const reason = ord.errorNote ? ' : ' + ord.errorNote : '';
-            payBadgeHtml = '<span class="status-badge status-issue">⚠️ 對帳有問題' + reason + '</span>';
-          }
+          else if (status === '對帳有問題' || status === '有問題') payBadgeHtml = '<span class="status-badge status-issue">⚠️ 帳有問題</span>';
 
           const isPhotoSent = ord.isPhotoSent === true || status === '已發圖';
           let photoBadgeHtml = isPhotoSent ? '<span class="status-badge photo-badge-sent">🔵 已發圖</span>' : '<span class="status-badge photo-badge-pending">📷 待發圖</span>';
-          let photoDatesHtml = (isPhotoSent && ord.photoSentAt) ? `<div class="photo-dates-box">📅 發圖日：${ord.photoSentAt}<br>⏳ 刪除日：${ord.photoExpireAt || '-'}</div>` : '';
 
-          const typeBadge = (ord.orderType === '追加') ? '<span class="type-badge type-add">追加</span>' : '<span class="type-badge">一般</span>';
           const name = ord.user || ord.buyerName || ord.nickname || '未知';
           const info = getItemPriceInfo(ord);
-          const isPending = (status === '待匯款' || status === 'pending_payment');
 
-          cardsHtml += `<div class="order-card ${isPending ? 'pending-highlight' : ''}">
-            <div class="order-top">
-              <span>#${idx + 1} ${name} ${typeBadge}</span>
-              <div class="status-badges-container">${payBadgeHtml}${photoBadgeHtml}${photoDatesHtml}</div>
-            </div>
-            <div class="order-info">
-              <div style="display:flex; justify-content:space-between; align-items:center;">
-                <span>喊單內容：<b>${info.packs} 包 / ${info.qty} 張</b></span>
-                <span style="font-size:12px; color:#909399;">單價: $${info.pricePerPack}</span>
-              </div>
-              <div class="order-bottom-row">
-                <span style="font-size:12px; color:#606266;">成員：<b>${ord.member || '全體'}</b></span>
-                <span style="color:#f56c6c; font-weight:bold; font-size:15px;">總計：$${info.totalPrice.toLocaleString()}</span>
-              </div>
-            </div>
-          </div>`;
+          rowsHtml += `
+            <tr>
+              <td>#${idx + 1}</td>
+              <td><b>${name}</b></td>
+              <td>${ord.member || '全體'}</td>
+              <td>${info.packs} 包 / ${info.qty} 張</td>
+              <td>$${info.pricePerPack}</td>
+              <td><b style="color:#f56c6c;">$${info.totalPrice.toLocaleString()}</b></td>
+              <td>${payBadgeHtml}</td>
+              <td>${photoBadgeHtml}</td>
+            </tr>
+          `;
         });
 
-        recordsList.innerHTML += `<div class="event-section">
-          <div class="event-header">
-            <span>📌 ${title}</span>
-            <span class="event-meta">共 ${list.length} 筆 / ${totalPacks} 張</span>
+        recordsList.innerHTML += `
+          <div class="event-section">
+            <div class="event-header">
+              <span>📌 ${title}</span>
+              <span class="event-meta">共 ${list.length} 筆 / ${totalPacks} 張</span>
+            </div>
+            <table class="compact-records-table">
+              <thead>
+                <tr>
+                  <th style="width:5%;">#</th>
+                  <th style="width:20%;">買家暱稱</th>
+                  <th style="width:15%;">成員</th>
+                  <th style="width:20%;">喊單數量</th>
+                  <th style="width:12%;">單價</th>
+                  <th style="width:13%;">小計</th>
+                  <th style="width:10%;">對帳狀態</th>
+                  <th style="width:10%;">發圖狀態</th>
+                </tr>
+              </thead>
+              <tbody>${rowsHtml}</tbody>
+            </table>
           </div>
-          <div class="cards-list">${cardsHtml}</div>
-        </div>`;
+        `;
       }
     }
 
