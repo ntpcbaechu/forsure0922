@@ -100,7 +100,7 @@
     let rawProgress = [];
     let ordersCache = {};
     
-    let activeGroup = 'Stray Kids';
+    let activeGroup = 'ALL';
     let activeMode = 'member';
     let activeDetail = 'ALL';
     let activeUser = 'ALL';
@@ -147,6 +147,23 @@
     function renderGroupCapsules() {
       const container = document.getElementById('groupCapsules');
       container.innerHTML = '';
+
+      // 1. 全部團體 (膠囊顯示「團體」，預設 active)
+      const allBtn = document.createElement('button');
+      allBtn.className = `capsule-filter-btn ${activeGroup === 'ALL' ? 'active' : ''}`;
+      allBtn.textContent = '團體';
+      allBtn.onclick = () => {
+        activeGroup = 'ALL';
+        document.querySelectorAll('#groupCapsules .capsule-filter-btn').forEach(b => b.classList.remove('active'));
+        allBtn.classList.add('active');
+        activeDetail = 'ALL';
+        updateDetailCapsules();
+        updateUserCapsules();
+        renderView();
+      };
+      container.appendChild(allBtn);
+
+      // 2. 各團體膠囊
       groupList.forEach(g => {
         const btn = document.createElement('button');
         btn.className = `capsule-filter-btn ${activeGroup === g ? 'active' : ''}`;
@@ -162,6 +179,21 @@
         };
         container.appendChild(btn);
       });
+
+      // 3. 未分類
+      const unclassifiedBtn = document.createElement('button');
+      unclassifiedBtn.className = `capsule-filter-btn ${activeGroup === 'UNCLASSIFIED' ? 'active' : ''}`;
+      unclassifiedBtn.textContent = '未分類';
+      unclassifiedBtn.onclick = () => {
+        activeGroup = 'UNCLASSIFIED';
+        document.querySelectorAll('#groupCapsules .capsule-filter-btn').forEach(b => b.classList.remove('active'));
+        unclassifiedBtn.classList.add('active');
+        activeDetail = 'ALL';
+        updateDetailCapsules();
+        updateUserCapsules();
+        renderView();
+      };
+      container.appendChild(unclassifiedBtn);
     }
 
     window.setModeFilter = (mode, btn) => {
@@ -188,10 +220,21 @@
       };
       container.appendChild(allBtn);
 
-      const filtered = rawProgress.filter(i => i.group === activeGroup);
+      let filtered = rawProgress;
+      if (activeGroup === 'UNCLASSIFIED') {
+        filtered = filtered.filter(i => !i.group || i.group === '未分類');
+      } else if (activeGroup !== 'ALL') {
+        filtered = filtered.filter(i => i.group === activeGroup);
+      }
 
       if (activeMode === 'member') {
-        const membersInJson = memberMap[activeGroup] || [];
+        let membersInJson = [];
+        if (activeGroup === 'ALL') {
+          Object.values(memberMap).forEach(list => membersInJson.push(...list));
+        } else {
+          membersInJson = memberMap[activeGroup] || [];
+        }
+
         const activeMembersWithData = new Set(filtered.map(i => i.member).filter(Boolean));
 
         membersInJson.forEach(m => {
@@ -247,7 +290,11 @@
 
       const usersSet = new Set();
       Object.values(ordersCache).forEach(ord => {
-        if (ord.group === activeGroup) {
+        let matchGroup = true;
+        if (activeGroup === 'UNCLASSIFIED') matchGroup = !ord.group || ord.group === '未分類';
+        else if (activeGroup !== 'ALL') matchGroup = ord.group === activeGroup;
+
+        if (matchGroup) {
           const key = (ord.event || ord.eventName || '') + '_' + (ord.member || '');
           if (activeEventKeys.has(key)) {
             const name = ord.buyerName || ord.user || ord.nickname;
@@ -274,7 +321,12 @@
       const container = document.getElementById('progressList');
       container.innerHTML = '';
 
-      let list = rawProgress.filter(i => i.group === activeGroup);
+      let list = rawProgress;
+      if (activeGroup === 'UNCLASSIFIED') {
+        list = list.filter(i => !i.group || i.group === '未分類');
+      } else if (activeGroup !== 'ALL') {
+        list = list.filter(i => i.group === activeGroup);
+      }
 
       if (activeDetail !== 'ALL') {
         if (activeMode === 'member') list = list.filter(i => i.member === activeDetail);
@@ -295,7 +347,12 @@
       });
 
       let htmlContent = '';
-      const currentMemberList = memberMap[activeGroup] || [];
+      let currentMemberList = [];
+      if (activeGroup === 'ALL') {
+        Object.values(memberMap).forEach(list => currentMemberList.push(...list));
+      } else {
+        currentMemberList = memberMap[activeGroup] || [];
+      }
 
       Object.keys(eventGroups).sort().forEach(eventName => {
         const items = eventGroups[eventName];
@@ -320,7 +377,11 @@
           
           const matchedBuyers = new Set();
           Object.values(ordersCache).forEach(ord => {
-            if (ord.group === activeGroup && (ord.event || ord.eventName) === eventName && ord.member === mName) {
+            let matchGroup = true;
+            if (activeGroup === 'UNCLASSIFIED') matchGroup = !ord.group || ord.group === '未分類';
+            else if (activeGroup !== 'ALL') matchGroup = ord.group === activeGroup;
+
+            if (matchGroup && (ord.event || ord.eventName) === eventName && ord.member === mName) {
               const bName = ord.buyerName || ord.user || ord.nickname;
               if (bName) {
                 if (activeUser === 'ALL' || bName === activeUser) matchedBuyers.add(bName);
@@ -378,9 +439,10 @@
         });
 
         if (membersHtml) {
+          const grpLabel = activeGroup === 'ALL' ? (items[0].group || 'Stray Kids') : activeGroup;
           htmlContent += `
             <div class="event-group-card">
-              <div class="event-group-header">📅 [${activeGroup}] ${eventName}</div>
+              <div class="event-group-header">📅 [${grpLabel}] ${eventName}</div>
               <div class="progress-list-box">${membersHtml}</div>
             </div>
           `;
