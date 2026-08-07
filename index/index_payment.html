@@ -70,7 +70,7 @@
               <input type="text" id="custEvent" placeholder="活動名稱 (例: 周邊加購)">
               <select id="custGroup"><option value="">選擇團體</option></select>
               <select id="custMember" disabled><option value="">請先選擇團體</option></select>
-              <input type="number" id="custPrice" min="1" placeholder="金額 ($)" style="grid-column: span 2;">
+              <input type="number" id="custPrice" min="0" placeholder="金額 ($)" style="grid-column: span 2;">
             </div>
             <div style="display:flex; gap:6px;">
               <button type="button" id="addCustomItemBtn" style="padding:6px 10px; font-size:12px; margin-top:0; background:#67c23a;">確認加入勾選清單</button>
@@ -126,13 +126,13 @@
 
       <div class="form-group">
         <label>匯款金額 ($) *</label>
-        <input type="number" id="amount" min="0" placeholder="請輸入匯款金額" required>
+        <input type="number" id="amount" min="0" placeholder="請輸入匯款金額 (允許 0 元)" required>
         <div id="overpayTip" class="overpay-tip"></div>
       </div>
 
       <div class="form-group">
         <label>匯款帳號末 5 碼 *</label>
-        <input type="text" id="last5" maxlength="5" placeholder="例如: 12345" required>
+        <input type="text" id="last5" maxlength="5" placeholder="例如: 12345 (全額折抵可填 00000)" required>
       </div>
 
       <div class="form-group">
@@ -186,6 +186,11 @@
           bankList.forEach(b => {
             bankSel.innerHTML += `<option value="${b}">${b}</option>`;
           });
+          bankSel.innerHTML += `<option value="其他">其他</option>`;
+        })
+        .catch(() => {
+          const bankSel = document.getElementById('bankName');
+          bankSel.innerHTML = '<option value="">請選擇匯款銀行</option><option value="其他">其他</option>';
         });
     }
 
@@ -322,12 +327,17 @@
     });
 
     function checkOverpayTip() {
-      const inputAmount = parseFloat(document.getElementById('amount').value) || 0;
+      const inputAmount = parseFloat(document.getElementById('amount').value);
       const tipElem = document.getElementById('overpayTip');
       
-      if (inputAmount > currentCalculatedFinalTotal && currentCalculatedFinalTotal > 0) {
+      if (!isNaN(inputAmount) && inputAmount === 0) {
+        tipElem.textContent = `💡 匯款金額為 $0 元（全額扣抵/免補款）🟢`;
+        tipElem.style.color = '#409eff';
+        tipElem.style.display = 'block';
+      } else if (inputAmount > currentCalculatedFinalTotal && currentCalculatedFinalTotal > 0) {
         const overpaid = inputAmount - currentCalculatedFinalTotal;
         tipElem.textContent = `💡 溢繳提醒：多付的 $${overpaid} 元提交後將「自動轉為預存儲值金」！🟢`;
+        tipElem.style.color = '#67c23a';
         tipElem.style.display = 'block';
       } else {
         tipElem.style.display = 'none';
@@ -376,10 +386,10 @@
       const ev = document.getElementById('custEvent').value.trim();
       const group = document.getElementById('custGroup').value;
       const mem = document.getElementById('custMember').value;
-      const price = parseFloat(document.getElementById('custPrice').value) || 0;
+      const price = parseFloat(document.getElementById('custPrice').value);
 
-      if (!ev || price <= 0) {
-        alert('請至少輸入活動名稱與有效的金額！');
+      if (!ev || isNaN(price) || price < 0) {
+        alert('請至少輸入活動名稱與有效的金額（可為 0 元）！');
         return;
       }
 
@@ -573,18 +583,6 @@
 
       document.getElementById('finalPayTotal').textContent = `$${currentCalculatedFinalTotal.toFixed(1).replace(/\.0$/, '')}`;
 
-      const bankSel = document.getElementById('bankName');
-      const amtInput = document.getElementById('amount');
-      const last5Input = document.getElementById('last5');
-
-      if (currentCalculatedFinalTotal === 0 && orderSubtotal > 0 && (useDeposit || useCredit)) {
-        if (Array.from(bankSel.options).some(o => o.value === '抵用金/儲值金')) {
-          bankSel.value = '抵用金/儲值金';
-        }
-        amtInput.value = '0';
-        last5Input.value = '00000';
-      }
-
       checkOverpayTip();
     }
 
@@ -598,19 +596,12 @@
       }
 
       const inputAmount = parseFloat(document.getElementById('amount').value);
-      if (isNaN(inputAmount)) {
-        alert('請輸入有效的匯款金額！');
+      if (isNaN(inputAmount) || inputAmount < 0) {
+        alert('請輸入有效的匯款金額（不可為負數）！');
         return;
       }
 
-      const isFullDeduction = (currentCalculatedFinalTotal === 0) && (bankNameVal === '抵用金/儲值金');
-
-      if (!isFullDeduction && inputAmount <= 0) {
-        alert('⚠️ 請選擇『抵用金/儲值金』或輸入有效的金額（不可為 0 元）！');
-        return;
-      }
-
-      if (inputAmount < currentCalculatedFinalTotal) {
+      if (inputAmount < currentCalculatedFinalTotal && currentCalculatedFinalTotal > 0) {
         alert(`⚠️ 金額不足！\n\n本次應匯款總金額是：$${currentCalculatedFinalTotal}\n您填寫的金額是：$${inputAmount}\n\n請重新確認匯款金額！`);
         return;
       }
