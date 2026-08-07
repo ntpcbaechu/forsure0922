@@ -175,7 +175,8 @@
     let eventsDataMap = {};
     let loadedSellersList = [];
 
-    let activeGroup = 'Stray Kids';
+    // 預設切換為 'ALL' (即第一顆「團體」膠囊)
+    let activeGroup = 'ALL';
     let activeMode = 'member';
     let activeDetail = 'ALL';
 
@@ -301,6 +302,22 @@
     function renderGroupCapsules() {
       const container = document.getElementById('groupCapsules');
       container.innerHTML = '';
+
+      // 1. 全部團體 (膠囊顯示「團體」，預設 active)
+      const allBtn = document.createElement('button');
+      allBtn.className = `capsule-filter-btn ${activeGroup === 'ALL' ? 'active' : ''}`;
+      allBtn.textContent = '團體';
+      allBtn.onclick = () => {
+        activeGroup = 'ALL';
+        document.querySelectorAll('#groupCapsules .capsule-filter-btn').forEach(b => b.classList.remove('active'));
+        allBtn.classList.add('active');
+        activeDetail = 'ALL';
+        updateDetailCapsules();
+        loadEvents();
+      };
+      container.appendChild(allBtn);
+
+      // 2. 各團體膠囊 (Stray Kids, ATEEZ...)
       groupList.forEach(g => {
         const btn = document.createElement('button');
         btn.className = `capsule-filter-btn ${activeGroup === g ? 'active' : ''}`;
@@ -315,6 +332,20 @@
         };
         container.appendChild(btn);
       });
+
+      // 3. 未分類 (放在最後面)
+      const unclassifiedBtn = document.createElement('button');
+      unclassifiedBtn.className = `capsule-filter-btn ${activeGroup === 'UNCLASSIFIED' ? 'active' : ''}`;
+      unclassifiedBtn.textContent = '未分類';
+      unclassifiedBtn.onclick = () => {
+        activeGroup = 'UNCLASSIFIED';
+        document.querySelectorAll('#groupCapsules .capsule-filter-btn').forEach(b => b.classList.remove('active'));
+        unclassifiedBtn.classList.add('active');
+        activeDetail = 'ALL';
+        updateDetailCapsules();
+        loadEvents();
+      };
+      container.appendChild(unclassifiedBtn);
     }
 
     window.setModeFilter = (mode, btn) => {
@@ -341,13 +372,20 @@
       };
       container.appendChild(allBtn);
 
-      const filteredEvents = Object.values(eventsDataMap).filter(e => (e.group || 'Stray Kids') === activeGroup);
+      let filteredEvents = Object.values(eventsDataMap);
+      if (activeGroup === 'UNCLASSIFIED') {
+        filteredEvents = filteredEvents.filter(e => !e.group || e.group === '未分類');
+      } else if (activeGroup !== 'ALL') {
+        filteredEvents = filteredEvents.filter(e => e.group === activeGroup);
+      }
 
       if (activeMode === 'member') {
-        const membersInJson = memberMap[activeGroup] || [];
+        const membersInJson = (activeGroup !== 'ALL' && activeGroup !== 'UNCLASSIFIED') ? (memberMap[activeGroup] || []) : Object.values(memberMap).flat();
         const activeMembersWithData = new Set(filteredEvents.map(e => e.member).filter(Boolean));
 
-        membersInJson.forEach(m => {
+        const displayMembers = new Set([...membersInJson, ...Array.from(activeMembersWithData)]);
+
+        displayMembers.forEach(m => {
           if (activeMembersWithData.has(m)) {
             const btn = document.createElement('button');
             btn.className = `capsule-filter-btn ${activeDetail === m ? 'sub-active' : ''}`;
@@ -396,14 +434,18 @@
         let eventsList = [];
 
         snap.forEach(d => {
-          const data = { id: d.id, group: "Stray Kids", ...d.data() };
+          const data = { id: d.id, ...d.data() };
           eventsList.push(data);
           eventsDataMap[d.id] = data;
         });
 
         updateDetailCapsules();
 
-        eventsList = eventsList.filter(e => e.group === activeGroup);
+        if (activeGroup === 'UNCLASSIFIED') {
+          eventsList = eventsList.filter(e => !e.group || e.group === '未分類');
+        } else if (activeGroup !== 'ALL') {
+          eventsList = eventsList.filter(e => e.group === activeGroup);
+        }
 
         if (activeDetail !== 'ALL') {
           if (activeMode === 'member') eventsList = eventsList.filter(e => e.member === activeDetail);
@@ -433,7 +475,7 @@
           let memberTotalActQty = 0;
           const eventName = evArray[0].name;
           const memberName = evArray[0].member || '全體/無';
-          const groupName = evArray[0].group ? `[${evArray[0].group}] ` : '';
+          const groupName = evArray[0].group ? `[${evArray[0].group}] ` : '[未分類] ';
           const isClosed = evArray.some(e => e.isClosed);
 
           const headerTr = document.createElement('tr');
@@ -703,9 +745,9 @@
 
       const groupSel = document.getElementById('evGroup');
       const memberSel = document.getElementById('evMember');
-      groupSel.value = ev.group || 'Stray Kids';
+      groupSel.value = ev.group || '';
 
-      const members = memberMap[ev.group || 'Stray Kids'] || [];
+      const members = memberMap[ev.group] || Object.values(memberMap).flat();
       memberSel.disabled = false;
       memberSel.innerHTML = '<option value="">請選擇成員</option>';
       members.forEach(m => memberSel.innerHTML += `<option value="${m}">${m}</option>`);
