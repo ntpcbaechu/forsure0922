@@ -123,6 +123,7 @@
     let allOrders = [];
     let eventSettingsMap = {};
     let paymentsMap = {};
+    let userSnsMap = {}; // 儲存買家暱稱對應的 SNS 帳號
 
     let activeGroup = 'Stray Kids';
     let activeMode = 'member';
@@ -164,19 +165,26 @@
         renderCapsulesAndRecords();
       });
 
+      // 撈取已填寫的匯款資料以對應 SNS 帳號
       onSnapshot(collection(db, "payments"), snap => {
         paymentsMap = {};
+        userSnsMap = {};
         snap.forEach(d => {
           const data = d.data();
+          const buyer = data.user || data.buyerName || data.nickname;
+          const sns = data.instagram || data.ig || data.sns || data.threads || '';
+          if (buyer && sns) {
+            userSnsMap[buyer] = sns;
+          }
           const relatedIds = data.relatedOrderIds || [];
           relatedIds.forEach(oId => {
             paymentsMap[oId] = data;
           });
-          const buyer = data.user || data.buyerName;
           if (buyer) {
             paymentsMap[buyer] = data;
           }
         });
+        updateUserCapsules();
         renderCapsulesAndRecords();
       });
 
@@ -307,7 +315,8 @@
       Array.from(usersSet).sort((a,b)=>a.localeCompare(b,'zh-TW')).forEach(uName => {
         const btn = document.createElement('button');
         btn.className = `capsule-filter-btn ${activeUser === uName ? 'user-active' : ''}`;
-        btn.textContent = uName;
+        const snsTag = userSnsMap[uName] ? ` (${userSnsMap[uName]})` : '';
+        btn.textContent = uName + snsTag;
         btn.onclick = () => {
           activeUser = uName;
           document.querySelectorAll('#userCapsules .capsule-filter-btn').forEach(b => b.classList.remove('user-active'));
@@ -362,8 +371,8 @@
       if (isPhotoSent) {
         const sentAt = ord.photoSentAt || paymentDoc.photoSentAt || '';
         const expireAt = ord.photoExpireAt || paymentDoc.photoExpireAt || '';
-        const dateText = (sentAt && expireAt) ? ` (${sentAt}發圖 / ${expireAt}刪除)` : '';
-        photoBadgeHtml = `<span class="status-badge photo-badge-sent">🔵 已發圖${dateText}</span>`;
+        const dateSpan = (sentAt && expireAt) ? `<span style="color:#909399; font-size:11px; margin-left:6px;">${sentAt}發圖 / ${expireAt}刪除</span>` : '';
+        photoBadgeHtml = `<span class="status-badge photo-badge-sent">🔵 已發圖</span>${dateSpan}`;
       }
 
       return { payBadgeHtml, photoBadgeHtml };
@@ -411,10 +420,12 @@
           grandTotal += info.totalPrice;
         });
 
+        const snsInfo = userSnsMap[activeUser] ? ` <span style="font-size:12px; color:#909399;">(SNS: ${userSnsMap[activeUser]})</span>` : '';
+
         summary.innerHTML = `
           <div class="user-stat-card">
             <div class="user-stat-header">
-              <span>👤 ${activeUser} 的喊單個人統計</span>
+              <span>👤 ${activeUser}${snsInfo} 的喊單個人統計</span>
               <span style="font-size:13px; color:#409eff;">已登記 ${userEventsSet.size} 場活動</span>
             </div>
 
@@ -475,10 +486,12 @@
             `;
           });
 
+          const snsTag = userSnsMap[uName] ? ` <span style="font-size:12px; font-weight:normal; color:#e6a23c;">(SNS: ${userSnsMap[uName]})</span>` : '';
+
           userLinesHtml += `
             <div class="pending-user-block">
               <div class="pending-user-title">
-                <span>👤 ${uName} (${uOrders.length} 筆)</span>
+                <span>👤 ${uName}${snsTag} (${uOrders.length} 筆)</span>
                 <span>小計：<b>$${userSubTotal.toLocaleString()}</b></span>
               </div>
               ${itemsHtml}
