@@ -93,19 +93,27 @@
     let groupList = [];
     let memberMap = {};
 
-    document.addEventListener('DOMContentLoaded', async () => {
-      try {
-        const gRes = await fetch('../json/group.json');
-        groupList = await gRes.json();
+    async function fetchJsonWithFallback(filename) {
+      const paths = [`../../json/${filename}`, `../json/${filename}`, `json/${filename}`];
+      for (const p of paths) {
+        try {
+          const res = await fetch(p);
+          if (res.ok) return await res.json();
+        } catch(e){}
+      }
+      return null;
+    }
 
-        for (const g of groupList) {
-          const file = (g === 'Stray Kids') ? 'members_skz.json' : (g === 'ATEEZ' ? 'members_atz.json' : '');
-          if (file) {
-            const mRes = await fetch(`../json/${file}`);
-            memberMap[g] = await mRes.json();
-          }
+    document.addEventListener('DOMContentLoaded', async () => {
+      groupList = await fetchJsonWithFallback('group.json') || ['Stray Kids', 'ATEEZ'];
+
+      for (const g of groupList) {
+        const file = (g === 'Stray Kids') ? 'members_skz.json' : (g === 'ATEEZ' ? 'members_atz.json' : '');
+        if (file) {
+          const mData = await fetchJsonWithFallback(file);
+          if (mData) memberMap[g] = mData;
         }
-      } catch(e) {}
+      }
 
       renderGroupCapsules();
 
