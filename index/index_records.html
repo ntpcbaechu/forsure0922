@@ -21,7 +21,6 @@
     .capsule-filter-btn.pending-red-btn:hover { background: #f56c6c; color: #fff; border-color: #f56c6c; }
     .capsule-filter-btn.pending-red-btn.active { background: #f56c6c; color: #fff; border-color: #f56c6c; box-shadow: 0 2px 6px rgba(245,108,108,0.3); }
 
-    /* 高對比彩色個人統計卡片 */
     .user-stat-card { background: #fff; border: 1px solid #e4e7ed; border-radius: 12px; padding: 16px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.03); }
     .user-stat-header { font-size: 16px; font-weight: bold; color: #303133; margin-bottom: 12px; border-bottom: 1px solid #f0f2f5; padding-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
     
@@ -38,20 +37,20 @@
     .amount-col-label { font-size: 12px; color: #606266; font-weight: bold; }
     .amount-col-val { font-size: 18px; font-weight: bold; }
 
-    /* 待匯款買家彙總卡片 */
-    .pending-group-card { background: #fff; border: 1px solid #fde2e2; border-radius: 12px; margin-bottom: 16px; overflow: hidden; box-shadow: 0 2px 8px rgba(245,108,108,0.05); }
-    .pending-group-header { background: #fef0f0; color: #f56c6c; padding: 12px 16px; font-size: 15px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #fde2e2; }
-    .pending-group-body { padding: 12px 16px; display: flex; flex-direction: column; gap: 8px; }
-    .pending-item-row { display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: #606266; border-bottom: 1px dashed #f0f2f5; padding-bottom: 6px; }
-    .pending-item-row:last-child { border-bottom: none; padding-bottom: 0; }
+    /* 極簡粉紅底待匯款彙總列表 */
+    .pending-flat-box { background: #fef0f0; border: 1px solid #fde2e2; border-radius: 12px; padding: 16px; margin-bottom: 16px; color: #f56c6c; }
+    .pending-flat-header { font-size: 15px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed #fde2e2; padding-bottom: 10px; margin-bottom: 12px; }
+    .pending-user-block { margin-bottom: 12px; }
+    .pending-user-block:last-child { margin-bottom: 0; }
+    .pending-user-title { font-size: 14px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+    .pending-item-line { display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: #606266; padding: 4px 0 4px 12px; }
+    .pending-divider { border-top: 1px dashed #fde2e2; margin: 10px 0; }
 
-    /* 方案 A：單一買家緊湊明細表 */
     .compact-table-card { background: #fff; border: 1px solid #e4e7ed; border-radius: 12px; padding: 14px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); }
     table.compact-records-table { width: 100%; border-collapse: collapse; font-size: 13px; }
     table.compact-records-table th, table.compact-records-table td { padding: 10px 8px; border-bottom: 1px solid #ebeef5; text-align: left; vertical-align: middle; }
     table.compact-records-table th { background: #f8f9fa; color: #606266; font-weight: bold; white-space: nowrap; }
 
-    /* 全頁一般場次群組卡片 */
     .event-section { background: #fff; border: 1px solid #e4e7ed; border-radius: 12px; padding: 14px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); }
     .event-header { font-size: 15px; font-weight: bold; color: #303133; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f0f2f5; padding-bottom: 8px; }
     .event-meta { font-size: 12px; color: #409eff; background: #ecf5ff; padding: 4px 8px; border-radius: 6px; font-weight: bold; }
@@ -124,6 +123,7 @@
 
     let allOrders = [];
     let eventPricesMap = {};
+    let photoProgressMap = {};
 
     let activeGroup = 'Stray Kids';
     let activeMode = 'member';
@@ -161,6 +161,16 @@
             discounts: data.discounts || []
           };
         });
+      });
+
+      onSnapshot(collection(db, "photo_progress"), snap => {
+        photoProgressMap = {};
+        snap.forEach(d => {
+          const data = d.data();
+          const key = (data.eventName || data.event) + '_' + (data.member || '');
+          photoProgressMap[key] = data;
+        });
+        renderCapsulesAndRecords();
       });
 
       onSnapshot(collection(db, "orders"), snap => {
@@ -351,7 +361,6 @@
         });
       }
 
-      // 🎨 情境 1: 選擇「指定買家」時的高對比個人統計卡
       if (activeUser !== 'ALL' && !isPendingOnly) {
         const userEventsSet = new Set();
         let paidCount = 0, checkingCount = 0, pendingCount = 0, issueCount = 0;
@@ -401,7 +410,6 @@
           </div>
         `;
       } 
-      // 🎨 情境 2: 按「🚨 僅顯示待匯款」時，依「買家暱稱分組歸戶」
       else if (isPendingOnly) {
         const userPendingGroups = {};
         let grandPendingTotal = 0;
@@ -412,8 +420,10 @@
           userPendingGroups[uName].push(ord);
         });
 
-        let userCardsHtml = '';
-        Object.keys(userPendingGroups).sort((a,b)=>a.localeCompare(b,'zh-TW')).forEach(uName => {
+        const sortedUsers = Object.keys(userPendingGroups).sort((a,b)=>a.localeCompare(b,'zh-TW'));
+        let userLinesHtml = '';
+
+        sortedUsers.forEach((uName, idx) => {
           const uOrders = userPendingGroups[uName];
           let userSubTotal = 0;
           let itemsHtml = '';
@@ -423,32 +433,40 @@
             userSubTotal += info.totalPrice;
             grandPendingTotal += info.totalPrice;
             const evName = ord.event || ord.eventName || '活動';
+            const memName = ord.member || '全體';
+
+            const progressKey = evName + '_' + memName;
+            const prog = photoProgressMap[progressKey] || {};
+            const notifyTag = prog.notifyPaymentAt ? ` ── 📢 ${prog.notifyPaymentAt} 已通知匯款` : '';
 
             itemsHtml += `
               <div class="pending-item-row">
-                <span>• ${evName} (<b>${ord.member || '全體'}</b> - ${info.packs}包 / ${info.qty}張)</span>
+                <span>• ${evName} (${memName} - ${info.packs}包 / ${info.qty}張)<small style="color:#f56c6c; font-weight:bold;">${notifyTag}</small></span>
                 <b>$${info.totalPrice.toLocaleString()}</b>
               </div>
             `;
           });
 
-          userCardsHtml += `
-            <div class="pending-group-card">
-              <div class="pending-group-header">
-                <span>👤 ${uName} (${uOrders.length} 筆未匯款)</span>
-                <span>待匯款總額：<b>$${userSubTotal.toLocaleString()}</b></span>
+          userLinesHtml += `
+            <div class="pending-user-block">
+              <div class="pending-user-title">
+                <span>👤 ${uName} (${uOrders.length} 筆)</span>
+                <span>小計：<b>$${userSubTotal.toLocaleString()}</b></span>
               </div>
-              <div class="pending-group-body">${itemsHtml}</div>
+              ${itemsHtml}
             </div>
+            ${idx < sortedUsers.length - 1 ? '<div class="pending-divider"></div>' : ''}
           `;
         });
 
         summary.innerHTML = `
-          <div style="background:#fef0f0; border:1px solid #fde2e2; border-radius:10px; padding:12px 16px; margin-bottom:15px; color:#f56c6c; font-size:15px; font-weight:bold; display:flex; justify-content:space-between; align-items:center;">
-            <span>🚨 全站待匯款買家彙總 (共 ${Object.keys(userPendingGroups).length} 位買家 / ${list.length} 筆項目)</span>
-            <span style="font-size:18px;">總應匯款：<b>$${grandPendingTotal.toLocaleString()}</b></span>
+          <div class="pending-flat-box">
+            <div class="pending-flat-header">
+              <span>🚨 待匯款項目彙總列表 (共 ${sortedUsers.length} 位買家 / ${list.length} 筆)</span>
+              <span style="font-size:16px;">總應匯款：<b>$${grandPendingTotal.toLocaleString()}</b></span>
+            </div>
+            ${userLinesHtml || '<p style="color:#909399; text-align:center; padding:10px 0;">目前尚無任何待匯款項目</p>'}
           </div>
-          ${userCardsHtml || '<p style="color:#909399; text-align:center; padding:20px;">目前尚無任何待匯款項目</p>'}
         `;
 
         notifyHeight();
@@ -461,7 +479,6 @@
         return;
       }
 
-      // 🎨 情境 3: 指定買家時改用方案 A (緊湊式表格)，其餘情況用全頁一般場次群組
       if (activeUser !== 'ALL') {
         renderCompactUserTable(list);
       } else {
@@ -471,7 +488,6 @@
       notifyHeight();
     }
 
-    // 🎨 方案 A：單一買家緊湊式明細表 (Table)
     function renderCompactUserTable(orders) {
       const recordsList = document.getElementById('recordsList');
       let rowsHtml = '';

@@ -449,17 +449,26 @@
       const cleanSeller = seller ? seller.trim() : '代拍1';
       const docId = eventName + '_' + member + '_' + cleanSeller;
 
-      try {
-        await setDoc(doc(db, "photo_progress", docId), {
-          eventName: eventName,
-          group: group,
-          member: member,
-          seller: cleanSeller,
-          status: status,
-          updatedAt: new Date()
-        }, { merge: true });
+      const now = new Date();
+      const formattedMD = (now.getMonth() + 1) + '/' + now.getDate();
 
-        if (status === '分圖中') {
+      const updateData = {
+        eventName: eventName,
+        group: group,
+        member: member,
+        seller: cleanSeller,
+        status: status,
+        updatedAt: new Date()
+      };
+
+      if (status === '已通知匯款') {
+        updateData.notifyPaymentAt = formattedMD;
+      }
+
+      try {
+        await setDoc(doc(db, "photo_progress", docId), updateData, { merge: true });
+
+        if (status === '分圖中' || status === '已通知匯款') {
           await triggerOrdersToPendingPayment(eventName, member);
         }
 
