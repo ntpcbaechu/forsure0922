@@ -37,7 +37,6 @@
     .amount-col-label { font-size: 12px; color: #606266; font-weight: bold; }
     .amount-col-val { font-size: 18px; font-weight: bold; }
 
-    /* 極簡粉紅底待匯款彙總列表 */
     .pending-flat-box { background: #fef0f0; border: 1px solid #fde2e2; border-radius: 12px; padding: 16px; margin-bottom: 16px; color: #f56c6c; }
     .pending-flat-header { font-size: 15px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed #fde2e2; padding-bottom: 10px; margin-bottom: 12px; }
     .pending-user-block { margin-bottom: 12px; }
@@ -122,8 +121,8 @@
     const db = getFirestore(app);
 
     let allOrders = [];
-    let eventPricesMap = {};
-    let photoProgressMap = {};
+    let eventSettingsMap = {};
+    let paymentsMap = {};
 
     let activeGroup = 'Stray Kids';
     let activeMode = 'member';
@@ -151,24 +150,32 @@
       renderGroupCapsules();
 
       onSnapshot(collection(db, "event_settings"), snap => {
-        eventPricesMap = {};
+        eventSettingsMap = {};
         snap.forEach(d => {
           const data = d.data();
           const key = (data.name || data.rawName) + '_' + (data.member || '');
-          eventPricesMap[key] = {
+          eventSettingsMap[key] = {
             price: Number(data.actualPrice || data.price || data.estimatedPrice || data.unitPrice) || 0,
             packQty: Number(data.packQty) || 1,
-            discounts: data.discounts || []
+            discounts: data.discounts || [],
+            actVideo: Number(data.actVideo) || 0
           };
         });
+        renderCapsulesAndRecords();
       });
 
-      onSnapshot(collection(db, "photo_progress"), snap => {
-        photoProgressMap = {};
+      onSnapshot(collection(db, "payments"), snap => {
+        paymentsMap = {};
         snap.forEach(d => {
           const data = d.data();
-          const key = (data.eventName || data.event) + '_' + (data.member || '');
-          photoProgressMap[key] = data;
+          const relatedIds = data.relatedOrderIds || [];
+          relatedIds.forEach(oId => {
+            paymentsMap[oId] = data;
+          });
+          const buyer = data.user || data.buyerName;
+          if (buyer) {
+            paymentsMap[buyer] = data;
+          }
         });
         renderCapsulesAndRecords();
       });
@@ -311,12 +318,12 @@
       });
     }
 
-    function getItemPriceInfo(item) {
+    function getItemPriceAndUnit(item) {
       const eventName = item.event || item.eventName || '';
       const member = item.member || '';
       const userName = item.user || item.buyerName || item.nickname || '';
       const key = eventName + '_' + member;
-      const setting = eventPricesMap[key] || {};
+      const setting = eventSettingsMap[key] || {};
       
       const pricePerPack = setting.price || Number(item.price) || 0;
       const packQty = setting.packQty || 1;
@@ -334,7 +341,32 @@
         }
       }
 
-      return { pricePerPack, totalPrice, qty, packs };
+      const unitLabel = setting.actVideo > 0 ? '個' : '張';
+      const qtyText = `${packs}包 (${qty}${unitLabel})`;
+
+      return { totalPrice, qtyText };
+    }
+
+    function getPaymentPhotoBadge(ord) {
+      const payStatus = ord.paymentStatus || ord.status || (ord.hasPaid ? '已對帳' : '待匯款');
+      
+      let payBadgeHtml = '<span class="status-badge status-pending">🚨 待匯款</span>';
+      if (payStatus === '已對帳') payBadgeHtml = '<span class="status-badge status-paid">🟢 已對帳</span>';
+      else if (payStatus === '待對帳' || payStatus === '對帳中') payBadgeHtml = '<span class="status-badge status-checking">⏳ 待對帳</span>';
+      else if (payStatus === '對帳有問題' || payStatus === '有問題') payBadgeHtml = '<span class="status-badge status-issue">⚠️ 帳有問題</span>';
+
+      const paymentDoc = paymentsMap[ord.id] || paymentsMap[ord.user || ord.buyerName] || {};
+      const isPhotoSent = ord.isPhotoSent === true || payStatus === '已發圖' || paymentDoc.isPhotoSent === true;
+
+      let photoBadgeHtml = '<span class="status-badge photo-badge-pending">📷 待發圖</span>';
+      if (isPhotoSent) {
+        const sentAt = ord.photoSentAt || paymentDoc.photoSentAt || '';
+        const expireAt = ord.photoExpireAt || paymentDoc.photoExpireAt || '';
+        const dateText = (sentAt && expireAt) ? ` (${sentAt}發圖 / ${expireAt}刪除)` : '';
+        photoBadgeHtml = `<span class="status-badge photo-badge-sent">🔵 已發圖${dateText}</span>`;
+      }
+
+      return { payBadgeHtml, photoBadgeHtml };
     }
 
     function renderCapsulesAndRecords() {
@@ -369,7 +401,7 @@
         allOrders.filter(o => o.group === activeGroup && (o.buyerName || o.user || o.nickname) === activeUser).forEach(o => {
           userEventsSet.add((o.event || o.eventName) + '_' + o.member);
           const status = o.paymentStatus || o.status || (o.hasPaid ? '已對帳' : '待匯款');
-          const info = getItemPriceInfo(o);
+          const info = getItemPriceAndUnit(o);
 
           if (status === '已對帳') { paidCount++; paidTotal += info.totalPrice; }
           else if (status === '待對帳' || status === '對帳中') checkingCount++;
@@ -429,19 +461,15 @@
           let itemsHtml = '';
 
           uOrders.forEach(ord => {
-            const info = getItemPriceInfo(ord);
+            const info = getItemPriceAndUnit(ord);
             userSubTotal += info.totalPrice;
             grandPendingTotal += info.totalPrice;
             const evName = ord.event || ord.eventName || '活動';
             const memName = ord.member || '全體';
 
-            const progressKey = evName + '_' + memName;
-            const prog = photoProgressMap[progressKey] || {};
-            const notifyTag = prog.notifyPaymentAt ? ` ── 📢 ${prog.notifyPaymentAt} 已通知匯款` : '';
-
             itemsHtml += `
-              <div class="pending-item-row">
-                <span>• ${evName} (${memName} - ${info.packs}包 / ${info.qty}張)<small style="color:#f56c6c; font-weight:bold;">${notifyTag}</small></span>
+              <div class="pending-item-line">
+                <span>• ${evName} (${memName} - ${info.qtyText})</span>
                 <b>$${info.totalPrice.toLocaleString()}</b>
               </div>
             `;
@@ -465,7 +493,7 @@
               <span>🚨 待匯款項目彙總列表 (共 ${sortedUsers.length} 位買家 / ${list.length} 筆)</span>
               <span style="font-size:16px;">總應匯款：<b>$${grandPendingTotal.toLocaleString()}</b></span>
             </div>
-            ${userLinesHtml || '<p style="color:#909399; text-align:center; padding:10px 0;">目前尚無任何待匯款項目</p>'}
+            ${userLinesHtml || '<p style="color:#f56c6c; text-align:center; padding:10px 0;">目前尚無任何待匯款項目</p>'}
           </div>
         `;
 
@@ -493,29 +521,18 @@
       let rowsHtml = '';
 
       orders.forEach((ord, idx) => {
-        const status = ord.paymentStatus || ord.status || (ord.hasPaid ? '已對帳' : '待匯款');
-        
-        let payBadgeHtml = '<span class="status-badge status-pending">🚨 待匯款</span>';
-        if (status === '已對帳') payBadgeHtml = '<span class="status-badge status-paid">🟢 已對帳</span>';
-        else if (status === '待對帳' || status === '對帳中') payBadgeHtml = '<span class="status-badge status-checking">⏳ 待對帳</span>';
-        else if (status === '對帳有問題' || status === '有問題') payBadgeHtml = '<span class="status-badge status-issue">⚠️ 帳有問題</span>';
-
-        const isPhotoSent = ord.isPhotoSent === true || status === '已發圖';
-        let photoBadgeHtml = isPhotoSent ? '<span class="status-badge photo-badge-sent">🔵 已發圖</span>' : '<span class="status-badge photo-badge-pending">📷 待發圖</span>';
-
-        const info = getItemPriceInfo(ord);
+        const info = getItemPriceAndUnit(ord);
         const evName = ord.event || ord.eventName || '未分類活動';
+        const badges = getPaymentPhotoBadge(ord);
 
         rowsHtml += `
           <tr>
             <td>#${idx + 1}</td>
             <td><b>${evName}</b></td>
-            <td>${ord.member || '全體'}</td>
-            <td>${info.packs} 包 / ${info.qty} 張</td>
-            <td>$${info.pricePerPack}</td>
+            <td>${info.qtyText}</td>
             <td><b style="color:#f56c6c;">$${info.totalPrice.toLocaleString()}</b></td>
-            <td>${payBadgeHtml}</td>
-            <td>${photoBadgeHtml}</td>
+            <td>${badges.payBadgeHtml}</td>
+            <td>${badges.photoBadgeHtml}</td>
           </tr>
         `;
       });
@@ -526,13 +543,11 @@
             <thead>
               <tr>
                 <th style="width:5%;">#</th>
-                <th style="width:30%;">活動名稱</th>
-                <th style="width:12%;">成員</th>
-                <th style="width:15%;">喊單數量</th>
-                <th style="width:10%;">每包單價</th>
-                <th style="width:12%;">小計</th>
-                <th style="width:10%;">對帳狀態</th>
-                <th style="width:10%;">發圖進度</th>
+                <th style="width:35%;">活動名稱</th>
+                <th style="width:18%;">喊單數量</th>
+                <th style="width:15%;">小計</th>
+                <th style="width:13%;">對帳狀態</th>
+                <th style="width:14%;">發圖與刪除期限</th>
               </tr>
             </thead>
             <tbody>${rowsHtml}</tbody>
@@ -553,32 +568,24 @@
 
       for (const [title, list] of Object.entries(groups)) {
         const totalPacks = list.reduce((sum, item) => sum + (Number(item.quantity) || Number(item.qty) || 1), 0);
+        const sampleKey = (list[0].event || list[0].eventName || '') + '_' + (list[0].member || '');
+        const sampleSetting = eventSettingsMap[sampleKey] || {};
+        const groupUnitLabel = sampleSetting.actVideo > 0 ? '個' : '張';
 
         let rowsHtml = '';
         list.forEach((ord, idx) => {
-          const status = ord.paymentStatus || ord.status || (ord.hasPaid ? '已對帳' : '待匯款');
-          
-          let payBadgeHtml = '<span class="status-badge status-pending">🚨 待匯款</span>';
-          if (status === '已對帳') payBadgeHtml = '<span class="status-badge status-paid">🟢 已對帳</span>';
-          else if (status === '待對帳' || status === '對帳中') payBadgeHtml = '<span class="status-badge status-checking">⏳ 待對帳</span>';
-          else if (status === '對帳有問題' || status === '有問題') payBadgeHtml = '<span class="status-badge status-issue">⚠️ 帳有問題</span>';
-
-          const isPhotoSent = ord.isPhotoSent === true || status === '已發圖';
-          let photoBadgeHtml = isPhotoSent ? '<span class="status-badge photo-badge-sent">🔵 已發圖</span>' : '<span class="status-badge photo-badge-pending">📷 待發圖</span>';
-
           const name = ord.user || ord.buyerName || ord.nickname || '未知';
-          const info = getItemPriceInfo(ord);
+          const info = getItemPriceAndUnit(ord);
+          const badges = getPaymentPhotoBadge(ord);
 
           rowsHtml += `
             <tr>
               <td>#${idx + 1}</td>
               <td><b>${name}</b></td>
-              <td>${ord.member || '全體'}</td>
-              <td>${info.packs} 包 / ${info.qty} 張</td>
-              <td>$${info.pricePerPack}</td>
+              <td>${info.qtyText}</td>
               <td><b style="color:#f56c6c;">$${info.totalPrice.toLocaleString()}</b></td>
-              <td>${payBadgeHtml}</td>
-              <td>${photoBadgeHtml}</td>
+              <td>${badges.payBadgeHtml}</td>
+              <td>${badges.photoBadgeHtml}</td>
             </tr>
           `;
         });
@@ -587,19 +594,17 @@
           <div class="event-section">
             <div class="event-header">
               <span>📌 ${title}</span>
-              <span class="event-meta">共 ${list.length} 筆 / ${totalPacks} 張</span>
+              <span class="event-meta">共 ${list.length} 筆 / ${totalPacks} ${groupUnitLabel}</span>
             </div>
             <table class="compact-records-table">
               <thead>
                 <tr>
                   <th style="width:5%;">#</th>
-                  <th style="width:20%;">買家暱稱</th>
-                  <th style="width:15%;">成員</th>
+                  <th style="width:25%;">買家暱稱</th>
                   <th style="width:20%;">喊單數量</th>
-                  <th style="width:12%;">單價</th>
-                  <th style="width:13%;">小計</th>
-                  <th style="width:10%;">對帳狀態</th>
-                  <th style="width:10%;">發圖狀態</th>
+                  <th style="width:15%;">小計</th>
+                  <th style="width:15%;">對帳狀態</th>
+                  <th style="width:20%;">發圖與刪除期限</th>
                 </tr>
               </thead>
               <tbody>${rowsHtml}</tbody>
