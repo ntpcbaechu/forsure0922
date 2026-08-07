@@ -90,7 +90,7 @@
     let eventPricesMap = {};
     let editingRows = new Set();
     
-    let activeGroup = 'Stray Kids';
+    let activeGroup = 'ALL';
     let activeMode = 'member';
     let activeDetail = 'ALL';
     let activeUser = 'ALL';
@@ -100,13 +100,13 @@
 
     document.addEventListener('DOMContentLoaded', async () => {
       try {
-        const gRes = await fetch('json/group.json');
+        const gRes = await fetch('../../json/group.json');
         groupList = await gRes.json();
 
         for (const g of groupList) {
           const file = (g === 'Stray Kids') ? 'members_skz.json' : (g === 'ATEEZ' ? 'members_atz.json' : '');
           if (file) {
-            const mRes = await fetch(`json/${file}`);
+            const mRes = await fetch(`../../json/${file}`);
             memberMap[g] = await mRes.json();
           }
         }
@@ -132,7 +132,7 @@
         ordersMap = {};
         snap.forEach(d => {
           const data = d.data();
-          ordersMap[d.id] = { id: d.id, ...data, group: data.group || "Stray Kids" };
+          ordersMap[d.id] = { id: d.id, ...data };
         });
         updateDetailCapsules();
         updateUserCapsules();
@@ -169,6 +169,22 @@
     function renderGroupCapsules() {
       const container = document.getElementById('groupCapsules');
       container.innerHTML = '';
+
+      const allBtn = document.createElement('button');
+      allBtn.className = `capsule-filter-btn ${activeGroup === 'ALL' ? 'active' : ''}`;
+      allBtn.textContent = '團體';
+      allBtn.onclick = () => {
+        activeGroup = 'ALL';
+        document.querySelectorAll('#groupCapsules .capsule-filter-btn').forEach(b => b.classList.remove('active'));
+        allBtn.classList.add('active');
+        activeDetail = 'ALL';
+        activeUser = 'ALL';
+        updateDetailCapsules();
+        updateUserCapsules();
+        renderOrdersTable();
+      };
+      container.appendChild(allBtn);
+
       groupList.forEach(g => {
         const btn = document.createElement('button');
         btn.className = `capsule-filter-btn ${activeGroup === g ? 'active' : ''}`;
@@ -178,12 +194,28 @@
           document.querySelectorAll('#groupCapsules .capsule-filter-btn').forEach(b => b.classList.remove('active'));
           btn.classList.add('active');
           activeDetail = 'ALL';
+          activeUser = 'ALL';
           updateDetailCapsules();
           updateUserCapsules();
           renderOrdersTable();
         };
         container.appendChild(btn);
       });
+
+      const unclassifiedBtn = document.createElement('button');
+      unclassifiedBtn.className = `capsule-filter-btn ${activeGroup === 'UNCLASSIFIED' ? 'active' : ''}`;
+      unclassifiedBtn.textContent = '未分類';
+      unclassifiedBtn.onclick = () => {
+        activeGroup = 'UNCLASSIFIED';
+        document.querySelectorAll('#groupCapsules .capsule-filter-btn').forEach(b => b.classList.remove('active'));
+        unclassifiedBtn.classList.add('active');
+        activeDetail = 'ALL';
+        activeUser = 'ALL';
+        updateDetailCapsules();
+        updateUserCapsules();
+        renderOrdersTable();
+      };
+      container.appendChild(unclassifiedBtn);
     }
 
     window.setModeFilter = (mode, btn) => {
@@ -210,13 +242,20 @@
       };
       container.appendChild(allBtn);
 
-      const filteredOrders = Object.values(ordersMap).filter(o => o.group === activeGroup);
+      let filteredOrders = Object.values(ordersMap);
+      if (activeGroup === 'UNCLASSIFIED') {
+        filteredOrders = filteredOrders.filter(o => !o.group || o.group === '未分類');
+      } else if (activeGroup !== 'ALL') {
+        filteredOrders = filteredOrders.filter(o => o.group === activeGroup);
+      }
 
       if (activeMode === 'member') {
-        const membersInJson = memberMap[activeGroup] || [];
+        const membersInJson = (activeGroup !== 'ALL' && activeGroup !== 'UNCLASSIFIED') ? (memberMap[activeGroup] || []) : Object.values(memberMap).flat();
         const activeMembersWithData = new Set(filteredOrders.map(o => o.member).filter(Boolean));
 
-        membersInJson.forEach(m => {
+        const displayMembers = new Set([...membersInJson, ...Array.from(activeMembersWithData)]);
+
+        displayMembers.forEach(m => {
           if (activeMembersWithData.has(m)) {
             const btn = document.createElement('button');
             btn.className = `capsule-filter-btn ${activeDetail === m ? 'sub-active' : ''}`;
@@ -265,10 +304,18 @@
       };
       container.appendChild(allBtn);
 
-      const filteredOrders = Object.values(ordersMap).filter(o => o.group === activeGroup);
+      let filteredOrders = Object.values(ordersMap);
+      if (activeGroup === 'UNCLASSIFIED') {
+        filteredOrders = filteredOrders.filter(o => !o.group || o.group === '未分類');
+      } else if (activeGroup !== 'ALL') {
+        filteredOrders = filteredOrders.filter(o => o.group === activeGroup);
+      }
+
       const usersSet = new Set();
       filteredOrders.forEach(o => {
-        if (o.user || o.buyerName) usersSet.add(o.user || o.buyerName);
+        let rawName = o.user || o.buyerName || o.nickname || '';
+        let cleanName = rawName.replace(/^[-\s]+/, '').trim();
+        if (cleanName) usersSet.add(cleanName);
       });
 
       Array.from(usersSet).sort((a,b)=>a.localeCompare(b,'zh-TW')).forEach(u => {
@@ -289,7 +336,13 @@
       const tb = document.getElementById('ordersTableBody');
       tb.innerHTML = '';
 
-      let list = Object.values(ordersMap).filter(o => o.group === activeGroup);
+      let list = Object.values(ordersMap);
+
+      if (activeGroup === 'UNCLASSIFIED') {
+        list = list.filter(o => !o.group || o.group === '未分類');
+      } else if (activeGroup !== 'ALL') {
+        list = list.filter(o => o.group === activeGroup);
+      }
 
       if (activeDetail !== 'ALL') {
         if (activeMode === 'member') list = list.filter(o => o.member === activeDetail);
@@ -297,7 +350,11 @@
       }
 
       if (activeUser !== 'ALL') {
-        list = list.filter(o => (o.user || o.buyerName) === activeUser);
+        list = list.filter(o => {
+          let rawName = o.user || o.buyerName || o.nickname || '';
+          let cleanName = rawName.replace(/^[-\s]+/, '').trim();
+          return cleanName === activeUser;
+        });
       }
 
       if (list.length === 0) {
@@ -311,7 +368,8 @@
       list.forEach(o => {
         const docId = o.id;
         const isEditing = editingRows.has(docId);
-        const uName = o.user || o.buyerName || '-';
+        let rawName = o.user || o.buyerName || '-';
+        let uName = rawName.replace(/^[-\s]+/, '').trim();
         const ev = o.event || o.eventName || '-';
         const mem = o.member || '-';
         const qty = o.qty !== undefined ? o.qty : (o.quantity || 1);

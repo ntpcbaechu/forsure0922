@@ -184,7 +184,8 @@
     let progressMap = {};
     let lastProgressList = [];
 
-    let activeGroup = 'Stray Kids';
+    // 預設切換為 'ALL' (即第一顆「團體」膠囊)
+    let activeGroup = 'ALL';
     let activeMode = 'member';
     let activeStatus = 'ALL';
 
@@ -237,6 +238,22 @@
     function renderGroupCapsules() {
       const container = document.getElementById('groupCapsules');
       container.innerHTML = '';
+
+      // 1. 全部團體 (膠囊顯示「團體」，預設 active)
+      const allBtn = document.createElement('button');
+      allBtn.className = `capsule-filter-btn ${activeGroup === 'ALL' ? 'active' : ''}`;
+      allBtn.textContent = '團體';
+      allBtn.onclick = () => {
+        activeGroup = 'ALL';
+        document.querySelectorAll('#groupCapsules .capsule-filter-btn').forEach(b => b.classList.remove('active'));
+        allBtn.classList.add('active');
+        activeStatus = 'ALL';
+        updateStatusCapsules();
+        renderProgressCards();
+      };
+      container.appendChild(allBtn);
+
+      // 2. 各團體膠囊
       groupList.forEach(g => {
         const btn = document.createElement('button');
         btn.className = `capsule-filter-btn ${activeGroup === g ? 'active' : ''}`;
@@ -251,6 +268,20 @@
         };
         container.appendChild(btn);
       });
+
+      // 3. 未分類
+      const unclassifiedBtn = document.createElement('button');
+      unclassifiedBtn.className = `capsule-filter-btn ${activeGroup === 'UNCLASSIFIED' ? 'active' : ''}`;
+      unclassifiedBtn.textContent = '未分類';
+      unclassifiedBtn.onclick = () => {
+        activeGroup = 'UNCLASSIFIED';
+        document.querySelectorAll('#groupCapsules .capsule-filter-btn').forEach(b => b.classList.remove('active'));
+        unclassifiedBtn.classList.add('active');
+        activeStatus = 'ALL';
+        updateStatusCapsules();
+        renderProgressCards();
+      };
+      container.appendChild(unclassifiedBtn);
     }
 
     window.setModeFilter = (mode, btn) => {
@@ -346,7 +377,7 @@
       progressMap = {};
       lastProgressList = [];
       snap.forEach(d => {
-        const item = { id: d.id, group: "Stray Kids", ...d.data() };
+        const item = { id: d.id, ...d.data() };
         progressMap[d.id] = item;
         lastProgressList.push(item);
       });
@@ -357,7 +388,13 @@
       const container = document.getElementById('progressContainer');
       container.innerHTML = '';
 
-      let list = lastProgressList.filter(i => (i.group || 'Stray Kids') === activeGroup);
+      let list = lastProgressList;
+
+      if (activeGroup === 'UNCLASSIFIED') {
+        list = list.filter(i => !i.group || i.group === '未分類');
+      } else if (activeGroup !== 'ALL') {
+        list = list.filter(i => i.group === activeGroup);
+      }
 
       if (activeStatus !== 'ALL') {
         list = list.filter(i => i.status === activeStatus);
