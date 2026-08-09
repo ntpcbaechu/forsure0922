@@ -136,7 +136,7 @@
         snap.forEach(d => {
           const data = d.data();
           if (data.status !== '已結束' && data.status !== '到期/已刪除') {
-            rawProgress.push({ id: d.id, group: 'Stray Kids', ...data });
+            rawProgress.push({ id: d.id, group: data.group || 'Stray Kids', ...data });
           }
         });
         updateDetailCapsules();
@@ -148,9 +148,10 @@
       const container = document.getElementById('groupCapsules');
       container.innerHTML = '';
 
+      // 1. 全部團體 (膠囊顯示「全部」)
       const allBtn = document.createElement('button');
       allBtn.className = `capsule-filter-btn ${activeGroup === 'ALL' ? 'active' : ''}`;
-      allBtn.textContent = '團體';
+      allBtn.textContent = '全部';
       allBtn.onclick = () => {
         activeGroup = 'ALL';
         document.querySelectorAll('#groupCapsules .capsule-filter-btn').forEach(b => b.classList.remove('active'));
@@ -162,6 +163,7 @@
       };
       container.appendChild(allBtn);
 
+      // 2. 各團體膠囊
       groupList.forEach(g => {
         const btn = document.createElement('button');
         btn.className = `capsule-filter-btn ${activeGroup === g ? 'active' : ''}`;
@@ -178,6 +180,7 @@
         container.appendChild(btn);
       });
 
+      // 3. 未分類
       const unclassifiedBtn = document.createElement('button');
       unclassifiedBtn.className = `capsule-filter-btn ${activeGroup === 'UNCLASSIFIED' ? 'active' : ''}`;
       unclassifiedBtn.textContent = '未分類';
@@ -283,7 +286,7 @@
       };
       container.appendChild(allBtn);
 
-      const activeEventKeys = new Set(rawProgress.map(p => (p.eventName || p.event) + '_' + (p.member || '')));
+      const activeEventKeys = new Set(rawProgress.map(p => (p.group || '') + '_' + (p.eventName || p.event || '') + '_' + (p.member || '')));
 
       const usersSet = new Set();
       Object.values(ordersCache).forEach(ord => {
@@ -292,7 +295,7 @@
         else if (activeGroup !== 'ALL') matchGroup = ord.group === activeGroup;
 
         if (matchGroup) {
-          const key = (ord.event || ord.eventName || '') + '_' + (ord.member || '');
+          const key = (ord.group || '') + '_' + (ord.event || ord.eventName || '') + '_' + (ord.member || '');
           if (activeEventKeys.has(key)) {
             const name = ord.buyerName || ord.user || ord.nickname;
             if (name) usersSet.add(name);
@@ -336,11 +339,14 @@
         return;
       }
 
+      // 核心修復 1：使用 [團體 + 活動] 作為分組 Key，防止跨團體同名活動合併
       const eventGroups = {};
       list.forEach(item => {
+        const grp = item.group || '未分類';
         const eTitle = item.eventName || item.event || '未命名活動';
-        if (!eventGroups[eTitle]) eventGroups[eTitle] = [];
-        eventGroups[eTitle].push(item);
+        const groupKey = `${grp}___${eTitle}`;
+        if (!eventGroups[groupKey]) eventGroups[groupKey] = [];
+        eventGroups[groupKey].push(item);
       });
 
       let htmlContent = '';
@@ -351,8 +357,9 @@
         currentMemberList = memberMap[activeGroup] || [];
       }
 
-      Object.keys(eventGroups).sort().forEach(eventName => {
-        const items = eventGroups[eventName];
+      Object.keys(eventGroups).sort().forEach(groupKey => {
+        const items = eventGroups[groupKey];
+        const [grpName, eventName] = groupKey.split('___');
 
         items.sort((a, b) => {
           let idxA = currentMemberList.indexOf(a.member || '');
@@ -372,24 +379,42 @@
         Object.keys(memberMapObj).forEach(mName => {
           const mItems = memberMapObj[mName];
           
-          const matchedBuyers = new Set();
+          // 核心修復 2：依據喊單 createdAt 排序買家（移除字母排序 .sort()）
+          const matchedBuyerOrders = [];
           Object.values(ordersCache).forEach(ord => {
-            let matchGroup = true;
-            if (activeGroup === 'UNCLASSIFIED') matchGroup = !ord.group || ord.group === '未分類';
-            else if (activeGroup !== 'ALL') matchGroup = ord.group === activeGroup;
-
-            if (matchGroup && (ord.event || ord.eventName) === eventName && ord.member === mName) {
+            const ordGrp = ord.group || '未分類';
+            if (ordGrp === grpName && (ord.event || ord.eventName) === eventName && ord.member === mName) {
               const bName = ord.buyerName || ord.user || ord.nickname;
               if (bName) {
-                if (activeUser === 'ALL' || bName === activeUser) matchedBuyers.add(bName);
+                if (activeUser === 'ALL' || bName === activeUser) {
+                  matchedBuyerOrders.push(ord);
+                }
               }
             }
           });
 
-          if (activeUser !== 'ALL' && matchedBuyers.size === 0) return;
+          if (activeUser !== 'ALL' && matchedBuyerOrders.length === 0) return;
+
+          // 按照喊單建立時間由早到晚排序
+          matchedBuyerOrders.sort((a, b) => {
+            const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+            const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+            return timeA - timeB;
+          });
+
+          // 取出獨立買家名稱並維持喊單時間順序
+          const uniqueBuyersInOrder = [];
+          const buyerSeenSet = new Set();
+          matchedBuyerOrders.forEach(ord => {
+            const bName = ord.buyerName || ord.user || ord.nickname;
+            if (bName && !buyerSeenSet.has(bName)) {
+              buyerSeenSet.add(bName);
+              uniqueBuyersInOrder.push(bName);
+            }
+          });
 
           let buyersHtml = '';
-          Array.from(matchedBuyers).sort().forEach(bName => {
+          uniqueBuyersInOrder.forEach(bName => {
             let payStatusText = '🚨 待匯款', payBadgeClass = 'status-waiting';
             let photoStatusText = '📷 待發圖', photoBadgeClass = 'status-waiting';
 
@@ -436,10 +461,9 @@
         });
 
         if (membersHtml) {
-          const grpLabel = activeGroup === 'ALL' ? (items[0].group || 'Stray Kids') : activeGroup;
           htmlContent += `
             <div class="event-group-card">
-              <div class="event-group-header">📅 [${grpLabel}] ${eventName}</div>
+              <div class="event-group-header">📅 [${grpName}] ${eventName}</div>
               <div class="progress-list-box">${membersHtml}</div>
             </div>
           `;
