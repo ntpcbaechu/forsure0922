@@ -72,11 +72,16 @@
       <button class="sub-tab-btn" onclick="switchSubTab('refund', this)">📤 申請退款</button>
     </div>
 
+    <!-- 儲值表單 -->
     <form id="depositForm" class="form-section active">
       <div class="form-grid-2rows">
         <div class="form-group">
-          <label>社群名稱 *</label>
-          <select id="depUser" required><option value="">請選擇</option></select>
+          <label>1. 選擇團體 *</label>
+          <select id="depGroup" required><option value="">載入中...</option></select>
+        </div>
+        <div class="form-group">
+          <label>2. 社群名稱 *</label>
+          <select id="depUser" required disabled><option value="">請先選擇團體</option></select>
         </div>
         <div class="form-group">
           <label>儲值原因 *</label>
@@ -117,11 +122,16 @@
       <div id="bankAccountDisplay" class="bank-account-tip"></div>
     </form>
 
+    <!-- 退款表單 -->
     <form id="refundForm" class="form-section">
       <div class="form-grid-2rows">
         <div class="form-group">
-          <label>社群名稱 *</label>
-          <select id="refUser" required><option value="">請選擇</option></select>
+          <label>1. 選擇團體 *</label>
+          <select id="refGroup" required><option value="">載入中...</option></select>
+        </div>
+        <div class="form-group">
+          <label>2. 社群名稱 *</label>
+          <select id="refUser" required disabled><option value="">請先選擇團體</option></select>
         </div>
         <div class="form-group">
           <label>退款原因 *</label>
@@ -131,11 +141,11 @@
           <label>匯款銀行 / 代號 *</label>
           <input type="text" id="refBank" placeholder="例: 中信 822" required>
         </div>
+
         <div class="form-group">
           <label>退款帳號 *</label>
           <input type="text" id="refAccount" placeholder="完整帳號" required>
         </div>
-
         <div class="form-group">
           <label>退款金額 ($) *</label>
           <input type="number" id="refAmt" min="1" placeholder="" required>
@@ -144,7 +154,7 @@
           <label>備註</label>
           <input type="text" id="refNote" placeholder="">
         </div>
-        <div style="grid-column: span 2;">
+        <div>
           <button type="submit" class="btn-submit" style="background:#e6a23c;" id="refSubmitBtn">提交退款申請</button>
         </div>
       </div>
@@ -211,18 +221,53 @@
     };
 
     document.addEventListener('DOMContentLoaded', async () => {
-      try {
-        const res = await fetch('../json/users.json');
-        const users = await res.json();
-        const depSel = document.getElementById('depUser');
-        const refSel = document.getElementById('refUser');
-        depSel.innerHTML = '<option value="">請選擇您的名稱</option>';
-        refSel.innerHTML = '<option value="">請選擇您的名稱</option>';
-        users.sort((a, b) => a.localeCompare(b, 'zh-TW')).forEach(u => {
-          depSel.innerHTML += `<option value="${u}">${u}</option>`;
-          refSel.innerHTML += `<option value="${u}">${u}</option>`;
+      const depGroupSel = document.getElementById('depGroup');
+      const depUserSel = document.getElementById('depUser');
+      const refGroupSel = document.getElementById('refGroup');
+      const refUserSel = document.getElementById('refUser');
+
+      fetch('../json/group.json').then(r => r.json()).then(groups => {
+        depGroupSel.innerHTML = '<option value="">請選擇團體</option>';
+        refGroupSel.innerHTML = '<option value="">請選擇團體</option>';
+        groups.forEach(g => {
+          depGroupSel.innerHTML += `<option value="${g}">${g}</option>`;
+          refGroupSel.innerHTML += `<option value="${g}">${g}</option>`;
         });
-      } catch (e) {}
+      });
+
+      depGroupSel.addEventListener('change', async () => {
+        const chosenGroup = depGroupSel.value;
+        if (!chosenGroup) {
+          depUserSel.innerHTML = '<option value="">請先選擇團體</option>';
+          depUserSel.disabled = true;
+          return;
+        }
+        depUserSel.disabled = false;
+        const file = (chosenGroup === 'Stray Kids') ? 'users_skz.json' : 'users_atz.json';
+        let jsonBuyers = [];
+        try { jsonBuyers = await fetch(`../json/${file}`).then(r => r.json()); } catch(e){}
+        depUserSel.innerHTML = '<option value="">請選擇您的名稱</option>';
+        jsonBuyers.sort((a,b)=>a.localeCompare(b,'zh-TW')).forEach(u => {
+          depUserSel.innerHTML += `<option value="${u}">${u}</option>`;
+        });
+      });
+
+      refGroupSel.addEventListener('change', async () => {
+        const chosenGroup = refGroupSel.value;
+        if (!chosenGroup) {
+          refUserSel.innerHTML = '<option value="">請先選擇團體</option>';
+          refUserSel.disabled = true;
+          return;
+        }
+        refUserSel.disabled = false;
+        const file = (chosenGroup === 'Stray Kids') ? 'users_skz.json' : 'users_atz.json';
+        let jsonBuyers = [];
+        try { jsonBuyers = await fetch(`../json/${file}`).then(r => r.json()); } catch(e){}
+        refUserSel.innerHTML = '<option value="">請選擇您的名稱</option>';
+        jsonBuyers.sort((a,b)=>a.localeCompare(b,'zh-TW')).forEach(u => {
+          refUserSel.innerHTML += `<option value="${u}">${u}</option>`;
+        });
+      });
 
       fetch('../json/bank_info.json').then(r => r.json()).then(data => {
         bankAccountsData = data;
@@ -358,14 +403,17 @@
       btn.disabled = true;
       btn.textContent = '提交中...';
 
+      const groupVal = document.getElementById('depGroup').value;
+      const userVal = document.getElementById('depUser').value;
       const reason = document.getElementById('depReason').value.trim();
       const noteInput = document.getElementById('depNote').value.trim();
       const combinedNote = reason ? `${reason}${noteInput ? ' (' + noteInput + ')' : ''}` : noteInput;
 
       try {
         await addDoc(collection(db, "user_deposits"), {
-          user: document.getElementById('depUser').value,
-          buyerName: document.getElementById('depUser').value,
+          group: groupVal,
+          user: userVal,
+          buyerName: userVal,
           payDate: document.getElementById('depDate').value,
           bank: document.getElementById('depBank').value,
           amount: parseFloat(document.getElementById('depAmt').value) || 0,
@@ -377,6 +425,8 @@
         });
         alert('✅ 儲值申報已送出，已顯示在下方待對帳區塊！');
         document.getElementById('depositForm').reset();
+        document.getElementById('depUser').innerHTML = '<option value="">請先選擇團體</option>';
+        document.getElementById('depUser').disabled = true;
         document.getElementById('bankAccountDisplay').style.display = 'none';
       } catch (err) {
         alert('失敗: ' + err.message);
@@ -392,10 +442,14 @@
       btn.disabled = true;
       btn.textContent = '提交中...';
 
+      const groupVal = document.getElementById('refGroup').value;
+      const userVal = document.getElementById('refUser').value;
+
       try {
         await addDoc(collection(db, "refund_requests"), {
-          user: document.getElementById('refUser').value,
-          buyerName: document.getElementById('refUser').value,
+          group: groupVal,
+          user: userVal,
+          buyerName: userVal,
           amount: parseFloat(document.getElementById('refAmt').value) || 0,
           reason: document.getElementById('refReason').value.trim(),
           bank: document.getElementById('refBank').value.trim(),
@@ -407,6 +461,8 @@
         });
         alert('✅ 退款申請已送出，已顯示在下方待審核區塊！');
         document.getElementById('refundForm').reset();
+        document.getElementById('refUser').innerHTML = '<option value="">請先選擇團體</option>';
+        document.getElementById('refUser').disabled = true;
         document.getElementById('refWarning').style.display = 'none';
       } catch (err) {
         alert('失敗: ' + err.message);
