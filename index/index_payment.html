@@ -2,165 +2,161 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
-  <title>匯款對帳回報</title>
+  <title>匯款表單</title>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 0; margin: 0; background: transparent; color: #333; }
+    .form-group { margin-bottom: 16px; }
+    label { font-size: 14px; font-weight: bold; color: #303133; display: block; margin-bottom: 6px; }
+    input, select, textarea { width: 100%; padding: 12px; border: 1px solid #dcdfe6; border-radius: 10px; font-size: 15px; box-sizing: border-box; background: #fff; font-family: inherit; }
+    textarea { resize: vertical; min-height: 80px; }
+    button { width: 100%; padding: 14px; background: #67c23a; color: white; border: none; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+    button:disabled { background: #b3e19d; }
+
+    .info-card { background: #f4f4f5; border-radius: 10px; padding: 12px; margin-bottom: 16px; font-size: 13px; color: #606266; border: 1px solid #e4e7ed; }
+    .info-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+    .orders-select-box { background: #fff; border: 1px solid #dcdfe6; border-radius: 8px; padding: 10px; max-height: 220px; overflow-y: auto; margin-top: 6px; }
     
-    .payment-card {
-      background: #fff;
-      border: 1px solid #e4e7ed;
-      border-radius: 12px;
-      padding: 20px;
-      margin-bottom: 16px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.02);
-      max-width: 600px;
-      margin: 0 auto;
-    }
-
-    .form-header { text-align: center; font-size: 20px; font-weight: bold; color: #303133; margin-bottom: 20px; }
-
-    .form-group { margin-bottom: 18px; display: flex; flex-direction: column; gap: 6px; }
-    .form-label { font-size: 14px; font-weight: bold; color: #303133; }
+    .order-item { display: flex; align-items: center; justify-content: space-between; font-size: 13px; padding: 6px 0; border-bottom: 1px dashed #ebeef5; }
+    .order-item:last-child { border-bottom: none; }
+    .order-left { display: flex; align-items: center; gap: 8px; }
+    .order-chk, .credit-chk, .deposit-chk { width: 16px; height: 16px; margin: 0; cursor: pointer; }
     
-    input[type="text"], input[type="number"], input[type="date"], select {
-      padding: 10px 12px;
-      border: 1px solid #dcdfe6;
-      border-radius: 8px;
-      font-size: 14px;
-      outline: none;
-      transition: border-color 0.2s;
-      width: 100%;
-      box-sizing: border-box;
-    }
-    input:focus, select:focus { border-color: #409eff; }
+    .price-box { display: flex; align-items: center; gap: 6px; font-weight: bold; }
+    .price-original-strike { text-decoration: line-through; color: #909399; font-size: 12px; }
+    .price-final { color: #f56c6c; font-size: 14px; }
 
-    .line-info-card {
-      background: #fafafa;
-      border: 1px solid #ebeef5;
-      border-radius: 10px;
-      padding: 12px 15px;
-      margin-top: 4px;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
+    .btn-add-custom { background: #67c23a; color: #fff; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; margin-top: 8px; display: inline-flex; align-items: center; gap: 4px; }
+    .btn-add-custom:hover { background: #5daf34; }
+    .custom-form-box { background: #fff; border: 1px solid #67c23a; border-radius: 8px; padding: 10px; margin-top: 8px; display: none; }
+    .custom-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+    .custom-form-grid input, .custom-form-grid select { padding: 6px 8px; font-size: 12px; border-radius: 6px; }
 
-    .line-contact-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      background: #fff;
-      border: 1px solid #e4e7ed;
-      padding: 8px 12px;
-      border-radius: 8px;
-    }
+    .summary-right-box { text-align: right; border-top: 1px dashed #dcdfe6; padding-top: 8px; margin-top: 10px; }
+    .summary-right-row { display: flex; justify-content: flex-end; gap: 12px; align-items: center; margin-bottom: 4px; }
 
-    .line-contact-info { font-size: 13px; color: #303133; font-weight: 500; }
+    .bank-info-box { background: #fffbe6; border: 1px solid #ffe58f; border-radius: 10px; padding: 12px; margin-bottom: 16px; font-size: 13px; color: #595959; line-height: 1.6; }
+    .bank-info-title { font-weight: bold; color: #d46b08; font-size: 14px; margin-bottom: 6px; }
+    .bank-warning { color: #f56c6c; font-weight: bold; margin-top: 6px; }
 
-    .btn-copy {
-      background: #f4f4f5;
-      color: #606266;
-      border: 1px solid #dcdfe6;
-      padding: 5px 12px;
-      border-radius: 6px;
-      font-size: 12px;
-      font-weight: bold;
-      cursor: pointer;
-      transition: all 0.2s;
-      white-space: nowrap;
-    }
-    .btn-copy:hover { background: #409eff; color: #fff; border-color: #409eff; }
-
-    .line-warning-text {
-      font-size: 12px;
-      color: #e6a23c;
-      line-height: 1.5;
-      font-weight: bold;
-    }
-
-    .btn-submit {
-      background: #409eff;
-      color: #fff;
-      border: none;
-      padding: 12px;
-      border-radius: 8px;
-      font-size: 15px;
-      font-weight: bold;
-      cursor: pointer;
-      width: 100%;
-      margin-top: 10px;
-      transition: background 0.2s;
-    }
-    .btn-submit:hover { background: #66b1ff; }
+    .overpay-tip { color: #67c23a; font-size: 13px; font-weight: bold; margin-top: 6px; display: none; }
   </style>
 </head>
 <body>
 
-  <div class="payment-card">
-    <div class="form-header">匯款對帳回報</div>
+  <h3 style="margin-top:0; margin-bottom:20px; text-align:center; font-size:20px;">匯款對帳回報</h3>
+  <form id="paymentForm">
+    
+    <!-- 1. 選擇團體 -->
+    <div class="form-group">
+      <label>1. 選擇團體 *</label>
+      <select id="groupSelect" required>
+        <option value="">載入團體中...</option>
+      </select>
+    </div>
 
-    <form id="paymentForm">
-      <!-- 1. 選擇團體 -->
-      <div class="form-group">
-        <label class="form-label">1. 選擇團體 *</label>
-        <select id="groupSelect" required onchange="handleGroupChange()">
-          <option value="">請選擇團體</option>
-        </select>
-      </div>
+    <!-- 2. 社群名稱 -->
+    <div class="form-group">
+      <label>2. 社群名稱 *</label>
+      <select id="buyerName" required disabled><option value="">請先選擇團體</option></select>
+    </div>
+	
+    <div class="form-group">
+      <label>3. IG / Threads 帳號 *</label>
+      <input type="text" id="socialAccount" placeholder="例: ntpcbaechu" required>
+    </div>
 
-      <!-- 2. 社群名稱 -->
-      <div class="form-group">
-        <label class="form-label">2. 社群名稱 *</label>
-        <select id="buyerSelect" required disabled>
-          <option value="">請先選擇團體</option>
-        </select>
-      </div>
+    <div id="formContent" style="display: none;">
+      <div class="info-card">
+        <div style="font-weight:bold; margin-bottom:6px; color:#303133;">選擇要一起匯款的訂單：</div>
+        <div class="orders-select-box" id="ordersList">無待匯款訂單</div>
 
-      <!-- 3. 收圖方式與聯絡帳號 (動態切換) -->
-      <div class="form-group">
-        <label class="form-label">3. 收圖方式與聯絡帳號 *</label>
-        <select id="contactTypeSelect" required onchange="handleContactTypeChange()">
-          <option value="">請選擇收圖方式...</option>
-          <option value="Instagram">Instagram</option>
-          <option value="Threads">Threads</option>
-          <option value="官方 Line">官方 Line</option>
-        </select>
-
-        <!-- IG / Threads 專用輸入框 -->
-        <input type="text" id="contactAccountInput" placeholder="請輸入帳號" style="display:none; margin-top:4px;">
-
-        <!-- 官方 Line 提示卡片 -->
-        <div id="lineInfoCard" class="line-info-card" style="display:none;">
-          <div class="line-contact-row">
-            <div class="line-contact-info">💬 <b>LINE ID :</b> @115oyenv</div>
-            <button type="button" class="btn-copy" onclick="copyLineId()">📋 複製</button>
+        <div>
+          <button type="button" class="btn-add-custom" id="toggleCustomBtn">➕ 新增其他金額 / 補款項目</button>
+          
+          <div class="custom-form-box" id="customFormBox">
+            <div style="font-weight:bold; color:#67c23a; margin-bottom:6px; font-size:12px;">新增自訂補款/額外金額：</div>
+            <div class="custom-form-grid">
+              <input type="text" id="custDate" placeholder="日期 (例: 260801)">
+              <input type="text" id="custEvent" placeholder="活動名稱 (例: 周邊加購)">
+              <select id="custGroup"><option value="">選擇團體</option></select>
+              <select id="custMember" disabled><option value="">請先選擇團體</option></select>
+              <input type="number" id="custPrice" min="0" placeholder="金額 ($)" style="grid-column: span 2;">
+            </div>
+            <div style="display:flex; gap:6px;">
+              <button type="button" id="addCustomItemBtn" style="padding:6px 10px; font-size:12px; margin-top:0; background:#67c23a;">確認加入勾選清單</button>
+              <button type="button" id="closeCustomItemBtn" style="padding:6px 10px; font-size:12px; margin-top:0; background:#909399;">取消</button>
+            </div>
           </div>
-          <div class="line-warning-text">
-            ⚠️ 填完單後請主動發訊息到官方LINE 告知您的社群暱稱<br>
-            否則我會無法辨識&不知道如何跟您聯絡
+        </div>
+
+        <div class="info-row" style="margin-top:12px; padding-top:8px; border-top: 1px dashed #dcdfe6;">
+          <label style="font-weight:normal; font-size:13px; margin:0; cursor:pointer; display:flex; align-items:center; gap:6px;">
+            <input type="checkbox" id="useDepositChk" class="deposit-chk">
+            <span>勾選折抵預存儲值金 (餘額: <b style="color:#409eff;" id="depositBalance">$0</b>)</span>
+          </label>
+          <b style="color:#909399;" id="depositDeduct">-</b>
+        </div>
+
+        <div class="info-row" style="margin-top:6px; padding-top:6px; border-top: 1px dashed #ebeef5;">
+          <label style="font-weight:normal; font-size:13px; margin:0; cursor:pointer; display:flex; align-items:center; gap:6px;">
+            <input type="checkbox" id="useCreditChk" class="credit-chk">
+            <span>勾選折抵可用抵用金 (餘額: <b style="color:#67c23a;" id="creditBalance">$0</b>)</span>
+          </label>
+          <b style="color:#909399;" id="creditDeduct">-</b>
+        </div>
+
+        <div class="summary-right-box">
+          <div class="summary-right-row">
+            <span>勾選訂單小計：</span>
+            <b style="color:#606266; font-size:14px;" id="pendingTotal">$0</b>
+          </div>
+          <div class="summary-right-row" style="margin-top:4px;">
+            <span style="font-weight:bold; color:#303133; font-size:15px;">【本次應匯款總金額】：</span>
+            <b style="color:#f56c6c; font-size:20px;" id="finalPayTotal">$0</b>
           </div>
         </div>
       </div>
 
-      <!-- 4. 匯款金額 -->
-      <div class="form-group">
-        <label class="form-label">4. 匯款金額 *</label>
-        <input type="number" id="amountInput" placeholder="請輸入匯款金額" required>
+      <div class="bank-info-box" id="bankInfoCard">
+        <div class="bank-info-title">🔸匯款帳號：</div>
+        <div>載入帳號資料中...</div>
       </div>
 
-      <!-- 5. 帳號末五碼 -->
       <div class="form-group">
-        <label class="form-label">5. 帳號末五碼 (或備註無卡) *</label>
-        <input type="text" id="bankLast5Input" placeholder="例如: 12345 或 無卡" required>
+        <label>匯款日期 *</label>
+        <input type="date" id="payDate" required>
       </div>
 
-      <button type="submit" class="btn-submit">🚀 提交對帳表單</button>
-    </form>
-  </div>
+      <div class="form-group">
+        <label>匯款銀行 *</label>
+        <select id="bankName" required>
+          <option value="">載入銀行選項中...</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>匯款金額 ($) *</label>
+        <input type="number" id="amount" min="0" placeholder="請輸入匯款金額 (選擇『其他』或 0 元均可提交)" required>
+        <div id="overpayTip" class="overpay-tip"></div>
+      </div>
+
+      <div class="form-group">
+        <label>匯款帳號末 5 碼 *</label>
+        <input type="text" id="last5" maxlength="5" placeholder="例如: 12345 (全額折抵可填 00000)" required>
+      </div>
+
+      <div class="form-group">
+        <label>備註說明</label>
+        <textarea id="note" placeholder="如有特殊事項請在此註明... (按 Enter 可換行)"></textarea>
+      </div>
+
+      <button type="submit" id="submitBtn">提交對帳資料</button>
+    </div>
+  </form>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore, collection, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyDF7QySG1Jj4gdZvXwMRaKjRmI-lFKpj7k",
@@ -175,128 +171,560 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    let ordersCache = [];
-    let groupList = [];
+    const groupSel = document.getElementById('groupSelect');
+    const buyerSel = document.getElementById('buyerName');
+
+    function loadBankInfo() {
+      fetch('../json/bank_info.json')
+        .then(res => res.json())
+        .then(data => {
+          const card = document.getElementById('bankInfoCard');
+          let html = `<div class="bank-info-title">${data.title || '🔸匯款帳號：'}</div>`;
+          if (data.accounts && Array.isArray(data.accounts)) {
+            data.accounts.forEach(acc => { html += `<div>${acc}</div>`; });
+          }
+          if (data.note) { html += `<div class="bank-warning">${data.note}</div>`; }
+          card.innerHTML = html;
+          notifyHeight();
+        })
+        .catch(() => {});
+    }
+
+    function loadBankDropdown() {
+      fetch('../json/banks.json')
+        .then(res => res.json())
+        .then(bankList => {
+          const bankSel = document.getElementById('bankName');
+          bankSel.innerHTML = '<option value="">請選擇匯款銀行</option>';
+          bankList.forEach(b => {
+            bankSel.innerHTML += `<option value="${b}">${b}</option>`;
+          });
+          bankSel.innerHTML += `<option value="其他">其他</option>`;
+        })
+        .catch(() => {
+          const bankSel = document.getElementById('bankName');
+          bankSel.innerHTML = '<option value="">請選擇匯款銀行</option><option value="其他">其他</option>';
+        });
+    }
 
     document.addEventListener('DOMContentLoaded', async () => {
-      try {
-        const gRes = await fetch('../json/group.json');
-        groupList = await gRes.json();
-        
-        const gSelect = document.getElementById('groupSelect');
-        groupList.forEach(g => {
-          const opt = document.createElement('option');
-          opt.value = g;
-          opt.textContent = g;
-          gSelect.appendChild(opt);
+      fetch('../json/group.json').then(r => r.json()).then(groups => {
+        groupSel.innerHTML = '<option value="">請選擇團體</option>';
+        groups.forEach(g => groupSel.innerHTML += `<option value="${g}">${g}</option>`);
+
+        const custGroupSel = document.getElementById('custGroup');
+        custGroupSel.innerHTML = '<option value="">選擇團體</option>';
+        groups.forEach(g => custGroupSel.innerHTML += `<option value="${g}">${g}</option>`);
+      });
+
+      groupSel.addEventListener('change', async () => {
+        const chosenGroup = groupSel.value;
+        if (!chosenGroup) {
+          buyerSel.innerHTML = '<option value="">請先選擇團體</option>';
+          buyerSel.disabled = true;
+          document.getElementById('formContent').style.display = 'none';
+          notifyHeight();
+          return;
+        }
+
+        buyerSel.disabled = false;
+        const file = (chosenGroup === 'Stray Kids') ? 'users_skz.json' : 'users_atz.json';
+        let jsonBuyers = [];
+        try {
+          jsonBuyers = await fetch(`../json/${file}`).then(r => r.json());
+        } catch(e){}
+
+        buyerSel.innerHTML = '<option value="">請選擇您的名稱</option>';
+        jsonBuyers.sort((a,b)=>a.localeCompare(b,'zh-TW')).forEach(b => {
+          buyerSel.innerHTML += `<option value="${b}">${b}</option>`;
         });
-      } catch(e) {}
+
+        renderBuyerDetails();
+      });
+
+      const custGroupSel = document.getElementById('custGroup');
+      const custMemberSel = document.getElementById('custMember');
+      custGroupSel.addEventListener('change', () => {
+        const g = custGroupSel.value;
+        custMemberSel.innerHTML = '';
+        if (!g) {
+          custMemberSel.innerHTML = '<option value="">請先選擇團體</option>';
+          custMemberSel.disabled = true;
+          return;
+        }
+        const file = (g === 'Stray Kids') ? 'members_skz.json' : (g === 'ATEEZ' ? 'members_atz.json' : '');
+        if (file) {
+          fetch(`../json/${file}`).then(r => r.json()).then(arr => {
+            custMemberSel.disabled = false;
+            custMemberSel.innerHTML = '<option value="">選擇成員</option>';
+            arr.forEach(m => custMemberSel.innerHTML += `<option value="${m}">${m}</option>`);
+          });
+        }
+      });
+    });
+
+    let allCredits = [];
+    let allDeposits = [];
+    let allOrders = [];
+    let customAddedItems = [];
+    let photoProgressMap = {};
+    let eventSettingsMap = {};
+
+    let currentAvailableCredit = 0;
+    let currentAvailableDeposit = 0;
+    let currentCalculatedFinalTotal = 0;
+
+    let appliedCreditDeduction = 0;
+    let appliedDepositDeduction = 0;
+
+    document.getElementById('paymentForm').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') {
+        e.preventDefault();
+      }
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+      loadBankInfo();
+      loadBankDropdown();
+
+      onSnapshot(collection(db, "photo_progress"), snap => {
+        photoProgressMap = {};
+        snap.forEach(d => {
+          const data = d.data();
+          const evName = data.eventName || data.event || '';
+          const mem = data.member || '';
+          if (evName && mem) {
+            photoProgressMap[`${evName}_${mem}`] = data.status || '等圖中';
+          }
+        });
+        renderBuyerDetails();
+      });
+
+      onSnapshot(collection(db, "event_settings"), snap => {
+        eventSettingsMap = {};
+        snap.forEach(d => {
+          const data = d.data();
+          const evName = data.name || data.rawName || data.eventName || data.event || '';
+          const mem = data.member || '';
+          
+          const estPrice = Number(data.estimatedPrice) || Number(data.price) || 0;
+          const actPrice = Number(data.actualPrice) || 0;
+          const packQty = Number(data.packQty) || 1;
+          const discounts = data.discounts || [];
+
+          if (evName) {
+            const key = `${evName}_${mem}`;
+            eventSettingsMap[key] = { estPrice, actPrice, packQty, discounts };
+            if (data.rawName) {
+              eventSettingsMap[`${data.rawName}_${mem}`] = { estPrice, actPrice, packQty, discounts };
+            }
+          }
+        });
+        renderBuyerDetails();
+      });
+
+      onSnapshot(collection(db, "user_credits"), snap => {
+        allCredits = [];
+        snap.forEach(d => allCredits.push({ id: d.id, ...d.data() }));
+        renderBuyerDetails();
+      });
+
+      onSnapshot(collection(db, "user_deposits"), snap => {
+        allDeposits = [];
+        snap.forEach(d => allDeposits.push({ id: d.id, ...d.data() }));
+        renderBuyerDetails();
+      });
 
       onSnapshot(collection(db, "orders"), snap => {
-        ordersCache = [];
-        snap.forEach(d => ordersCache.push({ id: d.id, ...d.data() }));
-        handleGroupChange();
+        allOrders = [];
+        snap.forEach(d => allOrders.push({ id: d.id, ...d.data() }));
+        renderBuyerDetails();
       });
+
+      buyerSel.addEventListener('change', () => {
+        customAddedItems = [];
+        renderBuyerDetails();
+      });
+      
+      document.getElementById('useDepositChk').addEventListener('change', calcSelectedTotal);
+      document.getElementById('useCreditChk').addEventListener('change', calcSelectedTotal);
+
+      document.getElementById('amount').addEventListener('input', checkOverpayTip);
+
+      document.getElementById('toggleCustomBtn').addEventListener('click', () => {
+        const box = document.getElementById('customFormBox');
+        box.style.display = (box.style.display === 'block') ? 'none' : 'block';
+        notifyHeight();
+      });
+
+      document.getElementById('closeCustomItemBtn').addEventListener('click', () => {
+        document.getElementById('customFormBox').style.display = 'none';
+        notifyHeight();
+      });
+
+      document.getElementById('addCustomItemBtn').addEventListener('click', addCustomItem);
 
       notifyHeight();
     });
 
-    window.handleGroupChange = () => {
-      const selectedGroup = document.getElementById('groupSelect').value;
-      const buyerSelect = document.getElementById('buyerSelect');
-      buyerSelect.innerHTML = '';
+    function checkOverpayTip() {
+      const inputAmount = parseFloat(document.getElementById('amount').value);
+      const tipElem = document.getElementById('overpayTip');
+      
+      if (!isNaN(inputAmount) && inputAmount === 0) {
+        tipElem.textContent = `💡 匯款金額為 $0 元（全額扣抵/免補款）🟢`;
+        tipElem.style.color = '#409eff';
+        tipElem.style.display = 'block';
+      } else if (inputAmount > currentCalculatedFinalTotal && currentCalculatedFinalTotal > 0) {
+        const overpaid = inputAmount - currentCalculatedFinalTotal;
+        tipElem.textContent = `💡 溢繳提醒：多付的 $${overpaid} 元提交後將「自動轉為預存儲值金」！🟢`;
+        tipElem.style.color = '#67c23a';
+        tipElem.style.display = 'block';
+      } else {
+        tipElem.style.display = 'none';
+      }
+      notifyHeight();
+    }
 
-      if (!selectedGroup) {
-        buyerSelect.disabled = true;
-        buyerSelect.innerHTML = '<option value="">請先選擇團體</option>';
+    function addCustomItem() {
+      const dt = document.getElementById('custDate').value.trim();
+      const ev = document.getElementById('custEvent').value.trim();
+      const group = document.getElementById('custGroup').value;
+      const mem = document.getElementById('custMember').value;
+      const price = parseFloat(document.getElementById('custPrice').value);
+
+      if (!ev || isNaN(price) || price < 0) {
+        alert('請至少輸入活動名稱與有效的金額（可為 0 元）！');
         return;
       }
 
-      const buyersSet = new Set();
-      ordersCache.forEach(o => {
-        if ((o.group || 'Stray Kids') === selectedGroup) {
-          let rawName = o.user || o.buyerName || o.nickname || '';
-          let cleanName = rawName.replace(/^[-\s]+/, '').trim();
-          if (cleanName) buyersSet.add(cleanName);
+      const fullEvName = dt ? `${dt} ${ev}` : ev;
+      const customId = `custom_${Date.now()}`;
+
+      customAddedItems.push({
+        id: customId,
+        event: fullEvName,
+        group: group,
+        member: mem || '全體',
+        price: price
+      });
+
+      document.getElementById('custDate').value = '';
+      document.getElementById('custEvent').value = '';
+      document.getElementById('custGroup').value = '';
+      document.getElementById('custMember').value = '';
+      document.getElementById('custMember').disabled = true;
+      document.getElementById('custPrice').value = '';
+      document.getElementById('customFormBox').style.display = 'none';
+
+      renderBuyerDetails();
+    }
+
+    function renderBuyerDetails() {
+      const selectedGroup = groupSel.value;
+      const selectedBuyer = buyerSel.value;
+      const formContent = document.getElementById('formContent');
+
+      if (!selectedGroup || !selectedBuyer) {
+        formContent.style.display = 'none';
+        notifyHeight();
+        return;
+      }
+
+      formContent.style.display = 'block';
+
+      const userCredits = allCredits.filter(c => (c.user === selectedBuyer || c.buyerName === selectedBuyer || c.name === selectedBuyer));
+      currentAvailableCredit = userCredits.reduce((sum, c) => sum + ((Number(c.credit) || Number(c.amount) || 0) - (Number(c.used) || 0)), 0);
+      document.getElementById('creditBalance').textContent = `$${currentAvailableCredit}`;
+      document.getElementById('useCreditChk').checked = false;
+
+      const userDeposits = allDeposits.filter(d => (d.user === selectedBuyer || d.buyerName === selectedBuyer || d.name === selectedBuyer));
+      currentAvailableDeposit = userDeposits.reduce((sum, d) => {
+        const amt = Number(d.amount) || 0;
+        return (d.type !== 'usage') ? (sum + amt) : (sum - amt);
+      }, 0);
+      document.getElementById('depositBalance').textContent = `$${currentAvailableDeposit}`;
+      document.getElementById('useDepositChk').checked = false;
+
+      const userOrders = allOrders.filter(o => {
+        const groupMatch = (o.group === selectedGroup);
+        const nameMatch = (o.user === selectedBuyer || o.buyerName === selectedBuyer || o.name === selectedBuyer || o.buyer === selectedBuyer);
+        const pendingMatch = (o.paymentStatus === 'pending_payment' || o.paymentStatus === '待匯款' || o.status === 'pending_payment' || o.status === '待匯款' || !o.paymentStatus);
+        
+        const ordEvent = o.event || o.fullEvent || o.eventName || '';
+        const ordMember = o.member || '';
+        const progressStatus = photoProgressMap[`${ordEvent}_${ordMember}`] || '等圖中';
+        
+        const allowedStatuses = ['上傳中', '已通知匯款', '已發圖'];
+        const isUnlocked = allowedStatuses.includes(progressStatus);
+
+        return groupMatch && nameMatch && pendingMatch && isUnlocked;
+      });
+
+      const ordersList = document.getElementById('ordersList');
+      ordersList.innerHTML = '';
+
+      if (userOrders.length === 0 && customAddedItems.length === 0) {
+        ordersList.innerHTML = '<span style="color:#909399;">目前無待匯款訂單</span>';
+        document.getElementById('pendingTotal').textContent = '$0';
+        document.getElementById('finalPayTotal').textContent = '$0';
+      } else {
+        userOrders.forEach(ord => {
+          const qty = Number(ord.quantity !== undefined ? ord.quantity : (ord.qty !== undefined ? ord.qty : ord.count)) || 1;
+          const ordEvent = ord.event || ord.fullEvent || ord.eventName || '';
+          const ordMember = ord.member || '';
+          const ordGroup = ord.group ? `[${ord.group}] ` : '';
+          
+          const setting = eventSettingsMap[`${ordEvent}_${ordMember}`] || {};
+          const packQty = setting.packQty || 1;
+          const packsCount = Math.round(qty / packQty);
+
+          const estPrice = setting.estPrice || 0;
+          const actPrice = setting.actPrice || 0;
+
+          let baseUnitPrice = (actPrice > 0) ? actPrice : estPrice;
+          if (baseUnitPrice === 0) {
+            baseUnitPrice = Number(ord.price) || Number(ord.unitPrice) || 0;
+          }
+
+          let calculatedFinalPrice = packsCount * baseUnitPrice;
+          const discounts = setting.discounts || [];
+          if (Array.isArray(discounts)) {
+            const userDisc = discounts.find(d => d.targetUser === selectedBuyer);
+            if (userDisc) {
+              const discCount = Math.min(packsCount, Number(userDisc.count) || 0);
+              const discPrice = Number(userDisc.price) || 0;
+              calculatedFinalPrice = (discCount * discPrice) + ((packsCount - discCount) * baseUnitPrice);
+            }
+          }
+
+          const calculatedEstPrice = Math.round(packsCount * estPrice);
+
+          let priceHtml = `<span class="price-final">$${calculatedFinalPrice}</span>`;
+          if (actPrice > 0 && estPrice > 0 && calculatedFinalPrice !== calculatedEstPrice) {
+            priceHtml = `
+              <span class="price-final">$${calculatedFinalPrice}</span>
+              <span class="price-original-strike">$${calculatedEstPrice}</span>
+            `;
+          }
+
+          ordersList.innerHTML += `
+            <div class="order-item">
+              <div class="order-left">
+                <input type="checkbox" class="order-chk" value="${ord.id}" data-price="${calculatedFinalPrice}">
+                <span>📌 ${ordGroup}${ordEvent || '未命名活動'} (${ordMember || '全體'}) - ${qty} 張</span>
+              </div>
+              <div class="price-box">${priceHtml}</div>
+            </div>
+          `;
+        });
+
+        customAddedItems.forEach(cItem => {
+          ordersList.innerHTML += `
+            <div class="order-item" style="background:#f0f9eb; padding:6px 8px; border-radius:6px; margin-bottom:4px;">
+              <div class="order-left">
+                <input type="checkbox" class="order-chk custom-chk" value="${cItem.id}" data-price="${cItem.price}" data-is-custom="true" data-event="${cItem.event}" data-group="${cItem.group}" data-member="${cItem.member}" checked>
+                <span>➕ [自訂補款] ${cItem.event} (${cItem.member})</span>
+              </div>
+              <div class="price-box"><span class="price-final">$${cItem.price}</span></div>
+            </div>
+          `;
+        });
+
+        document.querySelectorAll('.order-chk').forEach(chk => {
+          chk.addEventListener('change', calcSelectedTotal);
+        });
+        calcSelectedTotal();
+      }
+
+      notifyHeight();
+    }
+
+    function calcSelectedTotal() {
+      const chks = document.querySelectorAll('.order-chk:checked');
+      let orderSubtotal = 0;
+      chks.forEach(chk => {
+        orderSubtotal += Number(chk.getAttribute('data-price')) || 0;
+      });
+
+      let remainingToPay = orderSubtotal;
+
+      const useDeposit = document.getElementById('useDepositChk').checked;
+      let depositDeduction = 0;
+      if (useDeposit && currentAvailableDeposit > 0) {
+        depositDeduction = Math.min(remainingToPay, currentAvailableDeposit);
+        remainingToPay -= depositDeduction;
+      }
+
+      const useCredit = document.getElementById('useCreditChk').checked;
+      let creditDeduction = 0;
+      if (useCredit && currentAvailableCredit > 0) {
+        creditDeduction = Math.min(remainingToPay, currentAvailableCredit);
+        remainingToPay -= creditDeduction;
+      }
+
+      appliedDepositDeduction = depositDeduction;
+      appliedCreditDeduction = creditDeduction;
+
+      currentCalculatedFinalTotal = Math.max(0, remainingToPay);
+
+      document.getElementById('pendingTotal').textContent = `$${orderSubtotal.toFixed(1).replace(/\.0$/, '')}`;
+      
+      const depositDeductElem = document.getElementById('depositDeduct');
+      if (depositDeduction > 0) {
+        depositDeductElem.textContent = `-$${depositDeduction.toFixed(1).replace(/\.0$/, '')}`;
+        depositDeductElem.style.color = '#409eff';
+      } else {
+        depositDeductElem.textContent = '-';
+        depositDeductElem.style.color = '#909399';
+      }
+
+      const creditDeductElem = document.getElementById('creditDeduct');
+      if (creditDeduction > 0) {
+        creditDeductElem.textContent = `-$${creditDeduction.toFixed(1).replace(/\.0$/, '')}`;
+        creditDeductElem.style.color = '#67c23a';
+      } else {
+        creditDeductElem.textContent = '-';
+        creditDeductElem.style.color = '#909399';
+      }
+
+      document.getElementById('finalPayTotal').textContent = `$${currentCalculatedFinalTotal.toFixed(1).replace(/\.0$/, '')}`;
+
+      checkOverpayTip();
+    }
+
+    document.getElementById('paymentForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const bankNameVal = document.getElementById('bankName').value;
+      if (!bankNameVal) {
+        alert('請選擇匯款銀行！');
+        return;
+      }
+
+      const inputAmount = parseFloat(document.getElementById('amount').value);
+      if (isNaN(inputAmount) || inputAmount < 0) {
+        alert('請輸入有效的匯款金額（不可為負數）！');
+        return;
+      }
+
+      const isOtherBank = (bankNameVal === '其他');
+      if (!isOtherBank && inputAmount < currentCalculatedFinalTotal && currentCalculatedFinalTotal > 0) {
+        alert(`⚠️ 金額不足！\n\n本次應匯款總金額是：$${currentCalculatedFinalTotal}\n您填寫的金額是：$${inputAmount}\n\n請重新確認匯款金額！`);
+        return;
+      }
+
+      const btn = document.getElementById('submitBtn');
+      btn.disabled = true;
+      btn.textContent = '送出中...';
+
+      const selectedOrderIds = [];
+      const customItemsToCreate = [];
+
+      document.querySelectorAll('.order-chk:checked').forEach(cb => {
+        if (cb.getAttribute('data-is-custom') === 'true') {
+          customItemsToCreate.push({
+            event: cb.getAttribute('data-event'),
+            group: cb.getAttribute('data-group'),
+            member: cb.getAttribute('data-member'),
+            price: Number(cb.getAttribute('data-price')) || 0
+          });
+        } else {
+          selectedOrderIds.push(cb.value);
         }
       });
 
-      if (buyersSet.size === 0) {
-        buyerSelect.disabled = true;
-        buyerSelect.innerHTML = '<option value="">該團體目前尚無訂單買家</option>';
-      } else {
-        buyerSelect.disabled = false;
-        buyerSelect.innerHTML = '<option value="">請選擇買家暱稱</option>';
-        Array.from(buyersSet).sort((a,b)=>a.localeCompare(b,'zh-TW')).forEach(u => {
-          const opt = document.createElement('option');
-          opt.value = u;
-          opt.textContent = u;
-          buyerSelect.appendChild(opt);
-        });
-      }
-      notifyHeight();
-    };
-
-    window.handleContactTypeChange = () => {
-      const type = document.getElementById('contactTypeSelect').value;
-      const input = document.getElementById('contactAccountInput');
-      const lineCard = document.getElementById('lineInfoCard');
-
-      if (type === 'Instagram' || type === 'Threads') {
-        input.style.display = 'block';
-        input.required = true;
-        lineCard.style.display = 'none';
-      } else if (type === '官方 Line') {
-        input.style.display = 'none';
-        input.required = false;
-        input.value = '';
-        lineCard.style.display = 'flex';
-      } else {
-        input.style.display = 'none';
-        input.required = false;
-        lineCard.style.display = 'none';
-      }
-      notifyHeight();
-    };
-
-    window.copyLineId = () => {
-      navigator.clipboard.writeText('@115oyenv').then(() => {
-        alert('✅ 已成功複製官方 LINE ID: @115oyenv');
-      }).catch(() => {
-        alert('LINE ID: @115oyenv');
-      });
-    };
-
-    document.getElementById('paymentForm').onsubmit = async (e) => {
-      e.preventDefault();
-
-      const group = document.getElementById('groupSelect').value;
-      const buyerName = document.getElementById('buyerSelect').value;
-      const contactType = document.getElementById('contactTypeSelect').value;
-      const contactAccount = (contactType === '官方 Line') ? '@115oyenv' : document.getElementById('contactAccountInput').value.trim();
-      const amount = Number(document.getElementById('amountInput').value);
-      const bankLast5 = document.getElementById('bankLast5Input').value.trim();
+      const selectedGroupVal = groupSel.value;
+      const buyerNameVal = buyerSel.value;
+      const payDateVal = document.getElementById('payDate').value;
+      const last5Val = document.getElementById('last5').value.trim();
 
       try {
-        await addDoc(collection(db, "payment_reports"), {
-          group,
-          buyerName,
-          contactType,
-          contactAccount,
-          amount,
-          bankLast5,
-          createdAt: new Date().toISOString(),
-          status: '待對帳'
+        const customCreatePromises = customItemsToCreate.map(cItem => {
+          return addDoc(collection(db, "orders"), {
+            group: selectedGroupVal,
+            buyerName: buyerNameVal,
+            user: buyerNameVal,
+            event: cItem.event,
+            member: cItem.member,
+            qty: 1,
+            price: cItem.price,
+            createdAt: new Date().toISOString(),
+            paymentStatus: '待對帳',
+            status: '待對帳',
+            note: '買家自訂補款項目'
+          }).then(docRef => docRef.id);
         });
 
-        alert('✅ 對帳表單已順利提交！');
+        const createdCustomIds = await Promise.all(customCreatePromises);
+        const finalAllRelatedOrderIds = [...selectedOrderIds, ...createdCustomIds];
+
+        const useDepositChecked = document.getElementById('useDepositChk').checked;
+        const useCreditChecked = document.getElementById('useCreditChk').checked;
+
+        const data = {
+          group: selectedGroupVal,
+          buyerName: buyerNameVal,
+          user: buyerNameVal,
+          socialAccount: document.getElementById('socialAccount').value.trim(),
+          payDate: payDateVal,
+          bankName: bankNameVal,
+          bank: bankNameVal,
+          amount: inputAmount,
+          finalPay: inputAmount,
+          last5: last5Val,
+          bankLast5: last5Val,
+          note: document.getElementById('note').value.trim(),
+          useDeposit: useDepositChecked,
+          useCredit: useCreditChecked,
+          creditUsed: appliedCreditDeduction,
+          depositUsed: appliedDepositDeduction,
+          relatedOrderIds: finalAllRelatedOrderIds,
+          createdAt: new Date().toISOString(),
+          status: '待對帳'
+        };
+
+        await addDoc(collection(db, "payments"), data);
+
+        const overpaidAmount = inputAmount - currentCalculatedFinalTotal;
+        let overpayAlertMsg = '';
+
+        if (!isOtherBank && overpaidAmount > 0) {
+          await addDoc(collection(db, "user_deposits"), {
+            group: selectedGroupVal,
+            user: buyerNameVal,
+            buyerName: buyerNameVal,
+            payDate: payDateVal,
+            bank: bankNameVal,
+            amount: overpaidAmount,
+            last5: last5Val,
+            type: 'deposit',
+            note: `匯款溢繳轉入 (應付 $${currentCalculatedFinalTotal} / 實付 $${inputAmount})`,
+            createdAt: new Date().toISOString()
+          });
+          overpayAlertMsg = `\n\n💡 偵測到溢繳 $${overpaidAmount} 元，已自動為您轉入「預存儲值金」！`;
+        }
+
+        const updatePromises = selectedOrderIds.map(orderId => {
+          return updateDoc(doc(db, "orders", orderId), {
+            paymentStatus: '待對帳',
+            status: '待對帳'
+          });
+        });
+        await Promise.all(updatePromises);
+
+        alert(`✅ 匯款回報已提交，選取的訂單已同步更新為「待對帳」，請等待管理者審核！${overpayAlertMsg}`);
+        customAddedItems = [];
         document.getElementById('paymentForm').reset();
-        handleGroupChange();
-        handleContactTypeChange();
+        document.getElementById('formContent').style.display = 'none';
+        document.getElementById('overpayTip').style.display = 'none';
       } catch (err) {
-        alert('提交失敗: ' + err.message);
+        alert('送出失敗：' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '提交對帳資料';
       }
-    };
+    });
 
     function notifyHeight() {
       setTimeout(() => {
