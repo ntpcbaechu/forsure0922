@@ -45,15 +45,25 @@
 
   <h3 style="margin-top:0; margin-bottom:20px; text-align:center; font-size:20px;">匯款對帳回報</h3>
   <form id="paymentForm">
+    
+    <!-- 1. 選擇團體 -->
     <div class="form-group">
-      <label>社群名稱 *</label>
-      <select id="buyerName" required><option value="">載入中...</option></select>
+      <label>1. 選擇團體 *</label>
+      <select id="groupSelect" required>
+        <option value="">載入團體中...</option>
+      </select>
+    </div>
+
+    <!-- 2. 社群名稱 -->
+    <div class="form-group">
+      <label>2. 社群名稱 *</label>
+      <select id="buyerName" required disabled><option value="">請先選擇團體</option></select>
     </div>
 	
-	<div class="form-group">
-	  <label>IG / Threads 帳號 *</label>
-	  <input type="text" id="socialAccount" placeholder="例: ntpcbaechu" required>
-	</div>
+    <div class="form-group">
+      <label>3. IG / Threads 帳號 *</label>
+      <input type="text" id="socialAccount" placeholder="例: ntpcbaechu" required>
+    </div>
 
     <div id="formContent" style="display: none;">
       <div class="info-card">
@@ -161,6 +171,9 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
+    const groupSel = document.getElementById('groupSelect');
+    const buyerSel = document.getElementById('buyerName');
+
     function loadBankInfo() {
       fetch('../json/bank_info.json')
         .then(res => res.json())
@@ -194,15 +207,43 @@
         });
     }
 
-    document.addEventListener('DOMContentLoaded', () => {
-      const custGroupSel = document.getElementById('custGroup');
-      const custMemberSel = document.getElementById('custMember');
-
+    document.addEventListener('DOMContentLoaded', async () => {
       fetch('../json/group.json').then(r => r.json()).then(groups => {
+        groupSel.innerHTML = '<option value="">請選擇團體</option>';
+        groups.forEach(g => groupSel.innerHTML += `<option value="${g}">${g}</option>`);
+
+        const custGroupSel = document.getElementById('custGroup');
         custGroupSel.innerHTML = '<option value="">選擇團體</option>';
         groups.forEach(g => custGroupSel.innerHTML += `<option value="${g}">${g}</option>`);
       });
 
+      groupSel.addEventListener('change', async () => {
+        const chosenGroup = groupSel.value;
+        if (!chosenGroup) {
+          buyerSel.innerHTML = '<option value="">請先選擇團體</option>';
+          buyerSel.disabled = true;
+          document.getElementById('formContent').style.display = 'none';
+          notifyHeight();
+          return;
+        }
+
+        buyerSel.disabled = false;
+        const file = (chosenGroup === 'Stray Kids') ? 'users_skz.json' : 'users_atz.json';
+        let jsonBuyers = [];
+        try {
+          jsonBuyers = await fetch(`../json/${file}`).then(r => r.json());
+        } catch(e){}
+
+        buyerSel.innerHTML = '<option value="">請選擇您的名稱</option>';
+        jsonBuyers.sort((a,b)=>a.localeCompare(b,'zh-TW')).forEach(b => {
+          buyerSel.innerHTML += `<option value="${b}">${b}</option>`;
+        });
+
+        renderBuyerDetails();
+      });
+
+      const custGroupSel = document.getElementById('custGroup');
+      const custMemberSel = document.getElementById('custMember');
       custGroupSel.addEventListener('change', () => {
         const g = custGroupSel.value;
         custMemberSel.innerHTML = '';
@@ -256,7 +297,7 @@
             photoProgressMap[`${evName}_${mem}`] = data.status || '等圖中';
           }
         });
-        updateBuyerDropdownAndDetails();
+        renderBuyerDetails();
       });
 
       onSnapshot(collection(db, "event_settings"), snap => {
@@ -279,28 +320,28 @@
             }
           }
         });
-        updateBuyerDropdownAndDetails();
+        renderBuyerDetails();
       });
 
       onSnapshot(collection(db, "user_credits"), snap => {
         allCredits = [];
         snap.forEach(d => allCredits.push({ id: d.id, ...d.data() }));
-        updateBuyerDropdownAndDetails();
+        renderBuyerDetails();
       });
 
       onSnapshot(collection(db, "user_deposits"), snap => {
         allDeposits = [];
         snap.forEach(d => allDeposits.push({ id: d.id, ...d.data() }));
-        updateBuyerDropdownAndDetails();
+        renderBuyerDetails();
       });
 
       onSnapshot(collection(db, "orders"), snap => {
         allOrders = [];
         snap.forEach(d => allOrders.push({ id: d.id, ...d.data() }));
-        updateBuyerDropdownAndDetails();
+        renderBuyerDetails();
       });
 
-      document.getElementById('buyerName').addEventListener('change', () => {
+      buyerSel.addEventListener('change', () => {
         customAddedItems = [];
         renderBuyerDetails();
       });
@@ -345,42 +386,6 @@
       notifyHeight();
     }
 
-    function updateBuyerDropdownAndDetails() {
-      const pendingBuyers = new Set();
-
-      allOrders.forEach(o => {
-        const name = o.user || o.buyerName || o.name || o.buyer;
-        const pendingMatch = (o.paymentStatus === 'pending_payment' || o.paymentStatus === '待匯款' || o.status === 'pending_payment' || o.status === '待匯款' || !o.paymentStatus);
-        
-        const ordEvent = o.event || o.fullEvent || o.eventName || '';
-        const ordMember = o.member || '';
-        const progressStatus = photoProgressMap[`${ordEvent}_${ordMember}`] || '等圖中';
-        
-        const allowedStatuses = ['上傳中', '已通知匯款', '已發圖'];
-        const isUnlocked = allowedStatuses.includes(progressStatus);
-
-        if (name && pendingMatch && isUnlocked) {
-          pendingBuyers.add(String(name).trim());
-        }
-      });
-
-      const buyerSel = document.getElementById('buyerName');
-      const currentSelected = buyerSel.value;
-      buyerSel.innerHTML = '<option value="">請選擇您的名稱</option>';
-
-      Array.from(pendingBuyers).sort((a, b) => a.localeCompare(b, 'zh-TW')).forEach(b => {
-        buyerSel.innerHTML += `<option value="${b}">${b}</option>`;
-      });
-
-      if (currentSelected && pendingBuyers.has(currentSelected)) {
-        buyerSel.value = currentSelected;
-      } else if (currentSelected && !pendingBuyers.has(currentSelected)) {
-        buyerSel.value = '';
-      }
-
-      renderBuyerDetails();
-    }
-
     function addCustomItem() {
       const dt = document.getElementById('custDate').value.trim();
       const ev = document.getElementById('custEvent').value.trim();
@@ -416,10 +421,11 @@
     }
 
     function renderBuyerDetails() {
-      const selectedBuyer = document.getElementById('buyerName').value;
+      const selectedGroup = groupSel.value;
+      const selectedBuyer = buyerSel.value;
       const formContent = document.getElementById('formContent');
 
-      if (!selectedBuyer) {
+      if (!selectedGroup || !selectedBuyer) {
         formContent.style.display = 'none';
         notifyHeight();
         return;
@@ -441,6 +447,7 @@
       document.getElementById('useDepositChk').checked = false;
 
       const userOrders = allOrders.filter(o => {
+        const groupMatch = (o.group === selectedGroup);
         const nameMatch = (o.user === selectedBuyer || o.buyerName === selectedBuyer || o.name === selectedBuyer || o.buyer === selectedBuyer);
         const pendingMatch = (o.paymentStatus === 'pending_payment' || o.paymentStatus === '待匯款' || o.status === 'pending_payment' || o.status === '待匯款' || !o.paymentStatus);
         
@@ -451,7 +458,7 @@
         const allowedStatuses = ['上傳中', '已通知匯款', '已發圖'];
         const isUnlocked = allowedStatuses.includes(progressStatus);
 
-        return nameMatch && pendingMatch && isUnlocked;
+        return groupMatch && nameMatch && pendingMatch && isUnlocked;
       });
 
       const ordersList = document.getElementById('ordersList');
@@ -601,7 +608,6 @@
         return;
       }
 
-      // 如果選擇「其他」，直接放行；否則才檢查金額是否足夠
       const isOtherBank = (bankNameVal === '其他');
       if (!isOtherBank && inputAmount < currentCalculatedFinalTotal && currentCalculatedFinalTotal > 0) {
         alert(`⚠️ 金額不足！\n\n本次應匯款總金額是：$${currentCalculatedFinalTotal}\n您填寫的金額是：$${inputAmount}\n\n請重新確認匯款金額！`);
@@ -628,17 +634,18 @@
         }
       });
 
-      const buyerNameVal = document.getElementById('buyerName').value;
+      const selectedGroupVal = groupSel.value;
+      const buyerNameVal = buyerSel.value;
       const payDateVal = document.getElementById('payDate').value;
       const last5Val = document.getElementById('last5').value.trim();
 
       try {
         const customCreatePromises = customItemsToCreate.map(cItem => {
           return addDoc(collection(db, "orders"), {
+            group: selectedGroupVal,
             buyerName: buyerNameVal,
             user: buyerNameVal,
             event: cItem.event,
-            group: cItem.group,
             member: cItem.member,
             qty: 1,
             price: cItem.price,
@@ -656,6 +663,7 @@
         const useCreditChecked = document.getElementById('useCreditChk').checked;
 
         const data = {
+          group: selectedGroupVal,
           buyerName: buyerNameVal,
           user: buyerNameVal,
           socialAccount: document.getElementById('socialAccount').value.trim(),
@@ -683,6 +691,7 @@
 
         if (!isOtherBank && overpaidAmount > 0) {
           await addDoc(collection(db, "user_deposits"), {
+            group: selectedGroupVal,
             user: buyerNameVal,
             buyerName: buyerNameVal,
             payDate: payDateVal,
