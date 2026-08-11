@@ -85,11 +85,24 @@
       color: #fff;
       border-color: #409eff;
     }
+    /* 修正圖示與兩行文字精準左對齊 */
     .line-warning-box {
       font-size: 12px;
       color: #e6a23c;
       font-weight: bold;
       line-height: 1.5;
+      display: flex;
+      gap: 6px;
+      align-items: flex-start;
+    }
+    .line-warning-icon {
+      font-size: 13px;
+      line-height: 1.5;
+      flex-shrink: 0;
+    }
+    .line-warning-content {
+      display: flex;
+      flex-direction: column;
     }
   </style>
 </head>
@@ -133,8 +146,11 @@
           <button type="button" class="btn-copy" id="copyLineBtn">📋 複製</button>
         </div>
         <div class="line-warning-box">
-          ⚠️ 填完單後請主動發訊息到官方LINE 告知您的社群暱稱<br>
-          否則我會無法辨識&不知道如何跟您聯絡
+          <span class="line-warning-icon">⚠️</span>
+          <div class="line-warning-content">
+            <span>填完單後請主動發訊息到官方LINE 告知您的社群暱稱</span>
+            <span>否則我會無法辨識&不知道如何跟您聯絡</span>
+          </div>
         </div>
       </div>
     </div>
@@ -211,13 +227,13 @@
 
       <div class="form-group">
         <label>匯款金額 ($) *</label>
-        <input type="number" id="amount" min="0" placeholder="請輸入匯款金額 (選擇『其他』或 0 元均可提交)" required>
+        <input type="number" id="amount" min="0" placeholder="請輸入匯款金額" required>
         <div id="overpayTip" class="overpay-tip"></div>
       </div>
 
       <div class="form-group">
         <label>匯款帳號末 5 碼 *</label>
-        <input type="text" id="last5" maxlength="5" placeholder="例如: 12345 (全額折抵可填 00000)" required>
+        <input type="text" id="last5" maxlength="5" placeholder="例如: 12345" required>
       </div>
 
       <div class="form-group">
