@@ -7,19 +7,27 @@
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 15px; margin: 0; background: #fff; color: #333; }
     
     .form-container {
-      max-width: 420px;
-      margin: 0 auto;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
+      width: 100%;
+      box-sizing: border-box;
     }
 
-    .form-group { display: flex; flex-direction: column; gap: 4px; }
+    .form-row-flex {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 12px;
+      align-items: flex-end;
+      margin-bottom: 12px;
+    }
 
-    label { font-size: 13px; font-weight: bold; color: #303133; }
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    label { font-size: 13px; font-weight: bold; color: #303133; white-space: nowrap; }
     
     input, select, textarea { 
-      width: 100%; 
       padding: 8px 10px; 
       border: 1px solid #dcdfe6; 
       border-radius: 8px; 
@@ -33,77 +41,89 @@
     input:focus, select:focus, textarea:focus { border-color: #409eff; }
     select:disabled { background: #f5f7fa; color: #c0c4cc; cursor: not-allowed; }
     
-    textarea { height: 75px; resize: vertical; line-height: 1.4; }
+    textarea { width: 100%; height: 70px; resize: vertical; line-height: 1.4; }
 
-    button { width: 100%; padding: 10px; background: #409eff; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: bold; cursor: pointer; margin-top: 6px; transition: background 0.2s; }
+    button { padding: 9px 20px; background: #409eff; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: bold; cursor: pointer; transition: background 0.2s; white-space: nowrap; }
     button:disabled { background: #a0cfff; }
     
-    .qty-header-row { display: flex; justify-content: space-between; align-items: center; }
-    .dynamic-tip { font-size: 12px; color: #67c23a; font-weight: bold; }
+    .qty-header-row { display: flex; align-items: center; gap: 6px; }
+    .dynamic-tip { font-size: 12px; color: #67c23a; font-weight: bold; white-space: nowrap; }
+
+    /* 每個選單寬度符合內容長度，美觀不壓縮也不過寬 */
+    .w-group { width: 140px; }
+    .w-buyer { min-width: 200px; max-width: 240px; }
+    .w-type { width: 120px; }
+    .w-event { min-width: 200px; max-width: 260px; }
+    .w-member { width: 140px; }
+    .w-qty { width: 150px; }
   </style>
 </head>
 <body>
 
   <div class="form-container">
-    <h3 style="margin-top:0; margin-bottom:4px; font-size:18px; text-align:center;">團員登記填單</h3>
+    <h3 style="margin-top:0; margin-bottom:12px; font-size:18px;">團員登記填單</h3>
     
-    <form id="orderForm" style="display:flex; flex-direction:column; gap:10px;">
-      
-      <!-- 1. 選擇團體 -->
-      <div class="form-group">
-        <label>1. 選擇團體 *</label>
-        <select id="groupSelect" required>
-          <option value="">請選擇團體</option>
-          <option value="Stray Kids">Stray Kids</option>
-          <option value="ATEEZ">ATEEZ</option>
-        </select>
-      </div>
-
-      <!-- 2. 社群名稱 -->
-      <div class="form-group">
-        <label>2. 社群名稱 *</label>
-        <select id="buyerName" required disabled>
-          <option value="">請先選擇團體</option>
-        </select>
-        <input type="text" id="customBuyerInput" placeholder="請輸入新社群暱稱..." style="display:none; margin-top:4px;">
-      </div>
-
-      <!-- 3. 訂單類別 -->
-      <div class="form-group">
-        <label>3. 訂單類別</label>
-        <select id="orderType">
-          <option value="一般">一般 (預設)</option>
-          <option value="追加">追加</option>
-        </select>
-      </div>
-
-      <!-- 4. 請選擇活動 -->
-      <div class="form-group">
-        <label>4. 請選擇活動 *</label>
-        <select id="eventName" required disabled>
-          <option value="">請先選擇團體</option>
-        </select>
-      </div>
-
-      <!-- 5. 請選擇成員 -->
-      <div class="form-group">
-        <label>5. 請選擇成員 *</label>
-        <select id="member" required disabled>
-          <option value="">請先選擇活動</option>
-        </select>
-      </div>
-
-      <!-- 6. 數量 / 包 -->
-      <div class="form-group">
-        <div class="qty-header-row">
-          <label>6. 數量 / 包 *</label>
-          <span id="qtyTip" class="dynamic-tip"></span>
+    <form id="orderForm">
+      <!-- 橫向多欄流暢排列區塊 -->
+      <div class="form-row-flex">
+        
+        <!-- 1. 選擇團體 -->
+        <div class="form-group w-group">
+          <label>1. 選擇團體 *</label>
+          <select id="groupSelect" required>
+            <option value="">請選擇團體</option>
+            <option value="Stray Kids">Stray Kids</option>
+            <option value="ATEEZ">ATEEZ</option>
+          </select>
         </div>
-        <input type="number" id="qty" min="1" step="1" placeholder="請輸入包數 (例如: 1, 2...)" required>
+
+        <!-- 2. 社群名稱 -->
+        <div class="form-group w-buyer">
+          <label>2. 社群名稱 *</label>
+          <select id="buyerName" required disabled>
+            <option value="">請先選擇團體</option>
+          </select>
+          <input type="text" id="customBuyerInput" placeholder="請輸入新社群暱稱..." style="display:none; margin-top:2px;">
+        </div>
+
+        <!-- 3. 訂單類別 -->
+        <div class="form-group w-type">
+          <label>3. 訂單類別</label>
+          <select id="orderType">
+            <option value="一般">一般 (預設)</option>
+            <option value="追加">追加</option>
+          </select>
+        </div>
+
+        <!-- 4. 請選擇活動 -->
+        <div class="form-group w-event">
+          <label>4. 請選擇活動 *</label>
+          <select id="eventName" required disabled>
+            <option value="">請先選擇團體</option>
+          </select>
+        </div>
+
+        <!-- 5. 請選擇成員 -->
+        <div class="form-group w-member">
+          <label>5. 請選擇成員 *</label>
+          <select id="member" required disabled>
+            <option value="">請先選擇活動</option>
+          </select>
+        </div>
+
+        <!-- 6. 數量 / 包 -->
+        <div class="form-group w-qty">
+          <div class="qty-header-row">
+            <label>6. 數量 / 包 *</label>
+            <span id="qtyTip" class="dynamic-tip"></span>
+          </div>
+          <input type="number" id="qty" min="1" step="1" placeholder="包數 (例如: 1, 2...)" required>
+        </div>
+
       </div>
 
-      <!-- 7. 備註欄位 (選填) -->
-      <div class="form-group">
+      <!-- 7. 備註欄位 (獨佔全寬) -->
+      <div class="form-group" style="margin-bottom: 12px;">
         <label>7. 備註欄位 (選填)</label>
         <textarea id="note" placeholder="如有特殊需求請在此註明..."></textarea>
       </div>
@@ -148,7 +168,6 @@
         memberOrderMap['ATEEZ'] = atzM;
       } catch(e) {}
 
-      // 監聽 Firestore 活動資料
       onSnapshot(collection(db, "event_settings"), snap => {
         activeEventSettings = [];
         eventPricesMap = {};
@@ -168,7 +187,6 @@
         updateEventsDropdown();
       });
 
-      // 1. 團體切換
       groupSel.addEventListener('change', async () => {
         const chosenGroup = groupSel.value;
         customBuyerInput.style.display = 'none';
@@ -185,7 +203,6 @@
           return;
         }
 
-        // 2. 載入動態社群名稱 (json + localStorage)
         buyerSel.disabled = false;
         const file = (chosenGroup === 'Stray Kids') ? 'users_skz.json' : 'users_atz.json';
         let jsonBuyers = [];
@@ -203,11 +220,9 @@
         });
         buyerSel.innerHTML += '<option value="CUSTOM">➕ 其他 (手動輸入)...</option>';
 
-        // 更新活動下拉選單
         updateEventsDropdown();
       });
 
-      // 2. 社群名稱選擇「其他」顯示輸入框
       buyerSel.addEventListener('change', () => {
         if (buyerSel.value === 'CUSTOM') {
           customBuyerInput.style.display = 'block';
@@ -218,7 +233,6 @@
         }
       });
 
-      // 4. 活動切換連動成員
       eventSel.addEventListener('change', () => {
         const chosenGroup = groupSel.value;
         const chosenEvent = eventSel.value;
@@ -330,7 +344,6 @@
           customBuyerInput.focus();
           return;
         }
-        // 儲存新暱稱至對應團體的 localStorage
         const localKey = `custom_users_${groupVal}`;
         const localBuyers = JSON.parse(localStorage.getItem(localKey) || '[]');
         if (!localBuyers.includes(buyerVal)) {
