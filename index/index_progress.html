@@ -20,7 +20,11 @@
     #progressList { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
 
     .event-group-card { background: #fff; border: 1px solid #e4e7ed; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.02); display: flex; flex-direction: column; }
+    
+    /* 預設/藍色系表頭 (SKZ) */
     .event-group-header { background: #eef5fe; border-left: 4px solid #409eff; color: #1a252f; font-size: 15px; font-weight: bold; padding: 10px 14px; display: flex; align-items: center; gap: 6px; }
+    /* 紫色系表頭 (ATEEZ) */
+    .event-group-header.header-ateez { background: #f3e8ff; border-left: 4px solid #7e22ce; color: #581c87; }
 
     .progress-list-box { padding: 12px 14px; display: flex; flex-direction: column; gap: 12px; }
     .member-block { display: flex; flex-direction: column; gap: 6px; border-bottom: 1px dashed #ebeef5; padding-bottom: 10px; }
@@ -167,6 +171,7 @@
         document.querySelectorAll('#groupCapsules .capsule-filter-btn').forEach(b => b.classList.remove('active'));
         allBtn.classList.add('active');
         activeDetail = 'ALL';
+        activeUser = 'ALL';
         updateDetailCapsules();
         updateUserCapsules();
         renderView();
@@ -182,26 +187,13 @@
           document.querySelectorAll('#groupCapsules .capsule-filter-btn').forEach(b => b.classList.remove('active'));
           btn.classList.add('active');
           activeDetail = 'ALL';
+          activeUser = 'ALL';
           updateDetailCapsules();
           updateUserCapsules();
           renderView();
         };
         container.appendChild(btn);
       });
-
-      const unclassifiedBtn = document.createElement('button');
-      unclassifiedBtn.className = `capsule-filter-btn ${activeGroup === 'UNCLASSIFIED' ? 'active' : ''}`;
-      unclassifiedBtn.textContent = '未分類';
-      unclassifiedBtn.onclick = () => {
-        activeGroup = 'UNCLASSIFIED';
-        document.querySelectorAll('#groupCapsules .capsule-filter-btn').forEach(b => b.classList.remove('active'));
-        unclassifiedBtn.classList.add('active');
-        activeDetail = 'ALL';
-        updateDetailCapsules();
-        updateUserCapsules();
-        renderView();
-      };
-      container.appendChild(unclassifiedBtn);
     }
 
     window.setModeFilter = (mode, btn) => {
@@ -229,9 +221,7 @@
       container.appendChild(allBtn);
 
       let filtered = rawProgress;
-      if (activeGroup === 'UNCLASSIFIED') {
-        filtered = filtered.filter(i => !i.group || i.group === '未分類');
-      } else if (activeGroup !== 'ALL') {
+      if (activeGroup !== 'ALL') {
         filtered = filtered.filter(i => i.group === activeGroup);
       }
 
@@ -299,8 +289,7 @@
       const usersSet = new Set();
       Object.values(ordersCache).forEach(ord => {
         let matchGroup = true;
-        if (activeGroup === 'UNCLASSIFIED') matchGroup = !ord.group || ord.group === '未分類';
-        else if (activeGroup !== 'ALL') matchGroup = ord.group === activeGroup;
+        if (activeGroup !== 'ALL') matchGroup = ord.group === activeGroup;
 
         if (matchGroup) {
           const key = (ord.group || '') + '_' + (ord.event || ord.eventName || '') + '_' + (ord.member || '');
@@ -325,7 +314,6 @@
       });
     }
 
-    // 解析活動開頭數字日期的輔助函式
     function extractEventDateScore(evName) {
       if (!evName) return 99999999;
       const match = evName.match(/\d{6}/);
@@ -338,9 +326,7 @@
       container.innerHTML = '';
 
       let list = rawProgress;
-      if (activeGroup === 'UNCLASSIFIED') {
-        list = list.filter(i => !i.group || i.group === '未分類');
-      } else if (activeGroup !== 'ALL') {
+      if (activeGroup !== 'ALL') {
         list = list.filter(i => i.group === activeGroup);
       }
 
@@ -357,7 +343,7 @@
 
       const eventGroups = {};
       list.forEach(item => {
-        const grp = item.group || '未分類';
+        const grp = item.group || 'Stray Kids';
         const eTitle = item.eventName || item.event || '未命名活動';
         const groupKey = `${grp}___${eTitle}`;
         if (!eventGroups[groupKey]) eventGroups[groupKey] = [];
@@ -372,7 +358,6 @@
         currentMemberList = memberMap[activeGroup] || [];
       }
 
-      // 改進點 1：依據活動開頭日期 (例 250116, 260725) 精準排序，不受 ATEEZ / Stray Kids 字母影響
       const sortedGroupKeys = Object.keys(eventGroups).sort((a, b) => {
         const [grpA, evA] = a.split('___');
         const [grpB, evB] = b.split('___');
@@ -407,7 +392,7 @@
           
           const matchedBuyerOrders = [];
           Object.values(ordersCache).forEach(ord => {
-            const ordGrp = ord.group || '未分類';
+            const ordGrp = ord.group || 'Stray Kids';
             if (ordGrp === grpName && (ord.event || ord.eventName) === eventName && ord.member === mName) {
               const bName = ord.buyerName || ord.user || ord.nickname;
               if (bName) {
@@ -464,7 +449,6 @@
             `;
           });
 
-          // 改進點 2：高對比色發圖進度膠囊
           let badgeClass = 'status-st-process';
           const st = mItems[0].status || '未開放';
           if (['未開放', '等圖中'].includes(st)) badgeClass = 'status-st-unopened';
@@ -487,9 +471,12 @@
         });
 
         if (membersHtml) {
+          const isAteez = (grpName === 'ATEEZ');
+          const headerClass = isAteez ? 'event-group-header header-ateez' : 'event-group-header';
+
           htmlContent += `
             <div class="event-group-card">
-              <div class="event-group-header">📅 [${grpName}] ${eventName}</div>
+              <div class="${headerClass}">📅 [${grpName}] ${eventName}</div>
               <div class="progress-list-box">${membersHtml}</div>
             </div>
           `;
