@@ -172,7 +172,7 @@
 
       const allBtn = document.createElement('button');
       allBtn.className = `capsule-filter-btn ${activeGroup === 'ALL' ? 'active' : ''}`;
-      allBtn.textContent = '團體';
+      allBtn.textContent = '全部';
       allBtn.onclick = () => {
         activeGroup = 'ALL';
         document.querySelectorAll('#groupCapsules .capsule-filter-btn').forEach(b => b.classList.remove('active'));
@@ -388,7 +388,7 @@
         if (!isEditing) {
           tr.innerHTML = `
             <td><b>${uName}</b></td>
-            <td><b>${ev}</b><br><small style="color:#606266;">成員: ${mem} (數量: ${qty}張 / ${priceInfo.packs}包)</small></td>
+            <td><b>[${o.group || '未分類'}] ${ev}</b><br><small style="color:#606266;">成員: ${mem} (數量: ${qty}張 / ${priceInfo.packs}包)</small></td>
             <td>$${amt.toLocaleString()}<br><span style="font-size:11px; color:#e6a23c; font-weight:bold;">${payStatus}</span></td>
             <td>
               ${isPhotoSent ? `
