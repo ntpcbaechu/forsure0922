@@ -31,12 +31,23 @@
     .buyer-row { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: #606266; padding-left: 12px; margin-top: 2px; }
     .buyer-status-group { display: flex; align-items: center; gap: 6px; }
 
-    .status-badge { padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: bold; white-space: nowrap; }
-    .status-waiting { background: #fef0f0; color: #f56c6c; border: 1px solid #fde2e2; }
-    .status-sorting { background: #fdf6ec; color: #e6a23c; border: 1px solid #faebd7; }
-    .status-checking { background: #eef2ff; color: #4f46e5; border: 1px solid #c7d2fe; }
-    .status-issue { background: #fef0f0; color: #f56c6c; border: 1px solid #fde2e2; }
-    .status-done { background: #f4f4f5; color: #909399; border: 1px solid #e4e7ed; }
+    /* 高對比、顯眼的彩膠囊色彩系統 */
+    .status-badge { padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: bold; white-space: nowrap; border: 1px solid transparent; }
+    
+    /* 進度階段配色 */
+    .status-st-unopened { background: #f4f4f5; color: #606266; border-color: #dcdfe6; } /* 未開放 / 等圖中 */
+    .status-st-process { background: #e0f2fe; color: #0284c7; border-color: #bae6fd; }  /* 修圖中 / 整理中 */
+    .status-st-notice  { background: #fff7ed; color: #ea580c; border-color: #ffedd5; }  /* 已通知匯款 / 上傳中 */
+    .status-st-done    { background: #f0f9eb; color: #16a34a; border-color: #bbf7d0; }  /* 已完工 / 已發圖 / 已預約 */
+
+    /* 買家個人狀態配色 */
+    .status-waiting  { background: #fef2f2; color: #dc2626; border-color: #fecaca; }  /* 🚨 待匯款 */
+    .status-checking { background: #fffbe6; color: #d97706; border-color: #fef08a; }  /* ⏳ 待對帳 */
+    .status-issue    { background: #fee2e2; color: #991b1b; border-color: #fca5a5; }  /* ⚠️ 帳有問題 */
+    .status-paid-done{ background: #f0f9eb; color: #16a34a; border-color: #bbf7d0; }  /* 🟢 已對帳 */
+    
+    .status-photo-wait{ background: #f3e8ff; color: #7e22ce; border-color: #e9d5ff; } /* 📷 待發圖 */
+    .status-photo-sent{ background: #e0f2fe; color: #0284c7; border-color: #bae6fd; } /* 🔵 已發圖 */
   </style>
 </head>
 <body>
@@ -148,7 +159,6 @@
       const container = document.getElementById('groupCapsules');
       container.innerHTML = '';
 
-      // 1. 全部團體 (膠囊顯示「全部」)
       const allBtn = document.createElement('button');
       allBtn.className = `capsule-filter-btn ${activeGroup === 'ALL' ? 'active' : ''}`;
       allBtn.textContent = '全部';
@@ -163,7 +173,6 @@
       };
       container.appendChild(allBtn);
 
-      // 2. 各團體膠囊
       groupList.forEach(g => {
         const btn = document.createElement('button');
         btn.className = `capsule-filter-btn ${activeGroup === g ? 'active' : ''}`;
@@ -180,7 +189,6 @@
         container.appendChild(btn);
       });
 
-      // 3. 未分類
       const unclassifiedBtn = document.createElement('button');
       unclassifiedBtn.className = `capsule-filter-btn ${activeGroup === 'UNCLASSIFIED' ? 'active' : ''}`;
       unclassifiedBtn.textContent = '未分類';
@@ -317,6 +325,14 @@
       });
     }
 
+    // 解析活動開頭數字日期的輔助函式
+    function extractEventDateScore(evName) {
+      if (!evName) return 99999999;
+      const match = evName.match(/\d{6}/);
+      if (match) return parseInt(match[0], 10);
+      return 99999999;
+    }
+
     function renderView() {
       const container = document.getElementById('progressList');
       container.innerHTML = '';
@@ -339,7 +355,6 @@
         return;
       }
 
-      // 核心修復 1：使用 [團體 + 活動] 作為分組 Key，防止跨團體同名活動合併
       const eventGroups = {};
       list.forEach(item => {
         const grp = item.group || '未分類';
@@ -352,12 +367,23 @@
       let htmlContent = '';
       let currentMemberList = [];
       if (activeGroup === 'ALL') {
-        Object.values(memberMap).forEach(list => currentMemberList.push(...list));
+        Object.values(memberMap).forEach(l => currentMemberList.push(...l));
       } else {
         currentMemberList = memberMap[activeGroup] || [];
       }
 
-      Object.keys(eventGroups).sort().forEach(groupKey => {
+      // 改進點 1：依據活動開頭日期 (例 250116, 260725) 精準排序，不受 ATEEZ / Stray Kids 字母影響
+      const sortedGroupKeys = Object.keys(eventGroups).sort((a, b) => {
+        const [grpA, evA] = a.split('___');
+        const [grpB, evB] = b.split('___');
+        const dateA = extractEventDateScore(evA);
+        const dateB = extractEventDateScore(evB);
+
+        if (dateA !== dateB) return dateA - dateB;
+        return a.localeCompare(b, 'zh-TW');
+      });
+
+      sortedGroupKeys.forEach(groupKey => {
         const items = eventGroups[groupKey];
         const [grpName, eventName] = groupKey.split('___');
 
@@ -379,7 +405,6 @@
         Object.keys(memberMapObj).forEach(mName => {
           const mItems = memberMapObj[mName];
           
-          // 核心修復 2：依據喊單 createdAt 排序買家（移除字母排序 .sort()）
           const matchedBuyerOrders = [];
           Object.values(ordersCache).forEach(ord => {
             const ordGrp = ord.group || '未分類';
@@ -395,14 +420,12 @@
 
           if (activeUser !== 'ALL' && matchedBuyerOrders.length === 0) return;
 
-          // 按照喊單建立時間由早到晚排序
           matchedBuyerOrders.sort((a, b) => {
             const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
             const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
             return timeA - timeB;
           });
 
-          // 取出獨立買家名稱並維持喊單時間順序
           const uniqueBuyersInOrder = [];
           const buyerSeenSet = new Set();
           matchedBuyerOrders.forEach(ord => {
@@ -416,17 +439,17 @@
           let buyersHtml = '';
           uniqueBuyersInOrder.forEach(bName => {
             let payStatusText = '🚨 待匯款', payBadgeClass = 'status-waiting';
-            let photoStatusText = '📷 待發圖', photoBadgeClass = 'status-waiting';
+            let photoStatusText = '📷 待發圖', photoBadgeClass = 'status-photo-wait';
 
             Object.values(ordersCache).forEach(ord => {
               const b = ord.buyerName || ord.user || ord.nickname;
               if (b === bName && (ord.event || ord.eventName) === eventName && ord.member === mName) {
                 const st = ord.paymentStatus || ord.status || (ord.hasPaid ? '已對帳' : '待匯款');
-                if (st === '已對帳' || ord.hasPaid) { payStatusText = '⚫ 已對帳'; payBadgeClass = 'status-done'; }
+                if (st === '已對帳' || ord.hasPaid) { payStatusText = '🟢 已對帳'; payBadgeClass = 'status-paid-done'; }
                 else if (st === '待對帳' || st === '對帳中') { payStatusText = '⏳ 待對帳'; payBadgeClass = 'status-checking'; }
                 else if (st === '對帳有問題' || st === '有問題') { payStatusText = '⚠️ 帳有問題'; payBadgeClass = 'status-issue'; }
 
-                if (ord.isPhotoSent === true || ord.status === '已發圖') { photoStatusText = '⚪ 已發圖'; photoBadgeClass = 'status-done'; }
+                if (ord.isPhotoSent === true || ord.status === '已發圖') { photoStatusText = '🔵 已發圖'; photoBadgeClass = 'status-photo-sent'; }
               }
             });
 
@@ -441,9 +464,12 @@
             `;
           });
 
-          let badgeClass = 'status-sorting';
-          const st = mItems[0].status || '等圖中';
-          if (['已完工', '已發圖', '已結束', '已預約'].includes(st)) badgeClass = 'status-done';
+          // 改進點 2：高對比色發圖進度膠囊
+          let badgeClass = 'status-st-process';
+          const st = mItems[0].status || '未開放';
+          if (['未開放', '等圖中'].includes(st)) badgeClass = 'status-st-unopened';
+          else if (['已通知匯款', '上傳中'].includes(st)) badgeClass = 'status-st-notice';
+          else if (['已完工', '已發圖', '已結束', '已預約'].includes(st)) badgeClass = 'status-st-done';
 
           const memEmoji = MEMBER_EMOJI_MAP[mName] || '👤';
 
