@@ -21,9 +21,9 @@
 
     .event-group-card { background: #fff; border: 1px solid #e4e7ed; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.02); display: flex; flex-direction: column; }
     
-    /* 預設/藍色系表頭 (SKZ) */
+    /* SKZ 藍色系表頭 */
     .event-group-header { background: #eef5fe; border-left: 4px solid #409eff; color: #1a252f; font-size: 15px; font-weight: bold; padding: 10px 14px; display: flex; align-items: center; gap: 6px; }
-    /* 紫色系表頭 (ATEEZ) */
+    /* ATEEZ 紫色系表頭 */
     .event-group-header.header-ateez { background: #f3e8ff; border-left: 4px solid #7e22ce; color: #581c87; }
 
     .progress-list-box { padding: 12px 14px; display: flex; flex-direction: column; gap: 12px; }
@@ -35,23 +35,21 @@
     .buyer-row { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: #606266; padding-left: 12px; margin-top: 2px; }
     .buyer-status-group { display: flex; align-items: center; gap: 6px; }
 
-    /* 高對比、顯眼的彩膠囊色彩系統 */
-    .status-badge { padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: bold; white-space: nowrap; border: 1px solid transparent; }
+    .status-badge { padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: bold; white-space: nowrap; border: 1px solid transparent; }
     
-    /* 進度階段配色 */
-    .status-st-unopened { background: #f4f4f5; color: #606266; border-color: #dcdfe6; } /* 未開放 / 等圖中 */
-    .status-st-process { background: #e0f2fe; color: #0284c7; border-color: #bae6fd; }  /* 修圖中 / 整理中 */
-    .status-st-notice  { background: #fff7ed; color: #ea580c; border-color: #ffedd5; }  /* 已通知匯款 / 上傳中 */
-    .status-st-done    { background: #f0f9eb; color: #16a34a; border-color: #bbf7d0; }  /* 已完工 / 已發圖 / 已預約 */
+    /* 活動進度階段配色 (原始配色) */
+    .status-sorting  { background: #fdf6ec; color: #e6a23c; border: 1px solid #faebd7; }
+    .status-done     { background: #f4f4f5; color: #909399; border: 1px solid #e4e7ed; }
 
     /* 買家個人狀態配色 */
-    .status-waiting  { background: #fef2f2; color: #dc2626; border-color: #fecaca; }  /* 🚨 待匯款 */
-    .status-checking { background: #fffbe6; color: #d97706; border-color: #fef08a; }  /* ⏳ 待對帳 */
-    .status-issue    { background: #fee2e2; color: #991b1b; border-color: #fca5a5; }  /* ⚠️ 帳有問題 */
-    .status-paid-done{ background: #f0f9eb; color: #16a34a; border-color: #bbf7d0; }  /* 🟢 已對帳 */
+    .status-waiting   { background: #fef0f0; color: #f56c6c; border-color: #fde2e2; }  /* 🚨 待匯款 (紅) */
+    .status-checking  { background: #fdf6ec; color: #e6a23c; border-color: #faebd7; }  /* ⏳ 待對帳 (黃) */
+    .status-issue     { background: #fef0f0; color: #f56c6c; border-color: #fde2e2; }  /* ⚠️ 帳有問題 (紅) */
+    .status-photo-wait{ background: #f3e8ff; color: #7e22ce; border-color: #e9d5ff; }  /* 📷 待發圖 (紫) */
     
-    .status-photo-wait{ background: #f3e8ff; color: #7e22ce; border-color: #e9d5ff; } /* 📷 待發圖 */
-    .status-photo-sent{ background: #e0f2fe; color: #0284c7; border-color: #bae6fd; } /* 🔵 已發圖 */
+    /* 精準修改：已對帳 / 已發圖 改為像「未開放」那樣的淺灰底 + 深灰字膠囊 */
+    .status-paid-done { background: #f4f4f5; color: #606266; border-color: #dcdfe6; }  /* ⚪ 已對帳 */
+    .status-photo-sent{ background: #f4f4f5; color: #606266; border-color: #dcdfe6; }  /* ⚪ 已發圖 */
   </style>
 </head>
 <body>
@@ -430,11 +428,11 @@
               const b = ord.buyerName || ord.user || ord.nickname;
               if (b === bName && (ord.event || ord.eventName) === eventName && ord.member === mName) {
                 const st = ord.paymentStatus || ord.status || (ord.hasPaid ? '已對帳' : '待匯款');
-                if (st === '已對帳' || ord.hasPaid) { payStatusText = '🟢 已對帳'; payBadgeClass = 'status-paid-done'; }
+                if (st === '已對帳' || ord.hasPaid) { payStatusText = '⚪ 已對帳'; payBadgeClass = 'status-paid-done'; }
                 else if (st === '待對帳' || st === '對帳中') { payStatusText = '⏳ 待對帳'; payBadgeClass = 'status-checking'; }
                 else if (st === '對帳有問題' || st === '有問題') { payStatusText = '⚠️ 帳有問題'; payBadgeClass = 'status-issue'; }
 
-                if (ord.isPhotoSent === true || ord.status === '已發圖') { photoStatusText = '🔵 已發圖'; photoBadgeClass = 'status-photo-sent'; }
+                if (ord.isPhotoSent === true || ord.status === '已發圖') { photoStatusText = '⚪ 已發圖'; photoBadgeClass = 'status-photo-sent'; }
               }
             });
 
@@ -449,11 +447,9 @@
             `;
           });
 
-          let badgeClass = 'status-st-process';
+          let badgeClass = 'status-sorting';
           const st = mItems[0].status || '未開放';
-          if (['未開放', '等圖中'].includes(st)) badgeClass = 'status-st-unopened';
-          else if (['已通知匯款', '上傳中'].includes(st)) badgeClass = 'status-st-notice';
-          else if (['已完工', '已發圖', '已結束', '已預約'].includes(st)) badgeClass = 'status-st-done';
+          if (['已完工', '已發圖', '已結束', '已預約'].includes(st)) badgeClass = 'status-done';
 
           const memEmoji = MEMBER_EMOJI_MAP[mName] || '👤';
 
