@@ -174,7 +174,7 @@
             price: Number(data.actualPrice || data.price || data.estimatedPrice || data.unitPrice) || 0,
             packQty: Number(data.packQty) || 1,
             discounts: data.discounts || [],
-            actVideo: Number(data.actVideo) || 0
+            unit: data.unit || '包'
           };
         });
         renderCapsulesAndRecords();
@@ -351,7 +351,7 @@
       let totalPrice = packs * pricePerPack;
 
       if (setting.discounts && Array.isArray(setting.discounts)) {
-        const userDisc = setting.discounts.find(d => d.targetUser === userName);
+        const userDisc = setting.discounts.find(d => !d.targetUser || d.targetUser === userName);
         if (userDisc) {
           const discCount = Math.min(packs, Number(userDisc.count) || 0);
           const discPrice = Number(userDisc.price) || 0;
@@ -359,8 +359,8 @@
         }
       }
 
-      const unitLabel = setting.actVideo > 0 ? '個' : '張';
-      const qtyText = `${packs}包 (${qty}${unitLabel})`;
+      const unitTag = setting.unit || '包';
+      const qtyText = `${packs}${unitTag} (${qty}張)`;
 
       return { totalPrice, qtyText };
     }
@@ -589,7 +589,7 @@
         const totalPacks = list.reduce((sum, item) => sum + (Number(item.quantity) || Number(item.qty) || 1), 0);
         const sampleKey = (list[0].event || list[0].eventName || '') + '_' + (list[0].member || '');
         const sampleSetting = eventSettingsMap[sampleKey] || {};
-        const groupUnitLabel = sampleSetting.actVideo > 0 ? '個' : '張';
+        const groupUnitLabel = sampleSetting.unit || '包';
 
         let rowsHtml = '';
         list.forEach((ord, idx) => {
