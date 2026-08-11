@@ -78,7 +78,6 @@
       font-weight: bold;
     }
 
-    /* 原始明細區塊與卡片樣式 */
     .order-box {
       background: #f8f9fa;
       border: 1px solid #e4e7ed;
@@ -171,7 +170,7 @@
           <option value="官方 Line">官方 Line</option>
         </select>
 
-        <!-- IG / Threads 專用輸入框 (動態切換必填) -->
+        <!-- IG / Threads 專用輸入框 -->
         <input type="text" id="contactAccountInput" placeholder="請輸入帳號" style="display:none; margin-top:4px;">
 
         <!-- 官方 Line 提示卡片 -->
@@ -273,10 +272,8 @@
 
     let ordersCache = [];
     let groupList = [];
-    let userWalletCache = {};
 
     document.addEventListener('DOMContentLoaded', async () => {
-      // 預設今日日期
       document.getElementById('payDateInput').value = new Date().toISOString().split('T')[0];
 
       try {
@@ -313,16 +310,17 @@
         return;
       }
 
-      // 精準過濾：只抓該團體且含有「待匯款/未付清」訂單的買家
+      // 精準篩選「只有待匯款」訂單的買家（不剪裁原樣暱稱）
       const unpaidBuyersSet = new Set();
       ordersCache.forEach(o => {
         const grp = o.group || 'Stray Kids';
         if (grp === selectedGroup) {
-          const isPaid = o.hasPaid === true || o.paymentStatus === '已對帳' || o.status === '已完工' || o.status === '已結束';
-          if (!isPaid) {
-            let rawName = o.user || o.buyerName || o.nickname || '';
-            let cleanName = rawName.replace(/^[-\s]+/, '').trim();
-            if (cleanName) unpaidBuyersSet.add(cleanName);
+          const pStatus = o.paymentStatus || o.status || '';
+          const isPaidOrChecking = o.hasPaid === true || ['已對帳', '待對帳', '對帳中', '已完工', '已結束'].includes(pStatus);
+          
+          if (!isPaidOrChecking) {
+            const rawName = o.user || o.buyerName || o.nickname || '';
+            if (rawName.trim()) unpaidBuyersSet.add(rawName);
           }
         }
       });
@@ -355,12 +353,13 @@
         return;
       }
 
-      // 撈出該買家在該團體下的待匯款明細
       const buyerOrders = ordersCache.filter(o => {
         const grp = o.group || 'Stray Kids';
-        const name = (o.user || o.buyerName || o.nickname || '').replace(/^[-\s]+/, '').trim();
-        const isPaid = o.hasPaid === true || o.paymentStatus === '已對帳' || o.status === '已完工' || o.status === '已結束';
-        return grp === selectedGroup && name === selectedBuyer && !isPaid;
+        const name = o.user || o.buyerName || o.nickname || '';
+        const pStatus = o.paymentStatus || o.status || '';
+        const isPaidOrChecking = o.hasPaid === true || ['已對帳', '待對帳', '對帳中', '已完工', '已結束'].includes(pStatus);
+        
+        return grp === selectedGroup && name === selectedBuyer && !isPaidOrChecking;
       });
 
       if (buyerOrders.length === 0) {
@@ -370,7 +369,7 @@
           const price = Number(ord.totalPrice || ord.price || 0);
           const ev = ord.event || ord.eventName || '活動';
           const mem = ord.member || '';
-          const qty = ord.count || ord.qty || '';
+          const qty = ord.count || ord.qty || ord.quantity || '';
           const labelText = `${ev} (${mem}${qty ? ' / ' + qty + '張' : ''})`;
 
           const row = document.createElement('div');
@@ -397,11 +396,11 @@
 
       if (type === 'Instagram' || type === 'Threads') {
         input.style.display = 'block';
-        input.required = true; // 強制動態必填
+        input.required = true;
         lineCard.style.display = 'none';
       } else if (type === '官方 Line') {
         input.style.display = 'none';
-        input.required = false; // 取消必填
+        input.required = false;
         input.value = '';
         lineCard.style.display = 'flex';
       } else {
@@ -436,12 +435,10 @@
     window.calculateTotal = () => {
       let subtotal = 0;
       
-      // 勾選的訂單小計
       document.querySelectorAll('.order-chk:checked').forEach(chk => {
         subtotal += Number(chk.dataset.price || 0);
       });
 
-      // 自訂新增金額
       document.querySelectorAll('.extra-price').forEach(inp => {
         subtotal += Number(inp.value || 0);
       });
@@ -480,8 +477,8 @@
       const contactType = document.getElementById('contactTypeSelect').value;
       const contactAccount = (contactType === '官方 Line') ? '@115oyenv' : document.getElementById('contactAccountInput').value.trim();
       
-      const selectedOrderIds = [];
-      document.querySelectorAll('.order-chk:checked').forEach(c => selectedOrderIds.push(c.dataset.id));
+      const relatedOrderIds = [];
+      document.querySelectorAll('.order-chk:checked').forEach(c => relatedOrderIds.push(c.dataset.id));
 
       const payDate = document.getElementById('payDateInput').value;
       const bankTarget = document.getElementById('bankTargetSelect').value;
@@ -489,23 +486,36 @@
       const bankLast5 = document.getElementById('bankLast5Input').value.trim();
       const note = document.getElementById('noteInput').value.trim();
 
+      const useDeposit = document.getElementById('useDepositChk').checked;
+      const useCredit = document.getElementById('useCreditChk').checked;
+
       try {
-        await addDoc(collection(db, "payment_reports"), {
-          group,
-          buyerName,
-          contactType,
-          contactAccount,
-          selectedOrderIds,
-          payDate,
-          bankTarget,
-          amount,
-          bankLast5,
-          note,
-          createdAt: new Date().toISOString(),
-          status: '待對帳'
+        // 寫入 100% 對齊 Firebase payments 集合結構
+        await addDoc(collection(db, "payments"), {
+          group: group,
+          user: buyerName,
+          buyerName: buyerName,
+          contactType: contactType,
+          socialAccount: contactAccount,
+          relatedOrderIds: relatedOrderIds,
+          payDate: payDate,
+          bank: bankTarget,
+          bankName: bankTarget,
+          finalPay: amount,
+          amount: amount,
+          last5: bankLast5,
+          bankLast5: bankLast5,
+          note: note,
+          useDeposit: useDeposit,
+          useCredit: useCredit,
+          depositUsed: 0,
+          creditUsed: 0,
+          hasDeducted: false,
+          status: "pending",
+          createdAt: new Date().toISOString()
         });
 
-        alert('✅ 對帳表單已順利提交！');
+        alert('🎉 匯款對帳單已成功提交！');
         document.getElementById('paymentForm').reset();
         document.getElementById('payDateInput').value = new Date().toISOString().split('T')[0];
         handleGroupChange();
