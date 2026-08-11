@@ -137,7 +137,7 @@
           eventSettingsMap[key] = {
             price: Number(data.actualPrice || data.price || data.estimatedPrice || data.unitPrice) || 0,
             packQty: Number(data.packQty) || 1,
-            actVideo: Number(data.actVideo) || 0
+            unit: data.unit || '包'
           };
         });
         renderRecords();
@@ -293,8 +293,8 @@
       const packs = (packQty > 0) ? Math.round(qty / packQty) : 1;
       const totalPrice = packs * pricePerPack;
 
-      const unitLabel = setting.actVideo > 0 ? '個' : '張';
-      const qtyText = `${packs}包 (${qty}${unitLabel})`;
+      const unitTag = setting.unit || '包';
+      const qtyText = `${packs}${unitTag} (${qty}張)`;
 
       return { totalPrice, qtyText };
     }
@@ -330,6 +330,9 @@
       let gridHtml = '<div id="recordsListGrid">';
       for (const [title, listItems] of Object.entries(groups)) {
         const totalPacks = listItems.reduce((sum, item) => sum + (Number(item.quantity) || Number(item.qty) || 1), 0);
+        const sampleKey = (listItems[0].event || listItems[0].eventName || '') + '_' + (listItems[0].member || '');
+        const sampleSetting = eventSettingsMap[sampleKey] || {};
+        const groupUnitLabel = sampleSetting.unit || '包';
 
         let rowsHtml = '';
         listItems.forEach((ord, idx) => {
@@ -352,7 +355,7 @@
           <details class="event-section">
             <summary class="event-header">
               <span>📦 ${title} (歷史歸檔)</span>
-              <span class="event-meta">共 ${listItems.length} 筆 / ${totalPacks} 份</span>
+              <span class="event-meta">共 ${listItems.length} 筆 / ${totalPacks} ${groupUnitLabel}</span>
             </summary>
             <table class="compact-records-table">
               <thead>
