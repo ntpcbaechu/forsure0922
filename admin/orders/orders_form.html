@@ -51,7 +51,7 @@
 
     /* 每個選單寬度符合內容長度，美觀不壓縮也不過寬 */
     .w-group { width: 140px; }
-    .w-buyer { min-width: 200px; max-width: 240px; }
+    .w-buyer { min-width: 200px; max-width: 260px; }
     .w-type { width: 120px; }
     .w-event { min-width: 200px; max-width: 260px; }
     .w-member { width: 140px; }
@@ -83,7 +83,7 @@
           <select id="buyerName" required disabled>
             <option value="">請先選擇團體</option>
           </select>
-          <input type="text" id="customBuyerInput" placeholder="請輸入新社群暱稱..." style="display:none; margin-top:2px;">
+          <input type="text" id="customBuyerInput" placeholder="請輸入帳號" style="display:none; margin-top:2px;">
         </div>
 
         <!-- 3. 訂單類別 -->
@@ -219,14 +219,24 @@
           buyerSel.innerHTML += `<option value="${b}">${b}</option>`;
         });
         buyerSel.innerHTML += '<option value="CUSTOM">➕ 其他 (手動輸入)...</option>';
+        buyerSel.innerHTML += '<option value="THREADS">➕ 其他 (Threads帳號)...</option>';
+
+        // 若選擇 ATEEZ 且無預設名單，自動切換至 Threads 帳號選項
+        if (chosenGroup === 'ATEEZ' && jsonBuyers.length === 0) {
+          buyerSel.value = 'THREADS';
+          customBuyerInput.style.display = 'block';
+          customBuyerInput.required = true;
+        }
 
         updateEventsDropdown();
       });
 
       buyerSel.addEventListener('change', () => {
-        if (buyerSel.value === 'CUSTOM') {
+        const val = buyerSel.value;
+        if (val === 'CUSTOM' || val === 'THREADS') {
           customBuyerInput.style.display = 'block';
           customBuyerInput.required = true;
+          customBuyerInput.placeholder = '請輸入帳號';
         } else {
           customBuyerInput.style.display = 'none';
           customBuyerInput.required = false;
@@ -335,21 +345,31 @@
       e.preventDefault();
       
       const groupVal = groupSel.value;
-      let buyerVal = buyerSel.value;
+      const selectedBuyerType = buyerSel.value;
+      let buyerVal = selectedBuyerType;
       
-      if (buyerVal === 'CUSTOM') {
+      if (selectedBuyerType === 'CUSTOM') {
         buyerVal = customBuyerInput.value.trim();
         if (!buyerVal) {
-          alert('請輸入自訂的社群暱稱！');
+          alert('請輸入帳號！');
           customBuyerInput.focus();
           return;
         }
+        // 只有 CUSTOM 才寫入 localStorage
         const localKey = `custom_users_${groupVal}`;
         const localBuyers = JSON.parse(localStorage.getItem(localKey) || '[]');
         if (!localBuyers.includes(buyerVal)) {
           localBuyers.push(buyerVal);
           localStorage.setItem(localKey, JSON.stringify(localBuyers));
         }
+      } else if (selectedBuyerType === 'THREADS') {
+        buyerVal = customBuyerInput.value.trim();
+        if (!buyerVal) {
+          alert('請輸入帳號！');
+          customBuyerInput.focus();
+          return;
+        }
+        // THREADS 不寫入 localStorage，為單次使用
       }
 
       const eventVal = eventSel.value;
