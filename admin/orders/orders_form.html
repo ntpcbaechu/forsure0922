@@ -6,16 +6,17 @@
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 15px; margin: 0; background: #fff; color: #333; }
     
-    .form-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
+    .form-container {
+      max-width: 420px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
     }
 
-    .form-group { margin-bottom: 10px; }
-    .form-group.full-width { grid-column: span 2; }
+    .form-group { display: flex; flex-direction: column; gap: 4px; }
 
-    label { font-size: 13px; font-weight: bold; color: #303133; display: block; margin-bottom: 4px; }
+    label { font-size: 13px; font-weight: bold; color: #303133; }
     
     input, select, textarea { 
       width: 100%; 
@@ -39,59 +40,77 @@
     
     .qty-header-row { display: flex; justify-content: space-between; align-items: center; }
     .dynamic-tip { font-size: 12px; color: #67c23a; font-weight: bold; }
-
-    @media (max-width: 500px) {
-      .form-grid { grid-template-columns: 1fr; }
-      .form-group.full-width { grid-column: span 1; }
-    }
   </style>
 </head>
 <body>
 
-  <h3 style="margin-top:0; margin-bottom:12px; font-size:18px;">團員登記填單</h3>
-  <form id="orderForm">
-    <div class="form-grid">
+  <div class="form-container">
+    <h3 style="margin-top:0; margin-bottom:4px; font-size:18px; text-align:center;">團員登記填單</h3>
+    
+    <form id="orderForm" style="display:flex; flex-direction:column; gap:10px;">
       
+      <!-- 1. 選擇團體 -->
       <div class="form-group">
-        <label>社群名稱 *</label>
-        <select id="buyerName" required><option value="">載入中...</option></select>
+        <label>1. 選擇團體 *</label>
+        <select id="groupSelect" required>
+          <option value="">請選擇團體</option>
+          <option value="Stray Kids">Stray Kids</option>
+          <option value="ATEEZ">ATEEZ</option>
+        </select>
       </div>
 
+      <!-- 2. 社群名稱 -->
       <div class="form-group">
-        <label>訂單類別</label>
+        <label>2. 社群名稱 *</label>
+        <select id="buyerName" required disabled>
+          <option value="">請先選擇團體</option>
+        </select>
+        <input type="text" id="customBuyerInput" placeholder="請輸入新社群暱稱..." style="display:none; margin-top:4px;">
+      </div>
+
+      <!-- 3. 訂單類別 -->
+      <div class="form-group">
+        <label>3. 訂單類別</label>
         <select id="orderType">
           <option value="一般">一般 (預設)</option>
           <option value="追加">追加</option>
         </select>
       </div>
 
+      <!-- 4. 請選擇活動 -->
       <div class="form-group">
-        <label>活動名稱 *</label>
-        <select id="eventName" required><option value="">載入中...</option></select>
+        <label>4. 請選擇活動 *</label>
+        <select id="eventName" required disabled>
+          <option value="">請先選擇團體</option>
+        </select>
       </div>
 
+      <!-- 5. 請選擇成員 -->
       <div class="form-group">
-        <label>成員 *</label>
-        <select id="member" required disabled><option value="">請先選擇活動</option></select>
+        <label>5. 請選擇成員 *</label>
+        <select id="member" required disabled>
+          <option value="">請先選擇活動</option>
+        </select>
       </div>
 
-      <div class="form-group full-width">
+      <!-- 6. 數量 / 包 -->
+      <div class="form-group">
         <div class="qty-header-row">
-          <label style="margin-bottom:0;">數量 / 包 *</label>
+          <label>6. 數量 / 包 *</label>
           <span id="qtyTip" class="dynamic-tip"></span>
         </div>
-        <input type="number" id="qty" min="1" step="1" placeholder="請輸入包數 (例如: 1, 2...)" style="margin-top:4px;" required>
+        <input type="number" id="qty" min="1" step="1" placeholder="請輸入包數 (例如: 1, 2...)" required>
       </div>
 
-      <div class="form-group full-width">
-        <label>備註欄位</label>
+      <!-- 7. 備註欄位 (選填) -->
+      <div class="form-group">
+        <label>7. 備註欄位 (選填)</label>
         <textarea id="note" placeholder="如有特殊需求請在此註明..."></textarea>
       </div>
 
-    </div>
-
-    <button type="submit" id="submitBtn">提交訂單</button>
-  </form>
+      <button type="submit" id="submitBtn">提交訂單</button>
+    </form>
+  </div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -110,36 +129,35 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    const MEMBER_ORDER = ["方燦", "Lee Know", "彰彬", "鉉辰", "HAN", "Felix", "昇玟", "I.N"];
     let activeEventSettings = [];
     let eventPricesMap = {};
+    let memberOrderMap = {};
+
+    const groupSel = document.getElementById('groupSelect');
+    const buyerSel = document.getElementById('buyerName');
+    const customBuyerInput = document.getElementById('customBuyerInput');
+    const eventSel = document.getElementById('eventName');
+    const memberSel = document.getElementById('member');
+    const qtyInput = document.getElementById('qty');
 
     document.addEventListener('DOMContentLoaded', async () => {
       try {
-        const buyersRes = await fetch('../../json/users.json');
-        const buyers = await buyersRes.json();
-        const buyerSel = document.getElementById('buyerName');
-        buyerSel.innerHTML = '<option value="">請選擇您的名稱</option>';
-        buyers.forEach(b => { buyerSel.innerHTML += '<option value="' + b + '">' + b + '</option>'; });
-      } catch (e) {
-        console.error("載入買家失敗:", e);
-      }
+        const skzM = await fetch('../../json/members_skz.json').then(r => r.json());
+        const atzM = await fetch('../../json/members_atz.json').then(r => r.json());
+        memberOrderMap['Stray Kids'] = skzM;
+        memberOrderMap['ATEEZ'] = atzM;
+      } catch(e) {}
 
-      const eventSel = document.getElementById('eventName');
-      const memberSel = document.getElementById('member');
-      const qtyInput = document.getElementById('qty');
-
+      // 監聽 Firestore 活動資料
       onSnapshot(collection(db, "event_settings"), snap => {
         activeEventSettings = [];
         eventPricesMap = {};
-        const uniqueEvents = new Set();
 
         snap.forEach(d => {
           const data = d.data();
           if (!data.isClosed && data.name) {
             activeEventSettings.push(data);
-            uniqueEvents.add(data.name.trim());
-            const key = data.name.trim() + '_' + (data.member || '');
+            const key = (data.group || '') + '_' + data.name.trim() + '_' + (data.member || '');
             eventPricesMap[key] = {
               price: Number(data.actualPrice || data.price || data.estimatedPrice || data.unitPrice) || 0,
               packQty: Number(data.packQty) || 1
@@ -147,25 +165,62 @@
           }
         });
 
-        const selectedEv = eventSel.value;
-        eventSel.innerHTML = '<option value="">請選擇活動</option>';
-        
-        Array.from(uniqueEvents).sort().forEach(eName => {
-          eventSel.innerHTML += '<option value="' + eName + '">' + eName + '</option>';
-        });
-
-        if (selectedEv && uniqueEvents.has(selectedEv)) {
-          eventSel.value = selectedEv;
-        } else {
-          memberSel.innerHTML = '<option value="">請先選擇活動</option>';
-          memberSel.disabled = true;
-        }
-
-        updateQtyTip();
-        notifyHeight();
+        updateEventsDropdown();
       });
 
+      // 1. 團體切換
+      groupSel.addEventListener('change', async () => {
+        const chosenGroup = groupSel.value;
+        customBuyerInput.style.display = 'none';
+        customBuyerInput.value = '';
+
+        if (!chosenGroup) {
+          buyerSel.innerHTML = '<option value="">請先選擇團體</option>';
+          buyerSel.disabled = true;
+          eventSel.innerHTML = '<option value="">請先選擇團體</option>';
+          eventSel.disabled = true;
+          memberSel.innerHTML = '<option value="">請先選擇活動</option>';
+          memberSel.disabled = true;
+          updateQtyTip();
+          return;
+        }
+
+        // 2. 載入動態社群名稱 (json + localStorage)
+        buyerSel.disabled = false;
+        const file = (chosenGroup === 'Stray Kids') ? 'users_skz.json' : 'users_atz.json';
+        let jsonBuyers = [];
+        try {
+          jsonBuyers = await fetch(`../../json/${file}`).then(r => r.json());
+        } catch(e){}
+
+        const localKey = `custom_users_${chosenGroup}`;
+        const localBuyers = JSON.parse(localStorage.getItem(localKey) || '[]');
+        const combinedBuyers = Array.from(new Set([...jsonBuyers, ...localBuyers])).sort((a,b)=>a.localeCompare(b,'zh-TW'));
+
+        buyerSel.innerHTML = '<option value="">請選擇您的名稱</option>';
+        combinedBuyers.forEach(b => {
+          buyerSel.innerHTML += `<option value="${b}">${b}</option>`;
+        });
+        buyerSel.innerHTML += '<option value="CUSTOM">➕ 其他 (手動輸入)...</option>';
+
+        // 更新活動下拉選單
+        updateEventsDropdown();
+      });
+
+      // 2. 社群名稱選擇「其他」顯示輸入框
+      buyerSel.addEventListener('change', () => {
+        if (buyerSel.value === 'CUSTOM') {
+          customBuyerInput.style.display = 'block';
+          customBuyerInput.required = true;
+        } else {
+          customBuyerInput.style.display = 'none';
+          customBuyerInput.required = false;
+        }
+      });
+
+      // 4. 活動切換連動成員
       eventSel.addEventListener('change', () => {
+        const chosenGroup = groupSel.value;
         const chosenEvent = eventSel.value;
         memberSel.innerHTML = '';
 
@@ -178,14 +233,15 @@
 
         const availableMembers = new Set();
         activeEventSettings.forEach(s => {
-          if ((s.name || '').trim() === chosenEvent && s.member) {
+          if ((s.group || '') === chosenGroup && (s.name || '').trim() === chosenEvent && s.member) {
             availableMembers.add(s.member.trim());
           }
         });
 
+        const orderList = memberOrderMap[chosenGroup] || [];
         const sortedMembers = Array.from(availableMembers).sort((a, b) => {
-          let idxA = MEMBER_ORDER.indexOf(a);
-          let idxB = MEMBER_ORDER.indexOf(b);
+          let idxA = orderList.indexOf(a);
+          let idxB = orderList.indexOf(b);
           return (idxA === -1 ? 99 : idxA) - (idxB === -1 ? 99 : idxB);
         });
 
@@ -196,7 +252,7 @@
           memberSel.disabled = false;
           memberSel.innerHTML = '<option value="">請選擇成員</option>';
           sortedMembers.forEach(m => {
-            memberSel.innerHTML += '<option value="' + m + '">' + m + '</option>';
+            memberSel.innerHTML += `<option value="${m}">${m}</option>`;
           });
 
           if (sortedMembers.length === 1) {
@@ -210,19 +266,49 @@
       qtyInput.addEventListener('input', updateQtyTip);
     });
 
+    function updateEventsDropdown() {
+      const chosenGroup = groupSel.value;
+      if (!chosenGroup) return;
+
+      const uniqueEvents = new Set();
+      activeEventSettings.forEach(s => {
+        if ((s.group || '') === chosenGroup && s.name) {
+          uniqueEvents.add(s.name.trim());
+        }
+      });
+
+      const currentEv = eventSel.value;
+      eventSel.disabled = false;
+      eventSel.innerHTML = '<option value="">請選擇活動</option>';
+
+      Array.from(uniqueEvents).sort().forEach(eName => {
+        eventSel.innerHTML += `<option value="${eName}">${eName}</option>`;
+      });
+
+      if (currentEv && uniqueEvents.has(currentEv)) {
+        eventSel.value = currentEv;
+      } else {
+        memberSel.innerHTML = '<option value="">請先選擇活動</option>';
+        memberSel.disabled = true;
+      }
+      updateQtyTip();
+      notifyHeight();
+    }
+
     function updateQtyTip() {
-      const evName = document.getElementById('eventName').value;
-      const memName = document.getElementById('member').value;
-      const qtyVal = document.getElementById('qty').value;
+      const groupVal = groupSel.value;
+      const evName = eventSel.value;
+      const memName = memberSel.value;
+      const qtyVal = qtyInput.value;
       const packs = parseInt(qtyVal, 10);
       const tipElem = document.getElementById('qtyTip');
 
-      if (!evName || !memName || isNaN(packs) || packs <= 0) {
+      if (!groupVal || !evName || !memName || isNaN(packs) || packs <= 0) {
         tipElem.textContent = '';
         return;
       }
 
-      const setting = eventPricesMap[evName + '_' + memName] || {};
+      const setting = eventPricesMap[`${groupVal}_${evName}_${memName}`] || {};
       const packQty = setting.packQty || 1;
       const unitPrice = setting.price || 0;
       const totalCards = packs * packQty;
@@ -234,27 +320,46 @@
     document.getElementById('orderForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       
-      const buyerVal = document.getElementById('buyerName').value;
-      const eventVal = document.getElementById('eventName').value;
-      const memberVal = document.getElementById('member').value;
-      const rawQty = document.getElementById('qty').value.trim();
+      const groupVal = groupSel.value;
+      let buyerVal = buyerSel.value;
+      
+      if (buyerVal === 'CUSTOM') {
+        buyerVal = customBuyerInput.value.trim();
+        if (!buyerVal) {
+          alert('請輸入自訂的社群暱稱！');
+          customBuyerInput.focus();
+          return;
+        }
+        // 儲存新暱稱至對應團體的 localStorage
+        const localKey = `custom_users_${groupVal}`;
+        const localBuyers = JSON.parse(localStorage.getItem(localKey) || '[]');
+        if (!localBuyers.includes(buyerVal)) {
+          localBuyers.push(buyerVal);
+          localStorage.setItem(localKey, JSON.stringify(localBuyers));
+        }
+      }
+
+      const eventVal = eventSel.value;
+      const memberVal = memberSel.value;
+      const rawQty = qtyInput.value.trim();
       const packs = Number(rawQty);
 
       if (!rawQty || isNaN(packs) || !Number.isInteger(packs) || packs <= 0) {
         alert('⚠️ 請輸入有效的正整數包數（例如：1, 2, 3...）！');
-        document.getElementById('qty').focus();
+        qtyInput.focus();
         return;
       }
 
       const orderTypeVal = document.getElementById('orderType').value;
 
-      const setting = eventPricesMap[eventVal + '_' + memberVal] || {};
+      const setting = eventPricesMap[`${groupVal}_${eventVal}_${memberVal}`] || {};
       const packQty = setting.packQty || 1;
       const actualCardsQty = packs * packQty;
 
       const qDup = query(
         collection(db, "orders"),
         where("user", "==", buyerVal),
+        where("group", "==", groupVal),
         where("event", "==", eventVal),
         where("member", "==", memberVal)
       );
@@ -263,7 +368,7 @@
         const dupSnap = await getDocs(qDup);
         if (!dupSnap.empty) {
           const confirmDup = confirm(
-            `⚠️ 重複登記提醒：\n\n偵測到您（${buyerVal}）先前已經登記過【${eventVal} - ${memberVal}】囉！\n\n請確認是否要再次加喊？`
+            `⚠️ 重複登記提醒：\n\n偵測到您（${buyerVal}）先前已經登記過【${groupVal} - ${eventVal} - ${memberVal}】囉！\n\n請確認是否要再次加喊？`
           );
           if (!confirmDup) return;
         }
@@ -276,6 +381,7 @@
       btn.textContent = '提交中...';
 
       const data = {
+        group: groupVal,
         buyerName: buyerVal,
         user: buyerVal,
         event: eventVal,
@@ -295,8 +401,13 @@
         await addDoc(collection(db, "orders"), data);
         alert('🎉 登記成功！');
         document.getElementById('orderForm').reset();
-        document.getElementById('member').innerHTML = '<option value="">請先選擇活動</option>';
-        document.getElementById('member').disabled = true;
+        customBuyerInput.style.display = 'none';
+        buyerSel.innerHTML = '<option value="">請先選擇團體</option>';
+        buyerSel.disabled = true;
+        eventSel.innerHTML = '<option value="">請先選擇團體</option>';
+        eventSel.disabled = true;
+        memberSel.innerHTML = '<option value="">請先選擇活動</option>';
+        memberSel.disabled = true;
         document.getElementById('qtyTip').textContent = '';
       } catch (err) {
         alert('提交失敗：' + err.message);

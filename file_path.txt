@@ -1,0 +1,49 @@
+C:\Users\user\Desktop\project\forsure0922
+├── .git/
+├── admin/
+│   ├── orders/
+│   │   ├── orders_form.html
+│   │   └── orders_manage.html
+│   ├── payment/
+│   │   ├── payment_error.html
+│   │   ├── payment_manage.html
+│   │   ├── payment_ok.html
+│   │   ├── payment_pending.html
+│   │   └── payment_photosent.html
+│   ├── admin_ctbc_bank.html
+│   ├── admin_deposit.html
+│   ├── admin_events.html
+│   ├── admin_lottery.html
+│   ├── admin_orders.html
+│   ├── admin_payments.html
+│   ├── admin_progress.html
+│   ├── ctbc_data.js
+│   └── deposit.html
+├── idea/
+│   └── 20260731_architecture.txt
+├── index/
+│   ├── archive/
+│   │   ├── archive_progress.html
+│   │   ├── archive_records.html
+│   │   ├── index_archive_progress.html
+│   │   └── index_archive_records.html
+│   ├── index_archive.html
+│   ├── index_deposit_app.html
+│   ├── index_lottery.html
+│   ├── index_notice.html
+│   ├── index_payment.html
+│   ├── index_progress.html
+│   └── index_records.html
+├── json/
+│   ├── bank_info.json
+│   ├── banks.json
+│   ├── ctbc_transactions.json
+│   ├── group.json
+│   ├── members_atz.json
+│   ├── members_skz.json
+│   ├── sellers.json
+│   └── users.json
+├── admin.html
+├── index.html
+├── parse.html
+└── PROJECT_HANDOVER.md
