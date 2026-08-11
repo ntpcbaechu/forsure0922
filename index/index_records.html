@@ -223,6 +223,7 @@
           document.querySelectorAll('#groupCapsules .capsule-filter-btn').forEach(b => b.classList.remove('active'));
           btn.classList.add('active');
           activeDetail = 'ALL';
+          activeUser = 'ALL';
           updateDetailCapsules();
           updateUserCapsules();
           renderCapsulesAndRecords();
@@ -236,7 +237,6 @@
       document.querySelectorAll('#modeCapsules .capsule-filter-btn').forEach(b => b.classList.remove('active'));
       if(btn) btn.classList.add('active');
       activeDetail = 'ALL';
-      updateDetailCapsules();
       renderCapsulesAndRecords();
     };
 
