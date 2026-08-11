@@ -65,7 +65,7 @@
       color: #e6a23c;
       font-weight: bold;
       line-height: 1.5;
-      padding-left: 20px; /* 精準對齊「官」字 */
+      padding-left: 20px;
     }
   </style>
 </head>
@@ -221,6 +221,8 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
+    let knownUsersSet = new Set();
+
     function loadBankInfo() {
       fetch('../json/bank_info.json')
         .then(res => res.json())
@@ -254,7 +256,26 @@
         });
     }
 
-    document.addEventListener('DOMContentLoaded', () => {
+    // 自動脫敏 Helper：若不在 JSON 預設名單內（Threads 帳號），保留頭尾3碼，中間按原始長度補星號
+    function formatDisplayName(name) {
+      if (!name) return '';
+      if (knownUsersSet.has(name)) return name;
+      
+      const len = name.length;
+      if (len <= 6) {
+        if (len <= 2) return name[0] + '*';
+        return name[0] + '*'.repeat(len - 2) + name[len - 1];
+      }
+      return name.slice(0, 3) + '*'.repeat(len - 6) + name.slice(-3);
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      try {
+        const skzU = await fetch('../json/users_skz.json').then(r => r.json()).catch(() => []);
+        const atzU = await fetch('../json/users_atz.json').then(r => r.json()).catch(() => []);
+        knownUsersSet = new Set([...skzU, ...atzU]);
+      } catch(e) {}
+
       const groupSel = document.getElementById('groupSelect');
       const custGroupSel = document.getElementById('custGroup');
       const custMemberSel = document.getElementById('custMember');
@@ -487,7 +508,7 @@
       buyerSel.innerHTML = '<option value="">請選擇您的名稱</option>';
 
       Array.from(pendingBuyers).sort((a, b) => a.localeCompare(b, 'zh-TW')).forEach(b => {
-        buyerSel.innerHTML += `<option value="${b}">${b}</option>`;
+        buyerSel.innerHTML += `<option value="${b}">${formatDisplayName(b)}</option>`;
       });
 
       if (currentSelected && pendingBuyers.has(currentSelected)) {
