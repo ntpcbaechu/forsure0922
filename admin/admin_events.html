@@ -19,9 +19,9 @@
     .unified-form-box { background: #f8f9fa; border: 1px solid #e4e7ed; border-radius: 8px; padding: 12px 15px; margin-bottom: 15px; display: flex; flex-direction: column; gap: 10px; }
     .form-row { display: grid; gap: 10px; align-items: end; }
     .row-5 { grid-template-columns: 1fr 1.2fr 1fr 1fr 1.2fr; }
-    .row-pack-spec { grid-template-columns: 1fr 1fr 1fr 1fr auto; }
+    .row-pack-spec { grid-template-columns: 1fr 1fr 1fr 1fr 1fr auto; }
     .row-cost-act { grid-template-columns: 1fr 1fr 1.2fr 1fr 1fr auto; }
-    .row-discount { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
+    .row-discount { display: flex; align-items: center; gap: 8px; margin-top: 4px; flex-wrap: wrap; }
     .form-divider { border-top: 1px dashed #dcdfe6; margin: 2px 0; }
 
     .filter-card { background: #f8f9fa; border: 1px solid #ebeef5; border-radius: 10px; padding: 12px 15px; margin: 15px 0; display: flex; flex-direction: column; gap: 8px; }
@@ -94,6 +94,14 @@
 
     <div>
       <div class="form-row row-pack-spec">
+        <div>
+          <label style="font-size:12px;">開團單位</label>
+          <select id="evUnit" style="width:100%;">
+            <option value="包">包</option>
+            <option value="張">張</option>
+            <option value="個">個</option>
+          </select>
+        </div>
         <div><label style="font-size:12px;">每包數量(張)</label><input type="number" id="evPackQty" placeholder="張數" style="width:100%;"></div>
         <div><label style="font-size:12px;">預估金額 ($)</label><input type="number" step="0.1" min="0" id="evEstimatedPrice" placeholder="預估價" style="width:100%;"></div>
         <div><label style="font-size:12px;">實際金額 ($)</label><input type="number" step="0.1" min="0" id="evActualPrice" placeholder="實際價(選填)" style="width:100%;"></div>
@@ -174,8 +182,8 @@
     let ordersList = [];
     let eventsDataMap = {};
     let loadedSellersList = [];
+    let groupUsersMap = {};
 
-    // 預設切換為 'ALL' (即第一顆「團體」膠囊)
     let activeGroup = 'ALL';
     let activeMode = 'member';
     let activeDetail = 'ALL';
@@ -241,13 +249,29 @@
     const discountContainer = document.getElementById('discountContainer');
     document.getElementById('addDiscountBtn').addEventListener('click', () => { addDiscountRow(); });
 
-    function addDiscountRow(count = '', price = '') {
+    function getBuyersForCurrentGroup() {
+      const g = document.getElementById('evGroup').value;
+      if (g && groupUsersMap[g]) {
+        return groupUsersMap[g];
+      }
+      return Object.values(groupUsersMap).flat();
+    }
+
+    function addDiscountRow(count = '', price = '', targetUser = '') {
+      const buyers = getBuyersForCurrentGroup();
+      let buyerOpts = '<option value="">不限買家 (通用折扣)</option>';
+      buyers.sort((a,b)=>a.localeCompare(b,'zh-TW')).forEach(u => {
+        buyerOpts += `<option value="${u}" ${u === targetUser ? 'selected' : ''}>${u}</option>`;
+      });
+
       const div = document.createElement('div');
       div.className = 'row-discount';
       div.innerHTML = `
         <span style="font-size:12px; color:#e6a23c; font-weight:bold;">折扣:</span>
-        <input type="number" class="disc-count" placeholder="包數" value="${count}" style="width:90px;"> 包 ×
-        <input type="number" step="0.1" class="disc-price" placeholder="單價" value="${price}" style="width:90px;"> 元
+        <input type="number" class="disc-count" placeholder="包數" value="${count}" style="width:80px;"> 包 ×
+        <input type="number" step="0.1" class="disc-price" placeholder="單價" value="${price}" style="width:80px;"> 元
+        <span style="font-size:12px; color:#606266; font-weight:bold; margin-left:6px;">指定買家:</span>
+        <select class="disc-user" style="max-width:160px;">${buyerOpts}</select>
         <button type="button" class="btn-danger" style="padding:2px 6px;" onclick="this.parentElement.remove()">移除</button>
       `;
       discountContainer.appendChild(div);
@@ -263,6 +287,14 @@
           if (file) {
             const mRes = await fetch(`../json/${file}`);
             memberMap[g] = await mRes.json();
+          }
+
+          const uFile = (g === 'Stray Kids') ? 'users_skz.json' : (g === 'ATEEZ' ? 'users_atz.json' : '');
+          if (uFile) {
+            try {
+              const uRes = await fetch(`../json/${uFile}`);
+              groupUsersMap[g] = await uRes.json();
+            } catch(e){}
           }
         }
       } catch(e) {}
@@ -303,7 +335,6 @@
       const container = document.getElementById('groupCapsules');
       container.innerHTML = '';
 
-      // 1. 全部團體 (膠囊顯示「團體」，預設 active)
       const allBtn = document.createElement('button');
       allBtn.className = `capsule-filter-btn ${activeGroup === 'ALL' ? 'active' : ''}`;
       allBtn.textContent = '團體';
@@ -317,7 +348,6 @@
       };
       container.appendChild(allBtn);
 
-      // 2. 各團體膠囊 (Stray Kids, ATEEZ...)
       groupList.forEach(g => {
         const btn = document.createElement('button');
         btn.className = `capsule-filter-btn ${activeGroup === g ? 'active' : ''}`;
@@ -333,7 +363,6 @@
         container.appendChild(btn);
       });
 
-      // 3. 未分類 (放在最後面)
       const unclassifiedBtn = document.createElement('button');
       unclassifiedBtn.className = `capsule-filter-btn ${activeGroup === 'UNCLASSIFIED' ? 'active' : ''}`;
       unclassifiedBtn.textContent = '未分類';
@@ -501,6 +530,7 @@
           tb.appendChild(subHeaderTr);
 
           const sampleEv = evArray[0];
+          const unitTag = sampleEv.unit || '包';
           const matchedOrders = ordersList.filter(o => {
             const matchEvent = (o.eventName === sampleEv.name || o.event === sampleEv.name);
             const matchMember = !sampleEv.member || o.member === sampleEv.member;
@@ -525,7 +555,8 @@
             if (dCount > 0) {
               realTotalRevenue += dCount * (Number(d.price) || 0);
               remainingPacks -= dCount;
-              discountTextList.push(`折扣:${d.count}包($${d.price})`);
+              const targetStr = d.targetUser ? ` (${d.targetUser})` : '';
+              discountTextList.push(`折扣:${d.count}包($${d.price})${targetStr}`);
             }
           });
           if (remainingPacks > 0) {
@@ -564,20 +595,20 @@
             if (idx === 0) {
               const estP = Number(sampleEv.estimatedPrice) || 0;
               const actP = Number(sampleEv.actualPrice) || 0;
-              let priceDisplayHtml = `$${sampleEv.price || 0}/包`;
+              let priceDisplayHtml = `$${sampleEv.price || 0}/${unitTag}`;
               if (actP > 0 && estP > 0 && actP < estP) {
-                priceDisplayHtml = `<span style="text-decoration:line-through; color:#909399; font-size:11px; margin-right:4px;">$${estP}</span><span style="color:#f56c6c; font-weight:bold;">$${actP}</span>/包`;
+                priceDisplayHtml = `<span style="text-decoration:line-through; color:#909399; font-size:11px; margin-right:4px;">$${estP}</span><span style="color:#f56c6c; font-weight:bold;">$${actP}</span>/${unitTag}`;
               }
 
               mergedCellsHtml = `
                 <td rowspan="${groupRowCount}" style="vertical-align:middle;">
-                  <div class="spec-title">📦 ${sampleEv.packQty || 0} 張/包</div>
-                  <div class="sub-info">價格: ${priceDisplayHtml} (拆${sampleEv.packsCount || 0}包)</div>
+                  <div class="spec-title">📦 ${sampleEv.packQty || 0} 張/${unitTag}</div>
+                  <div class="sub-info">價格: ${priceDisplayHtml} (拆${sampleEv.packsCount || 0}${unitTag})</div>
                   ${discountDisplay}
                 </td>
                 <td rowspan="${groupRowCount}" style="vertical-align:middle;">
                   <div style="font-weight:bold;">${totalOrderedCards} 張</div>
-                  <div class="sub-info">(${totalOrderedPacks.toFixed(1).replace(/\.0$/, '')} 包)</div>
+                  <div class="sub-info">(${totalOrderedPacks.toFixed(1).replace(/\.0$/, '')} ${unitTag})</div>
                 </td>
               `;
             }
@@ -631,7 +662,7 @@
                 <div class="summary-grid">
                   <div class="summary-col">
                     <div style="font-weight:bold; color:#409eff;">🛍️ 銷售數據</div>
-                    <div>登記總量：<b>${totalOrderedCards} 張 (${totalOrderedPacks.toFixed(1).replace(/\.0$/, '')} 包)</b></div>
+                    <div>登記總量：<b>${totalOrderedCards} 張 (${totalOrderedPacks.toFixed(1).replace(/\.0$/, '')} ${unitTag})</b></div>
                     <div>預估總銷售額：<b>$${realTotalRevenue.toFixed(1).replace(/\.0$/, '')}</b></div>
                   </div>
                   <div class="summary-col">
@@ -674,6 +705,7 @@
 
         const bigNote = document.getElementById('evBigNote').value.trim();
 
+        const unit = document.getElementById('evUnit').value || '包';
         const packQty = parseInt(document.getElementById('evPackQty').value) || 0;
         const estimatedPrice = parseFloat(document.getElementById('evEstimatedPrice').value) || 0;
         const actualPrice = parseFloat(document.getElementById('evActualPrice').value) || 0;
@@ -683,12 +715,14 @@
 
         const discCounts = document.querySelectorAll('.disc-count');
         const discPrices = document.querySelectorAll('.disc-price');
+        const discUsers = document.querySelectorAll('.disc-user');
         let discounts = [];
         discCounts.forEach((el, i) => {
           const count = parseInt(el.value) || 0;
           const p = parseFloat(discPrices[i].value) || 0;
+          const targetUser = discUsers[i] ? discUsers[i].value : '';
           if (count > 0) {
-            discounts.push({ count, price: p });
+            discounts.push({ count, price: p, targetUser });
           }
         });
 
@@ -709,7 +743,7 @@
 
         await setDoc(doc(db, "event_settings", docId), {
           name: fullName, rawDate: evDate, rawName: evNameRaw, group, member, seller, bigNote,
-          packQty, estimatedPrice, actualPrice, price, packsCount, discounts, deposit, balance, cost, actPhoto, actVideo, actQty, isClosed
+          unit, packQty, estimatedPrice, actualPrice, price, packsCount, discounts, deposit, balance, cost, actPhoto, actVideo, actQty, isClosed
         });
 
         alert('✅ 活動設定與金額已成功更新！');
@@ -726,6 +760,7 @@
       document.getElementById('eventForm').reset();
       document.getElementById('editEventId').value = '';
       discountContainer.innerHTML = '';
+      document.getElementById('evUnit').value = '包';
       document.getElementById('evMember').innerHTML = '<option value="">請先選擇團體</option>';
       document.getElementById('evMember').disabled = true;
       document.getElementById('evIsClosed').checked = false;
@@ -758,6 +793,7 @@
       document.getElementById('evBigNote').value = ev.bigNote || '';
       adjustTextareaHeight(bigNoteArea);
 
+      document.getElementById('evUnit').value = ev.unit || '包';
       document.getElementById('evPackQty').value = ev.packQty !== undefined ? ev.packQty : '';
       document.getElementById('evEstimatedPrice').value = ev.estimatedPrice !== undefined ? ev.estimatedPrice : (ev.price || '');
       document.getElementById('evActualPrice').value = ev.actualPrice !== undefined ? ev.actualPrice : '';
@@ -765,7 +801,7 @@
 
       discountContainer.innerHTML = '';
       if (ev.discounts && Array.isArray(ev.discounts)) {
-        ev.discounts.forEach(d => addDiscountRow(d.count, d.price));
+        ev.discounts.forEach(d => addDiscountRow(d.count, d.price, d.targetUser || ''));
       }
 
       document.getElementById('evDeposit').value = ev.deposit !== undefined ? ev.deposit : '';
