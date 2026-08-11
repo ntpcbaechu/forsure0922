@@ -40,69 +40,32 @@
 
     .overpay-tip { color: #67c23a; font-size: 13px; font-weight: bold; margin-top: 6px; display: none; }
 
-    /* Line 卡片美化專用 CSS */
+    /* Line 卡片極簡對齊 CSS */
     .line-info-card {
       background: #f8f9fa;
       border: 1px solid #e4e7ed;
       border-radius: 10px;
-      padding: 12px;
+      padding: 12px 14px;
       margin-top: 8px;
       display: flex;
       flex-direction: column;
-      gap: 10px;
+      gap: 6px;
       box-sizing: border-box;
     }
     .line-contact-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      background: #fff;
-      border: 1px solid #dcdfe6;
-      padding: 8px 12px;
-      border-radius: 8px;
-      box-sizing: border-box;
-    }
-    .line-id-text {
       font-size: 14px;
       font-weight: bold;
       color: #303133;
+      display: flex;
+      align-items: center;
+      gap: 6px;
     }
-    .btn-copy {
-      background: #f4f4f5;
-      color: #606266;
-      border: 1px solid #dcdfe6;
-      padding: 6px 14px;
-      border-radius: 6px;
-      font-size: 12px;
-      font-weight: bold;
-      cursor: pointer;
-      width: auto !important;
-      margin-top: 0 !important;
-      transition: all 0.2s;
-    }
-    .btn-copy:hover {
-      background: #409eff;
-      color: #fff;
-      border-color: #409eff;
-    }
-    /* 修正圖示與兩行文字精準左對齊 */
     .line-warning-box {
       font-size: 12px;
       color: #e6a23c;
       font-weight: bold;
       line-height: 1.5;
-      display: flex;
-      gap: 6px;
-      align-items: flex-start;
-    }
-    .line-warning-icon {
-      font-size: 13px;
-      line-height: 1.5;
-      flex-shrink: 0;
-    }
-    .line-warning-content {
-      display: flex;
-      flex-direction: column;
+      padding-left: 20px; /* 精準對齊「官」字 */
     }
   </style>
 </head>
@@ -142,15 +105,11 @@
       <!-- 官方 Line 提示卡片 -->
       <div id="lineInfoCard" class="line-info-card" style="display:none;">
         <div class="line-contact-row">
-          <span class="line-id-text">💬 LINE ID : @115oyenv</span>
-          <button type="button" class="btn-copy" id="copyLineBtn">📋 複製</button>
+          <span>💬</span>
+          <span>官方 LINE : @115oyenv</span>
         </div>
         <div class="line-warning-box">
-          <span class="line-warning-icon">⚠️</span>
-          <div class="line-warning-content">
-            <span>填完單後請主動發訊息到官方LINE 告知您的社群暱稱</span>
-            <span>否則我會無法辨識&不知道如何跟您聯絡</span>
-          </div>
+          （⚠️ 填完單後請主動發訊息告知社群暱稱，否則無法對帳發圖）
         </div>
       </div>
     </div>
@@ -415,10 +374,6 @@
 
       document.getElementById('contactTypeSelect').addEventListener('change', handleContactTypeChange);
 
-      document.getElementById('copyLineBtn').addEventListener('click', () => {
-        navigator.clipboard.writeText('@115oyenv').then(() => alert('✅ 已成功複製 LINE ID: @115oyenv')).catch(() => alert('LINE ID: @115oyenv'));
-      });
-      
       document.getElementById('useDepositChk').addEventListener('change', calcSelectedTotal);
       document.getElementById('useCreditChk').addEventListener('change', calcSelectedTotal);
 
