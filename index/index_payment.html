@@ -39,22 +39,86 @@
     .bank-warning { color: #f56c6c; font-weight: bold; margin-top: 6px; }
 
     .overpay-tip { color: #67c23a; font-size: 13px; font-weight: bold; margin-top: 6px; display: none; }
+
+    .line-info-card {
+      background: #fafafa;
+      border: 1px solid #ebeef5;
+      border-radius: 10px;
+      padding: 12px;
+      margin-top: 6px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .line-contact-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #fff;
+      border: 1px solid #e4e7ed;
+      padding: 8px 12px;
+      border-radius: 8px;
+    }
+    .btn-copy {
+      background: #f4f4f5;
+      color: #606266;
+      border: 1px solid #dcdfe6;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .btn-copy:hover { background: #409eff; color: #fff; border-color: #409eff; }
   </style>
 </head>
 <body>
 
   <h3 style="margin-top:0; margin-bottom:20px; text-align:center; font-size:20px;">匯款對帳回報</h3>
   <form id="paymentForm">
+    <!-- 1. 選擇團體 -->
     <div class="form-group">
-      <label>社群名稱 *</label>
-      <select id="buyerName" required><option value="">載入中...</option></select>
+      <label>1. 選擇團體 *</label>
+      <select id="groupSelect" required>
+        <option value="">請選擇團體</option>
+      </select>
     </div>
-	
-	<div class="form-group">
-	  <label>IG / Threads 帳號 *</label>
-	  <input type="text" id="socialAccount" placeholder="例: ntpcbaechu" required>
-	</div>
 
+    <!-- 2. 社群名稱 -->
+    <div class="form-group">
+      <label>2. 社群名稱 *</label>
+      <select id="buyerName" required disabled>
+        <option value="">請先選擇團體</option>
+      </select>
+    </div>
+
+    <!-- 3. 收圖方式與聯絡帳號 -->
+    <div class="form-group">
+      <label>3. 收圖方式與聯絡帳號 *</label>
+      <select id="contactTypeSelect" required>
+        <option value="">請選擇收圖方式...</option>
+        <option value="Instagram">Instagram</option>
+        <option value="Threads">Threads</option>
+        <option value="官方 Line">官方 Line</option>
+      </select>
+
+      <!-- IG / Threads 專用輸入框 -->
+      <input type="text" id="socialAccount" placeholder="請輸入帳號" style="display:none; margin-top:6px;">
+
+      <!-- 官方 Line 提示卡片 -->
+      <div id="lineInfoCard" class="line-info-card" style="display:none;">
+        <div class="line-contact-row">
+          <span style="font-size:13px; font-weight:bold;">💬 LINE ID : @115oyenv</span>
+          <button type="button" class="btn-copy" id="copyLineBtn">📋 複製</button>
+        </div>
+        <div style="font-size:12px; color:#e6a23c; font-weight:bold; line-height:1.5;">
+          ⚠️ 填完單後請主動發訊息到官方LINE 告知您的社群暱稱<br>
+          否則我會無法辨識&不知道如何跟您聯絡
+        </div>
+      </div>
+    </div>
+
+    <!-- 選完暱稱才帶出的下半部完整表單 -->
     <div id="formContent" style="display: none;">
       <div class="info-card">
         <div style="font-weight:bold; margin-bottom:6px; color:#303133;">選擇要一起匯款的訂單：</div>
@@ -118,9 +182,9 @@
       </div>
 
       <div class="form-group">
-        <label>匯款銀行 *</label>
+        <label>匯款到上面哪個銀行帳戶 *</label>
         <select id="bankName" required>
-          <option value="">載入銀行選項中...</option>
+          <option value="">請選擇匯款帳戶</option>
         </select>
       </div>
 
@@ -182,7 +246,7 @@
         .then(res => res.json())
         .then(bankList => {
           const bankSel = document.getElementById('bankName');
-          bankSel.innerHTML = '<option value="">請選擇匯款銀行</option>';
+          bankSel.innerHTML = '<option value="">請選擇匯款帳戶</option>';
           bankList.forEach(b => {
             bankSel.innerHTML += `<option value="${b}">${b}</option>`;
           });
@@ -190,17 +254,22 @@
         })
         .catch(() => {
           const bankSel = document.getElementById('bankName');
-          bankSel.innerHTML = '<option value="">請選擇匯款銀行</option><option value="其他">其他</option>';
+          bankSel.innerHTML = '<option value="">請選擇匯款帳戶</option><option value="其他">其他</option>';
         });
     }
 
     document.addEventListener('DOMContentLoaded', () => {
+      const groupSel = document.getElementById('groupSelect');
       const custGroupSel = document.getElementById('custGroup');
       const custMemberSel = document.getElementById('custMember');
 
       fetch('../json/group.json').then(r => r.json()).then(groups => {
+        groupSel.innerHTML = '<option value="">請選擇團體</option>';
         custGroupSel.innerHTML = '<option value="">選擇團體</option>';
-        groups.forEach(g => custGroupSel.innerHTML += `<option value="${g}">${g}</option>`);
+        groups.forEach(g => {
+          groupSel.innerHTML += `<option value="${g}">${g}</option>`;
+          custGroupSel.innerHTML += `<option value="${g}">${g}</option>`;
+        });
       });
 
       custGroupSel.addEventListener('change', () => {
@@ -245,6 +314,8 @@
     document.addEventListener('DOMContentLoaded', () => {
       loadBankInfo();
       loadBankDropdown();
+
+      document.getElementById('groupSelect').addEventListener('change', handleGroupChange);
 
       onSnapshot(collection(db, "photo_progress"), snap => {
         photoProgressMap = {};
@@ -304,6 +375,12 @@
         customAddedItems = [];
         renderBuyerDetails();
       });
+
+      document.getElementById('contactTypeSelect').addEventListener('change', handleContactTypeChange);
+
+      document.getElementById('copyLineBtn').addEventListener('click', () => {
+        navigator.clipboard.writeText('@115oyenv').then(() => alert('✅ 已成功複製 LINE ID: @115oyenv')).catch(() => alert('LINE ID: @115oyenv'));
+      });
       
       document.getElementById('useDepositChk').addEventListener('change', calcSelectedTotal);
       document.getElementById('useCreditChk').addEventListener('change', calcSelectedTotal);
@@ -326,6 +403,42 @@
       notifyHeight();
     });
 
+    function handleGroupChange() {
+      const selectedGroup = document.getElementById('groupSelect').value;
+      const buyerSel = document.getElementById('buyerName');
+      buyerSel.value = '';
+
+      if (!selectedGroup) {
+        buyerSel.disabled = true;
+        buyerSel.innerHTML = '<option value="">請先選擇團體</option>';
+      } else {
+        buyerSel.disabled = false;
+      }
+      updateBuyerDropdownAndDetails();
+    }
+
+    function handleContactTypeChange() {
+      const type = document.getElementById('contactTypeSelect').value;
+      const input = document.getElementById('socialAccount');
+      const lineCard = document.getElementById('lineInfoCard');
+
+      if (type === 'Instagram' || type === 'Threads') {
+        input.style.display = 'block';
+        input.required = true;
+        lineCard.style.display = 'none';
+      } else if (type === '官方 Line') {
+        input.style.display = 'none';
+        input.required = false;
+        input.value = '';
+        lineCard.style.display = 'flex';
+      } else {
+        input.style.display = 'none';
+        input.required = false;
+        lineCard.style.display = 'none';
+      }
+      notifyHeight();
+    }
+
     function checkOverpayTip() {
       const inputAmount = parseFloat(document.getElementById('amount').value);
       const tipElem = document.getElementById('overpayTip');
@@ -346,26 +459,39 @@
     }
 
     function updateBuyerDropdownAndDetails() {
+      const selectedGroup = document.getElementById('groupSelect').value;
+      const buyerSel = document.getElementById('buyerName');
+      const currentSelected = buyerSel.value;
+
+      if (!selectedGroup) {
+        buyerSel.innerHTML = '<option value="">請先選擇團體</option>';
+        buyerSel.disabled = true;
+        renderBuyerDetails();
+        return;
+      }
+
       const pendingBuyers = new Set();
 
       allOrders.forEach(o => {
-        const name = o.user || o.buyerName || o.name || o.buyer;
-        const pendingMatch = (o.paymentStatus === 'pending_payment' || o.paymentStatus === '待匯款' || o.status === 'pending_payment' || o.status === '待匯款' || !o.paymentStatus);
-        
-        const ordEvent = o.event || o.fullEvent || o.eventName || '';
-        const ordMember = o.member || '';
-        const progressStatus = photoProgressMap[`${ordEvent}_${ordMember}`] || '等圖中';
-        
-        const allowedStatuses = ['上傳中', '已通知匯款', '已發圖'];
-        const isUnlocked = allowedStatuses.includes(progressStatus);
+        const grp = o.group || 'Stray Kids';
+        if (grp === selectedGroup) {
+          const name = o.user || o.buyerName || o.name || o.buyer;
+          const pendingMatch = (o.paymentStatus === 'pending_payment' || o.paymentStatus === '待匯款' || o.status === 'pending_payment' || o.status === '待匯款' || !o.paymentStatus);
+          
+          const ordEvent = o.event || o.fullEvent || o.eventName || '';
+          const ordMember = o.member || '';
+          const progressStatus = photoProgressMap[`${ordEvent}_${ordMember}`] || '等圖中';
+          
+          const allowedStatuses = ['上傳中', '已通知匯款', '已發圖'];
+          const isUnlocked = allowedStatuses.includes(progressStatus);
 
-        if (name && pendingMatch && isUnlocked) {
-          pendingBuyers.add(String(name).trim());
+          if (name && pendingMatch && isUnlocked) {
+            pendingBuyers.add(String(name)); // 100% 保留原始暱稱不切割
+          }
         }
       });
 
-      const buyerSel = document.getElementById('buyerName');
-      const currentSelected = buyerSel.value;
+      buyerSel.disabled = false;
       buyerSel.innerHTML = '<option value="">請選擇您的名稱</option>';
 
       Array.from(pendingBuyers).sort((a, b) => a.localeCompare(b, 'zh-TW')).forEach(b => {
@@ -374,7 +500,7 @@
 
       if (currentSelected && pendingBuyers.has(currentSelected)) {
         buyerSel.value = currentSelected;
-      } else if (currentSelected && !pendingBuyers.has(currentSelected)) {
+      } else {
         buyerSel.value = '';
       }
 
@@ -416,10 +542,11 @@
     }
 
     function renderBuyerDetails() {
+      const selectedGroup = document.getElementById('groupSelect').value;
       const selectedBuyer = document.getElementById('buyerName').value;
       const formContent = document.getElementById('formContent');
 
-      if (!selectedBuyer) {
+      if (!selectedGroup || !selectedBuyer) {
         formContent.style.display = 'none';
         notifyHeight();
         return;
@@ -441,6 +568,7 @@
       document.getElementById('useDepositChk').checked = false;
 
       const userOrders = allOrders.filter(o => {
+        const grp = o.group || 'Stray Kids';
         const nameMatch = (o.user === selectedBuyer || o.buyerName === selectedBuyer || o.name === selectedBuyer || o.buyer === selectedBuyer);
         const pendingMatch = (o.paymentStatus === 'pending_payment' || o.paymentStatus === '待匯款' || o.status === 'pending_payment' || o.status === '待匯款' || !o.paymentStatus);
         
@@ -451,7 +579,7 @@
         const allowedStatuses = ['上傳中', '已通知匯款', '已發圖'];
         const isUnlocked = allowedStatuses.includes(progressStatus);
 
-        return nameMatch && pendingMatch && isUnlocked;
+        return grp === selectedGroup && nameMatch && pendingMatch && isUnlocked;
       });
 
       const ordersList = document.getElementById('ordersList');
@@ -591,9 +719,12 @@
 
       const bankNameVal = document.getElementById('bankName').value;
       if (!bankNameVal) {
-        alert('請選擇匯款銀行！');
+        alert('請選擇匯款帳戶！');
         return;
       }
+
+      const contactType = document.getElementById('contactTypeSelect').value;
+      const socialAcc = (contactType === '官方 Line') ? '@115oyenv' : document.getElementById('socialAccount').value.trim();
 
       const inputAmount = parseFloat(document.getElementById('amount').value);
       if (isNaN(inputAmount) || inputAmount < 0) {
@@ -601,7 +732,6 @@
         return;
       }
 
-      // 如果選擇「其他」，直接放行；否則才檢查金額是否足夠
       const isOtherBank = (bankNameVal === '其他');
       if (!isOtherBank && inputAmount < currentCalculatedFinalTotal && currentCalculatedFinalTotal > 0) {
         alert(`⚠️ 金額不足！\n\n本次應匯款總金額是：$${currentCalculatedFinalTotal}\n您填寫的金額是：$${inputAmount}\n\n請重新確認匯款金額！`);
@@ -628,6 +758,7 @@
         }
       });
 
+      const selectedGroup = document.getElementById('groupSelect').value;
       const buyerNameVal = document.getElementById('buyerName').value;
       const payDateVal = document.getElementById('payDate').value;
       const last5Val = document.getElementById('last5').value.trim();
@@ -656,9 +787,11 @@
         const useCreditChecked = document.getElementById('useCreditChk').checked;
 
         const data = {
+          group: selectedGroup,
           buyerName: buyerNameVal,
           user: buyerNameVal,
-          socialAccount: document.getElementById('socialAccount').value.trim(),
+          contactType: contactType,
+          socialAccount: socialAcc,
           payDate: payDateVal,
           bankName: bankNameVal,
           bank: bankNameVal,
@@ -673,7 +806,7 @@
           depositUsed: appliedDepositDeduction,
           relatedOrderIds: finalAllRelatedOrderIds,
           createdAt: new Date().toISOString(),
-          status: '待對帳'
+          status: 'pending'
         };
 
         await addDoc(collection(db, "payments"), data);
@@ -709,6 +842,8 @@
         document.getElementById('paymentForm').reset();
         document.getElementById('formContent').style.display = 'none';
         document.getElementById('overpayTip').style.display = 'none';
+        handleGroupChange();
+        handleContactTypeChange();
       } catch (err) {
         alert('送出失敗：' + err.message);
       } finally {
