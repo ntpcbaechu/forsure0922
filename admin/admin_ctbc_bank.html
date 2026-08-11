@@ -79,12 +79,16 @@
           <option value="不確定">不確定</option>
         </select>
       </div>
+      <div class="form-group w-member">
+        <label class="required">1. 團體</label>
+        <select id="groupSelect" required><option value="">載入中...</option></select>
+      </div>
       <div class="form-group w-user">
-        <label class="required">1. 社群暱稱</label>
-        <select id="userSelect" required><option value="">載入中...</option></select>
+        <label class="required">2. 社群暱稱</label>
+        <select id="userSelect" required disabled><option value="">請先選擇團體</option></select>
       </div>
       <div class="form-group w-event">
-        <label class="required">2. 場次</label>
+        <label class="required">3. 場次</label>
         <select id="eventSelect" onchange="toggleCustomEvent(this)">
           <option value="260328 D1">260328 D1</option>
           <option value="260329 D2">260329 D2</option>
@@ -96,10 +100,6 @@
       <div class="form-group w-event" id="customEventGroup" style="display:none;">
         <label class="required">自訂場次</label>
         <input type="text" id="customEventInput" placeholder="請輸入場次">
-      </div>
-      <div class="form-group w-member">
-        <label class="required">3. 團體</label>
-        <select id="groupSelect" required><option value="">載入中...</option></select>
       </div>
       <div class="form-group w-member">
         <label class="required">4. 成員</label>
@@ -193,13 +193,8 @@
     const pageSize = 50;
 
     async function loadAllData() {
-      try {
-        const uRes = await fetch('../json/users.json');
-        const users = await uRes.json();
-        document.getElementById('userSelect').innerHTML = users.map(u => `<option value="${u}">${u}</option>`).join('');
-      } catch(e) {}
-
       const gSel = document.getElementById('groupSelect');
+      const uSel = document.getElementById('userSelect');
       const mSel = document.getElementById('memberSelect');
 
       fetch('../json/group.json').then(r => r.json()).then(groups => {
@@ -207,17 +202,28 @@
         groups.forEach(g => gSel.innerHTML += `<option value="${g}">${g}</option>`);
       });
 
-      gSel.addEventListener('change', () => {
+      gSel.addEventListener('change', async () => {
         const g = gSel.value;
         mSel.innerHTML = '';
+        uSel.innerHTML = '';
         if (!g) {
           mSel.innerHTML = '<option value="">請先選擇團體</option>';
           mSel.disabled = true;
+          uSel.innerHTML = '<option value="">請先選擇團體</option>';
+          uSel.disabled = true;
           return;
         }
-        const file = (g === 'Stray Kids') ? 'members_skz.json' : (g === 'ATEEZ' ? 'members_atz.json' : '');
-        if (file) {
-          fetch(`../json/${file}`).then(r => r.json()).then(arr => {
+
+        uSel.disabled = false;
+        const userFile = (g === 'Stray Kids') ? 'users_skz.json' : 'users_atz.json';
+        try {
+          const users = await fetch(`../json/${userFile}`).then(r => r.json());
+          uSel.innerHTML = '<option value="">請選擇社群暱稱</option>' + users.sort((a,b)=>a.localeCompare(b,'zh-TW')).map(u => `<option value="${u}">${u}</option>`).join('');
+        } catch(e) {}
+
+        const memberFile = (g === 'Stray Kids') ? 'members_skz.json' : (g === 'ATEEZ' ? 'members_atz.json' : '');
+        if (memberFile) {
+          fetch(`../json/${memberFile}`).then(r => r.json()).then(arr => {
             mSel.disabled = false;
             mSel.innerHTML = '<option value="">請選擇成員</option>';
             arr.forEach(m => mSel.innerHTML += `<option value="${m}">${m}</option>`);
@@ -246,7 +252,7 @@
       const payAmount = document.getElementById('payAmountInput').value;
       const last5 = document.getElementById('payLast5Input').value;
 
-      if(!name || !event || !group || !member || !qty || !amount) {
+      if(!group || !name || !event || !member || !qty || !amount) {
         alert("請填寫所有必填欄位！");
         return;
       }
