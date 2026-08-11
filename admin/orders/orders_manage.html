@@ -155,7 +155,7 @@
       let totalPrice = packs * pricePerPack;
 
       if (setting.discounts && Array.isArray(setting.discounts)) {
-        const userDisc = setting.discounts.find(d => d.targetUser === userName);
+        const userDisc = setting.discounts.find(d => !d.targetUser || d.targetUser === userName);
         if (userDisc) {
           const discCount = Math.min(packs, Number(userDisc.count) || 0);
           const discPrice = Number(userDisc.price) || 0;
@@ -201,21 +201,6 @@
         };
         container.appendChild(btn);
       });
-
-      const unclassifiedBtn = document.createElement('button');
-      unclassifiedBtn.className = `capsule-filter-btn ${activeGroup === 'UNCLASSIFIED' ? 'active' : ''}`;
-      unclassifiedBtn.textContent = '未分類';
-      unclassifiedBtn.onclick = () => {
-        activeGroup = 'UNCLASSIFIED';
-        document.querySelectorAll('#groupCapsules .capsule-filter-btn').forEach(b => b.classList.remove('active'));
-        unclassifiedBtn.classList.add('active');
-        activeDetail = 'ALL';
-        activeUser = 'ALL';
-        updateDetailCapsules();
-        updateUserCapsules();
-        renderOrdersTable();
-      };
-      container.appendChild(unclassifiedBtn);
     }
 
     window.setModeFilter = (mode, btn) => {
@@ -243,14 +228,12 @@
       container.appendChild(allBtn);
 
       let filteredOrders = Object.values(ordersMap);
-      if (activeGroup === 'UNCLASSIFIED') {
-        filteredOrders = filteredOrders.filter(o => !o.group || o.group === '未分類');
-      } else if (activeGroup !== 'ALL') {
+      if (activeGroup !== 'ALL') {
         filteredOrders = filteredOrders.filter(o => o.group === activeGroup);
       }
 
       if (activeMode === 'member') {
-        const membersInJson = (activeGroup !== 'ALL' && activeGroup !== 'UNCLASSIFIED') ? (memberMap[activeGroup] || []) : Object.values(memberMap).flat();
+        const membersInJson = (activeGroup !== 'ALL') ? (memberMap[activeGroup] || []) : Object.values(memberMap).flat();
         const activeMembersWithData = new Set(filteredOrders.map(o => o.member).filter(Boolean));
 
         const displayMembers = new Set([...membersInJson, ...Array.from(activeMembersWithData)]);
@@ -305,9 +288,7 @@
       container.appendChild(allBtn);
 
       let filteredOrders = Object.values(ordersMap);
-      if (activeGroup === 'UNCLASSIFIED') {
-        filteredOrders = filteredOrders.filter(o => !o.group || o.group === '未分類');
-      } else if (activeGroup !== 'ALL') {
+      if (activeGroup !== 'ALL') {
         filteredOrders = filteredOrders.filter(o => o.group === activeGroup);
       }
 
@@ -338,9 +319,7 @@
 
       let list = Object.values(ordersMap);
 
-      if (activeGroup === 'UNCLASSIFIED') {
-        list = list.filter(o => !o.group || o.group === '未分類');
-      } else if (activeGroup !== 'ALL') {
+      if (activeGroup !== 'ALL') {
         list = list.filter(o => o.group === activeGroup);
       }
 
@@ -388,7 +367,7 @@
         if (!isEditing) {
           tr.innerHTML = `
             <td><b>${uName}</b></td>
-            <td><b>[${o.group || '未分類'}] ${ev}</b><br><small style="color:#606266;">成員: ${mem} (數量: ${qty}張 / ${priceInfo.packs}包)</small></td>
+            <td><b>[${o.group || 'Stray Kids'}] ${ev}</b><br><small style="color:#606266;">成員: ${mem} (數量: ${qty}張 / ${priceInfo.packs}包)</small></td>
             <td>$${amt.toLocaleString()}<br><span style="font-size:11px; color:#e6a23c; font-weight:bold;">${payStatus}</span></td>
             <td>
               ${isPhotoSent ? `
