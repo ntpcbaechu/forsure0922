@@ -136,6 +136,7 @@
 
     let groupList = [];
     let memberMap = {};
+    let knownUsersSet = new Set();
 
     document.addEventListener('DOMContentLoaded', async () => {
       try {
@@ -149,6 +150,11 @@
             memberMap[g] = await mRes.json();
           }
         }
+
+        // 載入預設 JSON 買家名單庫以進行脫敏比對
+        const skzU = await fetch('../json/users_skz.json').then(r => r.json()).catch(() => []);
+        const atzU = await fetch('../json/users_atz.json').then(r => r.json()).catch(() => []);
+        knownUsersSet = new Set([...skzU, ...atzU]);
       } catch(e) {}
 
       renderGroupCapsules();
@@ -204,6 +210,19 @@
         renderCapsulesAndRecords();
       });
     });
+
+    // 自動脫敏 Helper：非 JSON 預設名單（Threads 帳號），保留頭尾3碼，中間按原始長度補星號
+    function formatDisplayName(name) {
+      if (!name) return '';
+      if (knownUsersSet.has(name)) return name;
+      
+      const len = name.length;
+      if (len <= 6) {
+        if (len <= 2) return name[0] + '*';
+        return name[0] + '*'.repeat(len - 2) + name[len - 1];
+      }
+      return name.slice(0, 3) + '*'.repeat(len - 6) + name.slice(-3);
+    }
 
     function isArchivedOrder(ord) {
       const key = (ord.event || ord.eventName || '') + '_' + (ord.member || '');
@@ -325,7 +344,7 @@
       Array.from(usersSet).sort((a,b)=>a.localeCompare(b,'zh-TW')).forEach(uName => {
         const btn = document.createElement('button');
         btn.className = `capsule-filter-btn ${activeUser === uName ? 'user-active' : ''}`;
-        btn.textContent = uName;
+        btn.textContent = formatDisplayName(uName);
         btn.onclick = () => {
           activeUser = uName;
           document.querySelectorAll('#userCapsules .capsule-filter-btn').forEach(b => b.classList.remove('user-active'));
@@ -432,7 +451,7 @@
         summary.innerHTML = `
           <div class="user-stat-card">
             <div class="user-stat-header">
-              <span>👤 ${activeUser} 的進行中喊單個人統計</span>
+              <span>👤 ${formatDisplayName(activeUser)} 的進行中喊單個人統計</span>
               <span style="font-size:13px; color:#409eff;">已登記 ${userEventsSet.size} 場活動</span>
             </div>
 
@@ -496,7 +515,7 @@
           userLinesHtml += `
             <div class="pending-user-block">
               <div class="pending-user-title">
-                <span>👤 ${uName} (${uOrders.length} 筆)</span>
+                <span>👤 ${formatDisplayName(uName)} (${uOrders.length} 筆)</span>
                 <span>小計：<b>$${userSubTotal.toLocaleString()}</b></span>
               </div>
               ${itemsHtml}
@@ -600,7 +619,7 @@
           rowsHtml += `
             <tr>
               <td>#${idx + 1}</td>
-              <td><b>${name}</b></td>
+              <td><b>${formatDisplayName(name)}</b></td>
               <td>${info.qtyText}</td>
               <td><b style="color:#f56c6c;">$${info.totalPrice.toLocaleString()}</b></td>
               <td>${badges.payBadgeHtml}</td>
