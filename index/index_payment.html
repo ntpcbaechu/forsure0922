@@ -40,36 +40,57 @@
 
     .overpay-tip { color: #67c23a; font-size: 13px; font-weight: bold; margin-top: 6px; display: none; }
 
+    /* Line 卡片美化專用 CSS */
     .line-info-card {
-      background: #fafafa;
-      border: 1px solid #ebeef5;
+      background: #f8f9fa;
+      border: 1px solid #e4e7ed;
       border-radius: 10px;
       padding: 12px;
-      margin-top: 6px;
+      margin-top: 8px;
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 10px;
+      box-sizing: border-box;
     }
     .line-contact-row {
       display: flex;
       justify-content: space-between;
       align-items: center;
       background: #fff;
-      border: 1px solid #e4e7ed;
+      border: 1px solid #dcdfe6;
       padding: 8px 12px;
       border-radius: 8px;
+      box-sizing: border-box;
+    }
+    .line-id-text {
+      font-size: 14px;
+      font-weight: bold;
+      color: #303133;
     }
     .btn-copy {
       background: #f4f4f5;
       color: #606266;
       border: 1px solid #dcdfe6;
-      padding: 4px 10px;
+      padding: 6px 14px;
       border-radius: 6px;
       font-size: 12px;
       font-weight: bold;
       cursor: pointer;
+      width: auto !important;
+      margin-top: 0 !important;
+      transition: all 0.2s;
     }
-    .btn-copy:hover { background: #409eff; color: #fff; border-color: #409eff; }
+    .btn-copy:hover {
+      background: #409eff;
+      color: #fff;
+      border-color: #409eff;
+    }
+    .line-warning-box {
+      font-size: 12px;
+      color: #e6a23c;
+      font-weight: bold;
+      line-height: 1.5;
+    }
   </style>
 </head>
 <body>
@@ -108,10 +129,10 @@
       <!-- 官方 Line 提示卡片 -->
       <div id="lineInfoCard" class="line-info-card" style="display:none;">
         <div class="line-contact-row">
-          <span style="font-size:13px; font-weight:bold;">💬 LINE ID : @115oyenv</span>
+          <span class="line-id-text">💬 LINE ID : @115oyenv</span>
           <button type="button" class="btn-copy" id="copyLineBtn">📋 複製</button>
         </div>
-        <div style="font-size:12px; color:#e6a23c; font-weight:bold; line-height:1.5;">
+        <div class="line-warning-box">
           ⚠️ 填完單後請主動發訊息到官方LINE 告知您的社群暱稱<br>
           否則我會無法辨識&不知道如何跟您聯絡
         </div>
@@ -486,7 +507,7 @@
           const isUnlocked = allowedStatuses.includes(progressStatus);
 
           if (name && pendingMatch && isUnlocked) {
-            pendingBuyers.add(String(name)); // 100% 保留原始暱稱不切割
+            pendingBuyers.add(String(name));
           }
         }
       });
