@@ -105,6 +105,25 @@
       return 'pending';
     }
 
+    function formatSocialDisplay(p) {
+      const type = p.contactType || '';
+      const acc = p.socialAccount || p.social || '';
+      
+      if (type === '官方 Line' || acc.includes('@115oyenv')) {
+        return '💬 官方 Line';
+      }
+      if (type === 'Instagram') {
+        return `[IG] ${acc}`;
+      }
+      if (type === 'Threads') {
+        return `[Threads] ${acc}`;
+      }
+      if (type && acc) {
+        return `[${type}] ${acc}`;
+      }
+      return acc || '-';
+    }
+
     window.renderTable = () => {
       const container = document.getElementById('groupContainer');
       container.innerHTML = '';
@@ -139,7 +158,7 @@
       }
 
       if (kw) {
-        list = list.filter(p => `${p.user || ''} ${p.buyerName || ''} ${p.bankLast5 || ''} ${p.last5 || ''}`.toLowerCase().includes(kw));
+        list = list.filter(p => `${p.user || ''} ${p.buyerName || ''} ${p.bankLast5 || ''} ${p.last5 || ''} ${p.contactType || ''}`.toLowerCase().includes(kw));
       }
 
       if (list.length === 0) {
@@ -174,7 +193,7 @@
       const isEditing = editingRows.has(docId);
 
       const userName = p.user || p.buyerName || '-';
-      const socialName = p.social || p.socialAccount || '-';
+      const socialDisplay = formatSocialDisplay(p);
       const status = getNormalizedPayStatus(p);
       
       const expectedAmt = p.finalPay !== undefined ? p.finalPay : (p.amount || 0);
@@ -286,7 +305,7 @@
       const tr = document.createElement('tr');
 
       if (!isEditing) {
-        tr.innerHTML = '<td><b>' + userName + '</b><br><small style="color:#909399;">' + socialName + '</small></td>' +
+        tr.innerHTML = '<td><b>' + userName + '</b><br><small style="color:#409eff; font-weight:bold;">' + socialDisplay + '</small></td>' +
           '<td>' +
             itemsHtml +
             '<div class="meta-box">' +
@@ -312,7 +331,7 @@
       } else {
         tr.innerHTML = '<td>' +
             '<input type="text" id="edit-user-' + docId + '" value="' + userName + '" style="width:100%; margin-bottom:4px;" placeholder="社群暱稱">' +
-            '<input type="text" id="edit-social-' + docId + '" value="' + socialName + '" style="width:100%;" placeholder="社群帳號">' +
+            '<input type="text" id="edit-social-' + docId + '" value="' + (p.socialAccount || p.social || '') + '" style="width:100%;" placeholder="社群帳號">' +
           '</td>' +
           '<td>' +
             itemsHtml +
