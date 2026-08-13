@@ -229,6 +229,17 @@
       return 99999999;
     }
 
+    function getItemDateObj(item) {
+      if (item.payDate) {
+        const p = item.payDate.split('-');
+        if (p.length === 3) return new Date(p[0], p[1] - 1, p[2]);
+      }
+      if (item.createdAt) {
+        return new Date(item.createdAt);
+      }
+      return new Date(0);
+    }
+
     document.addEventListener('DOMContentLoaded', async () => {
       const depGroupSel = document.getElementById('depGroup');
       const depUserSel = document.getElementById('depUser');
@@ -533,39 +544,44 @@
 
         renderCount++;
 
-        let creditHtml = '';
+        let timelineEntries = [];
 
         creditItems.forEach(c => {
           const crAmt = Number(c.credit) || Number(c.amount) || 0;
           const uAmt = Number(c.used) || 0;
-          let dateStr = c.createdAt ? new Date(c.createdAt).toLocaleDateString('zh-TW', {month:'2-digit', day:'2-digit'}) : '';
-          
+          let dateObj = getItemDateObj(c);
+          let dateStr = dateObj.getTime() > 0 ? dateObj.toLocaleDateString('zh-TW', {month:'2-digit', day:'2-digit'}) : '';
+
           if (crAmt > 0) {
-            creditHtml += `<div class="item-group-row"><div class="item-group-header"><span>➕ ${dateStr ? dateStr + ' ' : ''}${c.fullEvent || c.eventName || '活動轉入'}</span><b style="color:#67c23a;">+$${crAmt.toLocaleString()}</b></div></div>`;
+            timelineEntries.push({
+              dateObj,
+              html: `<div class="item-group-row"><div class="item-group-header"><span>➕ ${dateStr ? dateStr + ' ' : ''}${c.fullEvent || c.eventName || '活動轉入'}</span><b style="color:#67c23a;">+$${crAmt.toLocaleString()}</b></div></div>`
+            });
           }
           if (uAmt > 0) {
-            creditHtml += `<div class="item-group-row"><div class="item-group-header"><span>➖ ${dateStr ? dateStr + ' ' : ''}抵用金折抵</span><b style="color:#f56c6c;">-$${uAmt.toLocaleString()}</b></div></div>`;
+            timelineEntries.push({
+              dateObj,
+              html: `<div class="item-group-row"><div class="item-group-header"><span>➖ ${dateStr ? dateStr + ' ' : ''}抵用金折抵</span><b style="color:#f56c6c;">-$${uAmt.toLocaleString()}</b></div></div>`
+            });
           }
         });
 
         depositItems.filter(d => d.status !== '待對帳').forEach(d => {
           const isPlus = (d.type !== 'usage');
+          let dateObj = getItemDateObj(d);
           let dateStr = '';
           if (d.payDate) {
             const parts = d.payDate.split('-');
             if (parts.length === 3) dateStr = `${parts[1]}/${parts[2]}`;
           } else if (d.createdAt) {
-            dateStr = new Date(d.createdAt).toLocaleDateString('zh-TW', {month:'2-digit', day:'2-digit'});
+            dateStr = dateObj.toLocaleDateString('zh-TW', {month:'2-digit', day:'2-digit'});
           }
 
           if (isPlus) {
-            creditHtml += `
-              <div class="item-group-row">
-                <div class="item-group-header">
-                  <span>➕ ${dateStr ? dateStr + ' ' : ''}${d.note || '預存儲值入帳'}</span>
-                  <b style="color:#67c23a;">+$${Number(d.amount).toLocaleString()}</b>
-                </div>
-              </div>`;
+            timelineEntries.push({
+              dateObj,
+              html: `<div class="item-group-row"><div class="item-group-header"><span>➕ ${dateStr ? dateStr + ' ' : ''}${d.note || '預存儲值入帳'}</span><b style="color:#67c23a;">+$${Number(d.amount).toLocaleString()}</b></div></div>`
+            });
           } else {
             const matchedPay = allPayments.find(p => (p.user === uName || p.buyerName === uName) && p.depositUsed > 0);
             let orderDetailsHtml = '';
@@ -573,7 +589,6 @@
 
             if (matchedPay && matchedPay.relatedOrderIds && matchedPay.relatedOrderIds.length > 0) {
               orderCount = matchedPay.relatedOrderIds.length;
-              
               let sortedOrders = matchedPay.relatedOrderIds.map(oId => allOrders[oId]).filter(Boolean);
 
               sortedOrders.sort((a, b) => {
@@ -607,17 +622,16 @@
 
             const headerTitle = orderCount > 0 ? `➖ ${dateStr ? dateStr + ' ' : ''}訂單扣抵 (共 ${orderCount} 筆)` : `➖ ${dateStr ? dateStr + ' ' : ''}${d.note || '扣款折抵'}`;
 
-            creditHtml += `
-              <div class="item-group-row">
-                <div class="item-group-header">
-                  <span>${headerTitle}</span>
-                  <b style="color:#f56c6c;">-$${Number(d.amount).toLocaleString()}</b>
-                </div>
-                ${orderDetailsHtml}
-              </div>`;
+            timelineEntries.push({
+              dateObj,
+              html: `<div class="item-group-row"><div class="item-group-header"><span>${headerTitle}</span><b style="color:#f56c6c;">-$${Number(d.amount).toLocaleString()}</b></div>${orderDetailsHtml}</div>`
+            });
           }
         });
 
+        timelineEntries.sort((a, b) => a.dateObj.getTime() - b.dateObj.getTime());
+
+        let creditHtml = timelineEntries.map(e => e.html).join('');
         if (!creditHtml) creditHtml = '<div style="color:#909399; font-size:11px; padding:2px;">目前無已結算明細</div>';
 
         let depPendingHtml = '';
