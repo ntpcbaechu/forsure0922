@@ -63,6 +63,24 @@
     const BANK_OPTIONS = ['台銀', '樂天', '中信', '台新', '其他'];
 
     let currentCapsuleFilter = { group: 'Stray Kids', mode: 'member', detail: 'ALL', user: 'ALL' };
+    let memberMap = {};
+
+    async function loadMembers() {
+      try {
+        const skzM = await fetch('../../json/members_skz.json').then(r=>r.json()).catch(()=>[]);
+        const atzM = await fetch('../../json/members_atz.json').then(r=>r.json()).catch(()=>[]);
+        memberMap['Stray Kids'] = skzM;
+        memberMap['ATEEZ'] = atzM;
+      } catch(e) {}
+    }
+    loadMembers();
+
+    function extractDateScore(evName) {
+      if (!evName) return 99999999;
+      const match = evName.match(/\d{6}/);
+      if (match) return parseInt(match[0], 10);
+      return 99999999;
+    }
 
     window.addEventListener('message', (e) => {
       if (e.data && e.data.type === 'PAYMENT_CAPSULE_FILTER') {
@@ -93,6 +111,25 @@
       snap.forEach(d => { paymentDataMap[d.id] = { id: d.id, ...d.data() }; });
       renderTable();
     });
+
+    function formatSocialDisplay(p) {
+      const type = p.contactType || '';
+      const acc = p.socialAccount || p.social || '';
+      
+      if (type === '官方 Line' || acc.includes('@115oyenv')) {
+        return '💬 官方 Line';
+      }
+      if (type === 'Instagram') {
+        return `[IG] ${acc}`;
+      }
+      if (type === 'Threads') {
+        return `[Threads] ${acc}`;
+      }
+      if (type && acc) {
+        return `[${type}] ${acc}`;
+      }
+      return acc || '-';
+    }
 
     window.renderTable = () => {
       const container = document.getElementById('groupContainer');
@@ -128,7 +165,7 @@
       }
 
       if (kw) {
-        list = list.filter(p => `${p.user || ''} ${p.buyerName || ''} ${p.bankLast5 || ''} ${p.last5 || ''}`.toLowerCase().includes(kw));
+        list = list.filter(p => `${p.user || ''} ${p.buyerName || ''} ${p.bankLast5 || ''} ${p.last5 || ''} ${p.contactType || ''}`.toLowerCase().includes(kw));
       }
 
       if (list.length === 0) {
@@ -163,7 +200,7 @@
       const isEditing = editingRows.has(docId);
 
       const userName = p.user || p.buyerName || '-';
-      const socialName = p.social || p.socialAccount || '-';
+      const socialDisplay = formatSocialDisplay(p);
       const isPhotoSent = true;
       
       const expectedAmt = p.finalPay !== undefined ? p.finalPay : (p.amount || 0);
@@ -190,15 +227,36 @@
       let itemsHtml = '';
       const relatedIds = p.relatedOrderIds || [];
       if (relatedIds.length > 0) {
-        itemsHtml += '<ul class="item-list">';
-        relatedIds.forEach(oId => {
-          const o = ordersCache[oId];
-          if (o) {
-            const ev = o.event || o.eventName || '活動';
-            const mem = o.member || '全體';
-            const qty = o.qty !== undefined ? o.qty : (o.quantity || 0);
-            itemsHtml += '<li>• <b>' + ev + '</b> (' + mem + ' / ' + qty + '張)</li>';
+        let sortedOrders = relatedIds.map(oId => ordersCache[oId]).filter(Boolean);
+
+        sortedOrders.sort((a, b) => {
+          const evA = a.event || a.eventName || '';
+          const evB = b.event || b.eventName || '';
+          const dateScoreA = extractDateScore(evA);
+          const dateScoreB = extractDateScore(evB);
+
+          if (dateScoreA !== dateScoreB) {
+            return dateScoreA - dateScoreB;
           }
+
+          const grp = a.group || b.group || 'Stray Kids';
+          const memberList = memberMap[grp] || memberMap['Stray Kids'] || [];
+
+          let idxA = memberList.indexOf(a.member || '');
+          let idxB = memberList.indexOf(b.member || '');
+
+          if (idxA === -1) idxA = 99;
+          if (idxB === -1) idxB = 99;
+
+          return idxA - idxB;
+        });
+
+        itemsHtml += '<ul class="item-list">';
+        sortedOrders.forEach(o => {
+          const ev = o.event || o.eventName || '活動';
+          const mem = o.member || '全體';
+          const qty = o.qty !== undefined ? o.qty : (o.quantity || 0);
+          itemsHtml += '<li>• <b>' + ev + '</b> (' + mem + ' / ' + qty + '張)</li>';
         });
         itemsHtml += '</ul>';
       } else {
@@ -238,7 +296,7 @@
       const tr = document.createElement('tr');
 
       if (!isEditing) {
-        tr.innerHTML = '<td><b>' + userName + '</b><br><small style="color:#909399;">' + socialName + '</small></td>' +
+        tr.innerHTML = '<td><b>' + userName + '</b><br><small style="color:#409eff; font-weight:bold;">' + socialDisplay + '</small></td>' +
           '<td>' +
             itemsHtml +
             '<div class="meta-box">' +
@@ -262,7 +320,7 @@
       } else {
         tr.innerHTML = '<td>' +
             '<input type="text" id="edit-user-' + docId + '" value="' + userName + '" style="width:100%; margin-bottom:4px;" placeholder="社群暱稱">' +
-            '<input type="text" id="edit-social-' + docId + '" value="' + socialName + '" style="width:100%;" placeholder="社群帳號">' +
+            '<input type="text" id="edit-social-' + docId + '" value="' + (p.socialAccount || p.social || '') + '" style="width:100%;" placeholder="社群帳號">' +
           '</td>' +
           '<td>' +
             itemsHtml +
