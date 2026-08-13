@@ -88,3 +88,74 @@
     * `admin_ctbc_bank.html` (中信存款交易明細對帳系統)
     * `payment/` (匯款審核 4 大子頁面)
   * `json/` (系統靜態設定檔)
+
+---
+
+## 🌳 五、 最新專案目錄樹狀圖 (2026/08/13 實測備份)
+
+.
+├── PROJECT_HANDOVER.md
+├── admin
+│   ├── admin_ctbc_bank.html
+│   ├── admin_deposit.html
+│   ├── admin_events.html
+│   ├── admin_lottery.html
+│   ├── admin_orders.html
+│   ├── admin_payments.html
+│   ├── admin_progress.html
+│   ├── ctbc_data.js
+│   ├── deposit.html
+│   ├── orders
+│   │   ├── orders_form.html
+│   │   └── orders_manage.html
+│   └── payment
+│       ├── payment_all.html
+│       ├── payment_error.html
+│       ├── payment_manage.html
+│       ├── payment_ok.html
+│       ├── payment_pending.html
+│       └── payment_photosent.html
+├── admin.html
+├── file_path.txt
+├── idea
+│   └── 20260731_architecture.txt
+├── index
+│   ├── archive
+│   │   ├── archive_progress.html
+│   │   ├── archive_records.html
+│   │   ├── index_archive_progress.html
+│   │   └── index_archive_records.html
+│   ├── index_archive.html
+│   ├── index_deposit_app.html
+│   ├── index_lottery.html
+│   ├── index_notice.html
+│   ├── index_payment.html
+│   ├── index_progress.html
+│   └── index_records.html
+├── index.html
+├── json
+│   ├── bank_info.json
+│   ├── banks.json
+│   ├── ctbc_transactions.json
+│   ├── group.json
+│   ├── members_atz.json
+│   ├── members_skz.json
+│   ├── sellers.json
+│   ├── users_atz.json
+│   └── users_skz.json
+└── parse.html
+
+---
+
+## 📝 六、 開發變更日誌 (Change Log)
+
+### 2026-08-13
+1. **json/users_atz.json**：更新 ATEEZ 社群成員 21 位名單，連動選單免動態馬賽克。
+2. **admin/admin_payments.html**：
+   - 新增「📋 全部」分頁標籤並移至最首位設為預設載入頁面。
+3. **admin/payment/ 全套子頁面 (payment_all.html, payment_pending.html, payment_error.html, payment_ok.html)**：
+   - 新增 formatSocialDisplay() 邏輯，依據 contactType 正確呈現 [IG]、[Threads] 與 💬 官方 Line，不再暴露賣家官方 Line ID。
+   - 建立全功能總覽頁面 payment_all.html。
+4. **index/index_deposit_app.html**：
+   - 修正訂單明細扣抵顯示邏輯，加入「第一優先：活動日期數字正序（舊到新）」與「第二優先：遵照 members_skz.json / members_atz.json 官方成員陣列順序」之雙重排序。
+   - 清理並刪除誤建之 index/index_deposit.html。
