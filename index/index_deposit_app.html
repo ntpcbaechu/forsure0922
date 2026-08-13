@@ -212,6 +212,8 @@
     let balanceTabFilter = 'active';
     let selectedUserFilter = 'ALL';
 
+    let memberMap = {};
+
     window.switchSubTab = (tabName, btnElem) => {
       document.querySelectorAll('.sub-tab-btn').forEach(b => b.classList.remove('active'));
       document.querySelectorAll('.form-section').forEach(s => s.classList.remove('active'));
@@ -220,11 +222,25 @@
       notifyHeight();
     };
 
+    function extractDateScore(evName) {
+      if (!evName) return 99999999;
+      const match = evName.match(/\d{6}/);
+      if (match) return parseInt(match[0], 10);
+      return 99999999;
+    }
+
     document.addEventListener('DOMContentLoaded', async () => {
       const depGroupSel = document.getElementById('depGroup');
       const depUserSel = document.getElementById('depUser');
       const refGroupSel = document.getElementById('refGroup');
       const refUserSel = document.getElementById('refUser');
+
+      try {
+        const skzM = await fetch('../json/members_skz.json').then(r=>r.json()).catch(()=>[]);
+        const atzM = await fetch('../json/members_atz.json').then(r=>r.json()).catch(()=>[]);
+        memberMap['Stray Kids'] = skzM;
+        memberMap['ATEEZ'] = atzM;
+      } catch(e) {}
 
       fetch('../json/group.json').then(r => r.json()).then(groups => {
         depGroupSel.innerHTML = '<option value="">請選擇團體</option>';
@@ -557,11 +573,33 @@
 
             if (matchedPay && matchedPay.relatedOrderIds && matchedPay.relatedOrderIds.length > 0) {
               orderCount = matchedPay.relatedOrderIds.length;
-              let listLines = [];
-              matchedPay.relatedOrderIds.forEach(oId => {
-                const o = allOrders[oId];
-                if (o) listLines.push(`• ${o.event || o.eventName} (${o.member} / ${o.qty || o.quantity}張)`);
+              
+              let sortedOrders = matchedPay.relatedOrderIds.map(oId => allOrders[oId]).filter(Boolean);
+
+              sortedOrders.sort((a, b) => {
+                const evA = a.event || a.eventName || '';
+                const evB = b.event || b.eventName || '';
+                const dateScoreA = extractDateScore(evA);
+                const dateScoreB = extractDateScore(evB);
+
+                if (dateScoreA !== dateScoreB) {
+                  return dateScoreA - dateScoreB;
+                }
+
+                const grp = a.group || b.group || 'Stray Kids';
+                const memberList = memberMap[grp] || memberMap['Stray Kids'] || [];
+
+                let idxA = memberList.indexOf(a.member || '');
+                let idxB = memberList.indexOf(b.member || '');
+
+                if (idxA === -1) idxA = 99;
+                if (idxB === -1) idxB = 99;
+
+                return idxA - idxB;
               });
+
+              let listLines = sortedOrders.map(o => `• ${o.event || o.eventName} (${o.member} / ${o.qty || o.quantity}張)`);
+
               if (listLines.length > 0) {
                 orderDetailsHtml = `<div class="item-sub-list">${listLines.join('<br>')}</div>`;
               }
