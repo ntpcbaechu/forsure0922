@@ -61,7 +61,7 @@
     .status-paid { background: #f0f9eb; color: #67c23a; border: 1px solid #e1f3d8; }
     .status-checking { background: #fdf6ec; color: #e6a23c; border: 1px solid #faebd7; }
     .status-pending { background: #fef0f0; color: #f56c6c; border: 1px solid #fde2e2; }
-    .status-issue { background: #fef0f0; color: #f56c6c; border: 1px solid #fde2e2; }
+    .status-issue { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
     
     .photo-badge-pending { background: #f4f4f5; color: #909399; }
     .photo-badge-sent { background: #ecf5ff; color: #409eff; border: 1px solid #b3d8ff; }
@@ -123,12 +123,21 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
+    const MEMBER_EMOJI_MAP = {
+      '方燦': '🐺', 'Lee Know': '🐰', '彰彬': '🐷', '鉉辰': '🥟', 'HAN': '🐹', 'Felix': '🐥', '昇玟': '🐶', 'I.N': '🦊',
+      '弘中': '🐿️', '星化': '🐰', '潤浩': '🐶', '呂尚': '🐥', '傘': '⛰️', '旼琦': '🐥', '友榮': '🐈‍⬛', '鍾浩': '🐻'
+    };
+
+    const GROUP_EMOJI_MAP = {
+      'Stray Kids': '🧭 Stray Kids',
+      'ATEEZ': '🏴‍☠️ ATEEZ'
+    };
+
     let allOrders = [];
     let progressMap = {};
     let eventSettingsMap = {};
-    let paymentsMap = {};
 
-    let activeGroup = 'Stray Kids';
+    let activeGroup = 'ALL';
     let activeMode = 'member';
     let activeDetail = 'ALL';
     let activeUser = 'ALL';
@@ -136,7 +145,7 @@
 
     let groupList = [];
     let memberMap = {};
-    let knownUsersSet = new Set();
+    let customUsersSet = new Set();
 
     document.addEventListener('DOMContentLoaded', async () => {
       try {
@@ -150,21 +159,32 @@
             memberMap[g] = await mRes.json();
           }
         }
-
-        // 載入預設 JSON 買家名單庫以進行脫敏比對
-        const skzU = await fetch('../json/users_skz.json').then(r => r.json()).catch(() => []);
-        const atzU = await fetch('../json/users_atz.json').then(r => r.json()).catch(() => []);
-        knownUsersSet = new Set([...skzU, ...atzU]);
       } catch(e) {}
 
       renderGroupCapsules();
+
+      onSnapshot(collection(db, "users"), snap => {
+        customUsersSet = new Set();
+        snap.forEach(d => {
+          const u = d.data();
+          if (u.name && u.type !== 'threads') {
+            customUsersSet.add(u.name);
+          }
+        });
+        updateUserCapsules();
+        renderCapsulesAndRecords();
+      });
 
       onSnapshot(collection(db, "photo_progress"), snap => {
         progressMap = {};
         snap.forEach(d => {
           const data = d.data();
-          const key = (data.eventName || data.event || '') + '_' + (data.member || '');
-          progressMap[key] = data.status || '';
+          const grp = data.group || 'Stray Kids';
+          const ev = (data.eventName || data.event || '').trim();
+          const mem = (data.member || '').trim();
+          if (ev && mem) {
+            progressMap[`${grp}_${ev}_${mem}`] = data.status || '';
+          }
         });
         updateDetailCapsules();
         updateUserCapsules();
@@ -175,25 +195,16 @@
         eventSettingsMap = {};
         snap.forEach(d => {
           const data = d.data();
-          const key = (data.name || data.rawName) + '_' + (data.member || '');
+          const grp = data.group || 'Stray Kids';
+          const ev = (data.name || data.rawName || '').trim();
+          const mem = (data.member || '').trim();
+          const key = `${grp}_${ev}_${mem}`;
           eventSettingsMap[key] = {
             price: Number(data.actualPrice || data.price || data.estimatedPrice || data.unitPrice) || 0,
             packQty: Number(data.packQty) || 1,
             discounts: data.discounts || [],
             unit: data.unit || '包'
           };
-        });
-        renderCapsulesAndRecords();
-      });
-
-      onSnapshot(collection(db, "payments"), snap => {
-        paymentsMap = {};
-        snap.forEach(d => {
-          const data = d.data();
-          const relatedIds = data.relatedOrderIds || [];
-          relatedIds.forEach(oId => { paymentsMap[oId] = data; });
-          const buyer = data.user || data.buyerName;
-          if (buyer) { paymentsMap[buyer] = data; }
         });
         renderCapsulesAndRecords();
       });
@@ -211,10 +222,9 @@
       });
     });
 
-    // 自動脫敏 Helper：非 JSON 預設名單（Threads 帳號），保留頭尾3碼，中間按原始長度補星號
     function formatDisplayName(name) {
       if (!name) return '';
-      if (knownUsersSet.has(name)) return name;
+      if (customUsersSet.has(name)) return name;
       
       const len = name.length;
       if (len <= 6) {
@@ -225,18 +235,68 @@
     }
 
     function isArchivedOrder(ord) {
-      const key = (ord.event || ord.eventName || '') + '_' + (ord.member || '');
-      const st = progressMap[key] || '';
+      const grp = ord.group || 'Stray Kids';
+      const ev = (ord.event || ord.eventName || '').trim();
+      const mem = (ord.member || '').trim();
+      const st = progressMap[`${grp}_${ev}_${mem}`] || '';
       return st === '已結束' || st === '到期/已刪除';
+    }
+
+    function extractDateScore(evName) {
+      if (!evName) return 99999999;
+      const match = evName.match(/\d{6}/);
+      if (match) return parseInt(match[0], 10);
+      return 99999999;
+    }
+
+    function sortOrdersTriple(orders) {
+      return orders.sort((a, b) => {
+        const evA = (a.event || a.eventName || '').trim();
+        const evB = (b.event || b.eventName || '').trim();
+        const dateA = extractDateScore(evA);
+        const dateB = extractDateScore(evB);
+
+        if (dateA !== dateB) return dateA - dateB;
+
+        const grpA = a.group || 'Stray Kids';
+        const grpB = b.group || 'Stray Kids';
+        if (grpA !== grpB) {
+          return (grpA === 'ATEEZ') ? -1 : 1;
+        }
+
+        const memList = memberMap[grpA] || [];
+        const memA = (a.member || '').trim();
+        const memB = (b.member || '').trim();
+        const idxA = memList.indexOf(memA);
+        const idxB = memList.indexOf(memB);
+
+        return (idxA === -1 ? 99 : idxA) - (idxB === -1 ? 99 : idxB);
+      });
     }
 
     function renderGroupCapsules() {
       const container = document.getElementById('groupCapsules');
       container.innerHTML = '';
+
+      const allBtn = document.createElement('button');
+      allBtn.className = `capsule-filter-btn ${activeGroup === 'ALL' ? 'active' : ''}`;
+      allBtn.textContent = '全部';
+      allBtn.onclick = () => {
+        activeGroup = 'ALL';
+        document.querySelectorAll('#groupCapsules .capsule-filter-btn').forEach(b => b.classList.remove('active'));
+        allBtn.classList.add('active');
+        activeDetail = 'ALL';
+        activeUser = 'ALL';
+        updateDetailCapsules();
+        updateUserCapsules();
+        renderCapsulesAndRecords();
+      };
+      container.appendChild(allBtn);
+
       groupList.forEach(g => {
         const btn = document.createElement('button');
         btn.className = `capsule-filter-btn ${activeGroup === g ? 'active' : ''}`;
-        btn.textContent = g;
+        btn.textContent = GROUP_EMOJI_MAP[g] || g;
         btn.onclick = () => {
           activeGroup = g;
           document.querySelectorAll('#groupCapsules .capsule-filter-btn').forEach(b => b.classList.remove('active'));
@@ -256,6 +316,7 @@
       document.querySelectorAll('#modeCapsules .capsule-filter-btn').forEach(b => b.classList.remove('active'));
       if(btn) btn.classList.add('active');
       activeDetail = 'ALL';
+      updateDetailCapsules();
       renderCapsulesAndRecords();
     };
 
@@ -280,17 +341,26 @@
       };
       container.appendChild(allBtn);
 
-      const filtered = allOrders.filter(o => o.group === activeGroup && !isArchivedOrder(o));
+      let filtered = allOrders.filter(o => !isArchivedOrder(o));
+      if (activeGroup !== 'ALL') {
+        filtered = filtered.filter(o => o.group === activeGroup);
+      }
 
       if (activeMode === 'member') {
-        const membersInJson = memberMap[activeGroup] || [];
+        let membersInJson = [];
+        if (activeGroup === 'ALL') {
+          Object.values(memberMap).forEach(list => membersInJson.push(...list));
+        } else {
+          membersInJson = memberMap[activeGroup] || [];
+        }
+
         const activeMembersWithData = new Set(filtered.map(o => o.member).filter(Boolean));
 
         membersInJson.forEach(m => {
           if (activeMembersWithData.has(m)) {
             const btn = document.createElement('button');
             btn.className = `capsule-filter-btn ${activeDetail === m ? 'sub-active' : ''}`;
-            btn.textContent = m;
+            btn.textContent = (MEMBER_EMOJI_MAP[m] ? `${MEMBER_EMOJI_MAP[m]} ` : '') + m;
             btn.onclick = () => {
               activeDetail = m;
               document.querySelectorAll('#detailCapsules .capsule-filter-btn').forEach(b => b.classList.remove('sub-active'));
@@ -336,9 +406,13 @@
       container.appendChild(allBtn);
 
       const usersSet = new Set();
-      allOrders.filter(o => o.group === activeGroup && !isArchivedOrder(o)).forEach(o => {
-        const name = o.buyerName || o.user || o.nickname;
-        if (name) usersSet.add(name);
+      allOrders.filter(o => !isArchivedOrder(o)).forEach(o => {
+        let matchGroup = true;
+        if (activeGroup !== 'ALL') matchGroup = o.group === activeGroup;
+        if (matchGroup) {
+          const name = o.buyerName || o.user || o.nickname;
+          if (name) usersSet.add(name);
+        }
       });
 
       Array.from(usersSet).sort((a,b)=>a.localeCompare(b,'zh-TW')).forEach(uName => {
@@ -356,16 +430,33 @@
     }
 
     function getItemPriceAndUnit(item) {
-      const eventName = item.event || item.eventName || '';
-      const member = item.member || '';
+      const grp = item.group || 'Stray Kids';
+      const eventName = (item.event || item.eventName || '').trim();
+      const member = (item.member || '').trim();
       const userName = item.user || item.buyerName || item.nickname || '';
-      const key = eventName + '_' + member;
+      
+      const key = `${grp}_${eventName}_${member}`;
       const setting = eventSettingsMap[key] || {};
       
       const pricePerPack = setting.price || Number(item.price) || 0;
       const packQty = setting.packQty || 1;
-      const qty = Number(item.quantity) || Number(item.qty) || 0;
-      const packs = (packQty > 0) ? Math.round(qty / packQty) : 1;
+      const rawQty = Number(item.quantity !== undefined ? item.quantity : (item.qty !== undefined ? item.qty : item.count)) || 0;
+
+      let packs = 1;
+      let totalCards = rawQty;
+
+      if (packQty > 1) {
+        if (rawQty >= packQty && rawQty % packQty === 0) {
+          packs = Math.round(rawQty / packQty);
+          totalCards = rawQty;
+        } else {
+          packs = rawQty;
+          totalCards = packs * packQty;
+        }
+      } else {
+        packs = rawQty;
+        totalCards = rawQty;
+      }
 
       let totalPrice = packs * pricePerPack;
 
@@ -379,7 +470,7 @@
       }
 
       const unitTag = setting.unit || '包';
-      const qtyText = `${packs}${unitTag} (${qty}張)`;
+      const qtyText = (packQty > 1) ? `${packs}${unitTag} (${totalCards}張)` : `${totalCards}張`;
 
       return { totalPrice, qtyText };
     }
@@ -388,19 +479,21 @@
       const payStatus = ord.paymentStatus || ord.status || (ord.hasPaid ? '已對帳' : '待匯款');
       
       let payBadgeHtml = '<span class="status-badge status-pending">🚨 待匯款</span>';
-      if (payStatus === '已對帳') payBadgeHtml = '<span class="status-badge status-paid">🟢 已對帳</span>';
+      if (payStatus === '已對帳' || ord.hasPaid) payBadgeHtml = '<span class="status-badge status-paid">🟢 已對帳</span>';
       else if (payStatus === '待對帳' || payStatus === '對帳中') payBadgeHtml = '<span class="status-badge status-checking">⏳ 待對帳</span>';
       else if (payStatus === '對帳有問題' || payStatus === '有問題') payBadgeHtml = '<span class="status-badge status-issue">⚠️ 帳有問題</span>';
 
-      const paymentDoc = paymentsMap[ord.id] || paymentsMap[ord.user || ord.buyerName] || {};
-      const isPhotoSent = ord.isPhotoSent === true || payStatus === '已發圖' || paymentDoc.isPhotoSent === true;
+      const isPhotoSent = (ord.isPhotoSent === true || ord.status === '已發圖');
 
-      let photoBadgeHtml = '<span class="status-badge photo-badge-pending">📷 待發圖</span>';
+      let photoBadgeHtml = '<div><span class="status-badge photo-badge-pending">📷 待發圖</span></div>';
       if (isPhotoSent) {
-        const sentAt = ord.photoSentAt || paymentDoc.photoSentAt || '';
-        const expireAt = ord.photoExpireAt || paymentDoc.photoExpireAt || '';
-        const dateSpan = (sentAt && expireAt) ? `<span style="color:#909399; font-size:11px; margin-left:6px;">${sentAt}發圖 / ${expireAt}刪除</span>` : '';
-        photoBadgeHtml = `<span class="status-badge photo-badge-sent">🔵 已發圖</span>${dateSpan}`;
+        const sentAt = ord.photoSentAt || '';
+        const expireAt = ord.photoExpireAt || '';
+        photoBadgeHtml = `
+          <div><span class="status-badge photo-badge-sent">🔵 已發圖</span></div>
+          ${sentAt ? `<div style="font-size:11px; color:#606266; margin-top:3px;">📅 ${sentAt} 發圖</div>` : ''}
+          ${expireAt ? `<div style="font-size:11px; color:#909399;">⏳ ${expireAt} 刪除</div>` : ''}
+        `;
       }
 
       return { payBadgeHtml, photoBadgeHtml };
@@ -412,7 +505,11 @@
       recordsList.innerHTML = '';
       summary.innerHTML = '';
 
-      let list = allOrders.filter(o => o.group === activeGroup && !isArchivedOrder(o));
+      let list = allOrders.filter(o => !isArchivedOrder(o));
+
+      if (activeGroup !== 'ALL') {
+        list = list.filter(o => o.group === activeGroup);
+      }
 
       if (activeDetail !== 'ALL') {
         if (activeMode === 'member') list = list.filter(o => o.member === activeDetail);
@@ -435,12 +532,12 @@
         let paidCount = 0, checkingCount = 0, pendingCount = 0, issueCount = 0;
         let grandTotal = 0, paidTotal = 0, pendingTotal = 0;
 
-        allOrders.filter(o => o.group === activeGroup && !isArchivedOrder(o) && (o.buyerName || o.user || o.nickname) === activeUser).forEach(o => {
-          userEventsSet.add((o.event || o.eventName) + '_' + o.member);
+        list.forEach(o => {
+          userEventsSet.add((o.group || '') + '_' + (o.event || o.eventName) + '_' + o.member);
           const status = o.paymentStatus || o.status || (o.hasPaid ? '已對帳' : '待匯款');
           const info = getItemPriceAndUnit(o);
 
-          if (status === '已對帳') { paidCount++; paidTotal += info.totalPrice; }
+          if (status === '已對帳' || o.hasPaid) { paidCount++; paidTotal += info.totalPrice; }
           else if (status === '待對帳' || status === '對帳中') checkingCount++;
           else if (status === '對帳有問題' || status === '有問題') issueCount++;
           else { pendingCount++; pendingTotal += info.totalPrice; }
@@ -493,7 +590,7 @@
         let userLinesHtml = '';
 
         sortedUsers.forEach((uName, idx) => {
-          const uOrders = userPendingGroups[uName];
+          const uOrders = sortOrdersTriple(userPendingGroups[uName]);
           let userSubTotal = 0;
           let itemsHtml = '';
 
@@ -501,12 +598,14 @@
             const info = getItemPriceAndUnit(ord);
             userSubTotal += info.totalPrice;
             grandPendingTotal += info.totalPrice;
+            const grpDisplay = GROUP_EMOJI_MAP[ord.group] || ord.group;
             const evName = ord.event || ord.eventName || '活動';
             const memName = ord.member || '全體';
+            const memEmoji = MEMBER_EMOJI_MAP[memName] ? `${MEMBER_EMOJI_MAP[memName]} ` : '';
 
             itemsHtml += `
               <div class="pending-item-line">
-                <span>• ${evName} (${memName} - ${info.qtyText})</span>
+                <span>• [${grpDisplay}] ${evName} (${memEmoji}${memName} - ${info.qtyText})</span>
                 <b>$${info.totalPrice.toLocaleString()}</b>
               </div>
             `;
@@ -544,10 +643,12 @@
         return;
       }
 
+      const sortedList = sortOrdersTriple(list);
+
       if (activeUser !== 'ALL') {
-        renderCompactUserTable(list);
+        renderCompactUserTable(sortedList);
       } else {
-        renderCardsGrouped(list);
+        renderCardsGrouped(sortedList);
       }
 
       notifyHeight();
@@ -559,13 +660,20 @@
 
       orders.forEach((ord, idx) => {
         const info = getItemPriceAndUnit(ord);
+        const grp = ord.group || 'Stray Kids';
+        const grpDisplay = GROUP_EMOJI_MAP[grp] || grp;
         const evName = ord.event || ord.eventName || '未分類活動';
+        const mem = ord.member || '全體';
+        const memDisplay = (MEMBER_EMOJI_MAP[mem] ? `${MEMBER_EMOJI_MAP[mem]} ` : '') + mem;
         const badges = getPaymentPhotoBadge(ord);
 
         rowsHtml += `
           <tr>
             <td>#${idx + 1}</td>
-            <td><b>${evName}</b></td>
+            <td>
+              <b>${evName}</b><br>
+              <span style="font-size:12px; color:#409eff; font-weight:bold;">${grpDisplay} · ${memDisplay}</span>
+            </td>
             <td>${info.qtyText}</td>
             <td><b style="color:#f56c6c;">$${info.totalPrice.toLocaleString()}</b></td>
             <td>${badges.payBadgeHtml}</td>
@@ -580,7 +688,7 @@
             <thead>
               <tr>
                 <th style="width:5%;">#</th>
-                <th style="width:35%;">活動名稱</th>
+                <th style="width:35%;">活動名稱與成員</th>
                 <th style="width:18%;">喊單數量</th>
                 <th style="width:15%;">小計</th>
                 <th style="width:13%;">對帳狀態</th>
@@ -598,7 +706,9 @@
       const groups = {};
 
       orders.forEach(o => {
-        const key = `[${activeGroup}] ` + (o.event || o.eventName || '未分類活動') + (o.member ? ' - ' + o.member : '');
+        const grp = o.group || 'Stray Kids';
+        const grpDisplay = GROUP_EMOJI_MAP[grp] || grp;
+        const key = `[${grpDisplay}] ` + (o.event || o.eventName || '未分類活動') + (o.member ? ' - ' + (MEMBER_EMOJI_MAP[o.member] ? `${MEMBER_EMOJI_MAP[o.member]} ` : '') + o.member : '');
         if (!groups[key]) groups[key] = [];
         groups[key].push(o);
       });
@@ -606,7 +716,7 @@
       let gridHtml = '<div id="recordsListGrid">';
       for (const [title, list] of Object.entries(groups)) {
         const totalPacks = list.reduce((sum, item) => sum + (Number(item.quantity) || Number(item.qty) || 1), 0);
-        const sampleKey = (list[0].event || list[0].eventName || '') + '_' + (list[0].member || '');
+        const sampleKey = `${list[0].group || 'Stray Kids'}_${(list[0].event || list[0].eventName || '').trim()}_${(list[0].member || '').trim()}`;
         const sampleSetting = eventSettingsMap[sampleKey] || {};
         const groupUnitLabel = sampleSetting.unit || '包';
 
