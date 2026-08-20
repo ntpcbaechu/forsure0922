@@ -182,7 +182,7 @@
     let ordersList = [];
     let eventsDataMap = {};
     let loadedSellersList = [];
-    let groupUsersMap = {};
+    let usersDatabase = [];
 
     let activeGroup = 'ALL';
     let activeMode = 'member';
@@ -251,10 +251,11 @@
 
     function getBuyersForCurrentGroup() {
       const g = document.getElementById('evGroup').value;
-      if (g && groupUsersMap[g]) {
-        return groupUsersMap[g];
+      let filtered = usersDatabase;
+      if (g) {
+        filtered = usersDatabase.filter(u => u.group === g);
       }
-      return Object.values(groupUsersMap).flat();
+      return Array.from(new Set(filtered.map(u => u.name).filter(Boolean)));
     }
 
     function addDiscountRow(count = '', price = '', targetUser = '') {
@@ -288,14 +289,6 @@
             const mRes = await fetch(`../json/${file}`);
             memberMap[g] = await mRes.json();
           }
-
-          const uFile = (g === 'Stray Kids') ? 'users_skz.json' : (g === 'ATEEZ' ? 'users_atz.json' : '');
-          if (uFile) {
-            try {
-              const uRes = await fetch(`../json/${uFile}`);
-              groupUsersMap[g] = await uRes.json();
-            } catch(e){}
-          }
         }
       } catch(e) {}
 
@@ -320,6 +313,11 @@
         memberSel.disabled = false;
         memberSel.innerHTML = '<option value="">請選擇成員</option>';
         members.forEach(m => memberSel.innerHTML += `<option value="${m}">${m}</option>`);
+      });
+
+      onSnapshot(collection(db, "users"), snap => {
+        usersDatabase = [];
+        snap.forEach(d => usersDatabase.push(d.data()));
       });
 
       fetch('../json/sellers.json').then(res => res.json()).then(sellers => {
@@ -450,7 +448,9 @@
 
     onSnapshot(collection(db, "orders"), snap => {
       ordersList = [];
-      snap.forEach(d => ordersList.push(d.data()));
+      snap.forEach(d => {
+        ordersList.push(d.data());
+      });
       loadEvents();
     });
 
