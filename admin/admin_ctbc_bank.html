@@ -81,7 +81,11 @@
       </div>
       <div class="form-group w-member">
         <label class="required">1. 團體</label>
-        <select id="groupSelect" required><option value="">載入中...</option></select>
+        <select id="groupSelect" required>
+          <option value="">請選擇團體</option>
+          <option value="Stray Kids">🧭 Stray Kids</option>
+          <option value="ATEEZ">🏴‍☠️ ATEEZ</option>
+        </select>
       </div>
       <div class="form-group w-user">
         <label class="required">2. 社群暱稱</label>
@@ -182,7 +186,28 @@
 
   <div class="pagination" id="pagination"></div>
 
-  <script>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getFirestore, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDF7QySG1Jj4gdZvXwMRaKjRmI-lFKpj7k",
+      authDomain: "forsure0922.firebaseapp.com",
+      databaseURL: "https://forsure0922-default-rtdb.firebaseio.com",
+      projectId: "forsure0922",
+      storageBucket: "forsure0922.firebasestorage.app",
+      messagingSenderId: "817449290174",
+      appId: "1:817449290174:web:6b4ec1d36c171ff97011ef"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const MEMBER_EMOJI_MAP = {
+      '方燦': '🐺', 'Lee Know': '🐰', '彰彬': '🐷', '鉉辰': '🥟', 'HAN': '🐹', 'Felix': '🐥', '昇玟': '🐶', 'I.N': '🦊',
+      '弘中': '🐿️', '星化': '🐰', '潤浩': '🐶', '呂尚': '🐥', '傘': '⛰️', '旼琦': '🐥', '友榮': '🐈‍⬛', '鍾浩': '🐻'
+    };
+
     let rawTransactions = window.rawTransactions || [];
     let transactions = rawTransactions.filter(d => d.date !== '日期');
 
@@ -192,54 +217,77 @@
     let currentPage = 1;
     const pageSize = 50;
 
-    async function loadAllData() {
-      const gSel = document.getElementById('groupSelect');
-      const uSel = document.getElementById('userSelect');
-      const mSel = document.getElementById('memberSelect');
+    let usersDatabase = [];
+    let memberMap = {};
 
-      fetch('../json/group.json').then(r => r.json()).then(groups => {
-        gSel.innerHTML = '<option value="">請選擇團體</option>';
-        groups.forEach(g => gSel.innerHTML += `<option value="${g}">${g}</option>`);
+    document.addEventListener('DOMContentLoaded', async () => {
+      try {
+        const skzM = await fetch('../json/members_skz.json').then(r => r.json());
+        const atzM = await fetch('../json/members_atz.json').then(r => r.json());
+        memberMap['Stray Kids'] = skzM;
+        memberMap['ATEEZ'] = atzM;
+      } catch(e) {}
+
+      onSnapshot(collection(db, "users"), snap => {
+        usersDatabase = [];
+        snap.forEach(d => usersDatabase.push(d.data()));
+        updateUserDropdown();
       });
 
-      gSel.addEventListener('change', async () => {
-        const g = gSel.value;
-        mSel.innerHTML = '';
-        uSel.innerHTML = '';
-        if (!g) {
-          mSel.innerHTML = '<option value="">請先選擇團體</option>';
-          mSel.disabled = true;
-          uSel.innerHTML = '<option value="">請先選擇團體</option>';
-          uSel.disabled = true;
-          return;
-        }
-
-        uSel.disabled = false;
-        const userFile = (g === 'Stray Kids') ? 'users_skz.json' : 'users_atz.json';
-        try {
-          const users = await fetch(`../json/${userFile}`).then(r => r.json());
-          uSel.innerHTML = '<option value="">請選擇社群暱稱</option>' + users.sort((a,b)=>a.localeCompare(b,'zh-TW')).map(u => `<option value="${u}">${u}</option>`).join('');
-        } catch(e) {}
-
-        const memberFile = (g === 'Stray Kids') ? 'members_skz.json' : (g === 'ATEEZ' ? 'members_atz.json' : '');
-        if (memberFile) {
-          fetch(`../json/${memberFile}`).then(r => r.json()).then(arr => {
-            mSel.disabled = false;
-            mSel.innerHTML = '<option value="">請選擇成員</option>';
-            arr.forEach(m => mSel.innerHTML += `<option value="${m}">${m}</option>`);
-          });
-        }
+      const gSel = document.getElementById('groupSelect');
+      gSel.addEventListener('change', () => {
+        updateUserDropdown();
+        updateMemberDropdown();
       });
 
       initCtbcDropdown();
       renderTable();
+    });
+
+    function updateUserDropdown() {
+      const g = document.getElementById('groupSelect').value;
+      const uSel = document.getElementById('userSelect');
+      uSel.innerHTML = '';
+      if (!g) {
+        uSel.innerHTML = '<option value="">請先選擇團體</option>';
+        uSel.disabled = true;
+        return;
+      }
+
+      uSel.disabled = false;
+      const filtered = usersDatabase.filter(u => u.group === g && u.name).map(u => u.name);
+      const uniqueUsers = Array.from(new Set(filtered)).sort((a,b)=>a.localeCompare(b,'zh-TW'));
+
+      uSel.innerHTML = '<option value="">請選擇社群暱稱</option>';
+      uniqueUsers.forEach(u => {
+        uSel.innerHTML += `<option value="${u}">${u}</option>`;
+      });
     }
 
-    function toggleCustomEvent(sel) {
+    function updateMemberDropdown() {
+      const g = document.getElementById('groupSelect').value;
+      const mSel = document.getElementById('memberSelect');
+      mSel.innerHTML = '';
+      if (!g) {
+        mSel.innerHTML = '<option value="">請先選擇團體</option>';
+        mSel.disabled = true;
+        return;
+      }
+
+      const arr = memberMap[g] || [];
+      mSel.disabled = false;
+      mSel.innerHTML = '<option value="">請選擇成員</option>';
+      arr.forEach(m => {
+        const emoji = MEMBER_EMOJI_MAP[m] ? `${MEMBER_EMOJI_MAP[m]} ` : '';
+        mSel.innerHTML += `<option value="${m}">${emoji}${m}</option>`;
+      });
+    }
+
+    window.toggleCustomEvent = (sel) => {
       document.getElementById('customEventGroup').style.display = sel.value === 'other' ? 'flex' : 'none';
-    }
+    };
 
-    function addOrderRecord() {
+    window.addOrderRecord = () => {
       const payStatus = document.getElementById('payStatusSelect').value;
       const name = document.getElementById('userSelect').value;
       const eventSel = document.getElementById('eventSelect').value;
@@ -265,7 +313,7 @@
       orderRecords.push(newRecord);
       alert("新增填單成功！");
       renderTable();
-    }
+    };
 
     function initCtbcDropdown() {
       const select = document.getElementById('ctbcSelect');
@@ -276,7 +324,7 @@
         }).join('');
     }
 
-    function autoFillAuditInfo(sel) {
+    window.autoFillAuditInfo = (sel) => {
       const opt = sel.options[sel.selectedIndex];
       if(!sel.value) {
         document.getElementById('auditDate').value = '';
@@ -289,7 +337,7 @@
       const acc = opt.getAttribute('data-acc');
       const last5Match = acc.match(/\d{5}/);
       document.getElementById('auditLast5').value = last5Match ? last5Match[0] : acc;
-    }
+    };
 
     function getFilteredTransactions() {
       const searchVal = document.getElementById('searchInput').value.toLowerCase();
@@ -309,10 +357,10 @@
       });
     }
 
-    function onSearchChange() {
+    window.onSearchChange = () => {
       currentPage = 1;
       renderTable();
-    }
+    };
 
     function renderTable() {
       const tbody = document.getElementById('bankTable');
@@ -404,20 +452,18 @@
       pContainer.appendChild(nextBtn);
     }
 
-    function toggleAudit(id, checked) {
+    window.toggleAudit = (id, checked) => {
       auditState[id] = checked;
       renderTable();
-    }
+    };
 
-    function setFilter(type, btn) {
+    window.setFilter = (type, btn) => {
       currentFilter = type;
       document.querySelectorAll('.btn-filter').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       currentPage = 1;
       renderTable();
-    }
-
-    loadAllData();
+    };
   </script>
 </body>
 </html>
