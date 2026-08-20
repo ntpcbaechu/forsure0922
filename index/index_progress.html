@@ -21,9 +21,7 @@
 
     .event-group-card { background: #fff; border: 1px solid #e4e7ed; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.02); display: flex; flex-direction: column; }
     
-    /* SKZ 藍色系表頭 */
     .event-group-header { background: #eef5fe; border-left: 4px solid #409eff; color: #1a252f; font-size: 15px; font-weight: bold; padding: 10px 14px; display: flex; align-items: center; gap: 6px; }
-    /* ATEEZ 紫色系表頭 */
     .event-group-header.header-ateez { background: #f3e8ff; border-left: 4px solid #7e22ce; color: #581c87; }
 
     .progress-list-box { padding: 12px 14px; display: flex; flex-direction: column; gap: 12px; }
@@ -37,13 +35,11 @@
 
     .status-badge { padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: bold; white-space: nowrap; border: 1px solid transparent; }
     
-    /* 活動進度階段配色 */
     .status-st-unopened { background: #f4f4f5; color: #909399; border: 1px solid #e4e7ed; }
     .status-sorting     { background: #fff7ed; color: #d97706; border: 1px solid #ffedd5; }
     .status-done        { background: #f0f9eb; color: #67c23a; border: 1px solid #e1f3d8; }
     .status-stock-open  { background: #e8f5e9; color: #2e7d32; border: 1px solid #a5d6a7; font-weight: 800; }
 
-    /* 買家個人狀態配色 */
     .status-waiting   { background: #fef0f0; color: #f56c6c; border-color: #fde2e2; }
     .status-checking  { background: #fffbe6; color: #d97706; border-color: #fef08a; }
     .status-issue     { background: #fee2e2; color: #991b1b; border-color: #fca5a5; }
@@ -113,6 +109,7 @@
 
     let rawProgress = [];
     let ordersCache = {};
+    let customUsersSet = new Set();
     
     let activeGroup = 'ALL';
     let activeMode = 'member';
@@ -121,7 +118,6 @@
 
     let groupList = [];
     let memberMap = {};
-    let knownUsersSet = new Set();
 
     document.addEventListener('DOMContentLoaded', async () => {
       try {
@@ -135,13 +131,20 @@
             memberMap[g] = await mRes.json();
           }
         }
-
-        const skzU = await fetch('../json/users_skz.json').then(r => r.json()).catch(() => []);
-        const atzU = await fetch('../json/users_atz.json').then(r => r.json()).catch(() => []);
-        knownUsersSet = new Set([...skzU, ...atzU]);
       } catch(e) {}
 
       renderGroupCapsules();
+
+      onSnapshot(collection(db, "users"), snap => {
+        customUsersSet = new Set();
+        snap.forEach(d => {
+          const u = d.data();
+          if (u.name && u.type !== 'threads') {
+            customUsersSet.add(u.name);
+          }
+        });
+        renderView();
+      });
 
       onSnapshot(collection(db, "orders"), snap => {
         ordersCache = {};
@@ -165,7 +168,7 @@
 
     function formatDisplayName(name) {
       if (!name) return '';
-      if (knownUsersSet.has(name)) return name;
+      if (customUsersSet.has(name)) return name;
       
       const len = name.length;
       if (len <= 6) {
@@ -462,7 +465,6 @@
               }
             });
 
-            // 若狀態為「可詢問餘圖」，且該買家已付清+已發圖，則自動隱藏
             if (isSurplusMode && isPaidDone && isPhotoSentDone) {
               return;
             }
