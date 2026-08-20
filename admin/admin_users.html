@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <title>買家名單管理</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 15px; margin: 0; background: #fff; color: #333; }
+    .form-row { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 15px; background: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px solid #ebeef5; align-items: center; }
+    select, button, input { padding: 8px 10px; border: 1px solid #dcdfe6; border-radius: 6px; font-size: 13px; outline: none; }
+    select:focus, input:focus { border-color: #409eff; }
+    button { background-color: #409eff; color: white; border: none; font-weight: bold; cursor: pointer; border-radius: 6px; }
+    .btn-danger { background-color: #f56c6c; color: white; padding: 3px 8px; font-size: 11px; border-radius: 4px; border: none; cursor: pointer; }
+
+    .filter-card { background: #f8f9fa; border: 1px solid #ebeef5; border-radius: 10px; padding: 12px 15px; margin-bottom: 12px; display: flex; gap: 10px; align-items: center; }
+    .capsule-group { display: flex; gap: 6px; flex-wrap: wrap; }
+    .capsule-filter-btn { background: #fff; color: #606266; border: 1px solid #dcdfe6; padding: 4px 12px; border-radius: 16px; font-size: 12px; font-weight: bold; cursor: pointer; transition: all 0.2s; outline: none; }
+    .capsule-filter-btn.active { background: #409eff; color: #fff; border-color: #409eff; }
+
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th, td { padding: 8px 10px; border-bottom: 1px solid #ebeef5; text-align: left; font-size: 13px; }
+    th { background: #edf2fc; color: #606266; font-weight: bold; }
+    .tag-custom { background: #e8f5e9; color: #2e7d32; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: bold; }
+    .tag-threads { background: #fdf6ec; color: #e6a23c; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: bold; }
+  </style>
+</head>
+<body>
+
+  <h3 style="margin-top:0; margin-bottom:12px; font-size:18px;">👤 買家名單管理</h3>
+
+  <form id="userForm" class="form-row">
+    <select id="userGroup" required style="min-width: 140px;">
+      <option value="">選擇團體 *</option>
+      <option value="Stray Kids">Stray Kids</option>
+      <option value="ATEEZ">ATEEZ</option>
+    </select>
+    <input type="text" id="userName" placeholder="輸入買家暱稱 / 帳號 *" required style="min-width: 200px;">
+    <select id="userType" required style="min-width: 150px;">
+      <option value="custom">固定社群買家 (不打星號)</option>
+      <option value="threads">Threads 帳號 (前台自動打星號)</option>
+    </select>
+    <button type="submit" id="saveUserBtn">➕ 新增買家</button>
+  </form>
+
+  <div class="filter-card">
+    <span style="font-size:12px; font-weight:bold; color:#606266;">團體篩選：</span>
+    <div class="capsule-group">
+      <button class="capsule-filter-btn active" onclick="filterGroup('ALL', this)">全部</button>
+      <button class="capsule-filter-btn" onclick="filterGroup('Stray Kids', this)">Stray Kids</button>
+      <button class="capsule-filter-btn" onclick="filterGroup('ATEEZ', this)">ATEEZ</button>
+    </div>
+    <span id="userCountTip" style="font-size:12px; color:#909399; margin-left:auto;"></span>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 25%;">團體</th>
+        <th style="width: 35%;">買家暱稱</th>
+        <th style="width: 25%;">類型 / 前台顯示方式</th>
+        <th style="width: 15%;">操作</th>
+      </tr>
+    </thead>
+    <tbody id="userTableBody">
+      <tr><td colspan="4" style="text-align:center; color:#909399; padding:20px;">載入中...</td></tr>
+    </tbody>
+  </table>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDF7QySG1Jj4gdZvXwMRaKjRmI-lFKpj7k",
+      authDomain: "forsure0922.firebaseapp.com",
+      databaseURL: "https://forsure0922-default-rtdb.firebaseio.com",
+      projectId: "forsure0922",
+      storageBucket: "forsure0922.firebasestorage.app",
+      messagingSenderId: "817449290174",
+      appId: "1:817449290174:web:6b4ec1d36c171ff97011ef"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    let usersList = [];
+    let activeFilter = 'ALL';
+
+    onSnapshot(collection(db, "users"), snap => {
+      usersList = [];
+      snap.forEach(d => {
+        usersList.push({ id: d.id, ...d.data() });
+      });
+      renderTable();
+    });
+
+    window.filterGroup = (grp, btn) => {
+      activeFilter = grp;
+      document.querySelectorAll('.capsule-filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderTable();
+    };
+
+    function renderTable() {
+      const tb = document.getElementById('userTableBody');
+      tb.innerHTML = '';
+
+      let list = usersList;
+      if (activeFilter !== 'ALL') {
+        list = list.filter(u => u.group === activeFilter);
+      }
+
+      document.getElementById('userCountTip').textContent = `共 ${list.length} 位買家`;
+
+      if (list.length === 0) {
+        tb.innerHTML = '<tr><td colspan="4" style="text-align:center; color:#909399; padding:20px;">尚無買家資料</td></tr>';
+        notifyHeight();
+        return;
+      }
+
+      list.sort((a,b) => (a.name || '').localeCompare(b.name || '', 'zh-TW')).forEach(u => {
+        const isCustom = u.type === 'custom';
+        const tagHtml = isCustom ? '<span class="tag-custom">🟢 固定買家 (全顯)</span>' : '<span class="tag-threads">⚠️ Threads (打星號)</span>';
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><b>[${u.group || 'Stray Kids'}]</b></td>
+          <td><b>${u.name || '-'}</b></td>
+          <td>${tagHtml}</td>
+          <td>
+            <button class="btn-danger" onclick="deleteUser('${u.id}')">刪除</button>
+          </td>
+        `;
+        tb.appendChild(tr);
+      });
+      notifyHeight();
+    }
+
+    document.getElementById('userForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const saveBtn = document.getElementById('saveUserBtn');
+      saveBtn.disabled = true;
+
+      const group = document.getElementById('userGroup').value;
+      const name = document.getElementById('userName').value.trim();
+      const type = document.getElementById('userType').value;
+
+      const docId = `${group}_${name}`;
+
+      try {
+        await setDoc(doc(db, "users", docId), {
+          group,
+          name,
+          type,
+          updatedAt: new Date().toISOString()
+        }, { merge: true });
+
+        alert('✅ 買家已成功加入資料庫！');
+        document.getElementById('userName').value = '';
+      } catch(err) {
+        alert('儲存失敗: ' + err.message);
+      } finally {
+        saveBtn.disabled = false;
+      }
+    });
+
+    window.deleteUser = async (id) => {
+      if (confirm('確定要刪除這筆買家嗎？')) {
+        await deleteDoc(doc(db, "users", id));
+      }
+    };
+
+    function notifyHeight() {
+      setTimeout(() => {
+        window.parent.postMessage({ frameHeight: document.body.scrollHeight }, '*');
+      }, 100);
+    }
+  </script>
+</body>
+</html>
