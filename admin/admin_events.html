@@ -70,7 +70,9 @@
       <div>
         <label style="font-size:12px;">團體</label>
         <select id="evGroup" required style="width:100%;">
-          <option value="">載入團體中...</option>
+          <option value="">請選擇團體</option>
+          <option value="Stray Kids">🧭 Stray Kids</option>
+          <option value="ATEEZ">🏴‍☠️ ATEEZ</option>
         </select>
       </div>
       <div>
@@ -83,7 +85,7 @@
         <label style="font-size:12px;">代拍名稱</label>
         <div style="display:flex; gap:4px;">
           <select id="evSellerSelect" style="width:100%;">
-            <option value="">請選擇代拍</option>
+            <option value="">載入代拍中...</option>
           </select>
           <input type="text" id="evSellerCustom" placeholder="請輸入新代拍名稱" style="width:100%; display:none;">
         </div>
@@ -179,20 +181,33 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
+    const MEMBER_EMOJI_MAP = {
+      '方燦': '🐺', 'Lee Know': '🐰', '彰彬': '🐷', '鉉辰': '🥟', 'HAN': '🐹', 'Felix': '🐥', '昇玟': '🐶', 'I.N': '🦊',
+      '弘中': '🐿️', '星化': '🐰', '潤浩': '🐶', '呂尚': '🐥', '傘': '⛰️', '旼琦': '🐥', '友榮': '🐈‍⬛', '鍾浩': '🐻'
+    };
+
+    const GROUP_EMOJI_MAP = {
+      'Stray Kids': '🧭 Stray Kids',
+      'ATEEZ': '🏴‍☠️ ATEEZ'
+    };
+
     let ordersList = [];
     let eventsDataMap = {};
-    let loadedSellersList = [];
-    let usersDatabase = [];
+    let sellersList = [];
 
     let activeGroup = 'ALL';
     let activeMode = 'member';
     let activeDetail = 'ALL';
 
-    let groupList = [];
+    let groupList = ['Stray Kids', 'ATEEZ'];
     let memberMap = {};
 
     const sellerSelect = document.getElementById('evSellerSelect');
     const sellerCustom = document.getElementById('evSellerCustom');
+    const evDateInput = document.getElementById('evDate');
+    const evNameInput = document.getElementById('evName');
+    const groupSel = document.getElementById('evGroup');
+    const memberSel = document.getElementById('evMember');
     
     sellerSelect.addEventListener('change', () => {
       if (sellerSelect.value === 'CUSTOM') {
@@ -207,14 +222,13 @@
 
     function populateSellerOptions(defaultVal = '') {
       sellerSelect.innerHTML = '<option value="">請選擇代拍</option>';
-      const sortedSellers = [...loadedSellersList].sort((a, b) => a.localeCompare(b, 'zh-TW'));
-      sortedSellers.forEach(s => {
+      sellersList.sort((a, b) => a.localeCompare(b, 'zh-TW')).forEach(s => {
         sellerSelect.innerHTML += `<option value="${s}">${s}</option>`;
       });
       sellerSelect.innerHTML += `<option value="CUSTOM">➕ 其他 (手動輸入)...</option>`;
 
       if (defaultVal) {
-        if (sortedSellers.includes(defaultVal)) {
+        if (sellersList.includes(defaultVal)) {
           sellerSelect.value = defaultVal;
           sellerCustom.style.display = 'none';
         } else {
@@ -249,18 +263,65 @@
     const discountContainer = document.getElementById('discountContainer');
     document.getElementById('addDiscountBtn').addEventListener('click', () => { addDiscountRow(); });
 
-    function getBuyersForCurrentGroup() {
-      const g = document.getElementById('evGroup').value;
-      let filtered = usersDatabase;
-      if (g) {
-        filtered = usersDatabase.filter(u => u.group === g);
-      }
-      return Array.from(new Set(filtered.map(u => u.name).filter(Boolean)));
+    // 只抓取「這場活動 + 這位成員」實際有填單的買家
+    function getBuyersForCurrentEventAndMember() {
+      const g = groupSel.value;
+      const mem = memberSel.value;
+      const d = evDateInput.value.trim();
+      const n = evNameInput.value.trim();
+      const fullEvName = d ? `${d} ${n}` : n;
+
+      if (!fullEvName && !mem) return [];
+
+      const filteredOrders = ordersList.filter(o => {
+        const oEvent = (o.eventName || o.event || '').trim();
+        const oMem = (o.member || '').trim();
+        const oGrp = (o.group || 'Stray Kids').trim();
+
+        let matchGrp = (!g || oGrp === g);
+        let matchEv = (!fullEvName || oEvent === fullEvName || oEvent.includes(n));
+        let matchMem = (!mem || oMem === mem);
+
+        return matchGrp && matchEv && matchMem;
+      });
+
+      const buyersSet = new Set();
+      filteredOrders.forEach(o => {
+        const u = (o.buyerName || o.user || o.nickname || '').trim();
+        if (u) buyersSet.add(u);
+      });
+
+      return Array.from(buyersSet);
     }
 
+    function refreshAllDiscountDropdowns() {
+      document.querySelectorAll('.row-discount').forEach(div => {
+        const sel = div.querySelector('.disc-user');
+        const currentVal = sel ? sel.value : '';
+        const buyers = getBuyersForCurrentEventAndMember();
+
+        let buyerOpts = '<option value="">不限買家 (通用折扣)</option>';
+        if (currentVal && !buyers.includes(currentVal)) {
+          buyerOpts += `<option value="${currentVal}" selected>${currentVal}</option>`;
+        }
+        buyers.sort((a,b)=>a.localeCompare(b,'zh-TW')).forEach(u => {
+          buyerOpts += `<option value="${u}" ${u === currentVal ? 'selected' : ''}>${u}</option>`;
+        });
+        sel.innerHTML = buyerOpts;
+      });
+    }
+
+    [evDateInput, evNameInput, groupSel, memberSel].forEach(el => {
+      el.addEventListener('input', refreshAllDiscountDropdowns);
+      el.addEventListener('change', refreshAllDiscountDropdowns);
+    });
+
     function addDiscountRow(count = '', price = '', targetUser = '') {
-      const buyers = getBuyersForCurrentGroup();
+      const buyers = getBuyersForCurrentEventAndMember();
       let buyerOpts = '<option value="">不限買家 (通用折扣)</option>';
+      if (targetUser && !buyers.includes(targetUser)) {
+        buyerOpts += `<option value="${targetUser}" selected>${targetUser}</option>`;
+      }
       buyers.sort((a,b)=>a.localeCompare(b,'zh-TW')).forEach(u => {
         buyerOpts += `<option value="${u}" ${u === targetUser ? 'selected' : ''}>${u}</option>`;
       });
@@ -272,7 +333,7 @@
         <input type="number" class="disc-count" placeholder="包數" value="${count}" style="width:80px;"> 包 ×
         <input type="number" step="0.1" class="disc-price" placeholder="單價" value="${price}" style="width:80px;"> 元
         <span style="font-size:12px; color:#606266; font-weight:bold; margin-left:6px;">指定買家:</span>
-        <select class="disc-user" style="max-width:160px;">${buyerOpts}</select>
+        <select class="disc-user" style="max-width:180px;">${buyerOpts}</select>
         <button type="button" class="btn-danger" style="padding:2px 6px;" onclick="this.parentElement.remove()">移除</button>
       `;
       discountContainer.appendChild(div);
@@ -280,25 +341,13 @@
 
     document.addEventListener('DOMContentLoaded', async () => {
       try {
-        const gRes = await fetch('../json/group.json');
-        groupList = await gRes.json();
-
-        for (const g of groupList) {
-          const file = (g === 'Stray Kids') ? 'members_skz.json' : (g === 'ATEEZ' ? 'members_atz.json' : '');
-          if (file) {
-            const mRes = await fetch(`../json/${file}`);
-            memberMap[g] = await mRes.json();
-          }
-        }
+        const skzM = await fetch('../json/members_skz.json').then(r => r.json());
+        const atzM = await fetch('../json/members_atz.json').then(r => r.json());
+        memberMap['Stray Kids'] = skzM;
+        memberMap['ATEEZ'] = atzM;
       } catch(e) {}
 
       renderGroupCapsules();
-
-      const groupSel = document.getElementById('evGroup');
-      const memberSel = document.getElementById('evMember');
-
-      groupSel.innerHTML = '<option value="">請選擇團體</option>';
-      groupList.forEach(g => groupSel.innerHTML += `<option value="${g}">${g}</option>`);
 
       groupSel.addEventListener('change', () => {
         const selectedGroup = groupSel.value;
@@ -312,19 +361,19 @@
         const members = memberMap[selectedGroup] || [];
         memberSel.disabled = false;
         memberSel.innerHTML = '<option value="">請選擇成員</option>';
-        members.forEach(m => memberSel.innerHTML += `<option value="${m}">${m}</option>`);
+        members.forEach(m => {
+          const emoji = MEMBER_EMOJI_MAP[m] ? `${MEMBER_EMOJI_MAP[m]} ` : '';
+          memberSel.innerHTML += `<option value="${m}">${emoji}${m}</option>`;
+        });
       });
 
-      onSnapshot(collection(db, "users"), snap => {
-        usersDatabase = [];
-        snap.forEach(d => usersDatabase.push(d.data()));
-      });
-
-      fetch('../json/sellers.json').then(res => res.json()).then(sellers => {
-        loadedSellersList = sellers;
-        populateSellerOptions();
-      }).catch(() => {
-        loadedSellersList = ["발탄 대리찍사", "준준", "대리찍사 포키", "대리찍사 네이비"];
+      // 即時監聽 Firestore sellers 集合
+      onSnapshot(collection(db, "sellers"), snap => {
+        sellersList = [];
+        snap.forEach(d => {
+          const sName = d.data().name || d.id;
+          if (sName) sellersList.push(sName);
+        });
         populateSellerOptions();
       });
     });
@@ -335,7 +384,7 @@
 
       const allBtn = document.createElement('button');
       allBtn.className = `capsule-filter-btn ${activeGroup === 'ALL' ? 'active' : ''}`;
-      allBtn.textContent = '團體';
+      allBtn.textContent = '全部團體';
       allBtn.onclick = () => {
         activeGroup = 'ALL';
         document.querySelectorAll('#groupCapsules .capsule-filter-btn').forEach(b => b.classList.remove('active'));
@@ -349,7 +398,7 @@
       groupList.forEach(g => {
         const btn = document.createElement('button');
         btn.className = `capsule-filter-btn ${activeGroup === g ? 'active' : ''}`;
-        btn.textContent = g;
+        btn.textContent = GROUP_EMOJI_MAP[g] || g;
         btn.onclick = () => {
           activeGroup = g;
           document.querySelectorAll('#groupCapsules .capsule-filter-btn').forEach(b => b.classList.remove('active'));
@@ -360,19 +409,6 @@
         };
         container.appendChild(btn);
       });
-
-      const unclassifiedBtn = document.createElement('button');
-      unclassifiedBtn.className = `capsule-filter-btn ${activeGroup === 'UNCLASSIFIED' ? 'active' : ''}`;
-      unclassifiedBtn.textContent = '未分類';
-      unclassifiedBtn.onclick = () => {
-        activeGroup = 'UNCLASSIFIED';
-        document.querySelectorAll('#groupCapsules .capsule-filter-btn').forEach(b => b.classList.remove('active'));
-        unclassifiedBtn.classList.add('active');
-        activeDetail = 'ALL';
-        updateDetailCapsules();
-        loadEvents();
-      };
-      container.appendChild(unclassifiedBtn);
     }
 
     window.setModeFilter = (mode, btn) => {
@@ -400,14 +436,12 @@
       container.appendChild(allBtn);
 
       let filteredEvents = Object.values(eventsDataMap);
-      if (activeGroup === 'UNCLASSIFIED') {
-        filteredEvents = filteredEvents.filter(e => !e.group || e.group === '未分類');
-      } else if (activeGroup !== 'ALL') {
+      if (activeGroup !== 'ALL') {
         filteredEvents = filteredEvents.filter(e => e.group === activeGroup);
       }
 
       if (activeMode === 'member') {
-        const membersInJson = (activeGroup !== 'ALL' && activeGroup !== 'UNCLASSIFIED') ? (memberMap[activeGroup] || []) : Object.values(memberMap).flat();
+        const membersInJson = (activeGroup !== 'ALL') ? (memberMap[activeGroup] || []) : Object.values(memberMap).flat();
         const activeMembersWithData = new Set(filteredEvents.map(e => e.member).filter(Boolean));
 
         const displayMembers = new Set([...membersInJson, ...Array.from(activeMembersWithData)]);
@@ -416,7 +450,7 @@
           if (activeMembersWithData.has(m)) {
             const btn = document.createElement('button');
             btn.className = `capsule-filter-btn ${activeDetail === m ? 'sub-active' : ''}`;
-            btn.textContent = m;
+            btn.textContent = (MEMBER_EMOJI_MAP[m] ? `${MEMBER_EMOJI_MAP[m]} ` : '') + m;
             btn.onclick = () => {
               activeDetail = m;
               document.querySelectorAll('#detailCapsules .capsule-filter-btn').forEach(b => b.classList.remove('sub-active'));
@@ -470,9 +504,7 @@
 
         updateDetailCapsules();
 
-        if (activeGroup === 'UNCLASSIFIED') {
-          eventsList = eventsList.filter(e => !e.group || e.group === '未分類');
-        } else if (activeGroup !== 'ALL') {
+        if (activeGroup !== 'ALL') {
           eventsList = eventsList.filter(e => e.group === activeGroup);
         }
 
@@ -504,14 +536,15 @@
           let memberTotalActQty = 0;
           const eventName = evArray[0].name;
           const memberName = evArray[0].member || '全體/無';
-          const groupName = evArray[0].group ? `[${evArray[0].group}] ` : '[未分類] ';
+          const memEmoji = MEMBER_EMOJI_MAP[memberName] || '👤';
+          const grpEmoji = GROUP_EMOJI_MAP[evArray[0].group] || evArray[0].group || 'Stray Kids';
           const isClosed = evArray.some(e => e.isClosed);
 
           const headerTr = document.createElement('tr');
           headerTr.innerHTML = `
             <td colspan="6" style="padding:0; border-bottom:none;">
               <div class="event-group-header">
-                🗓️ 活動場次：${groupName}${eventName} - <span style="color:#409eff;">${memberName}</span> (${evArray.length} 筆代拍紀錄)
+                🗓️ 活動場次：[${grpEmoji}] ${eventName} - <span style="color:#409eff;">${memEmoji} ${memberName}</span> (${evArray.length} 筆代拍紀錄)
               </div>
             </td>
           `;
@@ -616,7 +649,7 @@
             tr.innerHTML = `
               ${mergedCellsHtml}
               <td>
-                <div><b>${ev.seller || '未填寫'}</b>${closedBadge}</div>
+                <div><b>📷 ${ev.seller || '未填寫'}</b>${closedBadge}</div>
               </td>
               <td>
                 <div class="sub-info">訂: $${ev.deposit || 0} &nbsp; 尾: $${ev.balance || 0}</div>
@@ -701,6 +734,11 @@
         let seller = sellerSelect.value;
         if (seller === 'CUSTOM') {
           seller = sellerCustom.value.trim();
+          if (seller) {
+            try {
+              await setDoc(doc(db, "sellers", seller), { name: seller, updatedAt: new Date().toISOString() }, { merge: true });
+            } catch(e){}
+          }
         }
 
         const bigNote = document.getElementById('evBigNote').value.trim();
@@ -785,7 +823,10 @@
       const members = memberMap[ev.group] || Object.values(memberMap).flat();
       memberSel.disabled = false;
       memberSel.innerHTML = '<option value="">請選擇成員</option>';
-      members.forEach(m => memberSel.innerHTML += `<option value="${m}">${m}</option>`);
+      members.forEach(m => {
+        const emoji = MEMBER_EMOJI_MAP[m] ? `${MEMBER_EMOJI_MAP[m]} ` : '';
+        memberSel.innerHTML += `<option value="${m}">${emoji}${m}</option>`;
+      });
       memberSel.value = ev.member || '';
 
       populateSellerOptions(ev.seller || '');
