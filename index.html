@@ -9,7 +9,7 @@
     .main-card { background: #ffffff; padding: 16px 20px; border-radius: 16px; box-shadow: 0 4px 16px rgba(0,0,0,0.05); }
     .header-title { text-align: center; font-size: 22px; font-weight: 800; margin-bottom: 12px; color: #1a1a1a; letter-spacing: 0.5px; }
     
-    .nav-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 5px; margin-bottom: 15px; }
+    .nav-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; margin-bottom: 15px; }
     .nav-btn { padding: 5px 8px; font-size: 12px; font-weight: bold; border: 1px solid #dcdfe6; background: #ffffff; color: #606266; border-radius: 6px; cursor: pointer; text-align: center; transition: all 0.2s ease; white-space: nowrap; outline: none; }
     .nav-btn:hover { background: #f0f7ff; color: #409eff; border-color: #c6e2ff; }
     .nav-btn.active { background: #409eff; color: #ffffff; border-color: #409eff; box-shadow: 0 2px 6px rgba(64,158,255,0.25); }
@@ -36,12 +36,11 @@
     <div class="nav-grid">
       <button class="nav-btn active" onclick="switchTab(0, 'index/index_progress.html')">🔥 開團與進度</button>
       <button class="nav-btn" onclick="switchTab(1, 'index/index_stock.html')">🛍️ 餘圖認領</button>
-      <button class="nav-btn" onclick="switchTab(2, 'index/index_archive.html')">📦 已結束活動</button>
-      <button class="nav-btn" onclick="switchTab(3, 'index/index_notice.html')">📌 注意事項</button>
-      <button class="nav-btn" onclick="switchTab(4, 'index/index_payment.html')">💰 匯款表單</button>
-      <button class="nav-btn" onclick="switchTab(5, 'index/index_records.html')">🔍 登記與對帳</button>
-      <button class="nav-btn" onclick="switchTab(6, 'index/index_deposit_app.html')">💳 帳戶儲值與退款</button>
-      <button class="nav-btn" onclick="switchTab(7, 'index/index_lottery.html')">🎉 抽獎結果</button>
+      <button class="nav-btn" onclick="switchTab(2, 'index/index_notice.html')">📌 注意事項</button>
+      <button class="nav-btn" onclick="switchTab(3, 'index/index_payment.html')">💰 匯款表單</button>
+      <button class="nav-btn" onclick="switchTab(4, 'index/index_records.html')">🔍 登記與對帳</button>
+      <button class="nav-btn" onclick="switchTab(5, 'index/index_deposit_app.html')">💳 帳戶儲值與退款</button>
+      <button class="nav-btn" onclick="switchTab(6, 'index/index_lottery.html')">🎉 抽獎結果</button>
     </div>
 
     <iframe id="contentFrame" src="index/index_progress.html"></iframe>

@@ -16,13 +16,13 @@
     .login-box input { width: 100%; margin-bottom: 12px; padding: 10px; border: 1px solid #dcdfe6; border-radius: 8px; box-sizing: border-box; font-size: 13px; }
     .login-box button { width: 100%; padding: 10px; background: #409eff; color: white; border: none; border-radius: 8px; font-weight: bold; font-size: 14px; cursor: pointer; }
 
-    .tabs-grid { display: grid; grid-template-columns: repeat(9, 1fr); gap: 5px; margin-bottom: 15px; }
+    .tabs-grid { display: grid; grid-template-columns: repeat(10, 1fr); gap: 5px; margin-bottom: 15px; }
     .tab-btn { padding: 5px 4px; cursor: pointer; border: 1px solid #dcdfe6; background: #fff; font-weight: bold; color: #606266; font-size: 11px; border-radius: 6px; text-align: center; transition: all 0.2s; outline: none; white-space: nowrap; }
     .tab-btn:hover { border-color: #c6e2ff; background: #ecf5ff; color: #409eff; }
     .tab-btn.active { background: #409eff; color: #fff; border-color: #409eff; box-shadow: 0 2px 6px rgba(64,158,255,0.25); }
 
     @media (max-width: 950px) {
-      .tabs-grid { grid-template-columns: repeat(3, 1fr); gap: 5px; }
+      .tabs-grid { grid-template-columns: repeat(5, 1fr); gap: 5px; }
     }
     @media (max-width: 650px) {
       body { padding: 8px 4px; }
@@ -66,6 +66,7 @@
       <button class="tab-btn" onclick="switchAdminTab(6, 'admin/admin_payments.html')">💰 匯款對帳審核</button>
       <button class="tab-btn" onclick="switchAdminTab(7, 'admin/admin_deposit.html')">💳 預存儲值/抵用</button>
       <button class="tab-btn" onclick="switchAdminTab(8, 'admin/admin_lottery.html')">🎉 抽獎活動管理</button>
+      <button class="tab-btn" onclick="switchAdminTab(9, 'index/index_archive.html')">📦 已結束活動</button>
     </div>
 
     <iframe id="adminFrame" src="admin/admin_progress.html"></iframe>
