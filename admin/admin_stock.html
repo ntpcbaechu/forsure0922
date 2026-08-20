@@ -2,19 +2,14 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
-  <title>餘圖與現貨庫存管理</title>
+  <title>餘圖庫存管理</title>
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 15px; margin: 0; background: #fff; color: #333; }
-    .form-row { display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px; background: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px solid #ebeef5; }
-    .form-inputs { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 0; margin: 0; background: #fff; color: #333; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th, td { padding: 10px 8px; border-bottom: 1px solid #e4e7ed; text-align: left; font-size: 13px; vertical-align: middle; }
+    th { background: #f8f9fa; color: #606266; font-weight: bold; white-space: nowrap; }
     
-    select, button, input, textarea { padding: 8px 10px; border: 1px solid #dcdfe6; border-radius: 6px; font-size: 13px; box-sizing: border-box; outline: none; }
-    select:focus, input:focus, textarea:focus { border-color: #409eff; }
-    button { background-color: #409eff; color: white; border: none; font-weight: bold; cursor: pointer; }
-    .btn-edit { background-color: #e6a23c; color: white; padding: 3px 6px; font-size: 11px; border-radius: 4px; border: none; cursor: pointer; }
-    .btn-danger { background-color: #f56c6c; color: white; padding: 3px 6px; font-size: 11px; border-radius: 4px; border: none; cursor: pointer; }
-
-    .filter-card { background: #f8f9fa; border: 1px solid #ebeef5; border-radius: 10px; padding: 12px 15px; margin-bottom: 12px; display: flex; flex-direction: column; gap: 8px; }
+    .filter-card { background: #f8f9fa; border: 1px solid #ebeef5; border-radius: 10px; padding: 12px 15px; margin: 10px 0 15px 0; display: flex; flex-direction: column; gap: 8px; }
     .filter-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
     .filter-label { font-size: 12px; font-weight: bold; color: #606266; min-width: 80px; }
 
@@ -24,49 +19,22 @@
     .capsule-filter-btn.active { background: #409eff; color: #fff; border-color: #409eff; box-shadow: 0 2px 6px rgba(64,158,255,0.25); }
     .capsule-filter-btn.sub-active { background: #67c23a; color: #fff; border-color: #67c23a; box-shadow: 0 2px 6px rgba(103,194,58,0.25); }
 
-    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-    th, td { padding: 8px; border-bottom: 1px solid #ebeef5; text-align: left; font-size: 12px; }
-    th { background: #edf2fc; color: #606266; font-weight: bold; }
-    .badge-stock { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: bold; }
-    .badge-stock-open { background: #f0f9eb; color: #67c23a; border: 1px solid #e1f3d8; }
-    .badge-stock-sold { background: #fef0f0; color: #f56c6c; border: 1px solid #fde2e2; }
+    .stock-badge { padding: 3px 8px; border-radius: 12px; font-size: 12px; font-weight: bold; }
+    .stock-positive { background: #f0f9eb; color: #67c23a; border: 1px solid #e1f3d8; }
+    .stock-zero { background: #f4f4f5; color: #909399; border: 1px solid #e4e7ed; }
+    .stock-negative { background: #fef0f0; color: #f56c6c; border: 1px solid #fde2e2; }
   </style>
 </head>
 <body>
 
-  <h3 style="margin-top:0; margin-bottom:12px; font-size:18px;">餘圖與現貨庫存管理</h3>
-
-  <form id="stockForm" class="form-row">
-    <input type="hidden" id="stockDocId">
-    <div class="form-inputs">
-      <select id="groupSelect" required style="min-width:130px;">
-        <option value="">選擇團體 *</option>
-      </select>
-      <select id="eventSelect" required style="min-width:180px;">
-        <option value="">請先選擇團體</option>
-      </select>
-      <select id="memberSelect" required disabled style="min-width:130px;">
-        <option value="">請先選擇活動</option>
-      </select>
-      <input type="text" id="specInput" placeholder="代拍/規格 (例如: 20張無修)" style="min-width:160px;" required>
-      <input type="number" id="priceInput" placeholder="單價 $" min="0" style="width:90px;" required>
-      <input type="number" id="qtyInput" placeholder="庫存包數" min="0" style="width:90px;" required>
-      <select id="statusSelect" required style="min-width:120px; font-weight:bold;">
-        <option value="開放認領">🟢 開放認領</option>
-        <option value="已售完">🔴 已售完</option>
-        <option value="暫停">⏸️ 暫停</option>
-      </select>
-      <button type="submit" id="saveStockBtn">發佈庫存</button>
-      <button type="button" id="cancelBtn" style="background:#909399; display:none;" onclick="resetForm()">取消</button>
-    </div>
-    <input type="text" id="noteInput" placeholder="備註/預覽連結 (選填)" style="width:100%;">
-  </form>
+  <h3 style="margin-top:0; margin-bottom:10px; font-size:18px;">📦 餘圖庫存管理</h3>
 
   <div class="filter-card">
     <div class="filter-row">
       <span class="filter-label">1. 團體：</span>
       <div id="groupCapsules" class="capsule-group"></div>
     </div>
+
     <div class="filter-row">
       <span class="filter-label">2. 檢視模式：</span>
       <div id="modeCapsules" class="capsule-group">
@@ -74,6 +42,7 @@
         <button class="capsule-filter-btn" onclick="setModeFilter('event', this)">🗓️ 依活動</button>
       </div>
     </div>
+
     <div class="filter-row">
       <span class="filter-label">3. 細項篩選：</span>
       <div id="detailCapsules" class="capsule-group"></div>
@@ -83,23 +52,22 @@
   <table>
     <thead>
       <tr>
-        <th style="width: 15%;">活動名稱</th>
-        <th style="width: 12%;">團體 / 成員</th>
-        <th style="width: 25%;">規格說明 / 備註</th>
-        <th style="width: 12%;">單價</th>
-        <th style="width: 12%;">剩餘庫存</th>
-        <th style="width: 12%;">狀態</th>
-        <th style="width: 12%;">操作</th>
+        <th style="width: 25%;">活動名稱</th>
+        <th style="width: 15%;">團體與成員</th>
+        <th style="width: 15%;">每包規格</th>
+        <th style="width: 15%;">總拆包數</th>
+        <th style="width: 15%;">已登記包數</th>
+        <th style="width: 15%;">剩餘庫存 (包 / 張)</th>
       </tr>
     </thead>
     <tbody id="stockTableBody">
-      <tr><td colspan="7" style="text-align:center; color:#909399; padding:20px;">載入中...</td></tr>
+      <tr><td colspan="6" style="text-align:center; color:#909399; padding:20px;">載入庫存數據中...</td></tr>
     </tbody>
   </table>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getFirestore, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyDF7QySG1Jj4gdZvXwMRaKjRmI-lFKpj7k",
@@ -114,79 +82,48 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    let stockList = [];
-    let groupList = [];
-    let memberMap = {};
-    let rawEventSettings = [];
+    const MEMBER_EMOJI_MAP = {
+      '方燦': '🐺', 'Lee Know': '🐰', '彰彬': '🐷', '鉉辰': '🥟', 'HAN': '🐹', 'Felix': '🐥', '昇玟': '🐶', 'I.N': '🦊',
+      '弘中': '🐿️', '星化': '🐰', '潤浩': '🐶', '呂尚': '🐥', '傘': '⛰️', '旼琦': '🐥', '友榮': '🐈‍⬛', '鍾浩': '🐻'
+    };
+
+    const GROUP_EMOJI_MAP = {
+      'Stray Kids': '🧭 Stray Kids',
+      'ATEEZ': '🏴‍☠️ ATEEZ'
+    };
+
+    let eventSettings = [];
+    let ordersList = [];
 
     let activeGroup = 'ALL';
     let activeMode = 'member';
     let activeDetail = 'ALL';
 
-    const groupSel = document.getElementById('groupSelect');
-    const eventSel = document.getElementById('eventSelect');
-    const memSel = document.getElementById('memberSelect');
+    let groupList = ['Stray Kids', 'ATEEZ'];
+    let memberMap = {};
 
     document.addEventListener('DOMContentLoaded', async () => {
       try {
-        const gRes = await fetch('../json/group.json');
-        groupList = await gRes.json();
-
-        for (const g of groupList) {
-          const file = (g === 'Stray Kids') ? 'members_skz.json' : (g === 'ATEEZ' ? 'members_atz.json' : '');
-          if (file) {
-            const mRes = await fetch(`../json/${file}`);
-            memberMap[g] = await mRes.json();
-          }
-        }
+        const skzM = await fetch('../json/members_skz.json').then(r => r.json());
+        const atzM = await fetch('../json/members_atz.json').then(r => r.json());
+        memberMap['Stray Kids'] = skzM;
+        memberMap['ATEEZ'] = atzM;
       } catch(e) {}
 
       renderGroupCapsules();
-      updateDetailCapsules();
 
-      groupSel.innerHTML = '<option value="">選擇團體 *</option>';
-      groupList.forEach(g => groupSel.innerHTML += `<option value="${g}">${g}</option>`);
-
-      groupSel.addEventListener('change', () => {
-        const chosen = groupSel.value;
-        eventSel.innerHTML = '<option value="">請選擇活動</option>';
-        memSel.innerHTML = '<option value="">請先選擇活動</option>';
-        memSel.disabled = true;
-        if (!chosen) return;
-
-        const events = new Set();
-        rawEventSettings.forEach(s => {
-          if ((s.group || '') === chosen && s.name) events.add(s.name.trim());
-        });
-        Array.from(events).sort().forEach(e => eventSel.innerHTML += `<option value="${e}">${e}</option>`);
+      onSnapshot(collection(db, "event_settings"), snap => {
+        eventSettings = [];
+        snap.forEach(d => eventSettings.push({ id: d.id, ...d.data() }));
+        updateDetailCapsules();
+        renderTable();
       });
 
-      eventSel.addEventListener('change', () => {
-        const g = groupSel.value;
-        const ev = eventSel.value;
-        memSel.innerHTML = '';
-        if (!g || !ev) {
-          memSel.innerHTML = '<option value="">請先選擇活動</option>';
-          memSel.disabled = true;
-          return;
-        }
-        memSel.disabled = false;
-        memSel.innerHTML = '<option value="">選擇成員 *</option>';
-        const members = memberMap[g] || [];
-        members.forEach(m => memSel.innerHTML += `<option value="${m}">${m}</option>`);
+      onSnapshot(collection(db, "orders"), snap => {
+        ordersList = [];
+        snap.forEach(d => ordersList.push(d.data()));
+        renderTable();
       });
-    });
-
-    onSnapshot(collection(db, "event_settings"), snap => {
-      rawEventSettings = [];
-      snap.forEach(d => rawEventSettings.push(d.data()));
-    });
-
-    onSnapshot(collection(db, "stock_photos"), snap => {
-      stockList = [];
-      snap.forEach(d => stockList.push({ id: d.id, ...d.data() }));
-      updateDetailCapsules();
-      renderStockTable();
     });
 
     function renderGroupCapsules() {
@@ -202,21 +139,21 @@
         allBtn.classList.add('active');
         activeDetail = 'ALL';
         updateDetailCapsules();
-        renderStockTable();
+        renderTable();
       };
       container.appendChild(allBtn);
 
       groupList.forEach(g => {
         const btn = document.createElement('button');
         btn.className = `capsule-filter-btn ${activeGroup === g ? 'active' : ''}`;
-        btn.textContent = g;
+        btn.textContent = GROUP_EMOJI_MAP[g] || g;
         btn.onclick = () => {
           activeGroup = g;
           document.querySelectorAll('#groupCapsules .capsule-filter-btn').forEach(b => b.classList.remove('active'));
           btn.classList.add('active');
           activeDetail = 'ALL';
           updateDetailCapsules();
-          renderStockTable();
+          renderTable();
         };
         container.appendChild(btn);
       });
@@ -225,10 +162,10 @@
     window.setModeFilter = (mode, btn) => {
       activeMode = mode;
       document.querySelectorAll('#modeCapsules .capsule-filter-btn').forEach(b => b.classList.remove('active'));
-      if (btn) btn.classList.add('active');
+      if(btn) btn.classList.add('active');
       activeDetail = 'ALL';
       updateDetailCapsules();
-      renderStockTable();
+      renderTable();
     };
 
     function updateDetailCapsules() {
@@ -242,41 +179,36 @@
         activeDetail = 'ALL';
         document.querySelectorAll('#detailCapsules .capsule-filter-btn').forEach(b => b.classList.remove('sub-active'));
         allBtn.classList.add('sub-active');
-        renderStockTable();
+        renderTable();
       };
       container.appendChild(allBtn);
 
-      let list = stockList;
-      if (activeGroup !== 'ALL') {
-        list = list.filter(i => i.group === activeGroup);
-      }
+      let filtered = eventSettings;
+      if (activeGroup !== 'ALL') filtered = filtered.filter(e => e.group === activeGroup);
 
       if (activeMode === 'member') {
-        let membersInJson = [];
-        if (activeGroup === 'ALL') {
-          Object.values(memberMap).forEach(l => membersInJson.push(...l));
-        } else {
-          membersInJson = memberMap[activeGroup] || [];
-        }
+        const membersInJson = (activeGroup !== 'ALL') ? (memberMap[activeGroup] || []) : Object.values(memberMap).flat();
+        const activeMembersWithData = new Set(filtered.map(e => e.member).filter(Boolean));
 
-        const activeMembersWithData = new Set(list.map(i => i.member).filter(Boolean));
         membersInJson.forEach(m => {
           if (activeMembersWithData.has(m)) {
             const btn = document.createElement('button');
             btn.className = `capsule-filter-btn ${activeDetail === m ? 'sub-active' : ''}`;
-            btn.textContent = m;
+            btn.textContent = (MEMBER_EMOJI_MAP[m] ? `${MEMBER_EMOJI_MAP[m]} ` : '') + m;
             btn.onclick = () => {
               activeDetail = m;
               document.querySelectorAll('#detailCapsules .capsule-filter-btn').forEach(b => b.classList.remove('sub-active'));
               btn.classList.add('sub-active');
-              renderStockTable();
+              renderTable();
             };
             container.appendChild(btn);
           }
         });
       } else if (activeMode === 'event') {
         const eventsSet = new Set();
-        list.forEach(i => { if (i.eventName) eventsSet.add(i.eventName); });
+        filtered.forEach(e => {
+          if (e.name || e.rawName) eventsSet.add(e.rawName || e.name);
+        });
         Array.from(eventsSet).sort().forEach(ev => {
           const btn = document.createElement('button');
           btn.className = `capsule-filter-btn ${activeDetail === ev ? 'sub-active' : ''}`;
@@ -285,121 +217,78 @@
             activeDetail = ev;
             document.querySelectorAll('#detailCapsules .capsule-filter-btn').forEach(b => b.classList.remove('sub-active'));
             btn.classList.add('sub-active');
-            renderStockTable();
+            renderTable();
           };
           container.appendChild(btn);
         });
       }
     }
 
-    function renderStockTable() {
+    function renderTable() {
       const tb = document.getElementById('stockTableBody');
       tb.innerHTML = '';
 
-      let list = stockList;
-      if (activeGroup !== 'ALL') list = list.filter(i => i.group === activeGroup);
+      let list = eventSettings;
+      if (activeGroup !== 'ALL') list = list.filter(e => e.group === activeGroup);
       if (activeDetail !== 'ALL') {
-        if (activeMode === 'member') list = list.filter(i => i.member === activeDetail);
-        else list = list.filter(i => i.eventName === activeDetail);
+        if (activeMode === 'member') list = list.filter(e => e.member === activeDetail);
+        else if (activeMode === 'event') list = list.filter(e => (e.rawName || e.name) === activeDetail);
       }
 
       if (list.length === 0) {
-        tb.innerHTML = '<tr><td colspan="7" style="text-align:center; color:#909399; padding:20px;">尚無符合的餘圖庫存紀錄</td></tr>';
+        tb.innerHTML = '<tr><td colspan="6" style="text-align:center; color:#909399; padding:20px;">尚無符合條件的活動設定資料</td></tr>';
         notifyHeight();
         return;
       }
 
-      list.forEach(item => {
-        const isSoldOut = (item.stockQty <= 0 || item.status === '已售完');
-        const badgeClass = isSoldOut ? 'badge-stock badge-stock-sold' : 'badge-stock badge-stock-open';
-        const statusText = isSoldOut ? '🔴 已售完' : '🟢 開放認領';
+      list.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+
+      list.forEach(ev => {
+        const grp = ev.group || 'Stray Kids';
+        const grpDisplay = GROUP_EMOJI_MAP[grp] || grp;
+        const mem = ev.member || '全體';
+        const memDisplay = (MEMBER_EMOJI_MAP[mem] ? `${MEMBER_EMOJI_MAP[mem]} ` : '') + mem;
+        const unit = ev.unit || '包';
+        const packQty = Number(ev.packQty) || 1;
+        const totalPacks = Number(ev.packsCount) || 0;
+
+        const matchedOrders = ordersList.filter(o => {
+          const mEv = (o.event === ev.name || o.eventName === ev.name);
+          const mMem = (!ev.member || o.member === ev.member);
+          const mGrp = (!ev.group || o.group === ev.group);
+          return mEv && mMem && mGrp;
+        });
+
+        const orderedCards = matchedOrders.reduce((sum, o) => {
+          return sum + (Number(o.qty !== undefined ? o.qty : (o.quantity !== undefined ? o.quantity : o.count)) || 0);
+        }, 0);
+
+        const orderedPacks = packQty > 0 ? (orderedCards / packQty) : 0;
+        const remainingPacks = totalPacks - orderedPacks;
+        const remainingCards = remainingPacks * packQty;
+
+        let badgeClass = 'stock-positive';
+        if (remainingPacks === 0) badgeClass = 'stock-zero';
+        else if (remainingPacks < 0) badgeClass = 'stock-negative';
 
         const tr = document.createElement('tr');
         tr.innerHTML = `
-          <td><b>${item.eventName || '-'}</b></td>
-          <td>[${item.group || '-'}] <b>${item.member || '-'}</b></td>
-          <td>${item.spec || '-'}<br><small style="color:#909399;">${item.note || ''}</small></td>
-          <td><b>$${Number(item.price || 0).toLocaleString()}</b></td>
-          <td><b>${item.stockQty || 0}</b> 包</td>
-          <td><span class="${badgeClass}">${statusText}</span></td>
+          <td><b>📅 ${ev.name}</b></td>
+          <td><b>${grpDisplay}</b><br><span style="color:#409eff;">${memDisplay}</span></td>
+          <td>${packQty} 張/${unit}</td>
+          <td><b>${totalPacks} ${unit}</b></td>
+          <td>${orderedCards} 張 (${orderedPacks.toFixed(1).replace(/\.0$/, '')} ${unit})</td>
           <td>
-            <button class="btn-edit" onclick="editStock('${item.id}')">編輯</button>
-            <button class="btn-danger" onclick="deleteStock('${item.id}')">刪除</button>
+            <span class="stock-badge ${badgeClass}">
+              ${remainingPacks.toFixed(1).replace(/\.0$/, '')} ${unit} / ${remainingCards.toFixed(0)} 張
+            </span>
           </td>
         `;
         tb.appendChild(tr);
       });
+
       notifyHeight();
     }
-
-    document.getElementById('stockForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const saveBtn = document.getElementById('saveStockBtn');
-      saveBtn.disabled = true;
-
-      const docId = document.getElementById('stockDocId').value || (`stock_${Date.now()}`);
-      const data = {
-        group: groupSel.value,
-        eventName: eventSel.value,
-        member: memSel.value,
-        spec: document.getElementById('specInput').value.trim(),
-        price: Number(document.getElementById('priceInput').value) || 0,
-        stockQty: Number(document.getElementById('qtyInput').value) || 0,
-        status: document.getElementById('statusSelect').value,
-        note: document.getElementById('noteInput').value.trim(),
-        updatedAt: new Date().toISOString()
-      };
-
-      try {
-        await setDoc(doc(db, "stock_photos", docId), data, { merge: true });
-        alert('✅ 餘圖庫存發佈成功！');
-        resetForm();
-      } catch(err) {
-        alert('發佈失敗: ' + err.message);
-      } finally {
-        saveBtn.disabled = false;
-      }
-    });
-
-    window.editStock = (id) => {
-      const item = stockList.find(i => i.id === id);
-      if (!item) return;
-
-      document.getElementById('stockDocId').value = id;
-      groupSel.value = item.group || '';
-      groupSel.dispatchEvent(new Event('change'));
-
-      setTimeout(() => {
-        eventSel.value = item.eventName || '';
-        eventSel.dispatchEvent(new Event('change'));
-        setTimeout(() => {
-          memSel.value = item.member || '';
-          document.getElementById('specInput').value = item.spec || '';
-          document.getElementById('priceInput').value = item.price || 0;
-          document.getElementById('qtyInput').value = item.stockQty || 0;
-          document.getElementById('statusSelect').value = item.status || '開放認領';
-          document.getElementById('noteInput').value = item.note || '';
-          document.getElementById('saveStockBtn').textContent = '更新庫存';
-          document.getElementById('cancelBtn').style.display = 'inline-block';
-        }, 100);
-      }, 100);
-    };
-
-    window.deleteStock = async (id) => {
-      if (confirm('確定要刪除這筆餘圖庫存嗎？')) {
-        await deleteDoc(doc(db, "stock_photos", id));
-      }
-    };
-
-    window.resetForm = () => {
-      document.getElementById('stockForm').reset();
-      document.getElementById('stockDocId').value = '';
-      eventSel.innerHTML = '<option value="">請先選擇團體</option>';
-      memSel.innerHTML = '<option value="">請先選擇活動</option>';
-      memSel.disabled = true;
-      document.getElementById('saveStockBtn').textContent = '發佈庫存';
-      document.getElementById('cancelBtn').style.display = 'none';
-    };
 
     function notifyHeight() {
       setTimeout(() => {
