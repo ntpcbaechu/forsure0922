@@ -25,11 +25,18 @@
     .price-original-strike { text-decoration: line-through; color: #909399; font-size: 12px; }
     .price-final { color: #f56c6c; font-size: 14px; }
 
-    .btn-add-custom { background: #67c23a; color: #fff; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; margin-top: 8px; display: inline-flex; align-items: center; gap: 4px; }
+    .btn-add-custom { background: #67c23a; color: #fff; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; margin-top: 8px; display: inline-flex; align-items: center; gap: 4px; width: auto; }
     .btn-add-custom:hover { background: #5daf34; }
     .custom-form-box { background: #fff; border: 1px solid #67c23a; border-radius: 8px; padding: 10px; margin-top: 8px; display: none; }
     .custom-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
     .custom-form-grid input, .custom-form-grid select { padding: 6px 8px; font-size: 12px; border-radius: 6px; }
+
+    .btn-add-group { background: #409eff; color: #fff; border: none; padding: 8px 14px; border-radius: 8px; font-size: 13px; font-weight: bold; cursor: pointer; margin-top: 10px; margin-bottom: 14px; display: inline-flex; align-items: center; gap: 4px; width: auto; }
+    .btn-add-group:hover { background: #66b1ff; }
+
+    .group-block-card { background: #fff; border: 1px solid #dcdfe6; border-radius: 10px; padding: 12px; margin-bottom: 12px; }
+    .group-block-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-weight: bold; color: #303133; }
+    .group-block-inputs { display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px; align-items: center; margin-bottom: 8px; }
 
     .summary-right-box { text-align: right; border-top: 1px dashed #dcdfe6; padding-top: 8px; margin-top: 10px; }
     .summary-right-row { display: flex; justify-content: flex-end; gap: 12px; align-items: center; margin-bottom: 4px; }
@@ -40,44 +47,23 @@
 
     .overpay-tip { color: #67c23a; font-size: 13px; font-weight: bold; margin-top: 6px; display: none; }
 
-    /* Line 卡片極簡對齊 CSS */
-    .line-info-card {
-      background: #f8f9fa;
-      border: 1px solid #e4e7ed;
-      border-radius: 10px;
-      padding: 12px 14px;
-      margin-top: 8px;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      box-sizing: border-box;
-    }
-    .line-contact-row {
-      font-size: 14px;
-      font-weight: bold;
-      color: #303133;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-    .line-warning-box {
-      font-size: 12px;
-      color: #e6a23c;
-      font-weight: bold;
-      line-height: 1.5;
-      padding-left: 20px;
-    }
+    .line-info-card { background: #f8f9fa; border: 1px solid #e4e7ed; border-radius: 10px; padding: 12px 14px; margin-top: 8px; display: flex; flex-direction: column; gap: 6px; box-sizing: border-box; }
+    .line-contact-row { font-size: 14px; font-weight: bold; color: #303133; display: flex; align-items: center; gap: 6px; }
+    .line-warning-box { font-size: 12px; color: #e6a23c; font-weight: bold; line-height: 1.5; padding-left: 20px; }
   </style>
 </head>
 <body>
 
-  <h3 style="margin-top:0; margin-bottom:20px; text-align:center; font-size:20px;">匯款對帳回報</h3>
+  <h3 style="margin-top:0; margin-bottom:20px; text-align:center; font-size:20px;">💰 匯款對帳回報</h3>
   <form id="paymentForm">
+    
     <!-- 1. 選擇團體 -->
     <div class="form-group">
       <label>1. 選擇團體 *</label>
       <select id="groupSelect" required>
         <option value="">請選擇團體</option>
+        <option value="Stray Kids">🧭 Stray Kids</option>
+        <option value="ATEEZ">🏴‍☠️ ATEEZ</option>
       </select>
     </div>
 
@@ -99,10 +85,8 @@
         <option value="官方 Line">官方 Line</option>
       </select>
 
-      <!-- IG / Threads 專用輸入框 -->
       <input type="text" id="socialAccount" placeholder="請輸入帳號" style="display:none; margin-top:6px;">
 
-      <!-- 官方 Line 提示卡片 -->
       <div id="lineInfoCard" class="line-info-card" style="display:none;">
         <div class="line-contact-row">
           <span>💬</span>
@@ -116,9 +100,12 @@
 
     <!-- 選完暱稱才帶出的下半部完整表單 -->
     <div id="formContent" style="display: none;">
+      
+      <!-- 主待匯款訂單區塊 -->
       <div class="info-card">
-        <div style="font-weight:bold; margin-bottom:6px; color:#303133;">選擇要一起匯款的訂單：</div>
-        <div class="orders-select-box" id="ordersList">無待匯款訂單</div>
+        <div id="groupBlocksContainer"></div>
+
+        <button type="button" class="btn-add-group" id="addGroupBlockBtn">➕ 合併回報另一個團體 / 帳號的訂單</button>
 
         <div>
           <button type="button" class="btn-add-custom" id="toggleCustomBtn">➕ 新增其他金額 / 補款項目</button>
@@ -128,13 +115,17 @@
             <div class="custom-form-grid">
               <input type="text" id="custDate" placeholder="日期 (例: 260801)">
               <input type="text" id="custEvent" placeholder="活動名稱 (例: 周邊加購)">
-              <select id="custGroup"><option value="">選擇團體</option></select>
+              <select id="custGroup">
+                <option value="">選擇團體</option>
+                <option value="Stray Kids">🧭 Stray Kids</option>
+                <option value="ATEEZ">🏴‍☠️ ATEEZ</option>
+              </select>
               <select id="custMember" disabled><option value="">請先選擇團體</option></select>
               <input type="number" id="custPrice" min="0" placeholder="金額 ($)" style="grid-column: span 2;">
             </div>
             <div style="display:flex; gap:6px;">
-              <button type="button" id="addCustomItemBtn" style="padding:6px 10px; font-size:12px; margin-top:0; background:#67c23a;">確認加入勾選清單</button>
-              <button type="button" id="closeCustomItemBtn" style="padding:6px 10px; font-size:12px; margin-top:0; background:#909399;">取消</button>
+              <button type="button" id="addCustomItemBtn" style="padding:6px 10px; font-size:12px; margin-top:0; background:#67c23a; width:auto;">確認加入勾選清單</button>
+              <button type="button" id="closeCustomItemBtn" style="padding:6px 10px; font-size:12px; margin-top:0; background:#909399; width:auto;">取消</button>
             </div>
           </div>
         </div>
@@ -161,8 +152,8 @@
             <b style="color:#606266; font-size:14px;" id="pendingTotal">$0</b>
           </div>
           <div class="summary-right-row" style="margin-top:4px;">
-            <span style="font-weight:bold; color:#303133; font-size:15px;">【本次應匯款總金額】：</span>
-            <b style="color:#f56c6c; font-size:20px;" id="finalPayTotal">$0</b>
+            <span style="font-weight:bold; color:#303133; font-size:16px;">【本次應匯款總金額】：</span>
+            <b style="color:#f56c6c; font-size:22px;" id="finalPayTotal">$0</b>
           </div>
         </div>
       </div>
@@ -221,7 +212,52 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    let knownUsersSet = new Set();
+    const MEMBER_EMOJI_MAP = {
+      '方燦': '🐺', 'Lee Know': '🐰', '彰彬': '🐷', '鉉辰': '🥟', 'HAN': '🐹', 'Felix': '🐥', '昇玟': '🐶', 'I.N': '🦊',
+      '弘中': '🐿️', '星化': '🐰', '潤浩': '🐶', '呂尚': '🐥', '傘': '⛰️', '旼琦': '🐥', '友榮': '🐈‍⬛', '鍾浩': '🐻'
+    };
+
+    const GROUP_EMOJI_MAP = {
+      'Stray Kids': '🧭 Stray Kids',
+      'ATEEZ': '🏴‍☠️ ATEEZ'
+    };
+
+    let memberOrderMap = {};
+    let customUsersSet = new Set();
+    let usersDatabase = [];
+
+    let allCredits = [];
+    let allDeposits = [];
+    let allOrders = [];
+    let customAddedItems = [];
+    let photoProgressMap = {};
+    let eventSettingsMap = {};
+
+    let extraBuyerBlocks = [];
+
+    let currentAvailableCredit = 0;
+    let currentAvailableDeposit = 0;
+    let currentCalculatedFinalTotal = 0;
+    let appliedCreditDeduction = 0;
+    let appliedDepositDeduction = 0;
+
+    function formatDisplayName(name) {
+      if (!name) return '';
+      if (customUsersSet.has(name)) return name;
+      const len = name.length;
+      if (len <= 6) {
+        if (len <= 2) return name[0] + '*';
+        return name[0] + '*'.repeat(len - 2) + name[len - 1];
+      }
+      return name.slice(0, 3) + '*'.repeat(len - 6) + name.slice(-3);
+    }
+
+    function extractDateScore(evName) {
+      if (!evName) return 99999999;
+      const match = evName.match(/\d{6}/);
+      if (match) return parseInt(match[0], 10);
+      return 99999999;
+    }
 
     function loadBankInfo() {
       fetch('../json/bank_info.json')
@@ -256,38 +292,19 @@
         });
     }
 
-    // 自動脫敏 Helper：若不在 JSON 預設名單內（Threads 帳號），保留頭尾3碼，中間按原始長度補星號
-    function formatDisplayName(name) {
-      if (!name) return '';
-      if (knownUsersSet.has(name)) return name;
-      
-      const len = name.length;
-      if (len <= 6) {
-        if (len <= 2) return name[0] + '*';
-        return name[0] + '*'.repeat(len - 2) + name[len - 1];
-      }
-      return name.slice(0, 3) + '*'.repeat(len - 6) + name.slice(-3);
-    }
-
     document.addEventListener('DOMContentLoaded', async () => {
+      loadBankInfo();
+      loadBankDropdown();
+
       try {
-        const skzU = await fetch('../json/users_skz.json').then(r => r.json()).catch(() => []);
-        const atzU = await fetch('../json/users_atz.json').then(r => r.json()).catch(() => []);
-        knownUsersSet = new Set([...skzU, ...atzU]);
+        const skzM = await fetch('../json/members_skz.json').then(r => r.json());
+        const atzM = await fetch('../json/members_atz.json').then(r => r.json());
+        memberOrderMap['Stray Kids'] = skzM;
+        memberOrderMap['ATEEZ'] = atzM;
       } catch(e) {}
 
-      const groupSel = document.getElementById('groupSelect');
       const custGroupSel = document.getElementById('custGroup');
       const custMemberSel = document.getElementById('custMember');
-
-      fetch('../json/group.json').then(r => r.json()).then(groups => {
-        groupSel.innerHTML = '<option value="">請選擇團體</option>';
-        custGroupSel.innerHTML = '<option value="">選擇團體</option>';
-        groups.forEach(g => {
-          groupSel.innerHTML += `<option value="${g}">${g}</option>`;
-          custGroupSel.innerHTML += `<option value="${g}">${g}</option>`;
-        });
-      });
 
       custGroupSel.addEventListener('change', () => {
         const g = custGroupSel.value;
@@ -297,49 +314,34 @@
           custMemberSel.disabled = true;
           return;
         }
-        const file = (g === 'Stray Kids') ? 'members_skz.json' : (g === 'ATEEZ' ? 'members_atz.json' : '');
-        if (file) {
-          fetch(`../json/${file}`).then(r => r.json()).then(arr => {
-            custMemberSel.disabled = false;
-            custMemberSel.innerHTML = '<option value="">選擇成員</option>';
-            arr.forEach(m => custMemberSel.innerHTML += `<option value="${m}">${m}</option>`);
-          });
-        }
+        const members = memberOrderMap[g] || [];
+        custMemberSel.disabled = false;
+        custMemberSel.innerHTML = '<option value="">選擇成員</option>';
+        members.forEach(m => {
+          const emoji = MEMBER_EMOJI_MAP[m] ? `${MEMBER_EMOJI_MAP[m]} ` : '';
+          custMemberSel.innerHTML += `<option value="${m}">${emoji}${m}</option>`;
+        });
       });
-    });
 
-    let allCredits = [];
-    let allDeposits = [];
-    let allOrders = [];
-    let customAddedItems = [];
-    let photoProgressMap = {};
-    let eventSettingsMap = {};
-
-    let currentAvailableCredit = 0;
-    let currentAvailableDeposit = 0;
-    let currentCalculatedFinalTotal = 0;
-
-    let appliedCreditDeduction = 0;
-    let appliedDepositDeduction = 0;
-
-    document.getElementById('paymentForm').addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') {
-        e.preventDefault();
-      }
-    });
-
-    document.addEventListener('DOMContentLoaded', () => {
-      loadBankInfo();
-      loadBankDropdown();
-
-      document.getElementById('groupSelect').addEventListener('change', handleGroupChange);
+      onSnapshot(collection(db, "users"), snap => {
+        usersDatabase = [];
+        customUsersSet = new Set();
+        snap.forEach(d => {
+          const u = d.data();
+          usersDatabase.push(u);
+          if (u.name && u.type !== 'threads') {
+            customUsersSet.add(u.name);
+          }
+        });
+        updateBuyerDropdownAndDetails();
+      });
 
       onSnapshot(collection(db, "photo_progress"), snap => {
         photoProgressMap = {};
         snap.forEach(d => {
           const data = d.data();
-          const evName = data.eventName || data.event || '';
-          const mem = data.member || '';
+          const evName = (data.eventName || data.event || '').trim();
+          const mem = (data.member || '').trim();
           if (evName && mem) {
             photoProgressMap[`${evName}_${mem}`] = data.status || '等圖中';
           }
@@ -351,19 +353,17 @@
         eventSettingsMap = {};
         snap.forEach(d => {
           const data = d.data();
-          const evName = data.name || data.rawName || data.eventName || data.event || '';
-          const mem = data.member || '';
-          
+          const evName = (data.name || data.rawName || data.eventName || data.event || '').trim();
+          const mem = (data.member || '').trim();
           const estPrice = Number(data.estimatedPrice) || Number(data.price) || 0;
           const actPrice = Number(data.actualPrice) || 0;
           const packQty = Number(data.packQty) || 1;
           const discounts = data.discounts || [];
 
           if (evName) {
-            const key = `${evName}_${mem}`;
-            eventSettingsMap[key] = { estPrice, actPrice, packQty, discounts };
+            eventSettingsMap[`${evName}_${mem}`] = { estPrice, actPrice, packQty, discounts };
             if (data.rawName) {
-              eventSettingsMap[`${data.rawName}_${mem}`] = { estPrice, actPrice, packQty, discounts };
+              eventSettingsMap[`${data.rawName.trim()}_${mem}`] = { estPrice, actPrice, packQty, discounts };
             }
           }
         });
@@ -373,13 +373,13 @@
       onSnapshot(collection(db, "user_credits"), snap => {
         allCredits = [];
         snap.forEach(d => allCredits.push({ id: d.id, ...d.data() }));
-        updateBuyerDropdownAndDetails();
+        renderAllBuyerDetails();
       });
 
       onSnapshot(collection(db, "user_deposits"), snap => {
         allDeposits = [];
         snap.forEach(d => allDeposits.push({ id: d.id, ...d.data() }));
-        updateBuyerDropdownAndDetails();
+        renderAllBuyerDetails();
       });
 
       onSnapshot(collection(db, "orders"), snap => {
@@ -388,9 +388,10 @@
         updateBuyerDropdownAndDetails();
       });
 
+      document.getElementById('groupSelect').addEventListener('change', handleGroupChange);
       document.getElementById('buyerName').addEventListener('change', () => {
         customAddedItems = [];
-        renderBuyerDetails();
+        renderAllBuyerDetails();
       });
 
       document.getElementById('contactTypeSelect').addEventListener('change', handleContactTypeChange);
@@ -412,6 +413,12 @@
       });
 
       document.getElementById('addCustomItemBtn').addEventListener('click', addCustomItem);
+
+      document.getElementById('addGroupBlockBtn').addEventListener('click', () => {
+        const blockId = `block_${Date.now()}`;
+        extraBuyerBlocks.push({ id: blockId, group: '', buyer: '' });
+        renderAllBuyerDetails();
+      });
 
       notifyHeight();
     });
@@ -471,6 +478,28 @@
       notifyHeight();
     }
 
+    function getPendingBuyersForGroup(grp) {
+      const pendingBuyers = new Set();
+      allOrders.forEach(o => {
+        if ((o.group || 'Stray Kids') === grp) {
+          const name = o.user || o.buyerName || o.name || o.buyer;
+          const pendingMatch = (!o.hasPaid && (o.paymentStatus === '待匯款' || o.paymentStatus === 'pending_payment' || !o.paymentStatus));
+          
+          const ordEvent = (o.event || o.fullEvent || o.eventName || '').trim();
+          const ordMember = (o.member || '').trim();
+          const progressStatus = photoProgressMap[`${ordEvent}_${ordMember}`] || '等圖中';
+          
+          const allowedStatuses = ['上傳中', '已通知匯款', '已發圖', '可詢問餘圖'];
+          const isUnlocked = allowedStatuses.includes(progressStatus);
+
+          if (name && pendingMatch && isUnlocked) {
+            pendingBuyers.add(String(name));
+          }
+        }
+      });
+      return Array.from(pendingBuyers).sort((a, b) => a.localeCompare(b, 'zh-TW'));
+    }
+
     function updateBuyerDropdownAndDetails() {
       const selectedGroup = document.getElementById('groupSelect').value;
       const buyerSel = document.getElementById('buyerName');
@@ -479,45 +508,25 @@
       if (!selectedGroup) {
         buyerSel.innerHTML = '<option value="">請先選擇團體</option>';
         buyerSel.disabled = true;
-        renderBuyerDetails();
+        renderAllBuyerDetails();
         return;
       }
 
-      const pendingBuyers = new Set();
-
-      allOrders.forEach(o => {
-        const grp = o.group || 'Stray Kids';
-        if (grp === selectedGroup) {
-          const name = o.user || o.buyerName || o.name || o.buyer;
-          const pendingMatch = (o.paymentStatus === 'pending_payment' || o.paymentStatus === '待匯款' || o.status === 'pending_payment' || o.status === '待匯款' || !o.paymentStatus);
-          
-          const ordEvent = o.event || o.fullEvent || o.eventName || '';
-          const ordMember = o.member || '';
-          const progressStatus = photoProgressMap[`${ordEvent}_${ordMember}`] || '等圖中';
-          
-          const allowedStatuses = ['上傳中', '已通知匯款', '已發圖'];
-          const isUnlocked = allowedStatuses.includes(progressStatus);
-
-          if (name && pendingMatch && isUnlocked) {
-            pendingBuyers.add(String(name));
-          }
-        }
-      });
+      const buyers = getPendingBuyersForGroup(selectedGroup);
 
       buyerSel.disabled = false;
       buyerSel.innerHTML = '<option value="">請選擇您的名稱</option>';
-
-      Array.from(pendingBuyers).sort((a, b) => a.localeCompare(b, 'zh-TW')).forEach(b => {
+      buyers.forEach(b => {
         buyerSel.innerHTML += `<option value="${b}">${formatDisplayName(b)}</option>`;
       });
 
-      if (currentSelected && pendingBuyers.has(currentSelected)) {
+      if (currentSelected && buyers.includes(currentSelected)) {
         buyerSel.value = currentSelected;
       } else {
         buyerSel.value = '';
       }
 
-      renderBuyerDetails();
+      renderAllBuyerDetails();
     }
 
     function addCustomItem() {
@@ -551,15 +560,37 @@
       document.getElementById('custPrice').value = '';
       document.getElementById('customFormBox').style.display = 'none';
 
-      renderBuyerDetails();
+      renderAllBuyerDetails();
     }
 
-    function renderBuyerDetails() {
-      const selectedGroup = document.getElementById('groupSelect').value;
-      const selectedBuyer = document.getElementById('buyerName').value;
+    function sortOrdersByDateAndMember(orders) {
+      return orders.sort((a, b) => {
+        const evA = (a.event || a.fullEvent || a.eventName || '').trim();
+        const evB = (b.event || b.fullEvent || b.eventName || '').trim();
+        
+        const dateA = extractDateScore(evA);
+        const dateB = extractDateScore(evB);
+
+        if (dateA !== dateB) return dateA - dateB;
+
+        const grp = a.group || 'Stray Kids';
+        const memberList = memberOrderMap[grp] || [];
+        const memA = (a.member || '').trim();
+        const memB = (b.member || '').trim();
+
+        const idxA = memberList.indexOf(memA);
+        const idxB = memberList.indexOf(memB);
+
+        return (idxA === -1 ? 99 : idxA) - (idxB === -1 ? 99 : idxB);
+      });
+    }
+
+    function renderAllBuyerDetails() {
+      const primaryGroup = document.getElementById('groupSelect').value;
+      const primaryBuyer = document.getElementById('buyerName').value;
       const formContent = document.getElementById('formContent');
 
-      if (!selectedGroup || !selectedBuyer) {
+      if (!primaryGroup || !primaryBuyer) {
         formContent.style.display = 'none';
         notifyHeight();
         return;
@@ -567,48 +598,224 @@
 
       formContent.style.display = 'block';
 
-      const userCredits = allCredits.filter(c => (c.user === selectedBuyer || c.buyerName === selectedBuyer || c.name === selectedBuyer));
+      const targetBuyers = new Set([primaryBuyer]);
+      extraBuyerBlocks.forEach(b => { if (b.buyer) targetBuyers.add(b.buyer); });
+
+      const userCredits = allCredits.filter(c => targetBuyers.has(c.user || c.buyerName || c.name));
       currentAvailableCredit = userCredits.reduce((sum, c) => sum + ((Number(c.credit) || Number(c.amount) || 0) - (Number(c.used) || 0)), 0);
       document.getElementById('creditBalance').textContent = `$${currentAvailableCredit}`;
-      document.getElementById('useCreditChk').checked = false;
 
-      const userDeposits = allDeposits.filter(d => (d.user === selectedBuyer || d.buyerName === selectedBuyer || d.name === selectedBuyer));
+      const userDeposits = allDeposits.filter(d => targetBuyers.has(d.user || d.buyerName || d.name));
       currentAvailableDeposit = userDeposits.reduce((sum, d) => {
         const amt = Number(d.amount) || 0;
         return (d.type !== 'usage') ? (sum + amt) : (sum - amt);
       }, 0);
       document.getElementById('depositBalance').textContent = `$${currentAvailableDeposit}`;
-      document.getElementById('useDepositChk').checked = false;
 
-      const userOrders = allOrders.filter(o => {
-        const grp = o.group || 'Stray Kids';
-        const nameMatch = (o.user === selectedBuyer || o.buyerName === selectedBuyer || o.name === selectedBuyer || o.buyer === selectedBuyer);
-        const pendingMatch = (o.paymentStatus === 'pending_payment' || o.paymentStatus === '待匯款' || o.status === 'pending_payment' || o.status === '待匯款' || !o.paymentStatus);
-        
-        const ordEvent = o.event || o.fullEvent || o.eventName || '';
-        const ordMember = o.member || '';
-        const progressStatus = photoProgressMap[`${ordEvent}_${ordMember}`] || '等圖中';
-        
-        const allowedStatuses = ['上傳中', '已通知匯款', '已發圖'];
-        const isUnlocked = allowedStatuses.includes(progressStatus);
+      const container = document.getElementById('groupBlocksContainer');
+      container.innerHTML = '';
 
-        return grp === selectedGroup && nameMatch && pendingMatch && isUnlocked;
+      // 渲染主區塊
+      renderSingleOrderBlock(container, primaryGroup, primaryBuyer, 1, false);
+
+      // 渲染動態新增的第二/多個團體區塊
+      extraBuyerBlocks.forEach((block, idx) => {
+        renderExtraDynamicBlock(container, block, idx + 2);
       });
 
-      const ordersList = document.getElementById('ordersList');
-      ordersList.innerHTML = '';
+      // 渲染自訂補款項目
+      if (customAddedItems.length > 0) {
+        const customDiv = document.createElement('div');
+        customDiv.style.marginTop = '10px';
+        customDiv.innerHTML = '<div style="font-weight:bold; color:#67c23a; margin-bottom:4px;">➕ 自訂加購 / 補款項目：</div>';
+        
+        customAddedItems.forEach(cItem => {
+          customDiv.innerHTML += `
+            <div class="order-item" style="background:#f0f9eb; padding:6px 8px; border-radius:6px; margin-bottom:4px;">
+              <div class="order-left">
+                <input type="checkbox" class="order-chk custom-chk" value="${cItem.id}" data-price="${cItem.price}" data-is-custom="true" data-event="${cItem.event}" data-group="${cItem.group}" data-member="${cItem.member}" checked>
+                <span>➕ [自訂補款] ${cItem.event} (${cItem.member})</span>
+              </div>
+              <div class="price-box"><span class="price-final">$${cItem.price}</span></div>
+            </div>
+          `;
+        });
+        container.appendChild(customDiv);
+      }
 
-      if (userOrders.length === 0 && customAddedItems.length === 0) {
-        ordersList.innerHTML = '<span style="color:#909399;">目前無待匯款訂單</span>';
-        document.getElementById('pendingTotal').textContent = '$0';
-        document.getElementById('finalPayTotal').textContent = '$0';
-      } else {
-        userOrders.forEach(ord => {
+      document.querySelectorAll('.order-chk').forEach(chk => {
+        chk.addEventListener('change', calcSelectedTotal);
+      });
+      calcSelectedTotal();
+      notifyHeight();
+    }
+
+    function renderSingleOrderBlock(container, group, buyer, blockNum, isExtra = false, blockId = '') {
+      const card = document.createElement('div');
+      card.className = 'group-block-card';
+
+      const grpDisplay = GROUP_EMOJI_MAP[group] || group;
+      card.innerHTML = `
+        <div class="group-block-header">
+          <span>📦 待匯款訂單明細 ${blockNum}（${grpDisplay} - ${formatDisplayName(buyer)}）</span>
+        </div>
+        <div class="orders-select-box" id="ordersList_${blockNum}">載入訂單中...</div>
+      `;
+      container.appendChild(card);
+
+      const ordersBox = card.querySelector(`#ordersList_${blockNum}`);
+
+      const userOrders = allOrders.filter(o => {
+        const grpMatch = (o.group || 'Stray Kids') === group;
+        const nameMatch = (o.user === buyer || o.buyerName === buyer || o.name === buyer || o.buyer === buyer);
+        const pendingMatch = (!o.hasPaid && (o.paymentStatus === '待匯款' || o.paymentStatus === 'pending_payment' || !o.paymentStatus));
+
+        const ordEvent = (o.event || o.fullEvent || o.eventName || '').trim();
+        const ordMember = (o.member || '').trim();
+        const progressStatus = photoProgressMap[`${ordEvent}_${ordMember}`] || '等圖中';
+
+        const allowedStatuses = ['上傳中', '已通知匯款', '已發圖', '可詢問餘圖'];
+        const isUnlocked = allowedStatuses.includes(progressStatus);
+
+        return grpMatch && nameMatch && pendingMatch && isUnlocked;
+      });
+
+      if (userOrders.length === 0) {
+        ordersBox.innerHTML = '<span style="color:#909399;">目前無待匯款訂單</span>';
+        return;
+      }
+
+      const sortedOrders = sortOrdersByDateAndMember(userOrders);
+      ordersBox.innerHTML = '';
+
+      sortedOrders.forEach(ord => {
+        const qty = Number(ord.quantity !== undefined ? ord.quantity : (ord.qty !== undefined ? ord.qty : ord.count)) || 1;
+        const ordEvent = (ord.event || ord.fullEvent || ord.eventName || '').trim();
+        const ordMember = (ord.member || '').trim();
+        const memEmoji = MEMBER_EMOJI_MAP[ordMember] ? `${MEMBER_EMOJI_MAP[ordMember]} ` : '';
+
+        const setting = eventSettingsMap[`${ordEvent}_${ordMember}`] || {};
+        const packQty = setting.packQty || 1;
+        const packsCount = Math.round(qty / packQty);
+
+        const estPrice = setting.estPrice || 0;
+        const actPrice = setting.actPrice || 0;
+
+        let baseUnitPrice = (actPrice > 0) ? actPrice : estPrice;
+        if (baseUnitPrice === 0) {
+          baseUnitPrice = Number(ord.price) || Number(ord.unitPrice) || 0;
+        }
+
+        let calculatedFinalPrice = packsCount * baseUnitPrice;
+        const discounts = setting.discounts || [];
+        if (Array.isArray(discounts)) {
+          const userDisc = discounts.find(d => d.targetUser === buyer);
+          if (userDisc) {
+            const discCount = Math.min(packsCount, Number(userDisc.count) || 0);
+            const discPrice = Number(userDisc.price) || 0;
+            calculatedFinalPrice = (discCount * discPrice) + ((packsCount - discCount) * baseUnitPrice);
+          }
+        }
+
+        const calculatedEstPrice = Math.round(packsCount * estPrice);
+
+        let priceHtml = `<span class="price-final">$${calculatedFinalPrice}</span>`;
+        if (actPrice > 0 && estPrice > 0 && calculatedFinalPrice !== calculatedEstPrice) {
+          priceHtml = `
+            <span class="price-final">$${calculatedFinalPrice}</span>
+            <span class="price-original-strike">$${calculatedEstPrice}</span>
+          `;
+        }
+
+        ordersBox.innerHTML += `
+          <div class="order-item">
+            <div class="order-left">
+              <input type="checkbox" class="order-chk" value="${ord.id}" data-price="${calculatedFinalPrice}" checked>
+              <span>📌 ${ordEvent || '未命名活動'} (${memEmoji}${ordMember || '全體'}) - ${qty} 張</span>
+            </div>
+            <div class="price-box">${priceHtml}</div>
+          </div>
+        `;
+      });
+    }
+
+    function renderExtraDynamicBlock(container, block, blockNum) {
+      const card = document.createElement('div');
+      card.className = 'group-block-card';
+
+      card.innerHTML = `
+        <div class="group-block-header">
+          <span>📦 待匯款訂單明細 ${blockNum} (合併加填)</span>
+          <button type="button" style="background:#f56c6c; color:#fff; border:none; padding:3px 8px; border-radius:4px; font-size:11px; cursor:pointer; width:auto;" onclick="removeExtraBlock('${block.id}')">🗑️ 刪除此組</button>
+        </div>
+        <div class="group-block-inputs">
+          <select class="extra-grp-select">
+            <option value="">選擇合併團體</option>
+            <option value="Stray Kids" ${block.group === 'Stray Kids' ? 'selected' : ''}>🧭 Stray Kids</option>
+            <option value="ATEEZ" ${block.group === 'ATEEZ' ? 'selected' : ''}>🏴‍☠️ ATEEZ</option>
+          </select>
+          <select class="extra-buyer-select" ${block.group ? '' : 'disabled'}>
+            <option value="">請先選擇團體</option>
+          </select>
+        </div>
+        <div class="orders-select-box" id="ordersList_${blockNum}">請選擇團體與社群名稱</div>
+      `;
+      container.appendChild(card);
+
+      const grpSel = card.querySelector('.extra-grp-select');
+      const buyerSel = card.querySelector('.extra-buyer-select');
+
+      if (block.group) {
+        const buyers = getPendingBuyersForGroup(block.group);
+        buyerSel.disabled = false;
+        buyerSel.innerHTML = '<option value="">請選擇社群名稱</option>';
+        buyers.forEach(b => {
+          buyerSel.innerHTML += `<option value="${b}" ${b === block.buyer ? 'selected' : ''}>${formatDisplayName(b)}</option>`;
+        });
+      }
+
+      grpSel.addEventListener('change', () => {
+        block.group = grpSel.value;
+        block.buyer = '';
+        renderAllBuyerDetails();
+      });
+
+      buyerSel.addEventListener('change', () => {
+        block.buyer = buyerSel.value;
+        renderAllBuyerDetails();
+      });
+
+      if (block.group && block.buyer) {
+        const ordersBox = card.querySelector(`#ordersList_${blockNum}`);
+        const userOrders = allOrders.filter(o => {
+          const grpMatch = (o.group || 'Stray Kids') === block.group;
+          const nameMatch = (o.user === block.buyer || o.buyerName === block.buyer || o.name === block.buyer || o.buyer === block.buyer);
+          const pendingMatch = (!o.hasPaid && (o.paymentStatus === '待匯款' || o.paymentStatus === 'pending_payment' || !o.paymentStatus));
+
+          const ordEvent = (o.event || o.fullEvent || o.eventName || '').trim();
+          const ordMember = (o.member || '').trim();
+          const progressStatus = photoProgressMap[`${ordEvent}_${ordMember}`] || '等圖中';
+
+          const allowedStatuses = ['上傳中', '已通知匯款', '已發圖', '可詢問餘圖'];
+          const isUnlocked = allowedStatuses.includes(progressStatus);
+
+          return grpMatch && nameMatch && pendingMatch && isUnlocked;
+        });
+
+        if (userOrders.length === 0) {
+          ordersBox.innerHTML = '<span style="color:#909399;">目前無待匯款訂單</span>';
+          return;
+        }
+
+        const sortedOrders = sortOrdersByDateAndMember(userOrders);
+        ordersBox.innerHTML = '';
+
+        sortedOrders.forEach(ord => {
           const qty = Number(ord.quantity !== undefined ? ord.quantity : (ord.qty !== undefined ? ord.qty : ord.count)) || 1;
-          const ordEvent = ord.event || ord.fullEvent || ord.eventName || '';
-          const ordMember = ord.member || '';
-          const ordGroup = ord.group ? `[${ord.group}] ` : '';
-          
+          const ordEvent = (ord.event || ord.fullEvent || ord.eventName || '').trim();
+          const ordMember = (ord.member || '').trim();
+          const memEmoji = MEMBER_EMOJI_MAP[ordMember] ? `${MEMBER_EMOJI_MAP[ordMember]} ` : '';
+
           const setting = eventSettingsMap[`${ordEvent}_${ordMember}`] || {};
           const packQty = setting.packQty || 1;
           const packsCount = Math.round(qty / packQty);
@@ -624,7 +831,7 @@
           let calculatedFinalPrice = packsCount * baseUnitPrice;
           const discounts = setting.discounts || [];
           if (Array.isArray(discounts)) {
-            const userDisc = discounts.find(d => d.targetUser === selectedBuyer);
+            const userDisc = discounts.find(d => d.targetUser === block.buyer);
             if (userDisc) {
               const discCount = Math.min(packsCount, Number(userDisc.count) || 0);
               const discPrice = Number(userDisc.price) || 0;
@@ -642,37 +849,23 @@
             `;
           }
 
-          ordersList.innerHTML += `
+          ordersBox.innerHTML += `
             <div class="order-item">
               <div class="order-left">
-                <input type="checkbox" class="order-chk" value="${ord.id}" data-price="${calculatedFinalPrice}">
-                <span>📌 ${ordGroup}${ordEvent || '未命名活動'} (${ordMember || '全體'}) - ${qty} 張</span>
+                <input type="checkbox" class="order-chk" value="${ord.id}" data-price="${calculatedFinalPrice}" checked>
+                <span>📌 ${ordEvent || '未命名活動'} (${memEmoji}${ordMember || '全體'}) - ${qty} 張</span>
               </div>
               <div class="price-box">${priceHtml}</div>
             </div>
           `;
         });
-
-        customAddedItems.forEach(cItem => {
-          ordersList.innerHTML += `
-            <div class="order-item" style="background:#f0f9eb; padding:6px 8px; border-radius:6px; margin-bottom:4px;">
-              <div class="order-left">
-                <input type="checkbox" class="order-chk custom-chk" value="${cItem.id}" data-price="${cItem.price}" data-is-custom="true" data-event="${cItem.event}" data-group="${cItem.group}" data-member="${cItem.member}" checked>
-                <span>➕ [自訂補款] ${cItem.event} (${cItem.member})</span>
-              </div>
-              <div class="price-box"><span class="price-final">$${cItem.price}</span></div>
-            </div>
-          `;
-        });
-
-        document.querySelectorAll('.order-chk').forEach(chk => {
-          chk.addEventListener('change', calcSelectedTotal);
-        });
-        calcSelectedTotal();
       }
-
-      notifyHeight();
     }
+
+    window.removeExtraBlock = (blockId) => {
+      extraBuyerBlocks = extraBuyerBlocks.filter(b => b.id !== blockId);
+      renderAllBuyerDetails();
+    };
 
     function calcSelectedTotal() {
       const chks = document.querySelectorAll('.order-chk:checked');
@@ -723,6 +916,7 @@
       }
 
       document.getElementById('finalPayTotal').textContent = `$${currentCalculatedFinalTotal.toFixed(1).replace(/\.0$/, '')}`;
+      document.getElementById('submitBtn').textContent = `提交對帳資料 (總計 $${currentCalculatedFinalTotal.toFixed(1).replace(/\.0$/, '')})`;
 
       checkOverpayTip();
     }
@@ -852,6 +1046,7 @@
 
         alert(`✅ 匯款回報已提交，選取的訂單已同步更新為「待對帳」，請等待管理者審核！${overpayAlertMsg}`);
         customAddedItems = [];
+        extraBuyerBlocks = [];
         document.getElementById('paymentForm').reset();
         document.getElementById('formContent').style.display = 'none';
         document.getElementById('overpayTip').style.display = 'none';
