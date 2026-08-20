@@ -2,39 +2,117 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
-  <title>餘圖庫存管理</title>
+  <title>現貨餘圖庫存手動管理</title>
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 0; margin: 0; background: #fff; color: #333; }
-    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-    th, td { padding: 10px 8px; border-bottom: 1px solid #e4e7ed; text-align: left; font-size: 13px; vertical-align: middle; }
-    th { background: #f8f9fa; color: #606266; font-weight: bold; white-space: nowrap; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 15px; margin: 0; background: #fff; color: #333; }
     
-    .filter-card { background: #f8f9fa; border: 1px solid #ebeef5; border-radius: 10px; padding: 12px 15px; margin: 10px 0 15px 0; display: flex; flex-direction: column; gap: 8px; }
+    .card { background: #f8f9fa; border: 1px solid #e4e7ed; border-radius: 10px; padding: 14px 16px; margin-bottom: 16px; }
+    .card-title { font-size: 15px; font-weight: bold; margin-bottom: 10px; color: #303133; }
+    
+    .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px 12px; align-items: end; }
+    .form-group { display: flex; flex-direction: column; gap: 4px; }
+    label { font-size: 12px; font-weight: bold; color: #606266; }
+    input, select, textarea { padding: 8px 10px; border: 1px solid #dcdfe6; border-radius: 6px; font-size: 13px; outline: none; background: #fff; box-sizing: border-box; }
+    input:focus, select:focus, textarea:focus { border-color: #409eff; }
+    
+    .btn-submit { padding: 9px 16px; background: #409eff; color: #fff; border: none; border-radius: 6px; font-size: 13px; font-weight: bold; cursor: pointer; height: 35px; white-space: nowrap; }
+    .btn-submit:disabled { background: #a0cfff; }
+
+    .filter-card { background: #fff; border: 1px solid #e4e7ed; border-radius: 10px; padding: 12px 14px; margin-bottom: 14px; display: flex; flex-direction: column; gap: 8px; }
     .filter-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
     .filter-label { font-size: 12px; font-weight: bold; color: #606266; min-width: 80px; }
 
     .capsule-group { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
-    .capsule-filter-btn { background: #fff; color: #606266; border: 1px solid #dcdfe6; padding: 4px 12px; border-radius: 16px; font-size: 12px; font-weight: bold; cursor: pointer; transition: all 0.2s; outline: none; }
+    .capsule-filter-btn { background: #f4f4f5; color: #606266; border: 1px solid #dcdfe6; padding: 4px 12px; border-radius: 16px; font-size: 12px; font-weight: bold; cursor: pointer; transition: all 0.2s; outline: none; }
     .capsule-filter-btn:hover { background: #ecf5ff; color: #409eff; border-color: #c6e2ff; }
     .capsule-filter-btn.active { background: #409eff; color: #fff; border-color: #409eff; box-shadow: 0 2px 6px rgba(64,158,255,0.25); }
     .capsule-filter-btn.sub-active { background: #67c23a; color: #fff; border-color: #67c23a; box-shadow: 0 2px 6px rgba(103,194,58,0.25); }
 
-    .stock-badge { padding: 3px 8px; border-radius: 12px; font-size: 12px; font-weight: bold; }
-    .stock-positive { background: #f0f9eb; color: #67c23a; border: 1px solid #e1f3d8; }
-    .stock-zero { background: #f4f4f5; color: #909399; border: 1px solid #e4e7ed; }
-    .stock-negative { background: #fef0f0; color: #f56c6c; border: 1px solid #fde2e2; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
+    th, td { padding: 10px 8px; border-bottom: 1px solid #ebeef5; text-align: left; vertical-align: middle; }
+    th { background: #f8f9fa; color: #606266; font-weight: bold; white-space: nowrap; }
+
+    .table-input { width: 80px; padding: 5px; font-size: 13px; border: 1px solid #dcdfe6; border-radius: 4px; }
+    .table-select { padding: 5px; font-size: 12px; border: 1px solid #dcdfe6; border-radius: 4px; }
+    .btn-action { padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: bold; cursor: pointer; border: none; }
+    .btn-save { background: #67c23a; color: #fff; margin-right: 4px; }
+    .btn-del { background: #f56c6c; color: #fff; }
   </style>
 </head>
 <body>
 
-  <h3 style="margin-top:0; margin-bottom:10px; font-size:18px;">📦 餘圖庫存管理</h3>
+  <h3 style="margin-top:0; margin-bottom:12px; font-size:18px;">📦 現貨餘圖庫存手動管理</h3>
 
+  <!-- 1. 新增 / 上架現貨庫存表單 -->
+  <div class="card">
+    <div class="card-title">➕ 新增現貨餘圖庫存</div>
+    <form id="addStockForm">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>1. 團體 *</label>
+          <select id="addGrp" required>
+            <option value="">請選擇團體</option>
+            <option value="Stray Kids">🧭 Stray Kids</option>
+            <option value="ATEEZ">🏴‍☠️ ATEEZ</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>2. 選擇開團活動 *</label>
+          <select id="addEvent" required disabled>
+            <option value="">請先選擇團體</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>3. 選擇成員 *</label>
+          <select id="addMember" required disabled>
+            <option value="">請先選擇活動</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>4. 規格說明 *</label>
+          <input type="text" id="addSpec" placeholder="例: 100張/包 或 1張" required>
+        </div>
+
+        <div class="form-group">
+          <label>5. 剩餘包數 *</label>
+          <input type="number" id="addStockQty" min="0" value="1" required>
+        </div>
+
+        <div class="form-group">
+          <label>6. 單價 ($) *</label>
+          <input type="number" id="addPrice" min="0" placeholder="單價" required>
+        </div>
+
+        <div class="form-group">
+          <label>7. 上架狀態 *</label>
+          <select id="addStatus" required>
+            <option value="開放認領">🟢 開放認領</option>
+            <option value="已售完">🔴 已售完</option>
+            <option value="暫停">📁 暫停上架</option>
+          </select>
+        </div>
+
+        <div class="form-group" style="grid-column: span 2;">
+          <label>8. 備註說明 (選填)</label>
+          <input type="text" id="addNote" placeholder="例如: 現貨可直接下單...">
+        </div>
+
+        <div>
+          <button type="submit" class="btn-submit" id="addSubmitBtn">➕ 上架現貨庫存</button>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <!-- 2. 篩選膠囊 -->
   <div class="filter-card">
     <div class="filter-row">
       <span class="filter-label">1. 團體：</span>
       <div id="groupCapsules" class="capsule-group"></div>
     </div>
-
     <div class="filter-row">
       <span class="filter-label">2. 檢視模式：</span>
       <div id="modeCapsules" class="capsule-group">
@@ -42,32 +120,33 @@
         <button class="capsule-filter-btn" onclick="setModeFilter('event', this)">🗓️ 依活動</button>
       </div>
     </div>
-
     <div class="filter-row">
       <span class="filter-label">3. 細項篩選：</span>
       <div id="detailCapsules" class="capsule-group"></div>
     </div>
   </div>
 
+  <!-- 3. 手動維護列表 -->
   <table>
     <thead>
       <tr>
-        <th style="width: 25%;">活動名稱</th>
+        <th style="width: 20%;">活動名稱</th>
         <th style="width: 15%;">團體與成員</th>
-        <th style="width: 15%;">每包規格</th>
-        <th style="width: 15%;">總拆包數</th>
-        <th style="width: 15%;">已登記包數</th>
-        <th style="width: 15%;">剩餘庫存 (包 / 張)</th>
+        <th style="width: 15%;">規格說明</th>
+        <th style="width: 12%;">單價 ($)</th>
+        <th style="width: 12%;">剩餘包數</th>
+        <th style="width: 14%;">上架狀態</th>
+        <th style="width: 12%;">操作</th>
       </tr>
     </thead>
     <tbody id="stockTableBody">
-      <tr><td colspan="6" style="text-align:center; color:#909399; padding:20px;">載入庫存數據中...</td></tr>
+      <tr><td colspan="7" style="text-align:center; color:#909399; padding:20px;">載入庫存數據中...</td></tr>
     </tbody>
   </table>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getFirestore, collection, onSnapshot, doc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyDF7QySG1Jj4gdZvXwMRaKjRmI-lFKpj7k",
@@ -93,14 +172,19 @@
     };
 
     let eventSettings = [];
-    let ordersList = [];
+    let stockList = [];
+    let groupList = ['Stray Kids', 'ATEEZ'];
+    let memberMap = {};
 
     let activeGroup = 'ALL';
     let activeMode = 'member';
     let activeDetail = 'ALL';
 
-    let groupList = ['Stray Kids', 'ATEEZ'];
-    let memberMap = {};
+    const addGrpSel = document.getElementById('addGrp');
+    const addEventSel = document.getElementById('addEvent');
+    const addMemSel = document.getElementById('addMember');
+    const addPriceInput = document.getElementById('addPrice');
+    const addSpecInput = document.getElementById('addSpec');
 
     document.addEventListener('DOMContentLoaded', async () => {
       try {
@@ -115,15 +199,118 @@
       onSnapshot(collection(db, "event_settings"), snap => {
         eventSettings = [];
         snap.forEach(d => eventSettings.push({ id: d.id, ...d.data() }));
+        updateAddEventDropdown();
+      });
+
+      onSnapshot(collection(db, "stock_photos"), snap => {
+        stockList = [];
+        snap.forEach(d => stockList.push({ id: d.id, ...d.data() }));
         updateDetailCapsules();
         renderTable();
       });
 
-      onSnapshot(collection(db, "orders"), snap => {
-        ordersList = [];
-        snap.forEach(d => ordersList.push(d.data()));
-        renderTable();
+      addGrpSel.addEventListener('change', () => {
+        updateAddEventDropdown();
       });
+
+      addEventSel.addEventListener('change', () => {
+        updateAddMemberDropdown();
+      });
+
+      addMemSel.addEventListener('change', () => {
+        const grp = addGrpSel.value;
+        const ev = addEventSel.value;
+        const mem = addMemSel.value;
+        const matched = eventSettings.find(s => s.group === grp && (s.name || s.rawName) === ev && s.member === mem);
+        if (matched) {
+          addPriceInput.value = Number(matched.actualPrice || matched.price || matched.unitPrice || 0);
+          addSpecInput.value = matched.unit ? `1${matched.unit} (${matched.packQty || 1}張)` : `${matched.packQty || 1}張/包`;
+        }
+      });
+    });
+
+    function updateAddEventDropdown() {
+      const grp = addGrpSel.value;
+      addEventSel.innerHTML = '<option value="">請選擇活動</option>';
+      addMemSel.innerHTML = '<option value="">請先選擇活動</option>';
+      addMemSel.disabled = true;
+
+      if (!grp) {
+        addEventSel.disabled = true;
+        return;
+      }
+
+      addEventSel.disabled = false;
+      const eventsSet = new Set();
+      eventSettings.filter(s => s.group === grp).forEach(s => {
+        if (s.name || s.rawName) eventsSet.add(s.name || s.rawName);
+      });
+
+      Array.from(eventsSet).sort().forEach(ev => {
+        addEventSel.innerHTML += `<option value="${ev}">${ev}</option>`;
+      });
+    }
+
+    function updateAddMemberDropdown() {
+      const grp = addGrpSel.value;
+      const ev = addEventSel.value;
+      addMemSel.innerHTML = '<option value="">請選擇成員</option>';
+
+      if (!ev) {
+        addMemSel.disabled = true;
+        return;
+      }
+
+      addMemSel.disabled = false;
+      const members = eventSettings.filter(s => s.group === grp && (s.name || s.rawName) === ev).map(s => s.member).filter(Boolean);
+      const uniqueMems = Array.from(new Set(members));
+
+      uniqueMems.forEach(m => {
+        const emoji = MEMBER_EMOJI_MAP[m] ? `${MEMBER_EMOJI_MAP[m]} ` : '';
+        addMemSel.innerHTML += `<option value="${m}">${emoji}${m}</option>`;
+      });
+    }
+
+    document.getElementById('addStockForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('addSubmitBtn');
+      btn.disabled = true;
+      btn.textContent = '上架中...';
+
+      const grp = addGrpSel.value;
+      const ev = addEventSel.value;
+      const mem = addMemSel.value;
+      const spec = document.getElementById('addSpec').value.trim();
+      const stockQty = Number(document.getElementById('addStockQty').value) || 0;
+      const price = Number(document.getElementById('addPrice').value) || 0;
+      const status = document.getElementById('addStatus').value;
+      const note = document.getElementById('addNote').value.trim();
+
+      const docId = `${grp}_${ev}_${mem}`.replace(/[\/\s#?]/g, '_');
+
+      try {
+        await setDoc(doc(db, "stock_photos", docId), {
+          group: grp,
+          eventName: ev,
+          member: mem,
+          spec: spec,
+          stockQty: stockQty,
+          price: price,
+          status: status,
+          note: note,
+          updatedAt: new Date().toISOString()
+        }, { merge: true });
+
+        alert('🎉 現貨庫存上架成功！');
+        document.getElementById('addStockForm').reset();
+        addEventSel.disabled = true;
+        addMemSel.disabled = true;
+      } catch(err) {
+        alert('上架失敗: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '➕ 上架現貨庫存';
+      }
     });
 
     function renderGroupCapsules() {
@@ -132,7 +319,7 @@
 
       const allBtn = document.createElement('button');
       allBtn.className = `capsule-filter-btn ${activeGroup === 'ALL' ? 'active' : ''}`;
-      allBtn.textContent = '全部團體';
+      allBtn.textContent = '全部';
       allBtn.onclick = () => {
         activeGroup = 'ALL';
         document.querySelectorAll('#groupCapsules .capsule-filter-btn').forEach(b => b.classList.remove('active'));
@@ -162,7 +349,7 @@
     window.setModeFilter = (mode, btn) => {
       activeMode = mode;
       document.querySelectorAll('#modeCapsules .capsule-filter-btn').forEach(b => b.classList.remove('active'));
-      if(btn) btn.classList.add('active');
+      if (btn) btn.classList.add('active');
       activeDetail = 'ALL';
       updateDetailCapsules();
       renderTable();
@@ -183,11 +370,17 @@
       };
       container.appendChild(allBtn);
 
-      let filtered = eventSettings;
+      let filtered = stockList;
       if (activeGroup !== 'ALL') filtered = filtered.filter(e => e.group === activeGroup);
 
       if (activeMode === 'member') {
-        const membersInJson = (activeGroup !== 'ALL') ? (memberMap[activeGroup] || []) : Object.values(memberMap).flat();
+        let membersInJson = [];
+        if (activeGroup === 'ALL') {
+          Object.values(memberMap).forEach(l => membersInJson.push(...l));
+        } else {
+          membersInJson = memberMap[activeGroup] || [];
+        }
+
         const activeMembersWithData = new Set(filtered.map(e => e.member).filter(Boolean));
 
         membersInJson.forEach(m => {
@@ -207,7 +400,7 @@
       } else if (activeMode === 'event') {
         const eventsSet = new Set();
         filtered.forEach(e => {
-          if (e.name || e.rawName) eventsSet.add(e.rawName || e.name);
+          if (e.eventName) eventsSet.add(e.eventName);
         });
         Array.from(eventsSet).sort().forEach(ev => {
           const btn = document.createElement('button');
@@ -228,73 +421,76 @@
       const tb = document.getElementById('stockTableBody');
       tb.innerHTML = '';
 
-      let list = eventSettings;
+      let list = stockList;
       if (activeGroup !== 'ALL') list = list.filter(e => e.group === activeGroup);
       if (activeDetail !== 'ALL') {
         if (activeMode === 'member') list = list.filter(e => e.member === activeDetail);
-        else if (activeMode === 'event') list = list.filter(e => (e.rawName || e.name) === activeDetail);
+        else if (activeMode === 'event') list = list.filter(e => e.eventName === activeDetail);
       }
 
       if (list.length === 0) {
-        tb.innerHTML = '<tr><td colspan="6" style="text-align:center; color:#909399; padding:20px;">尚無符合條件的活動設定資料</td></tr>';
-        notifyHeight();
+        tb.innerHTML = '<tr><td colspan="7" style="text-align:center; color:#909399; padding:20px;">目前尚無手動上架的現貨庫存資料</td></tr>';
         return;
       }
 
-      list.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+      list.sort((a, b) => (a.eventName || '').localeCompare(b.eventName || ''));
 
-      list.forEach(ev => {
-        const grp = ev.group || 'Stray Kids';
-        const grpDisplay = GROUP_EMOJI_MAP[grp] || grp;
-        const mem = ev.member || '全體';
-        const memDisplay = (MEMBER_EMOJI_MAP[mem] ? `${MEMBER_EMOJI_MAP[mem]} ` : '') + mem;
-        const unit = ev.unit || '包';
-        const packQty = Number(ev.packQty) || 1;
-        const totalPacks = Number(ev.packsCount) || 0;
-
-        const matchedOrders = ordersList.filter(o => {
-          const mEv = (o.event === ev.name || o.eventName === ev.name);
-          const mMem = (!ev.member || o.member === ev.member);
-          const mGrp = (!ev.group || o.group === ev.group);
-          return mEv && mMem && mGrp;
-        });
-
-        const orderedCards = matchedOrders.reduce((sum, o) => {
-          return sum + (Number(o.qty !== undefined ? o.qty : (o.quantity !== undefined ? o.quantity : o.count)) || 0);
-        }, 0);
-
-        const orderedPacks = packQty > 0 ? (orderedCards / packQty) : 0;
-        const remainingPacks = totalPacks - orderedPacks;
-        const remainingCards = remainingPacks * packQty;
-
-        let badgeClass = 'stock-positive';
-        if (remainingPacks === 0) badgeClass = 'stock-zero';
-        else if (remainingPacks < 0) badgeClass = 'stock-negative';
+      list.forEach(item => {
+        const grpDisplay = GROUP_EMOJI_MAP[item.group] || item.group;
+        const memDisplay = (MEMBER_EMOJI_MAP[item.member] ? `${MEMBER_EMOJI_MAP[item.member]} ` : '') + item.member;
 
         const tr = document.createElement('tr');
         tr.innerHTML = `
-          <td><b>📅 ${ev.name}</b></td>
+          <td><b>📅 ${item.eventName}</b></td>
           <td><b>${grpDisplay}</b><br><span style="color:#409eff;">${memDisplay}</span></td>
-          <td>${packQty} 張/${unit}</td>
-          <td><b>${totalPacks} ${unit}</b></td>
-          <td>${orderedCards} 張 (${orderedPacks.toFixed(1).replace(/\.0$/, '')} ${unit})</td>
+          <td><input type="text" class="table-input" style="width:110px;" id="spec_${item.id}" value="${item.spec || ''}"></td>
+          <td><input type="number" class="table-input" id="price_${item.id}" value="${item.price || 0}"></td>
+          <td><input type="number" class="table-input" id="qty_${item.id}" value="${item.stockQty || 0}" min="0"></td>
           <td>
-            <span class="stock-badge ${badgeClass}">
-              ${remainingPacks.toFixed(1).replace(/\.0$/, '')} ${unit} / ${remainingCards.toFixed(0)} 張
-            </span>
+            <select class="table-select" id="st_${item.id}">
+              <option value="開放認領" ${item.status === '開放認領' ? 'selected' : ''}>🟢 開放認領</option>
+              <option value="已售完" ${item.status === '已售完' ? 'selected' : ''}>🔴 已售完</option>
+              <option value="暫停" ${item.status === '暫停' ? 'selected' : ''}>📁 暫停上架</option>
+            </select>
+          </td>
+          <td>
+            <button class="btn-action btn-save" onclick="updateStockRow('${item.id}')">儲存</button>
+            <button class="btn-action btn-del" onclick="deleteStockRow('${item.id}')">刪除</button>
           </td>
         `;
         tb.appendChild(tr);
       });
-
-      notifyHeight();
     }
 
-    function notifyHeight() {
-      setTimeout(() => {
-        window.parent.postMessage({ frameHeight: document.body.scrollHeight }, '*');
-      }, 100);
-    }
+    window.updateStockRow = async (docId) => {
+      const spec = document.getElementById(`spec_${docId}`).value.trim();
+      const price = Number(document.getElementById(`price_${docId}`).value) || 0;
+      const stockQty = Number(document.getElementById(`qty_${docId}`).value) || 0;
+      const status = document.getElementById(`st_${docId}`).value;
+
+      try {
+        await setDoc(doc(db, "stock_photos", docId), {
+          spec: spec,
+          price: price,
+          stockQty: stockQty,
+          status: status,
+          updatedAt: new Date().toISOString()
+        }, { merge: true });
+        alert('✅ 庫存已更新，前台已同步！');
+      } catch(err) {
+        alert('更新失敗: ' + err.message);
+      }
+    };
+
+    window.deleteStockRow = async (docId) => {
+      if (!confirm('確定要刪除這筆現貨餘圖庫存嗎？')) return;
+      try {
+        await deleteDoc(doc(db, "stock_photos", docId));
+        alert('🗑️ 庫存已刪除！');
+      } catch(err) {
+        alert('刪除失敗: ' + err.message);
+      }
+    };
   </script>
 </body>
 </html>
