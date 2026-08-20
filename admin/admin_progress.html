@@ -71,6 +71,7 @@
     .badge-status[data-val="上傳中"] { background: #eef2ff; color: #4f46e5; border: 1px solid #c7d2fe; }
     .badge-status[data-val="已通知匯款"] { background: #fef0f0; color: #f56c6c; border: 1px solid #fde2e2; }
     .badge-status[data-val="已發圖"] { background: #f4f4f5; color: #909399; }
+    .badge-status[data-val="可詢問餘圖"] { background: #f0f9eb; color: #67c23a; border: 1px solid #e1f3d8; }
     .badge-status[data-val="已結束"] { background: #f4f4f5; color: #909399; }
     .badge-status[data-val="到期/已刪除"] { background: #f4f4f5; color: #909399; }
 
@@ -114,6 +115,7 @@
         <option value="上傳中">☁️ 上傳中</option>
         <option value="已通知匯款">📢 已通知匯款</option>
         <option value="已發圖">⚪ 已發圖</option>
+        <option value="可詢問餘圖">🟢 可詢問餘圖</option>
         <option value="已結束">🏁 已結束</option>
         <option value="到期/已刪除">🗑️ 到期/已刪除</option>
       </select>
@@ -138,7 +140,12 @@
     </div>
 
     <div class="filter-row">
-      <span class="filter-label">3. 狀態篩選：</span>
+      <span class="filter-label">3. 細項篩選：</span>
+      <div id="detailCapsules" class="capsule-group"></div>
+    </div>
+
+    <div class="filter-row">
+      <span class="filter-label">4. 狀態篩選：</span>
       <div id="statusCapsules" class="capsule-group"></div>
     </div>
   </div>
@@ -171,12 +178,13 @@
 
     let activeGroup = 'ALL';
     let activeMode = 'member';
+    let activeDetail = 'ALL';
     let activeStatus = 'ALL';
 
     let groupList = [];
     let memberMap = {};
 
-    const allStatuses = ['未開放', '已預約', '等圖中', '分圖中', '上傳中', '已通知匯款', '已發圖', '已結束', '到期/已刪除'];
+    const allStatuses = ['未開放', '已預約', '等圖中', '分圖中', '上傳中', '已通知匯款', '已發圖', '可詢問餘圖', '已結束', '到期/已刪除'];
 
     const evSel = document.getElementById('eventSelect');
     const groupSel = document.getElementById('groupSelect');
@@ -199,6 +207,7 @@
       } catch(e) {}
 
       renderGroupCapsules();
+      updateDetailCapsules();
       updateStatusCapsules();
 
       groupSel.innerHTML = '<option value="">請選擇團體</option>';
@@ -230,7 +239,9 @@
         activeGroup = 'ALL';
         document.querySelectorAll('#groupCapsules .capsule-filter-btn').forEach(b => b.classList.remove('active'));
         allBtn.classList.add('active');
+        activeDetail = 'ALL';
         activeStatus = 'ALL';
+        updateDetailCapsules();
         updateStatusCapsules();
         renderProgressCards();
       };
@@ -244,7 +255,9 @@
           activeGroup = g;
           document.querySelectorAll('#groupCapsules .capsule-filter-btn').forEach(b => b.classList.remove('active'));
           btn.classList.add('active');
+          activeDetail = 'ALL';
           activeStatus = 'ALL';
+          updateDetailCapsules();
           updateStatusCapsules();
           renderProgressCards();
         };
@@ -258,7 +271,9 @@
         activeGroup = 'UNCLASSIFIED';
         document.querySelectorAll('#groupCapsules .capsule-filter-btn').forEach(b => b.classList.remove('active'));
         unclassifiedBtn.classList.add('active');
+        activeDetail = 'ALL';
         activeStatus = 'ALL';
+        updateDetailCapsules();
         updateStatusCapsules();
         renderProgressCards();
       };
@@ -269,8 +284,76 @@
       activeMode = mode;
       document.querySelectorAll('#modeCapsules .capsule-filter-btn').forEach(b => b.classList.remove('active'));
       if(btn) btn.classList.add('active');
+      activeDetail = 'ALL';
+      updateDetailCapsules();
       renderProgressCards();
     };
+
+    function updateDetailCapsules() {
+      const container = document.getElementById('detailCapsules');
+      container.innerHTML = '';
+
+      const allBtn = document.createElement('button');
+      allBtn.className = `capsule-filter-btn ${activeDetail === 'ALL' ? 'sub-active' : ''}`;
+      allBtn.textContent = '全部顯示';
+      allBtn.onclick = () => {
+        activeDetail = 'ALL';
+        document.querySelectorAll('#detailCapsules .capsule-filter-btn').forEach(b => b.classList.remove('sub-active'));
+        allBtn.classList.add('sub-active');
+        renderProgressCards();
+      };
+      container.appendChild(allBtn);
+
+      let list = lastProgressList;
+      if (activeGroup === 'UNCLASSIFIED') {
+        list = list.filter(i => !i.group || i.group === '未分類');
+      } else if (activeGroup !== 'ALL') {
+        list = list.filter(i => i.group === activeGroup);
+      }
+
+      if (activeMode === 'member') {
+        let membersInJson = [];
+        if (activeGroup === 'ALL') {
+          Object.values(memberMap).forEach(l => membersInJson.push(...l));
+        } else {
+          membersInJson = memberMap[activeGroup] || [];
+        }
+
+        const activeMembersWithData = new Set(list.map(i => i.member).filter(Boolean));
+        membersInJson.forEach(m => {
+          if (activeMembersWithData.has(m)) {
+            const btn = document.createElement('button');
+            btn.className = `capsule-filter-btn ${activeDetail === m ? 'sub-active' : ''}`;
+            btn.textContent = m;
+            btn.onclick = () => {
+              activeDetail = m;
+              document.querySelectorAll('#detailCapsules .capsule-filter-btn').forEach(b => b.classList.remove('sub-active'));
+              btn.classList.add('sub-active');
+              renderProgressCards();
+            };
+            container.appendChild(btn);
+          }
+        });
+      } else if (activeMode === 'event') {
+        const eventsSet = new Set();
+        list.forEach(i => {
+          const ev = i.eventName || i.event;
+          if (ev) eventsSet.add(ev);
+        });
+        Array.from(eventsSet).sort().forEach(ev => {
+          const btn = document.createElement('button');
+          btn.className = `capsule-filter-btn ${activeDetail === ev ? 'sub-active' : ''}`;
+          btn.textContent = ev;
+          btn.onclick = () => {
+            activeDetail = ev;
+            document.querySelectorAll('#detailCapsules .capsule-filter-btn').forEach(b => b.classList.remove('sub-active'));
+            btn.classList.add('sub-active');
+            renderProgressCards();
+          };
+          container.appendChild(btn);
+        });
+      }
+    }
 
     function updateStatusCapsules() {
       const container = document.getElementById('statusCapsules');
@@ -301,20 +384,43 @@
       });
     }
 
-    onSnapshot(collection(db, "event_settings"), snap => {
-      rawEventSettings = [];
-      snap.forEach(d => rawEventSettings.push(d.data()));
-
+    function refreshEventSelectDropdown() {
       const eventsSet = new Set();
       rawEventSettings.forEach(s => {
         const eName = s.name;
         if (eName) eventsSet.add(eName.trim());
       });
 
+      const closedEvents = new Set();
+      const eventStatusMap = {};
+      lastProgressList.forEach(p => {
+        const ev = (p.eventName || p.event || '').trim();
+        if (!ev) return;
+        if (!eventStatusMap[ev]) eventStatusMap[ev] = [];
+        eventStatusMap[ev].push(p.status || '');
+      });
+
+      Object.entries(eventStatusMap).forEach(([ev, statuses]) => {
+        const allClosed = statuses.length > 0 && statuses.every(st => st === '已結束' || st === '到期/已刪除');
+        if (allClosed) closedEvents.add(ev);
+      });
+
+      const activeEvents = Array.from(eventsSet).filter(e => !closedEvents.has(e)).sort();
+
+      const currentVal = evSel.value;
       evSel.innerHTML = '<option value="">請選擇活動</option>';
-      Array.from(eventsSet).sort().forEach(e => {
+      activeEvents.forEach(e => {
         evSel.innerHTML += '<option value="' + e + '">' + e + '</option>';
       });
+      if (currentVal && activeEvents.includes(currentVal)) {
+        evSel.value = currentVal;
+      }
+    }
+
+    onSnapshot(collection(db, "event_settings"), snap => {
+      rawEventSettings = [];
+      snap.forEach(d => rawEventSettings.push(d.data()));
+      refreshEventSelectDropdown();
     });
 
     evSel.addEventListener('change', () => {
@@ -349,6 +455,8 @@
         progressMap[d.id] = item;
         lastProgressList.push(item);
       });
+      updateDetailCapsules();
+      refreshEventSelectDropdown();
       renderProgressCards();
     });
 
@@ -412,6 +520,11 @@
         list = list.filter(i => i.group === activeGroup);
       }
 
+      if (activeDetail !== 'ALL') {
+        if (activeMode === 'member') list = list.filter(i => i.member === activeDetail);
+        else if (activeMode === 'event') list = list.filter(i => (i.eventName || i.event) === activeDetail);
+      }
+
       if (activeStatus !== 'ALL') {
         list = list.filter(i => i.status === activeStatus);
       }
@@ -439,8 +552,8 @@
             '<table class="card-table"><thead><tr>' +
               '<th style="width: 14%;">成員</th>' +
               '<th style="width: 18%;">代拍</th>' +
-              '<th style="width: 14%;">狀態</th>' +
-              '<th style="width: 32%;">買家名單與阻礙</th>' +
+              '<th style="width: 16%;">狀態</th>' +
+              '<th style="width: 30%;">買家名單與阻礙</th>' +
               '<th style="width: 22%;">操作</th>' +
             '</tr></thead><tbody>';
 
@@ -487,8 +600,8 @@
             '<table class="card-table"><thead><tr>' +
               '<th style="width: 26%;">活動名稱</th>' +
               '<th style="width: 16%;">代拍</th>' +
-              '<th style="width: 14%;">狀態</th>' +
-              '<th style="width: 24%;">買家名單與阻礙</th>' +
+              '<th style="width: 16%;">狀態</th>' +
+              '<th style="width: 22%;">買家名單與阻礙</th>' +
               '<th style="width: 20%;">操作</th>' +
             '</tr></thead><tbody>';
 

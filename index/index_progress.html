@@ -41,6 +41,7 @@
     .status-st-unopened { background: #f4f4f5; color: #909399; border: 1px solid #e4e7ed; }
     .status-sorting     { background: #fff7ed; color: #d97706; border: 1px solid #ffedd5; }
     .status-done        { background: #f0f9eb; color: #67c23a; border: 1px solid #e1f3d8; }
+    .status-stock-open  { background: #e8f5e9; color: #2e7d32; border: 1px solid #a5d6a7; font-weight: 800; }
 
     /* 買家個人狀態配色 */
     .status-waiting   { background: #fef0f0; color: #f56c6c; border-color: #fde2e2; }
@@ -135,7 +136,6 @@
           }
         }
 
-        // 載入預設 JSON 買家名單庫以進行脫敏比對
         const skzU = await fetch('../json/users_skz.json').then(r => r.json()).catch(() => []);
         const atzU = await fetch('../json/users_atz.json').then(r => r.json()).catch(() => []);
         knownUsersSet = new Set([...skzU, ...atzU]);
@@ -163,7 +163,6 @@
       });
     });
 
-    // 自動脫敏 Helper：若不在 JSON 預設名單內（Threads 帳號），保留頭尾3碼，中間按原始長度補星號
     function formatDisplayName(name) {
       if (!name) return '';
       if (knownUsersSet.has(name)) return name;
@@ -406,7 +405,9 @@
 
         Object.keys(memberMapObj).forEach(mName => {
           const mItems = memberMapObj[mName];
-          
+          const st = mItems[0].status || '未開放';
+          const isSurplusMode = (st === '可詢問餘圖');
+
           const matchedBuyerOrders = [];
           Object.values(ordersCache).forEach(ord => {
             const ordGrp = ord.group || 'Stray Kids';
@@ -442,18 +443,29 @@
           uniqueBuyersInOrder.forEach(bName => {
             let payStatusText = '🚨 待匯款', payBadgeClass = 'status-waiting';
             let photoStatusText = '📷 待發圖', photoBadgeClass = 'status-photo-wait';
+            let isPaidDone = false;
+            let isPhotoSentDone = false;
 
             Object.values(ordersCache).forEach(ord => {
               const b = ord.buyerName || ord.user || ord.nickname;
               if (b === bName && (ord.event || ord.eventName) === eventName && ord.member === mName) {
-                const st = ord.paymentStatus || ord.status || (ord.hasPaid ? '已對帳' : '待匯款');
-                if (st === '已對帳' || ord.hasPaid) { payStatusText = '⚪ 已對帳'; payBadgeClass = 'status-paid-done'; }
-                else if (st === '待對帳' || st === '對帳中') { payStatusText = '⏳ 待對帳'; payBadgeClass = 'status-checking'; }
-                else if (st === '對帳有問題' || st === '有問題') { payStatusText = '⚠️ 帳有問題'; payBadgeClass = 'status-issue'; }
+                const paySt = ord.paymentStatus || ord.status || (ord.hasPaid ? '已對帳' : '待匯款');
+                if (paySt === '已對帳' || ord.hasPaid) { payStatusText = '⚪ 已對帳'; payBadgeClass = 'status-paid-done'; isPaidDone = true; }
+                else if (paySt === '待對帳' || paySt === '對帳中') { payStatusText = '⏳ 待對帳'; payBadgeClass = 'status-checking'; }
+                else if (paySt === '對帳有問題' || paySt === '有問題') { payStatusText = '⚠️ 帳有問題'; payBadgeClass = 'status-issue'; }
 
-                if (ord.isPhotoSent === true || ord.status === '已發圖') { photoStatusText = '⚪ 已發圖'; photoBadgeClass = 'status-photo-sent'; }
+                if (ord.isPhotoSent === true || ord.status === '已發圖') { 
+                  photoStatusText = '⚪ 已發圖'; 
+                  photoBadgeClass = 'status-photo-sent'; 
+                  isPhotoSentDone = true; 
+                }
               }
             });
+
+            // 若狀態為「可詢問餘圖」，且該買家已付清+已發圖，則自動隱藏
+            if (isSurplusMode && isPaidDone && isPhotoSentDone) {
+              return;
+            }
 
             buyersHtml += `
               <div class="buyer-row">
@@ -467,8 +479,8 @@
           });
 
           let badgeClass = 'status-st-unopened';
-          const st = mItems[0].status || '未開放';
-          if (['已通知匯款', '整理中', '修圖中', '上傳中'].includes(st)) badgeClass = 'status-sorting';
+          if (st === '可詢問餘圖') badgeClass = 'status-stock-open';
+          else if (['已通知匯款', '整理中', '修圖中', '上傳中'].includes(st)) badgeClass = 'status-sorting';
           else if (['已完工', '已發圖', '已結束', '已預約'].includes(st)) badgeClass = 'status-done';
 
           const memEmoji = MEMBER_EMOJI_MAP[mName] || '👤';
