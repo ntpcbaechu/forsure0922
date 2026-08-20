@@ -184,9 +184,9 @@
 
       <div class="form-group">
         <label>匯款帳號末 5 碼 *</label>
-        <input type="text" id="last5" placeholder="例如: 12345 (台灣Pay請填卡號/帳戶末5碼)" required>
+        <input type="text" id="last5" placeholder="例如: 12345" required>
         <div class="input-hint-box">
-          ⚠️ 若使用「台灣Pay / 郵局 / 街口 / LINE Pay」轉帳可能顯示虛擬卡號末五碼，若不確定請填寫「卡號末5碼 / 帳戶末5碼」或至官方 LINE 提供交易明細截圖以利對帳！
+          ⚠️ 使用台灣Pay等轉帳時，若不確定請填寫 ①卡號末5碼 + ②帳戶末5碼，或私訊提供截圖以利對帳
         </div>
       </div>
 
@@ -634,7 +634,7 @@
           customDiv.innerHTML += `
             <div class="order-item" style="background:#f0f9eb; padding:6px 8px; border-radius:6px; margin-bottom:4px;">
               <div class="order-left">
-                <input type="checkbox" class="order-chk custom-chk" value="${cItem.id}" data-price="${cItem.price}" data-is-custom="true" data-event="${cItem.event}" data-group="${cItem.group}" data-member="${cItem.member}" checked>
+                <input type="checkbox" class="order-chk custom-chk" value="${cItem.id}" data-price="${cItem.price}" data-is-custom="true" data-event="${cItem.event}" data-group="${cItem.group}" data-member="${cItem.member}">
                 <span>➕ [自訂補款] ${cItem.event} (${cItem.member})</span>
               </div>
               <div class="price-box"><span class="price-final">$${cItem.price}</span></div>
@@ -731,7 +731,7 @@
         ordersBox.innerHTML += `
           <div class="order-item">
             <div class="order-left">
-              <input type="checkbox" class="order-chk" value="${ord.id}" data-price="${calculatedFinalPrice}" checked>
+              <input type="checkbox" class="order-chk" value="${ord.id}" data-price="${calculatedFinalPrice}">
               <span>📌 ${ordEvent || '未命名活動'} (${memEmoji}${ordMember || '全體'}) - ${qty} 張</span>
             </div>
             <div class="price-box">${priceHtml}</div>
@@ -853,7 +853,7 @@
           ordersBox.innerHTML += `
             <div class="order-item">
               <div class="order-left">
-                <input type="checkbox" class="order-chk" value="${ord.id}" data-price="${calculatedFinalPrice}" checked>
+                <input type="checkbox" class="order-chk" value="${ord.id}" data-price="${calculatedFinalPrice}">
                 <span>📌 ${ordEvent || '未命名活動'} (${memEmoji}${ordMember || '全體'}) - ${qty} 張</span>
               </div>
               <div class="price-box">${priceHtml}</div>
