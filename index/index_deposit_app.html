@@ -208,6 +208,7 @@
     let allPayments = [];
     let allOrders = {};
     let bankAccountsData = {};
+    let usersDatabase = [];
 
     let balanceTabFilter = 'active';
     let selectedUserFilter = 'ALL';
@@ -265,7 +266,14 @@
         });
       });
 
-      depGroupSel.addEventListener('change', async () => {
+      onSnapshot(collection(db, "users"), snap => {
+        usersDatabase = [];
+        snap.forEach(d => usersDatabase.push(d.data()));
+        updateDepUserDropdown();
+        updateRefUserDropdown();
+      });
+
+      function updateDepUserDropdown() {
         const chosenGroup = depGroupSel.value;
         if (!chosenGroup) {
           depUserSel.innerHTML = '<option value="">請先選擇團體</option>';
@@ -273,16 +281,15 @@
           return;
         }
         depUserSel.disabled = false;
-        const file = (chosenGroup === 'Stray Kids') ? 'users_skz.json' : 'users_atz.json';
-        let jsonBuyers = [];
-        try { jsonBuyers = await fetch(`../json/${file}`).then(r => r.json()); } catch(e){}
+        const filtered = usersDatabase.filter(u => u.group === chosenGroup && u.name).map(u => u.name);
+        const uniqueBuyers = Array.from(new Set(filtered)).sort((a,b)=>a.localeCompare(b,'zh-TW'));
         depUserSel.innerHTML = '<option value="">請選擇您的名稱</option>';
-        jsonBuyers.sort((a,b)=>a.localeCompare(b,'zh-TW')).forEach(u => {
+        uniqueBuyers.forEach(u => {
           depUserSel.innerHTML += `<option value="${u}">${u}</option>`;
         });
-      });
+      }
 
-      refGroupSel.addEventListener('change', async () => {
+      function updateRefUserDropdown() {
         const chosenGroup = refGroupSel.value;
         if (!chosenGroup) {
           refUserSel.innerHTML = '<option value="">請先選擇團體</option>';
@@ -290,14 +297,16 @@
           return;
         }
         refUserSel.disabled = false;
-        const file = (chosenGroup === 'Stray Kids') ? 'users_skz.json' : 'users_atz.json';
-        let jsonBuyers = [];
-        try { jsonBuyers = await fetch(`../json/${file}`).then(r => r.json()); } catch(e){}
+        const filtered = usersDatabase.filter(u => u.group === chosenGroup && u.name).map(u => u.name);
+        const uniqueBuyers = Array.from(new Set(filtered)).sort((a,b)=>a.localeCompare(b,'zh-TW'));
         refUserSel.innerHTML = '<option value="">請選擇您的名稱</option>';
-        jsonBuyers.sort((a,b)=>a.localeCompare(b,'zh-TW')).forEach(u => {
+        uniqueBuyers.forEach(u => {
           refUserSel.innerHTML += `<option value="${u}">${u}</option>`;
         });
-      });
+      }
+
+      depGroupSel.addEventListener('change', updateDepUserDropdown);
+      refGroupSel.addEventListener('change', updateRefUserDropdown);
 
       fetch('../json/bank_info.json').then(r => r.json()).then(data => {
         bankAccountsData = data;
