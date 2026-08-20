@@ -391,28 +391,14 @@
         if (eName) eventsSet.add(eName.trim());
       });
 
-      const closedEvents = new Set();
-      const eventStatusMap = {};
-      lastProgressList.forEach(p => {
-        const ev = (p.eventName || p.event || '').trim();
-        if (!ev) return;
-        if (!eventStatusMap[ev]) eventStatusMap[ev] = [];
-        eventStatusMap[ev].push(p.status || '');
-      });
-
-      Object.entries(eventStatusMap).forEach(([ev, statuses]) => {
-        const allClosed = statuses.length > 0 && statuses.every(st => st === '已結束' || st === '到期/已刪除');
-        if (allClosed) closedEvents.add(ev);
-      });
-
-      const activeEvents = Array.from(eventsSet).filter(e => !closedEvents.has(e)).sort();
+      const allEvents = Array.from(eventsSet).sort();
 
       const currentVal = evSel.value;
       evSel.innerHTML = '<option value="">請選擇活動</option>';
-      activeEvents.forEach(e => {
+      allEvents.forEach(e => {
         evSel.innerHTML += '<option value="' + e + '">' + e + '</option>';
       });
-      if (currentVal && activeEvents.includes(currentVal)) {
+      if (currentVal && allEvents.includes(currentVal)) {
         evSel.value = currentVal;
       }
     }
@@ -456,7 +442,6 @@
         lastProgressList.push(item);
       });
       updateDetailCapsules();
-      refreshEventSelectDropdown();
       renderProgressCards();
     });
 
