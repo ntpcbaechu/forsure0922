@@ -6,19 +6,20 @@
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 15px; margin: 0; background: #fff; color: #333; }
     
-    .card { background: #f8f9fa; border: 1px solid #e4e7ed; border-radius: 10px; padding: 14px 16px; margin-bottom: 16px; }
-    .card-title { font-size: 15px; font-weight: bold; margin-bottom: 10px; color: #303133; }
+    .card { background: #ffffff; border: 1px solid #e4e7ed; border-radius: 12px; padding: 16px 18px; margin-bottom: 16px; box-shadow: 0 2px 10px rgba(0,0,0,0.03); }
+    .card-title { font-size: 15px; font-weight: bold; margin-bottom: 12px; color: #1a1a1a; display: flex; align-items: center; gap: 6px; }
     
     .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px 12px; align-items: end; }
     .form-group { display: flex; flex-direction: column; gap: 4px; }
     label { font-size: 12px; font-weight: bold; color: #606266; }
-    input, select, textarea { padding: 8px 10px; border: 1px solid #dcdfe6; border-radius: 6px; font-size: 13px; outline: none; background: #fff; box-sizing: border-box; }
+    input, select, textarea { padding: 8px 10px; border: 1px solid #dcdfe6; border-radius: 8px; font-size: 13px; outline: none; background: #fff; box-sizing: border-box; transition: border-color 0.2s; }
     input:focus, select:focus, textarea:focus { border-color: #409eff; }
     
-    .btn-submit { padding: 9px 16px; background: #409eff; color: #fff; border: none; border-radius: 6px; font-size: 13px; font-weight: bold; cursor: pointer; height: 35px; white-space: nowrap; }
-    .btn-submit:disabled { background: #a0cfff; }
+    .btn-submit { padding: 9px 18px; background: #409eff; color: #fff; border: none; border-radius: 8px; font-size: 13px; font-weight: bold; cursor: pointer; height: 36px; white-space: nowrap; transition: background 0.2s; }
+    .btn-submit:hover { background: #66b1ff; }
+    .btn-submit:disabled { background: #a0cfff; cursor: not-allowed; }
 
-    .filter-card { background: #fff; border: 1px solid #e4e7ed; border-radius: 10px; padding: 12px 14px; margin-bottom: 14px; display: flex; flex-direction: column; gap: 8px; }
+    .filter-card { background: #ffffff; border: 1px solid #e4e7ed; border-radius: 12px; padding: 12px 16px; margin-bottom: 16px; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); }
     .filter-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
     .filter-label { font-size: 12px; font-weight: bold; color: #606266; min-width: 80px; }
 
@@ -28,24 +29,42 @@
     .capsule-filter-btn.active { background: #409eff; color: #fff; border-color: #409eff; box-shadow: 0 2px 6px rgba(64,158,255,0.25); }
     .capsule-filter-btn.sub-active { background: #67c23a; color: #fff; border-color: #67c23a; box-shadow: 0 2px 6px rgba(103,194,58,0.25); }
 
-    table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
-    th, td { padding: 10px 8px; border-bottom: 1px solid #ebeef5; text-align: left; vertical-align: middle; }
-    th { background: #f8f9fa; color: #606266; font-weight: bold; white-space: nowrap; }
+    .table-container { background: #fff; border: 1px solid #e4e7ed; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.02); }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { padding: 10px 10px; border-bottom: 1px solid #ebeef5; text-align: left; vertical-align: middle; }
+    th { background: #f8fafc; color: #475569; font-weight: bold; white-space: nowrap; }
 
-    .table-input { width: 80px; padding: 5px; font-size: 13px; border: 1px solid #dcdfe6; border-radius: 4px; }
-    .table-select { padding: 5px; font-size: 12px; border: 1px solid #dcdfe6; border-radius: 4px; }
-    .btn-action { padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: bold; cursor: pointer; border: none; }
-    .btn-save { background: #67c23a; color: #fff; margin-right: 4px; }
+    .table-input { width: 80px; padding: 6px 8px; font-size: 13px; border: 1px solid #dcdfe6; border-radius: 6px; }
+    .table-select { padding: 6px 8px; font-size: 12px; border: 1px solid #dcdfe6; border-radius: 6px; }
+    
+    .btn-action { padding: 5px 10px; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; border: none; transition: opacity 0.2s; white-space: nowrap; }
+    .btn-action:hover { opacity: 0.85; }
+    .btn-claim-order { background: #67c23a; color: #fff; margin-right: 4px; }
+    .btn-save { background: #409eff; color: #fff; margin-right: 4px; }
     .btn-del { background: #f56c6c; color: #fff; }
+
+    .stock-badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: bold; }
+    .stock-badge-green { background: #e8f5e9; color: #2e7d32; }
+    .stock-badge-red { background: #fef0f0; color: #f56c6c; }
+
+    /* 認領登記彈窗 Modal */
+    .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.45); display: none; justify-content: center; align-items: center; z-index: 1000; }
+    .modal-box { background: #fff; width: 90%; max-width: 440px; border-radius: 14px; padding: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); display: flex; flex-direction: column; gap: 12px; }
+    .modal-header { font-size: 16px; font-weight: bold; color: #303133; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #ebeef5; padding-bottom: 10px; }
+    .modal-close { cursor: pointer; font-size: 18px; color: #909399; font-weight: bold; }
+    .modal-info-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 12px; font-size: 13px; line-height: 1.5; color: #475569; }
+    .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 6px; }
+    .btn-modal-cancel { background: #f4f4f5; color: #606266; border: 1px solid #dcdfe6; padding: 7px 14px; border-radius: 6px; font-weight: bold; cursor: pointer; }
+    .btn-modal-confirm { background: #67c23a; color: #fff; border: none; padding: 7px 16px; border-radius: 6px; font-weight: bold; cursor: pointer; }
   </style>
 </head>
 <body>
 
-  <h3 style="margin-top:0; margin-bottom:12px; font-size:18px;">📦 現貨餘圖庫存手動管理</h3>
+  <h3 style="margin-top:0; margin-bottom:12px; font-size:18px;">📦 現貨餘圖庫存管理</h3>
 
   <!-- 1. 新增 / 上架現貨庫存表單 -->
   <div class="card">
-    <div class="card-title">➕ 新增現貨餘圖庫存</div>
+    <div class="card-title">➕ 上架現貨餘圖庫存</div>
     <form id="addStockForm">
       <div class="form-grid">
         <div class="form-group">
@@ -127,26 +146,75 @@
   </div>
 
   <!-- 3. 手動維護列表 -->
-  <table>
-    <thead>
-      <tr>
-        <th style="width: 20%;">活動名稱</th>
-        <th style="width: 15%;">團體與成員</th>
-        <th style="width: 15%;">規格說明</th>
-        <th style="width: 12%;">單價 ($)</th>
-        <th style="width: 12%;">剩餘包數</th>
-        <th style="width: 14%;">上架狀態</th>
-        <th style="width: 12%;">操作</th>
-      </tr>
-    </thead>
-    <tbody id="stockTableBody">
-      <tr><td colspan="7" style="text-align:center; color:#909399; padding:20px;">載入庫存數據中...</td></tr>
-    </tbody>
-  </table>
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th style="width: 22%;">活動名稱</th>
+          <th style="width: 16%;">團體與成員</th>
+          <th style="width: 14%;">規格說明</th>
+          <th style="width: 10%;">單價 ($)</th>
+          <th style="width: 10%;">剩餘包數</th>
+          <th style="width: 12%;">上架狀態</th>
+          <th style="width: 16%;">操作</th>
+        </tr>
+      </thead>
+      <tbody id="stockTableBody">
+        <tr><td colspan="7" style="text-align:center; color:#909399; padding:20px;">載入庫存數據中...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 4. 快速登記認領彈窗 Modal -->
+  <div class="modal-overlay" id="claimModal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <span>🛒 快速登記餘圖認領</span>
+        <span class="modal-close" onclick="closeClaimModal()">&times;</span>
+      </div>
+
+      <div class="modal-info-card" id="modalInfoCard">載入商品中...</div>
+
+      <form id="claimOrderForm" style="display:flex; flex-direction:column; gap:10px;">
+        <input type="hidden" id="modalStockId">
+        <input type="hidden" id="modalStockGroup">
+        <input type="hidden" id="modalStockEvent">
+        <input type="hidden" id="modalStockMember">
+        <input type="hidden" id="modalStockPrice">
+        <input type="hidden" id="modalStockMax">
+
+        <div class="form-group">
+          <label>1. 選擇購買買家 *</label>
+          <select id="modalBuyerSelect" required>
+            <option value="">載入買家中...</option>
+          </select>
+          <input type="text" id="modalCustomBuyerInput" placeholder="請輸入社群暱稱" style="display:none; margin-top:4px;">
+        </div>
+
+        <div class="form-group">
+          <div style="display:flex; justify-content:space-between;">
+            <label>2. 認領包數 *</label>
+            <span id="modalCalcTip" style="font-size:12px; color:#67c23a; font-weight:bold;"></span>
+          </div>
+          <input type="number" id="modalClaimQty" min="1" value="1" required>
+        </div>
+
+        <div class="form-group">
+          <label>3. 備註 (選填)</label>
+          <input type="text" id="modalClaimNote" placeholder="例如: 餘圖認領已私訊...">
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn-modal-cancel" onclick="closeClaimModal()">取消</button>
+          <button type="submit" class="btn-modal-confirm" id="modalConfirmBtn">確定登記並扣減庫存</button>
+        </div>
+      </form>
+    </div>
+  </div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore, collection, onSnapshot, doc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getFirestore, collection, onSnapshot, doc, setDoc, addDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyDF7QySG1Jj4gdZvXwMRaKjRmI-lFKpj7k",
@@ -173,6 +241,7 @@
 
     let eventSettings = [];
     let stockList = [];
+    let usersDatabase = [];
     let groupList = ['Stray Kids', 'ATEEZ'];
     let memberMap = {};
 
@@ -196,6 +265,11 @@
 
       renderGroupCapsules();
 
+      onSnapshot(collection(db, "users"), snap => {
+        usersDatabase = [];
+        snap.forEach(d => usersDatabase.push(d.data()));
+      });
+
       onSnapshot(collection(db, "event_settings"), snap => {
         eventSettings = [];
         snap.forEach(d => eventSettings.push({ id: d.id, ...d.data() }));
@@ -209,13 +283,8 @@
         renderTable();
       });
 
-      addGrpSel.addEventListener('change', () => {
-        updateAddEventDropdown();
-      });
-
-      addEventSel.addEventListener('change', () => {
-        updateAddMemberDropdown();
-      });
+      addGrpSel.addEventListener('change', updateAddEventDropdown);
+      addEventSel.addEventListener('change', updateAddMemberDropdown);
 
       addMemSel.addEventListener('change', () => {
         const grp = addGrpSel.value;
@@ -429,7 +498,7 @@
       }
 
       if (list.length === 0) {
-        tb.innerHTML = '<tr><td colspan="7" style="text-align:center; color:#909399; padding:20px;">目前尚無手動上架的現貨庫存資料</td></tr>';
+        tb.innerHTML = '<tr><td colspan="7" style="text-align:center; color:#909399; padding:20px;">目前尚無現貨庫存資料</td></tr>';
         return;
       }
 
@@ -438,14 +507,18 @@
       list.forEach(item => {
         const grpDisplay = GROUP_EMOJI_MAP[item.group] || item.group;
         const memDisplay = (MEMBER_EMOJI_MAP[item.member] ? `${MEMBER_EMOJI_MAP[item.member]} ` : '') + item.member;
+        const isSoldOut = (Number(item.stockQty || 0) <= 0 || item.status === '已售完');
 
         const tr = document.createElement('tr');
         tr.innerHTML = `
           <td><b>📅 ${item.eventName}</b></td>
           <td><b>${grpDisplay}</b><br><span style="color:#409eff;">${memDisplay}</span></td>
-          <td><input type="text" class="table-input" style="width:110px;" id="spec_${item.id}" value="${item.spec || ''}"></td>
+          <td><input type="text" class="table-input" style="width:120px;" id="spec_${item.id}" value="${item.spec || ''}"></td>
           <td><input type="number" class="table-input" id="price_${item.id}" value="${item.price || 0}"></td>
-          <td><input type="number" class="table-input" id="qty_${item.id}" value="${item.stockQty || 0}" min="0"></td>
+          <td>
+            <input type="number" class="table-input" id="qty_${item.id}" value="${item.stockQty || 0}" min="0">
+            <div style="margin-top:2px;">${isSoldOut ? '<span class="stock-badge stock-badge-red">已售完</span>' : `<span class="stock-badge stock-badge-green">剩餘${item.stockQty}包</span>`}</div>
+          </td>
           <td>
             <select class="table-select" id="st_${item.id}">
               <option value="開放認領" ${item.status === '開放認領' ? 'selected' : ''}>🟢 開放認領</option>
@@ -454,8 +527,9 @@
             </select>
           </td>
           <td>
-            <button class="btn-action btn-save" onclick="updateStockRow('${item.id}')">儲存</button>
-            <button class="btn-action btn-del" onclick="deleteStockRow('${item.id}')">刪除</button>
+            <button class="btn-action btn-claim-order" ${isSoldOut ? 'disabled style="background:#c0c4cc; cursor:not-allowed;"' : ''} onclick="openClaimModal('${item.id}')">🛒 登記認領</button>
+            <button class="btn-action btn-save" onclick="updateStockRow('${item.id}')">💾 儲存</button>
+            <button class="btn-action btn-del" onclick="deleteStockRow('${item.id}')">🗑️ 刪除</button>
           </td>
         `;
         tb.appendChild(tr);
@@ -476,7 +550,7 @@
           status: status,
           updatedAt: new Date().toISOString()
         }, { merge: true });
-        alert('✅ 庫存已更新，前台已同步！');
+        alert('✅ 庫存已更新，前台已即時同步！');
       } catch(err) {
         alert('更新失敗: ' + err.message);
       }
@@ -491,6 +565,152 @@
         alert('刪除失敗: ' + err.message);
       }
     };
+
+    // 彈窗與直通下單邏輯
+    const claimModal = document.getElementById('claimModal');
+    const modalBuyerSel = document.getElementById('modalBuyerSelect');
+    const modalCustomInput = document.getElementById('modalCustomBuyerInput');
+    const modalQtyInput = document.getElementById('modalClaimQty');
+    const modalCalcTip = document.getElementById('modalCalcTip');
+
+    modalBuyerSel.addEventListener('change', () => {
+      const val = modalBuyerSel.value;
+      if (val === 'CUSTOM' || val === 'THREADS') {
+        modalCustomInput.style.display = 'block';
+        modalCustomInput.required = true;
+        modalCustomInput.placeholder = (val === 'THREADS') ? '請輸入 Threads 帳號' : '請輸入社群暱稱';
+      } else {
+        modalCustomInput.style.display = 'none';
+        modalCustomInput.required = false;
+      }
+    });
+
+    function updateModalCalc() {
+      const p = Number(document.getElementById('modalStockPrice').value) || 0;
+      const q = Number(modalQtyInput.value) || 0;
+      modalCalcTip.textContent = (q > 0) ? `(合計 $${(p * q).toLocaleString()} 元)` : '';
+    }
+    modalQtyInput.addEventListener('input', updateModalCalc);
+
+    window.openClaimModal = (docId) => {
+      const item = stockList.find(s => s.id === docId);
+      if (!item) return;
+
+      document.getElementById('modalStockId').value = docId;
+      document.getElementById('modalStockGroup').value = item.group;
+      document.getElementById('modalStockEvent').value = item.eventName;
+      document.getElementById('modalStockMember').value = item.member;
+      document.getElementById('modalStockPrice').value = item.price;
+      document.getElementById('modalStockMax').value = item.stockQty;
+
+      document.getElementById('modalInfoCard').innerHTML = `
+        <b>活動場次：</b>[${item.group}] ${item.eventName}<br>
+        <b>認領成員：</b>${MEMBER_EMOJI_MAP[item.member] || '👤'} ${item.member}<br>
+        <b>規格說明：</b>${item.spec || '-'}<br>
+        <b>單價金額：</b>$${Number(item.price || 0).toLocaleString()} 元 / 包 (目前剩餘 <b>${item.stockQty}</b> 包)
+      `;
+
+      modalQtyInput.max = item.stockQty;
+      modalQtyInput.value = 1;
+      modalCustomInput.style.display = 'none';
+      modalCustomInput.value = '';
+
+      // 載入該團體買家名單
+      const filteredUsers = usersDatabase.filter(u => u.group === item.group && u.name).map(u => u.name);
+      const uniqueBuyers = Array.from(new Set(filteredUsers)).sort((a,b)=>a.localeCompare(b,'zh-TW'));
+
+      modalBuyerSel.innerHTML = '<option value="">請選擇購買買家</option>';
+      uniqueBuyers.forEach(b => {
+        modalBuyerSel.innerHTML += `<option value="${b}">${b}</option>`;
+      });
+      modalBuyerSel.innerHTML += '<option value="CUSTOM">➕ 其他 (社群暱稱)...</option>';
+      modalBuyerSel.innerHTML += '<option value="THREADS">➕ 其他 (Threads帳號)...</option>';
+
+      updateModalCalc();
+      claimModal.style.display = 'flex';
+    };
+
+    window.closeClaimModal = () => {
+      claimModal.style.display = 'none';
+      document.getElementById('claimOrderForm').reset();
+    };
+
+    document.getElementById('claimOrderForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const docId = document.getElementById('modalStockId').value;
+      const grp = document.getElementById('modalStockGroup').value;
+      const ev = document.getElementById('modalStockEvent').value;
+      const mem = document.getElementById('modalStockMember').value;
+      const price = Number(document.getElementById('modalStockPrice').value) || 0;
+      const maxStock = Number(document.getElementById('modalStockMax').value) || 0;
+      const claimQty = Number(modalQtyInput.value) || 0;
+
+      if (claimQty <= 0 || claimQty > maxStock) {
+        alert(`⚠️ 認領包數必須在 1 到 ${maxStock} 之間！`);
+        return;
+      }
+
+      let buyerVal = modalBuyerSel.value;
+      if (buyerVal === 'CUSTOM') {
+        buyerVal = modalCustomInput.value.trim();
+        if (!buyerVal) return alert('請輸入社群暱稱！');
+        try {
+          await setDoc(doc(db, "users", `${grp}_${buyerVal}`), { group: grp, name: buyerVal, type: "custom", updatedAt: new Date().toISOString() }, { merge: true });
+        } catch(e){}
+      } else if (buyerVal === 'THREADS') {
+        buyerVal = modalCustomInput.value.trim();
+        if (!buyerVal) return alert('請輸入 Threads 帳號！');
+        try {
+          await setDoc(doc(db, "users", `${grp}_${buyerVal}`), { group: grp, name: buyerVal, type: "threads", updatedAt: new Date().toISOString() }, { merge: true });
+        } catch(e){}
+      }
+
+      const confirmOrder = confirm(`確認為買家【${buyerVal}】建立餘圖認領訂單嗎？\n\n• 數量：${claimQty} 包\n• 總金額：$${(price * claimQty).toLocaleString()} 元\n\n系統將自動建立訂單並扣減庫存！`);
+      if (!confirmOrder) return;
+
+      const confirmBtn = document.getElementById('modalConfirmBtn');
+      confirmBtn.disabled = true;
+      confirmBtn.textContent = '登記建單中...';
+
+      try {
+        // 1. 寫入 orders 訂單集合
+        const orderData = {
+          group: grp,
+          buyerName: buyerVal,
+          user: buyerVal,
+          event: ev,
+          eventName: ev,
+          member: mem,
+          qty: claimQty,
+          quantity: claimQty,
+          price: price,
+          orderType: '餘圖認領',
+          note: document.getElementById('modalClaimNote').value.trim() || '餘圖現貨認領',
+          createdAt: new Date().toISOString(),
+          paymentStatus: '待匯款',
+          status: '待匯款',
+          hasPaid: false
+        };
+        await addDoc(collection(db, "orders"), orderData);
+
+        // 2. 扣減 stock_photos 庫存
+        const newStockQty = maxStock - claimQty;
+        await setDoc(doc(db, "stock_photos", docId), {
+          stockQty: newStockQty,
+          status: (newStockQty <= 0) ? '已售完' : '開放認領',
+          updatedAt: new Date().toISOString()
+        }, { merge: true });
+
+        alert(`🎉 餘圖認領登記成功！\n已建立待匯款訂單，庫存剩餘 ${newStockQty} 包。`);
+        closeClaimModal();
+      } catch(err) {
+        alert('登記失敗: ' + err.message);
+      } finally {
+        confirmBtn.disabled = false;
+        confirmBtn.textContent = '確定登記並扣減庫存';
+      }
+    });
   </script>
 </body>
 </html>
