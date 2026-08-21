@@ -16,6 +16,9 @@
     .capsule-filter-btn.active { background: #409eff; color: #fff; border-color: #409eff; box-shadow: 0 2px 6px rgba(64,158,255,0.25); }
     .capsule-filter-btn.sub-active { background: #67c23a; color: #fff; border-color: #67c23a; box-shadow: 0 2px 6px rgba(103,194,58,0.25); }
 
+    .section-divider { display: flex; align-items: center; justify-content: center; margin: 24px 0 16px 0; color: #f56c6c; font-size: 13px; font-weight: bold; }
+    .section-divider::before, .section-divider::after { content: ''; flex: 1; border-bottom: 1px dashed #fde2e2; margin: 0 12px; }
+
     .stock-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
     .stock-card { background: #fff; border: 1px solid #e4e7ed; border-radius: 12px; padding: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); display: flex; flex-direction: column; justify-content: space-between; transition: all 0.2s ease; }
     .stock-card.sold-out { opacity: 0.55; filter: grayscale(1); background: #fafafa; border-color: #ebeef5; pointer-events: auto; }
@@ -54,7 +57,14 @@
     </div>
   </div>
 
-  <div class="stock-grid" id="stockContainer">載入中...</div>
+  <div id="stockDisplayArea">
+    <div class="stock-grid" id="activeStockContainer">載入中...</div>
+
+    <div id="soldOutDividerBlock" style="display:none;">
+      <div class="section-divider">🔴 已售完</div>
+      <div class="stock-grid" id="soldOutStockContainer"></div>
+    </div>
+  </div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -115,6 +125,13 @@
         renderStockCards();
       });
     });
+
+    function extractDateScore(evName) {
+      if (!evName) return 99999999;
+      const match = evName.match(/\d{6}/);
+      if (match) return parseInt(match[0], 10);
+      return 99999999;
+    }
 
     function renderGroupCapsules() {
       const container = document.getElementById('groupCapsules');
@@ -217,9 +234,27 @@
       }
     }
 
+    function sortStockItems(items) {
+      return items.sort((a, b) => {
+        const dateA = extractDateScore(a.eventName || '');
+        const dateB = extractDateScore(b.eventName || '');
+        if (dateA !== dateB) return dateA - dateB;
+
+        const grp = a.group || 'Stray Kids';
+        const mList = memberMap[grp] || [];
+        const idxA = mList.indexOf(a.member || '');
+        const idxB = mList.indexOf(b.member || '');
+        return (idxA === -1 ? 99 : idxA) - (idxB === -1 ? 99 : idxB);
+      });
+    }
+
     function renderStockCards() {
-      const container = document.getElementById('stockContainer');
-      container.innerHTML = '';
+      const activeContainer = document.getElementById('activeStockContainer');
+      const soldOutContainer = document.getElementById('soldOutStockContainer');
+      const soldOutBlock = document.getElementById('soldOutDividerBlock');
+
+      activeContainer.innerHTML = '';
+      soldOutContainer.innerHTML = '';
 
       let list = stockList;
       if (activeGroup !== 'ALL') list = list.filter(i => i.group === activeGroup);
@@ -229,36 +264,65 @@
       }
 
       if (list.length === 0) {
-        container.innerHTML = '<p style="color:#909399; font-size:14px; grid-column: 1 / -1;">目前尚無開放認領的餘圖庫存。</p>';
+        activeContainer.innerHTML = '<p style="color:#909399; font-size:14px; grid-column: 1 / -1;">目前尚無開放認領的餘圖庫存。</p>';
+        soldOutBlock.style.display = 'none';
         notifyHeight();
         return;
       }
 
+      const activeList = [];
+      const soldOutList = [];
+
       list.forEach(item => {
         const isSoldOut = (Number(item.stockQty || 0) <= 0 || item.status === '已售完');
-        const tagClass = isSoldOut ? 'stock-tag stock-tag-sold' : 'stock-tag stock-tag-open';
-        const tagText = isSoldOut ? '🔴 已售完' : `🟢 剩餘 ${item.stockQty} 包`;
-
-        const card = document.createElement('div');
-        card.className = `stock-card ${isSoldOut ? 'sold-out' : ''}`;
-        card.innerHTML = `
-          <div>
-            <div class="stock-header">📅 [${item.group}] ${item.eventName}</div>
-            <div class="stock-body">
-              <b>${MEMBER_EMOJI_MAP[item.member] || '👤'} ${item.member}</b><br>
-              • 規格說明: <b>${item.spec || '-'}</b><br>
-              ${item.note ? `• 備註: ${item.note}<br>` : ''}
-              <div class="stock-price">$${Number(item.price || 0).toLocaleString()} 元 / 包</div>
-              <span class="${tagClass}">${tagText}</span>
-            </div>
-          </div>
-          <button class="btn-claim" ${isSoldOut ? 'disabled' : ''} onclick="copyClaimFormat('${item.group}', '${item.eventName}', '${item.member}', '${item.price}', '${item.spec}')">
-            ${isSoldOut ? '🔴 已售完' : '📋 複製認領喊單格式'}
-          </button>
-        `;
-        container.appendChild(card);
+        if (isSoldOut) {
+          soldOutList.push(item);
+        } else {
+          activeList.push(item);
+        }
       });
+
+      const sortedActive = sortStockItems(activeList);
+      const sortedSoldOut = sortStockItems(soldOutList);
+
+      if (sortedActive.length > 0) {
+        sortedActive.forEach(item => renderSingleCard(item, activeContainer, false));
+      } else {
+        activeContainer.innerHTML = '<p style="color:#909399; font-size:14px; grid-column: 1 / -1;">目前無進行中可認領的現貨餘圖。</p>';
+      }
+
+      if (sortedSoldOut.length > 0) {
+        soldOutBlock.style.display = 'block';
+        sortedSoldOut.forEach(item => renderSingleCard(item, soldOutContainer, true));
+      } else {
+        soldOutBlock.style.display = 'none';
+      }
+
       notifyHeight();
+    }
+
+    function renderSingleCard(item, container, isSoldOut) {
+      const tagClass = isSoldOut ? 'stock-tag stock-tag-sold' : 'stock-tag stock-tag-open';
+      const tagText = isSoldOut ? '🔴 已售完' : `🟢 剩餘 ${item.stockQty} 包`;
+
+      const card = document.createElement('div');
+      card.className = `stock-card ${isSoldOut ? 'sold-out' : ''}`;
+      card.innerHTML = `
+        <div>
+          <div class="stock-header">📅 [${item.group}] ${item.eventName}</div>
+          <div class="stock-body">
+            <b>${MEMBER_EMOJI_MAP[item.member] || '👤'} ${item.member}</b><br>
+            • 規格說明: <b>${item.spec || '-'}</b><br>
+            ${item.note ? `• 備註: ${item.note}<br>` : ''}
+            <div class="stock-price">$${Number(item.price || 0).toLocaleString()} 元 / 包</div>
+            <span class="${tagClass}">${tagText}</span>
+          </div>
+        </div>
+        <button class="btn-claim" ${isSoldOut ? 'disabled' : ''} onclick="copyClaimFormat('${item.group}', '${item.eventName}', '${item.member}', '${item.price}', '${item.spec}')">
+          ${isSoldOut ? '🔴 已售完' : '📋 複製認領喊單格式'}
+        </button>
+      `;
+      container.appendChild(card);
     }
 
     window.copyClaimFormat = (group, ev, mem, price, spec) => {

@@ -17,6 +17,9 @@
     .capsule-filter-btn.active { background: #409eff; color: #fff; border-color: #409eff; box-shadow: 0 2px 6px rgba(64,158,255,0.25); }
     .capsule-filter-btn.sub-active { background: #67c23a; color: #fff; border-color: #67c23a; box-shadow: 0 2px 6px rgba(103,194,58,0.25); }
 
+    .section-divider { display: flex; align-items: center; justify-content: center; margin: 24px 0 16px 0; color: #909399; font-size: 13px; font-weight: bold; }
+    .section-divider::before, .section-divider::after { content: ''; flex: 1; border-bottom: 1px dashed #dcdfe6; margin: 0 12px; }
+
     .progress-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 10px; align-items: start; }
     @media (max-width: 768px) {
       .progress-grid { grid-template-columns: 1fr; }
@@ -32,6 +35,12 @@
       flex-direction: column;
       justify-content: flex-start;
     }
+    .progress-card.archived-card {
+      opacity: 0.6;
+      background: #f4f4f5;
+      border-color: #e4e7ed;
+      filter: grayscale(0.85);
+    }
     .progress-card-title {
       font-size: 15px;
       font-weight: bold;
@@ -43,11 +52,15 @@
       align-items: center;
       gap: 6px;
     }
+    .archived-card .progress-card-title {
+      color: #606266;
+    }
 
     table.card-table { width: 100%; border-collapse: collapse; background: transparent; }
     table.card-table th, table.card-table td { padding: 6px 4px; border-bottom: 1px solid #ebeef5; text-align: left; font-size: 12px; vertical-align: top; }
     table.card-table tr:last-child td { border-bottom: none; }
     table.card-table th { background: #edf2fc; color: #606266; font-weight: bold; }
+    .archived-card table.card-table th { background: #e4e7ed; color: #909399; }
 
     .action-cell { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
     .action-sub-row { display: flex; gap: 4px; flex-wrap: wrap; }
@@ -159,8 +172,15 @@
     </div>
   </div>
 
-  <div class="progress-grid" id="progressContainer">
-    <p style="text-align:center; color:#909399; grid-column: span 2;">資料載入中...</p>
+  <div id="progressDisplayArea">
+    <div class="progress-grid" id="activeProgressContainer">
+      <p style="text-align:center; color:#909399; grid-column: span 2;">資料載入中...</p>
+    </div>
+
+    <div id="archivedDividerBlock" style="display:none;">
+      <div class="section-divider">🏁 已結束 / 到期封存</div>
+      <div class="progress-grid" id="archivedProgressContainer"></div>
+    </div>
   </div>
 
   <script type="module">
@@ -480,6 +500,13 @@
       renderProgressCards();
     });
 
+    function extractDateScore(evName) {
+      if (!evName) return 99999999;
+      const match = evName.match(/\d{6}/);
+      if (match) return parseInt(match[0], 10);
+      return 99999999;
+    }
+
     function getBuyerIssueSummary(eventName, member, isHide) {
       if (isHide) {
         return '<span class="buyer-issue-tag buyer-tag-hidden">👁️ (買家名單已隱藏)</span>';
@@ -541,8 +568,12 @@
     }
 
     function renderProgressCards() {
-      const container = document.getElementById('progressContainer');
-      container.innerHTML = '';
+      const activeContainer = document.getElementById('activeProgressContainer');
+      const archivedContainer = document.getElementById('archivedProgressContainer');
+      const archivedBlock = document.getElementById('archivedDividerBlock');
+      
+      activeContainer.innerHTML = '';
+      archivedContainer.innerHTML = '';
 
       let list = lastProgressList;
 
@@ -562,32 +593,81 @@
       }
 
       if (list.length === 0) {
-        container.innerHTML = '<p style="text-align:center; color:#909399; grid-column: span 2;">目前無符合條件的發圖進度紀錄。</p>';
+        activeContainer.innerHTML = '<p style="text-align:center; color:#909399; grid-column: span 2;">目前無符合條件的發圖進度紀錄。</p>';
+        archivedBlock.style.display = 'none';
         notifyHeight();
+        return;
+      }
+
+      const activeList = [];
+      const archivedList = [];
+
+      list.forEach(i => {
+        if (i.status === '已結束' || i.status === '到期/已刪除') {
+          archivedList.push(i);
+        } else {
+          activeList.push(i);
+        }
+      });
+
+      renderGroupedCardsInto(activeList, activeContainer, false);
+
+      if (archivedList.length > 0) {
+        archivedBlock.style.display = 'block';
+        renderGroupedCardsInto(archivedList, archivedContainer, true);
+      } else {
+        archivedBlock.style.display = 'none';
+      }
+
+      notifyHeight();
+    }
+
+    function renderGroupedCardsInto(itemList, targetContainer, isArchived) {
+      if (itemList.length === 0) {
+        if (!isArchived) {
+          targetContainer.innerHTML = '<p style="text-align:center; color:#909399; grid-column: span 2;">目前無進行中的進度紀錄。</p>';
+        }
         return;
       }
 
       const groups = {};
 
       if (activeMode === 'member') {
-        list.forEach(item => {
+        itemList.forEach(item => {
           const eName = item.eventName || item.event || '未命名活動';
           if (!groups[eName]) groups[eName] = [];
           groups[eName].push(item);
         });
 
-        for (const [eventName, items] of Object.entries(groups)) {
-          const card = document.createElement('div');
-          card.className = 'progress-card';
+        const sortedEventKeys = Object.keys(groups).sort((a, b) => {
+          const dateA = extractDateScore(a);
+          const dateB = extractDateScore(b);
+          if (dateA !== dateB) return dateA - dateB;
+          return a.localeCompare(b, 'zh-TW');
+        });
 
-          let tableHtml = '<div class="progress-card-title">🗓️ ' + eventName + '</div>' +
-            '<table class="card-table"><thead><tr>' +
-              '<th style="width: 14%;">成員/批次</th>' +
-              '<th style="width: 16%;">代拍</th>' +
-              '<th style="width: 14%;">狀態</th>' +
-              '<th style="width: 32%;">買家名單與阻礙</th>' +
-              '<th style="width: 24%;">操作</th>' +
-            '</tr></thead><tbody>';
+        sortedEventKeys.forEach(eventName => {
+          const items = groups[eventName];
+          const card = document.createElement('div');
+          card.className = `progress-card ${isArchived ? 'archived-card' : ''}`;
+
+          let tableHtml = `<div class="progress-card-title">🗓️ ${eventName} ${isArchived ? '(已結束)' : ''}</div>` +
+            `<table class="card-table"><thead><tr>` +
+              `<th style="width: 14%;">成員/批次</th>` +
+              `<th style="width: 16%;">代拍</th>` +
+              `<th style="width: 14%;">狀態</th>` +
+              `<th style="width: 32%;">買家名單與阻礙</th>` +
+              `<th style="width: 24%;">操作</th>` +
+            `</tr></thead><tbody>`;
+
+          // 成員依照官方順序排序
+          items.sort((a, b) => {
+            const grp = a.group || 'Stray Kids';
+            const mList = memberMap[grp] || [];
+            const idxA = mList.indexOf(a.member || '');
+            const idxB = mList.indexOf(b.member || '');
+            return (idxA === -1 ? 99 : idxA) - (idxB === -1 ? 99 : idxB);
+          });
 
           items.forEach((item) => {
             const mName = item.member || '全體';
@@ -598,47 +678,67 @@
             const isHidden = (item.isHideBuyers === true);
             const buyerSummary = getBuyerIssueSummary(ev, mName, isHidden);
 
-            tableHtml += '<tr>' +
-              '<td style="font-weight:bold;">' + mName + '<br><span style="font-size:11px; color:#909399;">(' + batchName + ')</span></td>' +
-              '<td>' + sellerName + '</td>' +
-              '<td><span class="badge-status" data-val="' + statusText + '">' + statusText + '</span></td>' +
-              '<td>' + buyerSummary + '</td>' +
-              '<td>' +
-                '<div class="action-cell">' +
-                  '<button class="btn-notify" onclick="triggerManualPayment(\'' + ev + '\', \'' + mName + '\', \'' + item.id + '\')">📢 發起匯款</button>' +
-                  '<div class="action-sub-row">' +
-                    '<button class="btn-toggle-eye ' + (isHidden ? 'is-hidden' : '') + '" onclick="toggleHideBuyers(\'' + item.id + '\', ' + isHidden + ')">' + (isHidden ? '👁️ 顯示' : '👁️ 隱藏') + '</button>' +
-                    '<button class="btn-edit" onclick="editProgress(\'' + item.id + '\')">編輯</button>' +
-                    '<button class="btn-danger" onclick="deleteProgress(\'' + item.id + '\')">刪除</button>' +
-                  '</div>' +
-                '</div>' +
-              '</td>' +
-            '</tr>';
+            tableHtml += `<tr>` +
+              `<td style="font-weight:bold;">${mName}<br><span style="font-size:11px; color:#909399;">(${batchName})</span></td>` +
+              `<td>${sellerName}</td>` +
+              `<td><span class="badge-status" data-val="${statusText}">${statusText}</span></td>` +
+              `<td>${buyerSummary}</td>` +
+              `<td>` +
+                `<div class="action-cell">` +
+                  `<button class="btn-notify" onclick="triggerManualPayment('${ev}', '${mName}', '${item.id}')">📢 發起匯款</button>` +
+                  `<div class="action-sub-row">` +
+                    `<button class="btn-toggle-eye ${isHidden ? 'is-hidden' : ''}" onclick="toggleHideBuyers('${item.id}', ${isHidden})">${isHidden ? '👁️ 顯示' : '👁️ 隱藏'}</button>` +
+                    `<button class="btn-edit" onclick="editProgress('${item.id}')">編輯</button>` +
+                    `<button class="btn-danger" onclick="deleteProgress('${item.id}')">刪除</button>` +
+                  `</div>` +
+                `</div>` +
+              `</td>` +
+            `</tr>`;
           });
 
-          tableHtml += '</tbody></table>';
+          tableHtml += `</tbody></table>`;
           card.innerHTML = tableHtml;
-          container.appendChild(card);
-        }
+          targetContainer.appendChild(card);
+        });
       } else {
-        list.forEach(item => {
+        itemList.forEach(item => {
           const mName = item.member || '全體';
           if (!groups[mName]) groups[mName] = [];
           groups[mName].push(item);
         });
 
-        for (const [memberName, items] of Object.entries(groups)) {
-          const card = document.createElement('div');
-          card.className = 'progress-card';
+        const memberKeys = Object.keys(groups).sort((a, b) => {
+          const mListSkz = memberMap['Stray Kids'] || [];
+          const mListAtz = memberMap['ATEEZ'] || [];
+          const allM = [...mListSkz, ...mListAtz];
+          const idxA = allM.indexOf(a);
+          const idxB = allM.indexOf(b);
+          return (idxA === -1 ? 99 : idxA) - (idxB === -1 ? 99 : idxB);
+        });
 
-          let tableHtml = '<div class="progress-card-title">👤 ' + memberName + '</div>' +
-            '<table class="card-table"><thead><tr>' +
-              '<th style="width: 26%;">活動名稱/批次</th>' +
-              '<th style="width: 16%;">代拍</th>' +
-              '<th style="width: 14%;">狀態</th>' +
-              '<th style="width: 22%;">買家名單與阻礙</th>' +
-              '<th style="width: 22%;">操作</th>' +
-            '</tr></thead><tbody>';
+        memberKeys.forEach(memberName => {
+          const items = groups[memberName];
+          const card = document.createElement('div');
+          card.className = `progress-card ${isArchived ? 'archived-card' : ''}`;
+
+          let tableHtml = `<div class="progress-card-title">👤 ${memberName} ${isArchived ? '(已結束)' : ''}</div>` +
+            `<table class="card-table"><thead><tr>` +
+              `<th style="width: 26%;">活動名稱/批次</th>` +
+              `<th style="width: 16%;">代拍</th>` +
+              `<th style="width: 14%;">狀態</th>` +
+              `<th style="width: 22%;">買家名單與阻礙</th>` +
+              `<th style="width: 22%;">操作</th>` +
+            `</tr></thead><tbody>`;
+
+          // 活動依照日期順序排序
+          items.sort((a, b) => {
+            const evA = a.eventName || a.event || '';
+            const evB = b.eventName || b.event || '';
+            const dateA = extractDateScore(evA);
+            const dateB = extractDateScore(evB);
+            if (dateA !== dateB) return dateA - dateB;
+            return evA.localeCompare(evB, 'zh-TW');
+          });
 
           items.forEach((item) => {
             const ev = item.eventName || item.event || '活動';
@@ -648,31 +748,29 @@
             const isHidden = (item.isHideBuyers === true);
             const buyerSummary = getBuyerIssueSummary(ev, memberName, isHidden);
 
-            tableHtml += '<tr>' +
-              '<td style="font-weight:bold;">' + ev + '<br><span style="font-size:11px; color:#909399;">(' + batchName + ')</span></td>' +
-              '<td>' + sellerName + '</td>' +
-              '<td><span class="badge-status" data-val="' + statusText + '">' + statusText + '</span></td>' +
-              '<td>' + buyerSummary + '</td>' +
-              '<td>' +
-                '<div class="action-cell">' +
-                  '<button class="btn-notify" onclick="triggerManualPayment(\'' + ev + '\', \'' + memberName + '\', \'' + item.id + '\')">📢 發起匯款</button>' +
-                  '<div class="action-sub-row">' +
-                    '<button class="btn-toggle-eye ' + (isHidden ? 'is-hidden' : '') + '" onclick="toggleHideBuyers(\'' + item.id + '\', ' + isHidden + ')">' + (isHidden ? '👁️ 顯示' : '👁️ 隱藏') + '</button>' +
-                    '<button class="btn-edit" onclick="editProgress(\'' + item.id + '\')">編輯</button>' +
-                    '<button class="btn-danger" onclick="deleteProgress(\'' + item.id + '\')">刪除</button>' +
-                  '</div>' +
-                '</div>' +
-              '</td>' +
-            '</tr>';
+            tableHtml += `<tr>` +
+              `<td style="font-weight:bold;">${ev}<br><span style="font-size:11px; color:#909399;">(${batchName})</span></td>` +
+              `<td>${sellerName}</td>` +
+              `<td><span class="badge-status" data-val="${statusText}">${statusText}</span></td>` +
+              `<td>${buyerSummary}</td>` +
+              `<td>` +
+                `<div class="action-cell">` +
+                  `<button class="btn-notify" onclick="triggerManualPayment('${ev}', '${memberName}', '${item.id}')">📢 發起匯款</button>` +
+                  `<div class="action-sub-row">` +
+                    `<button class="btn-toggle-eye ${isHidden ? 'is-hidden' : ''}" onclick="toggleHideBuyers('${item.id}', ${isHidden})">${isHidden ? '👁️ 顯示' : '👁️ 隱藏'}</button>` +
+                    `<button class="btn-edit" onclick="editProgress('${item.id}')">編輯</button>` +
+                    `<button class="btn-danger" onclick="deleteProgress('${item.id}')">刪除</button>` +
+                  `</div>` +
+                `</div>` +
+              `</td>` +
+            `</tr>`;
           });
 
-          tableHtml += '</tbody></table>';
+          tableHtml += `</tbody></table>`;
           card.innerHTML = tableHtml;
-          container.appendChild(card);
-        }
+          targetContainer.appendChild(card);
+        });
       }
-
-      notifyHeight();
     }
 
     window.toggleHideBuyers = async (docId, currentHidden) => {
