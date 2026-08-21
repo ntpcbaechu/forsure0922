@@ -269,25 +269,22 @@
         return;
       }
 
-      // 依 團體與成員 進行大卡片群組
-      const memberGroups = {};
-      list.forEach(item => {
-        const grp = item.group || 'Stray Kids';
-        const mem = item.member || '全體';
-        const groupKey = `${grp}___${mem}`;
-        if (!memberGroups[groupKey]) memberGroups[groupKey] = [];
-        memberGroups[groupKey].push(item);
-      });
-
+      // 場次層級精確拆分：進行中 與 已售完 獨立群組
       const activeMemberGroups = {};
       const soldOutMemberGroups = {};
 
-      Object.entries(memberGroups).forEach(([key, items]) => {
-        const hasAvailable = items.some(i => Number(i.stockQty || 0) > 0 && i.status !== '已售完');
-        if (hasAvailable) {
-          activeMemberGroups[key] = items;
+      list.forEach(item => {
+        const isItemSoldOut = (Number(item.stockQty || 0) <= 0 || item.status === '已售完');
+        const grp = item.group || 'Stray Kids';
+        const mem = item.member || '全體';
+        const groupKey = `${grp}___${mem}`;
+
+        if (isItemSoldOut) {
+          if (!soldOutMemberGroups[groupKey]) soldOutMemberGroups[groupKey] = [];
+          soldOutMemberGroups[groupKey].push(item);
         } else {
-          soldOutMemberGroups[key] = items;
+          if (!activeMemberGroups[groupKey]) activeMemberGroups[groupKey] = [];
+          activeMemberGroups[groupKey].push(item);
         }
       });
 
