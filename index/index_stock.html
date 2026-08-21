@@ -198,8 +198,9 @@
       };
       container.appendChild(allBtn);
 
-      let list = stockList;
-      if (activeGroup !== 'ALL') list = list.filter(i => i.group === activeGroup);
+      // 只篩選出「有庫存且開放認領」的項目來產生細項按鈕
+      let inStockList = stockList.filter(i => Number(i.stockQty || 0) > 0 && i.status !== '已售完');
+      if (activeGroup !== 'ALL') inStockList = inStockList.filter(i => i.group === activeGroup);
 
       if (activeMode === 'member') {
         let membersInJson = [];
@@ -209,9 +210,9 @@
           membersInJson = memberMap[activeGroup] || [];
         }
 
-        const activeMembersWithData = new Set(list.map(i => i.member).filter(Boolean));
+        const activeMembersWithStock = new Set(inStockList.map(i => i.member).filter(Boolean));
         membersInJson.forEach(m => {
-          if (activeMembersWithData.has(m)) {
+          if (activeMembersWithStock.has(m)) {
             const btn = document.createElement('button');
             btn.className = `capsule-filter-btn ${activeDetail === m ? 'sub-active' : ''}`;
             btn.textContent = (MEMBER_EMOJI_MAP[m] ? `${MEMBER_EMOJI_MAP[m]} ` : '') + m;
@@ -226,7 +227,7 @@
         });
       } else if (activeMode === 'event') {
         const eventsSet = new Set();
-        list.forEach(i => { if (i.eventName) eventsSet.add(i.eventName); });
+        inStockList.forEach(i => { if (i.eventName) eventsSet.add(i.eventName); });
         Array.from(eventsSet).sort().forEach(ev => {
           const btn = document.createElement('button');
           btn.className = `capsule-filter-btn ${activeDetail === ev ? 'sub-active' : ''}`;
