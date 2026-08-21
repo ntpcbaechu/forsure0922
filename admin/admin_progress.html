@@ -78,6 +78,9 @@
     .form-row { display: flex; flex-direction: column; gap: 12px; margin-bottom: 15px; background: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px solid #ebeef5; }
     .form-selects { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
 
+    .sellers-check-box { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; background: #fff; padding: 4px 8px; border: 1px solid #dcdfe6; border-radius: 6px; min-height: 36px; }
+    .seller-label { font-size: 12px; color: #606266; display: inline-flex; align-items: center; gap: 3px; cursor: pointer; margin: 0; }
+
     .badge-status { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: bold; }
     .badge-status[data-val="未開放"] { background: #f4f4f5; color: #909399; }
     .badge-status[data-val="已預約"] { background: #f4f4f5; color: #909399; }
@@ -126,7 +129,9 @@
         <option value="">請先選擇團體</option>
       </select>
 
-      <input type="text" id="sellerInput" placeholder="代拍名稱 (多個用逗號分隔)" style="min-width: 160px;" value="代拍1">
+      <div class="sellers-check-box" id="sellersCheckContainer">
+        <span style="font-size:12px; color:#909399;">請先選擇活動</span>
+      </div>
 
       <select id="statusSelect" required style="min-width: 140px; font-weight: bold; color: #409eff;">
         <option value="">請選擇進度狀態 *</option>
@@ -220,7 +225,7 @@
     const batchSel = document.getElementById('batchSelect');
     const groupSel = document.getElementById('groupSelect');
     const memSel = document.getElementById('memberSelect');
-    const sellerInput = document.getElementById('sellerInput');
+    const sellersCheckContainer = document.getElementById('sellersCheckContainer');
     const statusSelect = document.getElementById('statusSelect');
 
     document.addEventListener('DOMContentLoaded', async () => {
@@ -454,7 +459,11 @@
 
     evSel.addEventListener('change', () => {
       const selectedEvent = evSel.value;
-      if (!selectedEvent) return;
+      sellersCheckContainer.innerHTML = '';
+      if (!selectedEvent) {
+        sellersCheckContainer.innerHTML = '<span style="font-size:12px; color:#909399;">請先選擇活動</span>';
+        return;
+      }
 
       const isSurplus = selectedEvent.startsWith('【餘圖認領】');
       const cleanEvent = selectedEvent.replace('【餘圖認領】', '').trim();
@@ -466,8 +475,13 @@
         }
       });
 
-      if (sellerSet.size > 0) {
-        sellerInput.value = Array.from(sellerSet).join(', ');
+      const sellers = Array.from(sellerSet).sort((a, b) => a.localeCompare(b, 'zh-TW'));
+      if (sellers.length === 0) {
+        sellersCheckContainer.innerHTML = '<label class="seller-label"><input type="checkbox" value="代拍1" checked> 代拍1</label>';
+      } else {
+        sellers.forEach((p, idx) => {
+          sellersCheckContainer.innerHTML += `<label class="seller-label"><input type="checkbox" value="${p}" ${idx===0?'checked':''}> ${p}</label>`;
+        });
       }
 
       if (isSurplus) {
@@ -660,7 +674,6 @@
               `<th style="width: 24%;">操作</th>` +
             `</tr></thead><tbody>`;
 
-          // 成員依照官方順序排序
           items.sort((a, b) => {
             const grp = a.group || 'Stray Kids';
             const mList = memberMap[grp] || [];
@@ -730,7 +743,6 @@
               `<th style="width: 22%;">操作</th>` +
             `</tr></thead><tbody>`;
 
-          // 活動依照日期順序排序
           items.sort((a, b) => {
             const evA = a.eventName || a.event || '';
             const evB = b.eventName || b.event || '';
@@ -812,6 +824,12 @@
         return;
       }
 
+      const checkedSellers = Array.from(sellersCheckContainer.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value.trim());
+      if (checkedSellers.length === 0) {
+        alert('請至少勾選一個代拍！');
+        return;
+      }
+
       const saveBtn = document.getElementById('saveProgressBtn');
       saveBtn.disabled = true;
 
@@ -819,7 +837,7 @@
       const batch = batchSel.value || '批次 1';
       const group = groupSel.value;
       const member = memSel.value;
-      const seller = sellerInput.value.trim() || '代拍1';
+      const seller = checkedSellers.join(', ');
 
       const docId = (eventName + '_' + member + '_' + batch).replace(/[\/\s#?]/g, '_');
 
@@ -880,18 +898,24 @@
 
       document.getElementById('editProgressId').value = docId;
       evSel.value = item.eventName || item.event || '';
+      evSel.dispatchEvent(new Event('change'));
       batchSel.value = item.batch || '批次 1';
       
       if (item.group) {
         groupSel.value = item.group;
         groupSel.dispatchEvent(new Event('change'));
-        setTimeout(() => {
-          memSel.value = item.member || '';
-          sellerInput.value = item.seller || '代拍1';
-        }, 100);
       }
 
-      statusSelect.value = item.status || '';
+      setTimeout(() => {
+        memSel.value = item.member || '';
+        statusSelect.value = item.status || '';
+
+        const currentSellers = (item.seller || '').split(',').map(s => s.trim());
+        sellersCheckContainer.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+          cb.checked = currentSellers.includes(cb.value);
+        });
+      }, 100);
+
       document.getElementById('saveProgressBtn').textContent = '更新進度';
       document.getElementById('cancelBtn').style.display = 'inline-block';
     };
@@ -908,7 +932,7 @@
       batchSel.value = '批次 1';
       memSel.innerHTML = '<option value="">請先選擇團體</option>';
       memSel.disabled = true;
-      sellerInput.value = '代拍1';
+      sellersCheckContainer.innerHTML = '<span style="font-size:12px; color:#909399;">請先選擇活動</span>';
       statusSelect.value = '';
       document.getElementById('saveProgressBtn').textContent = '發佈進度';
       document.getElementById('cancelBtn').style.display = 'none';
@@ -917,7 +941,7 @@
     function notifyHeight() {
       setTimeout(() => {
         const h = Math.max(document.body.scrollHeight, 600);
-        window.parent.postMessage({ frameHeight: h }, '*');
+        window.parent.postMessage({ frameHeight: document.body.scrollHeight }, '*');
       }, 100);
     }
   </script>

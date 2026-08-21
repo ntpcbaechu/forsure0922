@@ -410,7 +410,7 @@
           const mItems = memberMapObj[mName];
           const st = mItems[0].status || '未開放';
           const isHiddenByAdmin = mItems.some(i => i.isHideBuyers === true);
-          const isSurplusMode = (st === '可詢問餘圖');
+          const isFinishedOrStock = (st === '可詢問餘圖' || st === '已發圖');
 
           const matchedBuyerOrders = [];
           Object.values(ordersCache).forEach(ord => {
@@ -467,7 +467,7 @@
                 }
               });
 
-              if (isSurplusMode && isPaidDone && isPhotoSentDone) {
+              if (activeUser === 'ALL' && isFinishedOrStock && isPaidDone && isPhotoSentDone) {
                 return;
               }
 
