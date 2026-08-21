@@ -16,16 +16,22 @@
     .capsule-filter-btn.active { background: #409eff; color: #fff; border-color: #409eff; box-shadow: 0 2px 6px rgba(64,158,255,0.25); }
     .capsule-filter-btn.sub-active { background: #67c23a; color: #fff; border-color: #67c23a; box-shadow: 0 2px 6px rgba(103,194,58,0.25); }
 
-    .section-divider { display: flex; align-items: center; justify-content: center; margin: 24px 0 16px 0; color: #606266; font-size: 13px; font-weight: bold; }
+    .section-divider { display: flex; align-items: center; justify-content: center; margin: 24px 0 16px 0; font-size: 13px; font-weight: bold; }
     .section-divider::before, .section-divider::after { content: ''; flex: 1; border-bottom: 1px dashed #dcdfe6; margin: 0 12px; }
+    .divider-pending { color: #e6a23c; }
+    .divider-pending::before, .divider-pending::after { border-bottom-color: #f5dab1; }
+    .divider-soldout { color: #606266; }
+    .divider-soldout::before, .divider-soldout::after { border-bottom-color: #dcdfe6; }
 
     .stock-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
 
     .member-group-card { background: #fff; border: 1px solid #e4e7ed; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.02); display: flex; flex-direction: column; }
+    .member-group-card.pending-card { border-color: #f5dab1; background: #fffdfa; }
     .member-group-card.sold-out-card { opacity: 0.6; filter: grayscale(0.85); background: #fafafa; }
 
     .member-group-header { background: #eef5fe; border-left: 4px solid #409eff; color: #1a252f; font-size: 15px; font-weight: bold; padding: 10px 14px; display: flex; align-items: center; gap: 6px; }
     .member-group-header.header-ateez { background: #f3e8ff; border-left: 4px solid #7e22ce; color: #581c87; }
+    .pending-card .member-group-header { background: #fdf6ec; border-left-color: #e6a23c; color: #b88230; }
     .sold-out-card .member-group-header { background: #f4f4f5; border-left-color: #909399; color: #606266; }
 
     .events-list-box { padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
@@ -35,6 +41,7 @@
 
     .stock-tag { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: bold; white-space: nowrap; }
     .stock-tag-open { background: #e8f5e9; color: #2e7d32; }
+    .stock-tag-pending { background: #fdf6ec; color: #e6a23c; border: 1px solid #faebd7; }
     .stock-tag-sold { background: #f4f4f5; color: #606266; border: 1px solid #dcdfe6; }
   </style>
 </head>
@@ -61,10 +68,18 @@
   </div>
 
   <div id="stockDisplayArea">
+    <!-- 1. 開放認領區塊 -->
     <div class="stock-grid" id="activeStockContainer">載入中...</div>
 
+    <!-- 2. 交易中區塊 -->
+    <div id="pendingDividerBlock" style="display:none;">
+      <div class="section-divider divider-pending">🟡 交易中 (待對帳 / 釋出即開放)</div>
+      <div class="stock-grid" id="pendingStockContainer"></div>
+    </div>
+
+    <!-- 3. 已售完區塊 -->
     <div id="soldOutDividerBlock" style="display:none;">
-      <div class="section-divider">⚫ 已售完</div>
+      <div class="section-divider divider-soldout">⚫ 已售完</div>
       <div class="stock-grid" id="soldOutStockContainer"></div>
     </div>
   </div>
@@ -97,6 +112,7 @@
     };
 
     let stockList = [];
+    let ordersList = [];
     let groupList = [];
     let memberMap = {};
 
@@ -120,6 +136,18 @@
 
       renderGroupCapsules();
       updateDetailCapsules();
+
+      onSnapshot(collection(db, "orders"), snap => {
+        ordersList = [];
+        snap.forEach(d => {
+          const data = d.data();
+          const isSurplus = (data.orderType === '餘圖認領' || (data.event || data.eventName || '').startsWith('【餘圖認領】'));
+          if (isSurplus) {
+            ordersList.push({ id: d.id, ...data });
+          }
+        });
+        renderStockCards();
+      });
 
       onSnapshot(collection(db, "stock_photos"), snap => {
         stockList = [];
@@ -198,7 +226,6 @@
       };
       container.appendChild(allBtn);
 
-      // 只篩選出「有庫存且開放認領」的項目來產生細項按鈕
       let inStockList = stockList.filter(i => Number(i.stockQty || 0) > 0 && i.status !== '已售完');
       if (activeGroup !== 'ALL') inStockList = inStockList.filter(i => i.group === activeGroup);
 
@@ -248,12 +275,47 @@
       return spec.replace(/\/包$/g, '').trim();
     }
 
+    function getItemStage(item) {
+      const isQtyZero = (Number(item.stockQty || 0) <= 0 || item.status === '已售完');
+      if (!isQtyZero) {
+        return 'OPEN'; // 🟢 開放認領
+      }
+
+      // 檢查此商品是否有「未完成對帳」的訂單
+      const evName = item.eventName || '';
+      const memName = item.member || '';
+      const grp = item.group || 'Stray Kids';
+
+      const relatedOrders = ordersList.filter(o => {
+        const ordGrp = o.group || 'Stray Kids';
+        const ordMem = o.member || '';
+        const ordEv = (o.event || o.eventName || '').replace('【餘圖認領】', '').trim();
+        return (ordGrp === grp && ordMem === memName && ordEv === evName);
+      });
+
+      if (relatedOrders.length > 0) {
+        const hasUnpaid = relatedOrders.some(o => {
+          const st = o.paymentStatus || o.status || (o.hasPaid ? '已對帳' : '待匯款');
+          return (st === '待匯款' || st === '待對帳' || st === '對帳中' || st === '有問題');
+        });
+
+        if (hasUnpaid) {
+          return 'PENDING'; // 🟡 交易中
+        }
+      }
+
+      return 'SOLDOUT'; // ⚫ 已售完
+    }
+
     function renderStockCards() {
       const activeContainer = document.getElementById('activeStockContainer');
+      const pendingContainer = document.getElementById('pendingStockContainer');
+      const pendingBlock = document.getElementById('pendingDividerBlock');
       const soldOutContainer = document.getElementById('soldOutStockContainer');
       const soldOutBlock = document.getElementById('soldOutDividerBlock');
 
       activeContainer.innerHTML = '';
+      pendingContainer.innerHTML = '';
       soldOutContainer.innerHTML = '';
 
       let list = stockList;
@@ -265,35 +327,46 @@
 
       if (list.length === 0) {
         activeContainer.innerHTML = '<p style="color:#909399; font-size:14px; grid-column: 1 / -1;">目前尚無開放認領的餘圖庫存。</p>';
+        pendingBlock.style.display = 'none';
         soldOutBlock.style.display = 'none';
         notifyHeight();
         return;
       }
 
-      // 場次層級精確拆分：進行中 與 已售完 獨立群組
       const activeMemberGroups = {};
+      const pendingMemberGroups = {};
       const soldOutMemberGroups = {};
 
       list.forEach(item => {
-        const isItemSoldOut = (Number(item.stockQty || 0) <= 0 || item.status === '已售完');
+        const stage = getItemStage(item);
         const grp = item.group || 'Stray Kids';
         const mem = item.member || '全體';
         const groupKey = `${grp}___${mem}`;
 
-        if (isItemSoldOut) {
-          if (!soldOutMemberGroups[groupKey]) soldOutMemberGroups[groupKey] = [];
-          soldOutMemberGroups[groupKey].push(item);
-        } else {
+        if (stage === 'OPEN') {
           if (!activeMemberGroups[groupKey]) activeMemberGroups[groupKey] = [];
           activeMemberGroups[groupKey].push(item);
+        } else if (stage === 'PENDING') {
+          if (!pendingMemberGroups[groupKey]) pendingMemberGroups[groupKey] = [];
+          pendingMemberGroups[groupKey].push(item);
+        } else {
+          if (!soldOutMemberGroups[groupKey]) soldOutMemberGroups[groupKey] = [];
+          soldOutMemberGroups[groupKey].push(item);
         }
       });
 
-      renderGroupedCards(activeMemberGroups, activeContainer, false);
+      renderGroupedCards(activeMemberGroups, activeContainer, 'OPEN');
+
+      if (Object.keys(pendingMemberGroups).length > 0) {
+        pendingBlock.style.display = 'block';
+        renderGroupedCards(pendingMemberGroups, pendingContainer, 'PENDING');
+      } else {
+        pendingBlock.style.display = 'none';
+      }
 
       if (Object.keys(soldOutMemberGroups).length > 0) {
         soldOutBlock.style.display = 'block';
-        renderGroupedCards(soldOutMemberGroups, soldOutContainer, true);
+        renderGroupedCards(soldOutMemberGroups, soldOutContainer, 'SOLDOUT');
       } else {
         soldOutBlock.style.display = 'none';
       }
@@ -301,16 +374,15 @@
       notifyHeight();
     }
 
-    function renderGroupedCards(groupsMap, targetContainer, isSoldOutSection) {
+    function renderGroupedCards(groupsMap, targetContainer, sectionType) {
       const keys = Object.keys(groupsMap);
       if (keys.length === 0) {
-        if (!isSoldOutSection) {
+        if (sectionType === 'OPEN') {
           targetContainer.innerHTML = '<p style="color:#909399; font-size:14px; grid-column: 1 / -1;">目前無進行中可認領的現貨餘圖。</p>';
         }
         return;
       }
 
-      // 排序成員（SKZ 先、ATZ 後，依官方順序）
       keys.sort((a, b) => {
         const [grpA, memA] = a.split('___');
         const [grpB, memB] = b.split('___');
@@ -330,7 +402,6 @@
         const [grpName, memName] = groupKey.split('___');
         const isAteez = (grpName === 'ATEEZ');
 
-        // 內部活動按日期舊到新排序
         items.sort((a, b) => {
           const dateA = extractDateScore(a.eventName || '');
           const dateB = extractDateScore(b.eventName || '');
@@ -340,11 +411,18 @@
 
         let eventsHtml = '';
         items.forEach(item => {
-          const isItemSoldOut = (Number(item.stockQty || 0) <= 0 || item.status === '已售完');
-          const tagClass = isItemSoldOut ? 'stock-tag stock-tag-sold' : 'stock-tag stock-tag-open';
-          const tagText = isItemSoldOut ? '⚫ 已售完' : `🟢 剩餘 ${item.stockQty} 包`;
+          let tagClass = 'stock-tag stock-tag-open';
+          let tagText = `🟢 剩餘 ${item.stockQty} 包`;
 
-          if (isSoldOutSection) {
+          if (sectionType === 'PENDING') {
+            tagClass = 'stock-tag stock-tag-pending';
+            tagText = '🟡 交易中';
+          } else if (sectionType === 'SOLDOUT') {
+            tagClass = 'stock-tag stock-tag-sold';
+            tagText = '⚫ 已售完';
+          }
+
+          if (sectionType === 'SOLDOUT') {
             eventsHtml += `
               <div class="event-item-block">
                 <div class="event-header-row">
@@ -362,7 +440,7 @@
                 </div>
                 <div class="event-detail-row">
                   <span>• 內容：<b>${formatSpec(item.spec)}</b>${item.note ? ` (${item.note})` : ''}</span>
-                  <span style="font-weight:bold; color:#f56c6c;">$${Number(item.price || 0).toLocaleString()} 元/包</span>
+                  <span style="font-weight:bold; color:${sectionType === 'PENDING' ? '#e6a23c' : '#f56c6c'};">$${Number(item.price || 0).toLocaleString()} 元/包</span>
                 </div>
               </div>
             `;
@@ -370,7 +448,10 @@
         });
 
         const headerClass = isAteez ? 'member-group-header header-ateez' : 'member-group-header';
-        const cardClass = isSoldOutSection ? 'member-group-card sold-out-card' : 'member-group-card';
+        let cardClass = 'member-group-card';
+        if (sectionType === 'PENDING') cardClass += ' pending-card';
+        else if (sectionType === 'SOLDOUT') cardClass += ' sold-out-card';
+
         const emoji = MEMBER_EMOJI_MAP[memName] || '👤';
 
         const card = document.createElement('div');
