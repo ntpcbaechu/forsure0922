@@ -172,6 +172,7 @@
     const db = getFirestore(app);
 
     let rawEventSettings = [];
+    let rawStockPhotos = [];
     let progressMap = {};
     let lastProgressList = [];
     let ordersCache = {};
@@ -391,6 +392,13 @@
         if (eName) eventsSet.add(eName.trim());
       });
 
+      // 自動讀入餘圖活動 (冠上 【餘圖認領】 前綴)
+      rawStockPhotos.forEach(s => {
+        if (s.eventName) {
+          eventsSet.add(`【餘圖認領】${s.eventName.trim()}`);
+        }
+      });
+
       const allEvents = Array.from(eventsSet).sort();
 
       const currentVal = evSel.value;
@@ -409,13 +417,24 @@
       refreshEventSelectDropdown();
     });
 
+    onSnapshot(collection(db, "stock_photos"), snap => {
+      rawStockPhotos = [];
+      snap.forEach(d => rawStockPhotos.push(d.data()));
+      refreshEventSelectDropdown();
+    });
+
     evSel.addEventListener('change', () => {
       const selectedEvent = evSel.value;
       if (!selectedEvent) return;
 
+      const isSurplus = selectedEvent.startsWith('【餘圖認領】');
+      const cleanEvent = selectedEvent.replace('【餘圖認領】', '').trim();
+
       const sellerSet = new Set();
       rawEventSettings.forEach(s => {
-        if (s.name === selectedEvent && s.seller) sellerSet.add(s.seller.trim());
+        if ((s.name === selectedEvent || s.name === cleanEvent) && s.seller) {
+          sellerSet.add(s.seller.trim());
+        }
       });
 
       const sellers = Array.from(sellerSet).sort((a, b) => a.localeCompare(b, 'zh-TW'));
@@ -424,6 +443,18 @@
         sellerSel.innerHTML += '<option value="代拍1">代拍1 (預設)</option>';
       } else {
         sellers.forEach(p => sellerSel.innerHTML += '<option value="' + p + '">' + p + '</option>');
+      }
+
+      // 如果選擇的是餘圖活動，自動匹配團體
+      if (isSurplus) {
+        const matchedStock = rawStockPhotos.find(s => s.eventName === cleanEvent);
+        if (matchedStock && matchedStock.group) {
+          groupSel.value = matchedStock.group;
+          groupSel.dispatchEvent(new Event('change'));
+          setTimeout(() => {
+            if (matchedStock.member) memSel.value = matchedStock.member;
+          }, 100);
+        }
       }
     });
 
@@ -446,9 +477,17 @@
     });
 
     function getBuyerIssueSummary(eventName, member) {
+      const isSurplus = eventName.startsWith('【餘圖認領】');
+      const cleanEvent = eventName.replace('【餘圖認領】', '').trim();
+
       const matchedOrders = Object.values(ordersCache).filter(o => {
-        const ev = o.event || o.eventName;
-        return ev === eventName && o.member === member;
+        const ev = (o.event || o.eventName || '').trim();
+        const mem = (o.member || '').trim();
+        if (isSurplus) {
+          return (ev === eventName || (o.orderType === '餘圖認領' && ev.includes(cleanEvent))) && mem === member;
+        } else {
+          return ev === eventName && mem === member;
+        }
       });
 
       if (matchedOrders.length === 0) {
@@ -659,7 +698,7 @@
       const seller = sellerSel.value;
 
       const cleanSeller = seller ? seller.trim() : '代拍1';
-      const docId = eventName + '_' + member + '_' + cleanSeller;
+      const docId = (eventName + '_' + member + '_' + cleanSeller).replace(/[\/\s#?]/g, '_');
 
       const updateData = {
         eventName: eventName,
@@ -683,18 +722,26 @@
 
     async function triggerOrdersToPendingPayment(eventName, member) {
       try {
-        const q = query(collection(db, "orders"), where("event", "==", eventName), where("member", "==", member));
+        const isSurplus = eventName.startsWith('【餘圖認領】');
+        const cleanEvent = eventName.replace('【餘圖認領】', '').trim();
+
+        const q = query(collection(db, "orders"), where("member", "==", member));
         const snap = await getDocs(q);
         const updatePromises = [];
+
         snap.forEach(d => {
           const ord = d.data();
-          if (!ord.hasPaid && ord.status !== '已對帳') {
+          const ev = (ord.event || ord.eventName || '').trim();
+          const isMatch = isSurplus ? (ev === eventName || (ord.orderType === '餘圖認領' && ev.includes(cleanEvent))) : (ev === eventName);
+
+          if (isMatch && !ord.hasPaid && ord.status !== '已對帳') {
             updatePromises.push(updateDoc(doc(db, "orders", d.id), {
               paymentStatus: '待匯款',
               status: '待匯款'
             }));
           }
         });
+
         if (updatePromises.length > 0) {
           await Promise.all(updatePromises);
         }
