@@ -16,23 +16,26 @@
     .capsule-filter-btn.active { background: #409eff; color: #fff; border-color: #409eff; box-shadow: 0 2px 6px rgba(64,158,255,0.25); }
     .capsule-filter-btn.sub-active { background: #67c23a; color: #fff; border-color: #67c23a; box-shadow: 0 2px 6px rgba(103,194,58,0.25); }
 
-    .section-divider { display: flex; align-items: center; justify-content: center; margin: 24px 0 16px 0; color: #f56c6c; font-size: 13px; font-weight: bold; }
-    .section-divider::before, .section-divider::after { content: ''; flex: 1; border-bottom: 1px dashed #fde2e2; margin: 0 12px; }
+    .section-divider { display: flex; align-items: center; justify-content: center; margin: 24px 0 16px 0; color: #606266; font-size: 13px; font-weight: bold; }
+    .section-divider::before, .section-divider::after { content: ''; flex: 1; border-bottom: 1px dashed #dcdfe6; margin: 0 12px; }
 
-    .stock-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
-    .stock-card { background: #fff; border: 1px solid #e4e7ed; border-radius: 12px; padding: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); display: flex; flex-direction: column; justify-content: space-between; transition: all 0.2s ease; }
-    .stock-card.sold-out { opacity: 0.55; filter: grayscale(1); background: #fafafa; border-color: #ebeef5; pointer-events: auto; }
-    
-    .stock-header { font-size: 15px; font-weight: bold; color: #303133; margin-bottom: 8px; border-bottom: 1px dashed #ebeef5; padding-bottom: 6px; }
-    .stock-body { font-size: 13px; color: #606266; line-height: 1.6; margin-bottom: 12px; }
-    .stock-price { font-size: 16px; font-weight: bold; color: #f56c6c; margin: 4px 0; }
-    .stock-tag { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: bold; }
+    .stock-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
+
+    .member-group-card { background: #fff; border: 1px solid #e4e7ed; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.02); display: flex; flex-direction: column; }
+    .member-group-card.sold-out-card { opacity: 0.6; filter: grayscale(0.85); background: #fafafa; }
+
+    .member-group-header { background: #eef5fe; border-left: 4px solid #409eff; color: #1a252f; font-size: 15px; font-weight: bold; padding: 10px 14px; display: flex; align-items: center; gap: 6px; }
+    .member-group-header.header-ateez { background: #f3e8ff; border-left: 4px solid #7e22ce; color: #581c87; }
+    .sold-out-card .member-group-header { background: #f4f4f5; border-left-color: #909399; color: #606266; }
+
+    .events-list-box { padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
+    .event-item-block { background: #f8f9fa; border: 1px solid #e4e7ed; border-radius: 8px; padding: 8px 12px; display: flex; flex-direction: column; gap: 4px; }
+    .event-header-row { display: flex; justify-content: space-between; align-items: center; font-size: 13px; font-weight: bold; color: #303133; }
+    .event-detail-row { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: #606266; }
+
+    .stock-tag { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: bold; white-space: nowrap; }
     .stock-tag-open { background: #e8f5e9; color: #2e7d32; }
-    .stock-tag-sold { background: #fef0f0; color: #f56c6c; }
-
-    .btn-claim { width: 100%; padding: 8px; background: #409eff; color: #fff; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 13px; transition: background 0.2s; }
-    .btn-claim:hover { background: #66b1ff; }
-    .btn-claim:disabled { background: #c0c4cc; cursor: not-allowed; color: #fff; }
+    .stock-tag-sold { background: #f4f4f5; color: #606266; border: 1px solid #dcdfe6; }
   </style>
 </head>
 <body>
@@ -61,7 +64,7 @@
     <div class="stock-grid" id="activeStockContainer">載入中...</div>
 
     <div id="soldOutDividerBlock" style="display:none;">
-      <div class="section-divider">🔴 已售完</div>
+      <div class="section-divider">⚫ 已售完</div>
       <div class="stock-grid" id="soldOutStockContainer"></div>
     </div>
   </div>
@@ -86,6 +89,11 @@
     const MEMBER_EMOJI_MAP = {
       '方燦': '🐺', 'Lee Know': '🐰', '彰彬': '🐷', '鉉辰': '🥟', 'HAN': '🐹', 'Felix': '🐥', '昇玟': '🐶', 'I.N': '🦊',
       '弘中': '🐿️', '星化': '🐰', '潤浩': '🐶', '呂尚': '🐥', '傘': '⛰️', '旼琦': '🐥', '友榮': '🐈‍⬛', '鍾浩': '🐻'
+    };
+
+    const GROUP_EMOJI_MAP = {
+      'Stray Kids': '🧭 Stray Kids',
+      'ATEEZ': '🏴‍☠️ ATEEZ'
     };
 
     let stockList = [];
@@ -153,7 +161,7 @@
       groupList.forEach(g => {
         const btn = document.createElement('button');
         btn.className = `capsule-filter-btn ${activeGroup === g ? 'active' : ''}`;
-        btn.textContent = g;
+        btn.textContent = GROUP_EMOJI_MAP[g] || g;
         btn.onclick = () => {
           activeGroup = g;
           document.querySelectorAll('#groupCapsules .capsule-filter-btn').forEach(b => b.classList.remove('active'));
@@ -234,18 +242,9 @@
       }
     }
 
-    function sortStockItems(items) {
-      return items.sort((a, b) => {
-        const dateA = extractDateScore(a.eventName || '');
-        const dateB = extractDateScore(b.eventName || '');
-        if (dateA !== dateB) return dateA - dateB;
-
-        const grp = a.group || 'Stray Kids';
-        const mList = memberMap[grp] || [];
-        const idxA = mList.indexOf(a.member || '');
-        const idxB = mList.indexOf(b.member || '');
-        return (idxA === -1 ? 99 : idxA) - (idxB === -1 ? 99 : idxB);
-      });
+    function formatSpec(spec) {
+      if (!spec) return '現貨圖包';
+      return spec.replace(/\/包$/g, '').trim();
     }
 
     function renderStockCards() {
@@ -270,30 +269,33 @@
         return;
       }
 
-      const activeList = [];
-      const soldOutList = [];
-
+      // 依 團體與成員 進行大卡片群組
+      const memberGroups = {};
       list.forEach(item => {
-        const isSoldOut = (Number(item.stockQty || 0) <= 0 || item.status === '已售完');
-        if (isSoldOut) {
-          soldOutList.push(item);
+        const grp = item.group || 'Stray Kids';
+        const mem = item.member || '全體';
+        const groupKey = `${grp}___${mem}`;
+        if (!memberGroups[groupKey]) memberGroups[groupKey] = [];
+        memberGroups[groupKey].push(item);
+      });
+
+      const activeMemberGroups = {};
+      const soldOutMemberGroups = {};
+
+      Object.entries(memberGroups).forEach(([key, items]) => {
+        const hasAvailable = items.some(i => Number(i.stockQty || 0) > 0 && i.status !== '已售完');
+        if (hasAvailable) {
+          activeMemberGroups[key] = items;
         } else {
-          activeList.push(item);
+          soldOutMemberGroups[key] = items;
         }
       });
 
-      const sortedActive = sortStockItems(activeList);
-      const sortedSoldOut = sortStockItems(soldOutList);
+      renderGroupedCards(activeMemberGroups, activeContainer, false);
 
-      if (sortedActive.length > 0) {
-        sortedActive.forEach(item => renderSingleCard(item, activeContainer, false));
-      } else {
-        activeContainer.innerHTML = '<p style="color:#909399; font-size:14px; grid-column: 1 / -1;">目前無進行中可認領的現貨餘圖。</p>';
-      }
-
-      if (sortedSoldOut.length > 0) {
+      if (Object.keys(soldOutMemberGroups).length > 0) {
         soldOutBlock.style.display = 'block';
-        sortedSoldOut.forEach(item => renderSingleCard(item, soldOutContainer, true));
+        renderGroupedCards(soldOutMemberGroups, soldOutContainer, true);
       } else {
         soldOutBlock.style.display = 'none';
       }
@@ -301,38 +303,76 @@
       notifyHeight();
     }
 
-    function renderSingleCard(item, container, isSoldOut) {
-      const tagClass = isSoldOut ? 'stock-tag stock-tag-sold' : 'stock-tag stock-tag-open';
-      const tagText = isSoldOut ? '🔴 已售完' : `🟢 剩餘 ${item.stockQty} 包`;
+    function renderGroupedCards(groupsMap, targetContainer, isSoldOutSection) {
+      const keys = Object.keys(groupsMap);
+      if (keys.length === 0) {
+        if (!isSoldOutSection) {
+          targetContainer.innerHTML = '<p style="color:#909399; font-size:14px; grid-column: 1 / -1;">目前無進行中可認領的現貨餘圖。</p>';
+        }
+        return;
+      }
 
-      const card = document.createElement('div');
-      card.className = `stock-card ${isSoldOut ? 'sold-out' : ''}`;
-      card.innerHTML = `
-        <div>
-          <div class="stock-header">📅 [${item.group}] ${item.eventName}</div>
-          <div class="stock-body">
-            <b>${MEMBER_EMOJI_MAP[item.member] || '👤'} ${item.member}</b><br>
-            • 規格說明: <b>${item.spec || '-'}</b><br>
-            ${item.note ? `• 備註: ${item.note}<br>` : ''}
-            <div class="stock-price">$${Number(item.price || 0).toLocaleString()} 元 / 包</div>
-            <span class="${tagClass}">${tagText}</span>
-          </div>
-        </div>
-        <button class="btn-claim" ${isSoldOut ? 'disabled' : ''} onclick="copyClaimFormat('${item.group}', '${item.eventName}', '${item.member}', '${item.price}', '${item.spec}')">
-          ${isSoldOut ? '🔴 已售完' : '📋 複製認領喊單格式'}
-        </button>
-      `;
-      container.appendChild(card);
-    }
+      // 排序成員（SKZ 先、ATZ 後，依官方順序）
+      keys.sort((a, b) => {
+        const [grpA, memA] = a.split('___');
+        const [grpB, memB] = b.split('___');
 
-    window.copyClaimFormat = (group, ev, mem, price, spec) => {
-      const txt = `【FORSURE 餘圖認領】\n• 團體: ${group}\n• 活動: ${ev}\n• 成員: ${mem}\n• 規格: ${spec}\n• 單價: $${price}\n• 數量: 1包\n• 社群暱稱: (請填寫您的社群名稱)`;
-      navigator.clipboard.writeText(txt).then(() => {
-        alert('🎉 已複製認領格式！請直接前往社群/官方管道傳送私訊即可。');
-      }).catch(() => {
-        prompt('請手動複製以下認領格式：', txt);
+        if (grpA !== grpB) {
+          return grpA === 'Stray Kids' ? -1 : 1;
+        }
+
+        const mList = memberMap[grpA] || [];
+        const idxA = mList.indexOf(memA);
+        const idxB = mList.indexOf(memB);
+        return (idxA === -1 ? 99 : idxA) - (idxB === -1 ? 99 : idxB);
       });
-    };
+
+      keys.forEach(groupKey => {
+        const items = groupsMap[groupKey];
+        const [grpName, memName] = groupKey.split('___');
+        const isAteez = (grpName === 'ATEEZ');
+
+        // 內部活動按日期舊到新排序
+        items.sort((a, b) => {
+          const dateA = extractDateScore(a.eventName || '');
+          const dateB = extractDateScore(b.eventName || '');
+          if (dateA !== dateB) return dateA - dateB;
+          return (a.eventName || '').localeCompare(b.eventName || '', 'zh-TW');
+        });
+
+        let eventsHtml = '';
+        items.forEach(item => {
+          const isItemSoldOut = (Number(item.stockQty || 0) <= 0 || item.status === '已售完');
+          const tagClass = isItemSoldOut ? 'stock-tag stock-tag-sold' : 'stock-tag stock-tag-open';
+          const tagText = isItemSoldOut ? '⚫ 已售完' : `🟢 剩餘 ${item.stockQty} 包`;
+
+          eventsHtml += `
+            <div class="event-item-block">
+              <div class="event-header-row">
+                <span>🗓️ ${item.eventName}</span>
+                <span class="${tagClass}">${tagText}</span>
+              </div>
+              <div class="event-detail-row">
+                <span>• 內容：<b>${formatSpec(item.spec)}</b>${item.note ? ` (${item.note})` : ''}</span>
+                <span style="font-weight:bold; color:${isItemSoldOut ? '#909399' : '#f56c6c'};">$${Number(item.price || 0).toLocaleString()} 元/包</span>
+              </div>
+            </div>
+          `;
+        });
+
+        const headerClass = isAteez ? 'member-group-header header-ateez' : 'member-group-header';
+        const cardClass = isSoldOutSection ? 'member-group-card sold-out-card' : 'member-group-card';
+        const emoji = MEMBER_EMOJI_MAP[memName] || '👤';
+
+        const card = document.createElement('div');
+        card.className = cardClass;
+        card.innerHTML = `
+          <div class="${headerClass}">${emoji} [${grpName}] ${memName}</div>
+          <div class="events-list-box">${eventsHtml}</div>
+        `;
+        targetContainer.appendChild(card);
+      });
+    }
 
     function notifyHeight() {
       setTimeout(() => {
