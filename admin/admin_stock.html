@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
-  <title>現貨餘圖庫存手動管理</title>
+  <title>現貨餘圖庫存管理</title>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 15px; margin: 0; background: #fff; color: #333; }
     
@@ -29,23 +29,38 @@
     .capsule-filter-btn.active { background: #409eff; color: #fff; border-color: #409eff; box-shadow: 0 2px 6px rgba(64,158,255,0.25); }
     .capsule-filter-btn.sub-active { background: #67c23a; color: #fff; border-color: #67c23a; box-shadow: 0 2px 6px rgba(103,194,58,0.25); }
 
-    .table-container { background: #fff; border: 1px solid #e4e7ed; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.02); }
-    table { width: 100%; border-collapse: collapse; font-size: 13px; }
-    th, td { padding: 10px 10px; border-bottom: 1px solid #ebeef5; text-align: left; vertical-align: middle; }
-    th { background: #f8fafc; color: #475569; font-weight: bold; white-space: nowrap; }
-
-    .table-input { width: 80px; padding: 6px 8px; font-size: 13px; border: 1px solid #dcdfe6; border-radius: 6px; }
-    .table-select { padding: 6px 8px; font-size: 12px; border: 1px solid #dcdfe6; border-radius: 6px; }
+    /* 分組卡片 UI */
+    .group-block { background: #fff; border: 1px solid #e4e7ed; border-radius: 12px; margin-bottom: 20px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.02); }
+    .group-header { background: #f1f5f9; padding: 12px 16px; font-size: 16px; font-weight: 800; color: #1e293b; border-bottom: 1px solid #e2e8f0; }
     
-    .btn-action { padding: 5px 10px; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; border: none; transition: opacity 0.2s; white-space: nowrap; }
-    .btn-action:hover { opacity: 0.85; }
-    .btn-claim-order { background: #67c23a; color: #fff; margin-right: 4px; }
-    .btn-save { background: #409eff; color: #fff; margin-right: 4px; }
-    .btn-del { background: #f56c6c; color: #fff; }
+    .member-block { border-bottom: 1px solid #f1f5f9; padding: 12px 16px; }
+    .member-block:last-child { border-bottom: none; }
+    .member-title { font-size: 14px; font-weight: bold; color: #409eff; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
 
+    .event-item-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; background: #f8fafc; border-radius: 8px; margin-bottom: 6px; gap: 10px; flex-wrap: wrap; transition: background 0.2s; }
+    .event-item-row:hover { background: #f1f5f9; }
+    
+    .item-left { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; flex: 1; }
+    .item-name { font-weight: bold; color: #334155; font-size: 13px; min-width: 200px; }
+    .item-spec { font-size: 13px; color: #64748b; }
+    .item-price { font-size: 14px; font-weight: bold; color: #f56c6c; }
+    
+    .item-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
     .stock-badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: bold; }
     .stock-badge-green { background: #e8f5e9; color: #2e7d32; }
     .stock-badge-red { background: #fef0f0; color: #f56c6c; }
+    .stock-badge-gray { background: #f1f5f9; color: #64748b; }
+
+    .btn-action { padding: 5px 10px; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; border: none; transition: opacity 0.2s; white-space: nowrap; }
+    .btn-action:hover { opacity: 0.85; }
+    .btn-claim-order { background: #67c23a; color: #fff; }
+    .btn-edit { background: #e6a23c; color: #fff; }
+    .btn-save { background: #409eff; color: #fff; }
+    .btn-cancel { background: #909399; color: #fff; }
+    .btn-del { background: #f56c6c; color: #fff; }
+
+    .edit-inline-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; width: 100%; }
+    .edit-inline-input { padding: 4px 8px; font-size: 12px; border: 1px solid #dcdfe6; border-radius: 6px; }
 
     /* 認領登記彈窗 Modal */
     .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.45); display: none; justify-content: center; align-items: center; z-index: 1000; }
@@ -56,6 +71,12 @@
     .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 6px; }
     .btn-modal-cancel { background: #f4f4f5; color: #606266; border: 1px solid #dcdfe6; padding: 7px 14px; border-radius: 6px; font-weight: bold; cursor: pointer; }
     .btn-modal-confirm { background: #67c23a; color: #fff; border: none; padding: 7px 16px; border-radius: 6px; font-weight: bold; cursor: pointer; }
+
+    @media (max-width: 650px) {
+      .event-item-row { flex-direction: column; align-items: flex-start; }
+      .item-left { width: 100%; justify-content: space-between; }
+      .item-right { width: 100%; justify-content: flex-start; margin-top: 4px; }
+    }
   </style>
 </head>
 <body>
@@ -145,25 +166,8 @@
     </div>
   </div>
 
-  <!-- 3. 手動維護列表 -->
-  <div class="table-container">
-    <table>
-      <thead>
-        <tr>
-          <th style="width: 22%;">活動名稱</th>
-          <th style="width: 16%;">團體與成員</th>
-          <th style="width: 14%;">規格說明</th>
-          <th style="width: 10%;">單價 ($)</th>
-          <th style="width: 10%;">剩餘包數</th>
-          <th style="width: 12%;">上架狀態</th>
-          <th style="width: 16%;">操作</th>
-        </tr>
-      </thead>
-      <tbody id="stockTableBody">
-        <tr><td colspan="7" style="text-align:center; color:#909399; padding:20px;">載入庫存數據中...</td></tr>
-      </tbody>
-    </table>
-  </div>
+  <!-- 3. 分組卡片展示區 -->
+  <div id="stockListContainer">載入數據中...</div>
 
   <!-- 4. 快速登記認領彈窗 Modal -->
   <div class="modal-overlay" id="claimModal">
@@ -244,6 +248,7 @@
     let usersDatabase = [];
     let groupList = ['Stray Kids', 'ATEEZ'];
     let memberMap = {};
+    let editingId = null;
 
     let activeGroup = 'ALL';
     let activeMode = 'member';
@@ -280,7 +285,7 @@
         stockList = [];
         snap.forEach(d => stockList.push({ id: d.id, ...d.data() }));
         updateDetailCapsules();
-        renderTable();
+        renderGroupedView();
       });
 
       addGrpSel.addEventListener('change', updateAddEventDropdown);
@@ -395,7 +400,7 @@
         allBtn.classList.add('active');
         activeDetail = 'ALL';
         updateDetailCapsules();
-        renderTable();
+        renderGroupedView();
       };
       container.appendChild(allBtn);
 
@@ -409,7 +414,7 @@
           btn.classList.add('active');
           activeDetail = 'ALL';
           updateDetailCapsules();
-          renderTable();
+          renderGroupedView();
         };
         container.appendChild(btn);
       });
@@ -421,7 +426,7 @@
       if (btn) btn.classList.add('active');
       activeDetail = 'ALL';
       updateDetailCapsules();
-      renderTable();
+      renderGroupedView();
     };
 
     function updateDetailCapsules() {
@@ -435,7 +440,7 @@
         activeDetail = 'ALL';
         document.querySelectorAll('#detailCapsules .capsule-filter-btn').forEach(b => b.classList.remove('sub-active'));
         allBtn.classList.add('sub-active');
-        renderTable();
+        renderGroupedView();
       };
       container.appendChild(allBtn);
 
@@ -461,7 +466,7 @@
               activeDetail = m;
               document.querySelectorAll('#detailCapsules .capsule-filter-btn').forEach(b => b.classList.remove('sub-active'));
               btn.classList.add('sub-active');
-              renderTable();
+              renderGroupedView();
             };
             container.appendChild(btn);
           }
@@ -479,16 +484,16 @@
             activeDetail = ev;
             document.querySelectorAll('#detailCapsules .capsule-filter-btn').forEach(b => b.classList.remove('sub-active'));
             btn.classList.add('sub-active');
-            renderTable();
+            renderGroupedView();
           };
           container.appendChild(btn);
         });
       }
     }
 
-    function renderTable() {
-      const tb = document.getElementById('stockTableBody');
-      tb.innerHTML = '';
+    function renderGroupedView() {
+      const container = document.getElementById('stockListContainer');
+      container.innerHTML = '';
 
       let list = stockList;
       if (activeGroup !== 'ALL') list = list.filter(e => e.group === activeGroup);
@@ -498,49 +503,116 @@
       }
 
       if (list.length === 0) {
-        tb.innerHTML = '<tr><td colspan="7" style="text-align:center; color:#909399; padding:20px;">目前尚無現貨庫存資料</td></tr>';
+        container.innerHTML = '<div style="text-align:center; color:#909399; padding:30px; background:#fff; border-radius:12px; border:1px solid #e4e7ed;">目前尚無現貨庫存資料</div>';
+        notifyHeight();
         return;
       }
 
-      list.sort((a, b) => (a.eventName || '').localeCompare(b.eventName || ''));
+      // 依 團體 ➔ 成員 ➔ 日期順序 分組
+      const groups = {};
+      groupList.forEach(g => { groups[g] = {}; });
 
       list.forEach(item => {
-        const grpDisplay = GROUP_EMOJI_MAP[item.group] || item.group;
-        const memDisplay = (MEMBER_EMOJI_MAP[item.member] ? `${MEMBER_EMOJI_MAP[item.member]} ` : '') + item.member;
-        const isSoldOut = (Number(item.stockQty || 0) <= 0 || item.status === '已售完');
-
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td><b>📅 ${item.eventName}</b></td>
-          <td><b>${grpDisplay}</b><br><span style="color:#409eff;">${memDisplay}</span></td>
-          <td><input type="text" class="table-input" style="width:120px;" id="spec_${item.id}" value="${item.spec || ''}"></td>
-          <td><input type="number" class="table-input" id="price_${item.id}" value="${item.price || 0}"></td>
-          <td>
-            <input type="number" class="table-input" id="qty_${item.id}" value="${item.stockQty || 0}" min="0">
-            <div style="margin-top:2px;">${isSoldOut ? '<span class="stock-badge stock-badge-red">已售完</span>' : `<span class="stock-badge stock-badge-green">剩餘${item.stockQty}包</span>`}</div>
-          </td>
-          <td>
-            <select class="table-select" id="st_${item.id}">
-              <option value="開放認領" ${item.status === '開放認領' ? 'selected' : ''}>🟢 開放認領</option>
-              <option value="已售完" ${item.status === '已售完' ? 'selected' : ''}>🔴 已售完</option>
-              <option value="暫停" ${item.status === '暫停' ? 'selected' : ''}>📁 暫停上架</option>
-            </select>
-          </td>
-          <td>
-            <button class="btn-action btn-claim-order" ${isSoldOut ? 'disabled style="background:#c0c4cc; cursor:not-allowed;"' : ''} onclick="openClaimModal('${item.id}')">🛒 登記認領</button>
-            <button class="btn-action btn-save" onclick="updateStockRow('${item.id}')">💾 儲存</button>
-            <button class="btn-action btn-del" onclick="deleteStockRow('${item.id}')">🗑️ 刪除</button>
-          </td>
-        `;
-        tb.appendChild(tr);
+        const grp = item.group || 'Stray Kids';
+        if (!groups[grp]) groups[grp] = {};
+        const mem = item.member || '其他';
+        if (!groups[grp][mem]) groups[grp][mem] = [];
+        groups[grp][mem].push(item);
       });
+
+      for (const [grpName, mems] of Object.entries(groups)) {
+        const memKeys = Object.keys(mems);
+        if (memKeys.length === 0) continue;
+
+        const groupDiv = document.createElement('div');
+        groupDiv.className = 'group-block';
+        groupDiv.innerHTML = `<div class="group-header">${GROUP_EMOJI_MAP[grpName] || grpName}</div>`;
+
+        const officialMemList = memberMap[grpName] || [];
+        const sortedMems = memKeys.sort((a, b) => {
+          let idxA = officialMemList.indexOf(a);
+          let idxB = officialMemList.indexOf(b);
+          return (idxA === -1 ? 99 : idxA) - (idxB === -1 ? 99 : idxB);
+        });
+
+        sortedMems.forEach(memName => {
+          const items = mems[memName];
+          if (!items || items.length === 0) return;
+
+          items.sort((a, b) => (a.eventName || '').localeCompare(b.eventName || ''));
+
+          const memDiv = document.createElement('div');
+          memDiv.className = 'member-block';
+          memDiv.innerHTML = `<div class="member-title">${MEMBER_EMOJI_MAP[memName] || '👤'} ${memName} (${items.length} 場餘圖)</div>`;
+
+          items.forEach(item => {
+            const isEditing = (editingId === item.id);
+            const isSoldOut = (Number(item.stockQty || 0) <= 0 || item.status === '已售完');
+            const rowDiv = document.createElement('div');
+            rowDiv.className = 'event-item-row';
+
+            if (isEditing) {
+              rowDiv.innerHTML = `
+                <div class="edit-inline-row">
+                  <b>🗓️ ${item.eventName}</b>
+                  <input type="text" id="edit_spec_${item.id}" class="edit-inline-input" style="width:110px;" value="${item.spec || ''}" placeholder="規格說明">
+                  單價: $<input type="number" id="edit_price_${item.id}" class="edit-inline-input" style="width:70px;" value="${item.price || 0}">
+                  剩餘: <input type="number" id="edit_qty_${item.id}" class="edit-inline-input" style="width:60px;" value="${item.stockQty || 0}" min="0"> 包
+                  <select id="edit_status_${item.id}" class="edit-inline-input">
+                    <option value="開放認領" ${item.status === '開放認領' ? 'selected' : ''}>🟢 開放認領</option>
+                    <option value="已售完" ${item.status === '已售完' ? 'selected' : ''}>🔴 已售完</option>
+                    <option value="暫停" ${item.status === '暫停' ? 'selected' : ''}>📁 暫停上架</option>
+                  </select>
+                  <button class="btn-action btn-save" onclick="saveEditRow('${item.id}')">💾 儲存</button>
+                  <button class="btn-action btn-cancel" onclick="cancelEditRow()">✖️ 取消</button>
+                </div>
+              `;
+            } else {
+              let badgeHtml = `<span class="stock-badge stock-badge-green">🟢 剩餘 ${item.stockQty} 包</span>`;
+              if (isSoldOut) badgeHtml = `<span class="stock-badge stock-badge-red">🔴 已售完</span>`;
+              else if (item.status === '暫停') badgeHtml = `<span class="stock-badge stock-badge-gray">📁 暫停上架</span>`;
+
+              rowDiv.innerHTML = `
+                <div class="item-left">
+                  <div class="item-name">🗓️ ${item.eventName}</div>
+                  <div class="item-spec">📦 規格: <b>${item.spec || '-'}</b></div>
+                  <div class="item-price">$${Number(item.price || 0).toLocaleString()} 元</div>
+                  <div>${badgeHtml}</div>
+                </div>
+                <div class="item-right">
+                  <button class="btn-action btn-claim-order" ${isSoldOut ? 'disabled style="background:#c0c4cc; cursor:not-allowed;"' : ''} onclick="openClaimModal('${item.id}')">🛒 登記認領</button>
+                  <button class="btn-action btn-edit" onclick="startEditRow('${item.id}')">✏️ 編輯</button>
+                  <button class="btn-action btn-del" onclick="deleteStockRow('${item.id}')">🗑️ 刪除</button>
+                </div>
+              `;
+            }
+            memDiv.appendChild(rowDiv);
+          });
+
+          groupDiv.appendChild(memDiv);
+        });
+
+        container.appendChild(groupDiv);
+      }
+
+      notifyHeight();
     }
 
-    window.updateStockRow = async (docId) => {
-      const spec = document.getElementById(`spec_${docId}`).value.trim();
-      const price = Number(document.getElementById(`price_${docId}`).value) || 0;
-      const stockQty = Number(document.getElementById(`qty_${docId}`).value) || 0;
-      const status = document.getElementById(`st_${docId}`).value;
+    window.startEditRow = (docId) => {
+      editingId = docId;
+      renderGroupedView();
+    };
+
+    window.cancelEditRow = () => {
+      editingId = null;
+      renderGroupedView();
+    };
+
+    window.saveEditRow = async (docId) => {
+      const spec = document.getElementById(`edit_spec_${docId}`).value.trim();
+      const price = Number(document.getElementById(`edit_price_${docId}`).value) || 0;
+      const stockQty = Number(document.getElementById(`edit_qty_${docId}`).value) || 0;
+      const status = document.getElementById(`edit_status_${docId}`).value;
 
       try {
         await setDoc(doc(db, "stock_photos", docId), {
@@ -550,7 +622,8 @@
           status: status,
           updatedAt: new Date().toISOString()
         }, { merge: true });
-        alert('✅ 庫存已更新，前台已即時同步！');
+        editingId = null;
+        renderGroupedView();
       } catch(err) {
         alert('更新失敗: ' + err.message);
       }
@@ -711,6 +784,12 @@
         confirmBtn.textContent = '確定登記並扣減庫存';
       }
     });
+
+    function notifyHeight() {
+      setTimeout(() => {
+        window.parent.postMessage({ frameHeight: document.body.scrollHeight }, '*');
+      }, 100);
+    }
   </script>
 </body>
 </html>
