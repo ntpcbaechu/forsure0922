@@ -343,18 +343,29 @@
           const tagClass = isItemSoldOut ? 'stock-tag stock-tag-sold' : 'stock-tag stock-tag-open';
           const tagText = isItemSoldOut ? '⚫ 已售完' : `🟢 剩餘 ${item.stockQty} 包`;
 
-          eventsHtml += `
-            <div class="event-item-block">
-              <div class="event-header-row">
-                <span>🗓️ ${item.eventName}</span>
-                <span class="${tagClass}">${tagText}</span>
+          if (isSoldOutSection) {
+            eventsHtml += `
+              <div class="event-item-block">
+                <div class="event-header-row">
+                  <span>🗓️ ${item.eventName}</span>
+                  <span class="${tagClass}">${tagText}</span>
+                </div>
               </div>
-              <div class="event-detail-row">
-                <span>• 內容：<b>${formatSpec(item.spec)}</b>${item.note ? ` (${item.note})` : ''}</span>
-                <span style="font-weight:bold; color:${isItemSoldOut ? '#909399' : '#f56c6c'};">$${Number(item.price || 0).toLocaleString()} 元/包</span>
+            `;
+          } else {
+            eventsHtml += `
+              <div class="event-item-block">
+                <div class="event-header-row">
+                  <span>🗓️ ${item.eventName}</span>
+                  <span class="${tagClass}">${tagText}</span>
+                </div>
+                <div class="event-detail-row">
+                  <span>• 內容：<b>${formatSpec(item.spec)}</b>${item.note ? ` (${item.note})` : ''}</span>
+                  <span style="font-weight:bold; color:#f56c6c;">$${Number(item.price || 0).toLocaleString()} 元/包</span>
+                </div>
               </div>
-            </div>
-          `;
+            `;
+          }
         });
 
         const headerClass = isAteez ? 'member-group-header header-ateez' : 'member-group-header';
