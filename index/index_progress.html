@@ -409,6 +409,7 @@
         Object.keys(memberMapObj).forEach(mName => {
           const mItems = memberMapObj[mName];
           const st = mItems[0].status || '未開放';
+          const isHiddenByAdmin = mItems.some(i => i.isHideBuyers === true);
           const isSurplusMode = (st === '可詢問餘圖');
 
           const matchedBuyerOrders = [];
@@ -443,42 +444,44 @@
           });
 
           let buyersHtml = '';
-          uniqueBuyersInOrder.forEach(bName => {
-            let payStatusText = '🚨 待匯款', payBadgeClass = 'status-waiting';
-            let photoStatusText = '📷 待發圖', photoBadgeClass = 'status-photo-wait';
-            let isPaidDone = false;
-            let isPhotoSentDone = false;
+          if (!isHiddenByAdmin || activeUser !== 'ALL') {
+            uniqueBuyersInOrder.forEach(bName => {
+              let payStatusText = '🚨 待匯款', payBadgeClass = 'status-waiting';
+              let photoStatusText = '📷 待發圖', photoBadgeClass = 'status-photo-wait';
+              let isPaidDone = false;
+              let isPhotoSentDone = false;
 
-            Object.values(ordersCache).forEach(ord => {
-              const b = ord.buyerName || ord.user || ord.nickname;
-              if (b === bName && (ord.event || ord.eventName) === eventName && ord.member === mName) {
-                const paySt = ord.paymentStatus || ord.status || (ord.hasPaid ? '已對帳' : '待匯款');
-                if (paySt === '已對帳' || ord.hasPaid) { payStatusText = '⚪ 已對帳'; payBadgeClass = 'status-paid-done'; isPaidDone = true; }
-                else if (paySt === '待對帳' || paySt === '對帳中') { payStatusText = '⏳ 待對帳'; payBadgeClass = 'status-checking'; }
-                else if (paySt === '對帳有問題' || paySt === '有問題') { payStatusText = '⚠️ 帳有問題'; payBadgeClass = 'status-issue'; }
+              Object.values(ordersCache).forEach(ord => {
+                const b = ord.buyerName || ord.user || ord.nickname;
+                if (b === bName && (ord.event || ord.eventName) === eventName && ord.member === mName) {
+                  const paySt = ord.paymentStatus || ord.status || (ord.hasPaid ? '已對帳' : '待匯款');
+                  if (paySt === '已對帳' || ord.hasPaid) { payStatusText = '⚪ 已對帳'; payBadgeClass = 'status-paid-done'; isPaidDone = true; }
+                  else if (paySt === '待對帳' || paySt === '對帳中') { payStatusText = '⏳ 待對帳'; payBadgeClass = 'status-checking'; }
+                  else if (paySt === '對帳有問題' || paySt === '有問題') { payStatusText = '⚠️ 帳有問題'; payBadgeClass = 'status-issue'; }
 
-                if (ord.isPhotoSent === true || ord.status === '已發圖') { 
-                  photoStatusText = '⚪ 已發圖'; 
-                  photoBadgeClass = 'status-photo-sent'; 
-                  isPhotoSentDone = true; 
+                  if (ord.isPhotoSent === true || ord.status === '已發圖') { 
+                    photoStatusText = '⚪ 已發圖'; 
+                    photoBadgeClass = 'status-photo-sent'; 
+                    isPhotoSentDone = true; 
+                  }
                 }
+              });
+
+              if (isSurplusMode && isPaidDone && isPhotoSentDone) {
+                return;
               }
-            });
 
-            if (isSurplusMode && isPaidDone && isPhotoSentDone) {
-              return;
-            }
-
-            buyersHtml += `
-              <div class="buyer-row">
-                <span>- ${formatDisplayName(bName)}</span>
-                <div class="buyer-status-group">
-                  <span class="status-badge ${payBadgeClass}">${payStatusText}</span>
-                  <span class="status-badge ${photoBadgeClass}">${photoStatusText}</span>
+              buyersHtml += `
+                <div class="buyer-row">
+                  <span>- ${formatDisplayName(bName)}</span>
+                  <div class="buyer-status-group">
+                    <span class="status-badge ${payBadgeClass}">${payStatusText}</span>
+                    <span class="status-badge ${photoBadgeClass}">${photoStatusText}</span>
+                  </div>
                 </div>
-              </div>
-            `;
-          });
+              `;
+            });
+          }
 
           let badgeClass = 'status-st-unopened';
           if (st === '可詢問餘圖') badgeClass = 'status-stock-open';
