@@ -491,10 +491,11 @@
           
           const ordEvent = (o.event || o.fullEvent || o.eventName || '').trim();
           const ordMember = (o.member || '').trim();
+          const isSurplusOrder = (o.orderType === '餘圖認領' || ordEvent.startsWith('【餘圖認領】'));
           const progressStatus = photoProgressMap[`${ordEvent}_${ordMember}`] || '等圖中';
           
           const allowedStatuses = ['上傳中', '已通知匯款', '已發圖', '可詢問餘圖'];
-          const isUnlocked = allowedStatuses.includes(progressStatus);
+          const isUnlocked = isSurplusOrder || allowedStatuses.includes(progressStatus);
 
           if (name && pendingMatch && isUnlocked) {
             pendingBuyers.add(String(name));
@@ -673,10 +674,11 @@
 
         const ordEvent = (o.event || o.fullEvent || o.eventName || '').trim();
         const ordMember = (o.member || '').trim();
+        const isSurplusOrder = (o.orderType === '餘圖認領' || ordEvent.startsWith('【餘圖認領】'));
         const progressStatus = photoProgressMap[`${ordEvent}_${ordMember}`] || '等圖中';
 
         const allowedStatuses = ['上傳中', '已通知匯款', '已發圖', '可詢問餘圖'];
-        const isUnlocked = allowedStatuses.includes(progressStatus);
+        const isUnlocked = isSurplusOrder || allowedStatuses.includes(progressStatus);
 
         return grpMatch && nameMatch && pendingMatch && isUnlocked;
       });
@@ -694,34 +696,37 @@
         const ordEvent = (ord.event || ord.fullEvent || ord.eventName || '').trim();
         const ordMember = (ord.member || '').trim();
         const memEmoji = MEMBER_EMOJI_MAP[ordMember] ? `${MEMBER_EMOJI_MAP[ordMember]} ` : '';
+        const isSurplus = (ord.orderType === '餘圖認領' || ordEvent.startsWith('【餘圖認領】'));
 
         const setting = eventSettingsMap[`${ordEvent}_${ordMember}`] || {};
-        const packQty = setting.packQty || 1;
+        const packQty = isSurplus ? 1 : (setting.packQty || 1);
         const packsCount = Math.round(qty / packQty);
 
         const estPrice = setting.estPrice || 0;
         const actPrice = setting.actPrice || 0;
 
         let baseUnitPrice = (actPrice > 0) ? actPrice : estPrice;
-        if (baseUnitPrice === 0) {
+        if (baseUnitPrice === 0 || isSurplus) {
           baseUnitPrice = Number(ord.price) || Number(ord.unitPrice) || 0;
         }
 
         let calculatedFinalPrice = packsCount * baseUnitPrice;
-        const discounts = setting.discounts || [];
-        if (Array.isArray(discounts)) {
-          const userDisc = discounts.find(d => d.targetUser === buyer);
-          if (userDisc) {
-            const discCount = Math.min(packsCount, Number(userDisc.count) || 0);
-            const discPrice = Number(userDisc.price) || 0;
-            calculatedFinalPrice = (discCount * discPrice) + ((packsCount - discCount) * baseUnitPrice);
+        if (!isSurplus) {
+          const discounts = setting.discounts || [];
+          if (Array.isArray(discounts)) {
+            const userDisc = discounts.find(d => d.targetUser === buyer);
+            if (userDisc) {
+              const discCount = Math.min(packsCount, Number(userDisc.count) || 0);
+              const discPrice = Number(userDisc.price) || 0;
+              calculatedFinalPrice = (discCount * discPrice) + ((packsCount - discCount) * baseUnitPrice);
+            }
           }
         }
 
         const calculatedEstPrice = Math.round(packsCount * estPrice);
 
         let priceHtml = `<span class="price-final">$${calculatedFinalPrice}</span>`;
-        if (actPrice > 0 && estPrice > 0 && calculatedFinalPrice !== calculatedEstPrice) {
+        if (!isSurplus && actPrice > 0 && estPrice > 0 && calculatedFinalPrice !== calculatedEstPrice) {
           priceHtml = `
             <span class="price-final">$${calculatedFinalPrice}</span>
             <span class="price-original-strike">$${calculatedEstPrice}</span>
@@ -732,7 +737,7 @@
           <div class="order-item">
             <div class="order-left">
               <input type="checkbox" class="order-chk" value="${ord.id}" data-price="${calculatedFinalPrice}">
-              <span>📌 ${ordEvent || '未命名活動'} (${memEmoji}${ordMember || '全體'}) - ${qty} 張</span>
+              <span>📌 ${ordEvent || '未命名活動'} (${memEmoji}${ordMember || '全體'}) - ${qty} 包</span>
             </div>
             <div class="price-box">${priceHtml}</div>
           </div>
@@ -795,10 +800,11 @@
 
           const ordEvent = (o.event || o.fullEvent || o.eventName || '').trim();
           const ordMember = (o.member || '').trim();
+          const isSurplusOrder = (o.orderType === '餘圖認領' || ordEvent.startsWith('【餘圖認領】'));
           const progressStatus = photoProgressMap[`${ordEvent}_${ordMember}`] || '等圖中';
 
           const allowedStatuses = ['上傳中', '已通知匯款', '已發圖', '可詢問餘圖'];
-          const isUnlocked = allowedStatuses.includes(progressStatus);
+          const isUnlocked = isSurplusOrder || allowedStatuses.includes(progressStatus);
 
           return grpMatch && nameMatch && pendingMatch && isUnlocked;
         });
@@ -816,34 +822,37 @@
           const ordEvent = (ord.event || ord.fullEvent || ord.eventName || '').trim();
           const ordMember = (ord.member || '').trim();
           const memEmoji = MEMBER_EMOJI_MAP[ordMember] ? `${MEMBER_EMOJI_MAP[ordMember]} ` : '';
+          const isSurplus = (ord.orderType === '餘圖認領' || ordEvent.startsWith('【餘圖認領】'));
 
           const setting = eventSettingsMap[`${ordEvent}_${ordMember}`] || {};
-          const packQty = setting.packQty || 1;
+          const packQty = isSurplus ? 1 : (setting.packQty || 1);
           const packsCount = Math.round(qty / packQty);
 
           const estPrice = setting.estPrice || 0;
           const actPrice = setting.actPrice || 0;
 
           let baseUnitPrice = (actPrice > 0) ? actPrice : estPrice;
-          if (baseUnitPrice === 0) {
+          if (baseUnitPrice === 0 || isSurplus) {
             baseUnitPrice = Number(ord.price) || Number(ord.unitPrice) || 0;
           }
 
           let calculatedFinalPrice = packsCount * baseUnitPrice;
-          const discounts = setting.discounts || [];
-          if (Array.isArray(discounts)) {
-            const userDisc = discounts.find(d => d.targetUser === block.buyer);
-            if (userDisc) {
-              const discCount = Math.min(packsCount, Number(userDisc.count) || 0);
-              const discPrice = Number(userDisc.price) || 0;
-              calculatedFinalPrice = (discCount * discPrice) + ((packsCount - discCount) * baseUnitPrice);
+          if (!isSurplus) {
+            const discounts = setting.discounts || [];
+            if (Array.isArray(discounts)) {
+              const userDisc = discounts.find(d => d.targetUser === block.buyer);
+              if (userDisc) {
+                const discCount = Math.min(packsCount, Number(userDisc.count) || 0);
+                const discPrice = Number(userDisc.price) || 0;
+                calculatedFinalPrice = (discCount * discPrice) + ((packsCount - discCount) * baseUnitPrice);
+              }
             }
           }
 
           const calculatedEstPrice = Math.round(packsCount * estPrice);
 
           let priceHtml = `<span class="price-final">$${calculatedFinalPrice}</span>`;
-          if (actPrice > 0 && estPrice > 0 && calculatedFinalPrice !== calculatedEstPrice) {
+          if (!isSurplus && actPrice > 0 && estPrice > 0 && calculatedFinalPrice !== calculatedEstPrice) {
             priceHtml = `
               <span class="price-final">$${calculatedFinalPrice}</span>
               <span class="price-original-strike">$${calculatedEstPrice}</span>
@@ -854,7 +863,7 @@
             <div class="order-item">
               <div class="order-left">
                 <input type="checkbox" class="order-chk" value="${ord.id}" data-price="${calculatedFinalPrice}">
-                <span>📌 ${ordEvent || '未命名活動'} (${memEmoji}${ordMember || '全體'}) - ${qty} 張</span>
+                <span>📌 ${ordEvent || '未命名活動'} (${memEmoji}${ordMember || '全體'}) - ${qty} 包</span>
               </div>
               <div class="price-box">${priceHtml}</div>
             </div>
