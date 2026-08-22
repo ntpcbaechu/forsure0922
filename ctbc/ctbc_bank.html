@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>中國信託 存款交易明細逐筆對帳系統</title>
+  <title>中國信託 內部結算與對帳系統</title>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 12px; margin: 0; background: #f8fafc; color: #334155; }
     h2 { margin: 0 0 4px 0; font-size: 18px; color: #0f172a; }
@@ -27,7 +27,6 @@
     .capsule-filter-btn { background: #f4f4f5; color: #606266; border: 1px solid #dcdfe6; padding: 6px 14px; border-radius: 16px; font-size: 12px; font-weight: bold; cursor: pointer; transition: all 0.2s; outline: none; }
     .capsule-filter-btn:hover { background: #ecf5ff; color: #409eff; border-color: #c6e2ff; }
     .capsule-filter-btn.active { background: #409eff; color: #fff; border-color: #409eff; box-shadow: 0 2px 6px rgba(64,158,255,0.25); }
-    .capsule-filter-btn.sub-active { background: #67c23a; color: #fff; border-color: #67c23a; box-shadow: 0 2px 6px rgba(103,194,58,0.25); }
 
     .search-bar { display: flex; gap: 8px; margin-bottom: 10px; align-items: center; }
     .search-bar input { flex: 1; max-width: 300px; padding: 6px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 12px; }
@@ -47,7 +46,6 @@
     .status-pending { background: #f1f5f9; color: #64748b; border: 1px solid #cbd5e1; }
     .status-inprogress { background: #fdf6ec; color: #e6a23c; border: 1px solid #faebd7; }
     .status-completed { background: #e8f5e9; color: #2e7d32; border: 1px solid #c8e6c9; }
-    .status-short { background: #fef0f0; color: #f56c6c; border: 1px solid #fde2e2; }
 
     .btn-toggle { padding: 4px 8px; background: #fff; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 11px; cursor: pointer; color: #334155; font-weight: bold; }
     .btn-toggle.active { background: #f8fafc; border-color: #94a3b8; }
@@ -56,8 +54,7 @@
     .edit-box { background: #fff; border: 1px dashed #94a3b8; padding: 12px; border-radius: 8px; display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; }
     
     .btn-action { padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; border: none; color: #fff; }
-    .btn-save { background: #e6a23c; } .btn-save:hover { background: #d39234; }
-    .btn-done { background: #67c23a; } .btn-done:hover { background: #5daf34; }
+    .btn-save { background: #409eff; } .btn-save:hover { background: #3385ff; }
     .btn-clear { background: #f56c6c; } .btn-clear:hover { background: #dd6161; }
 
     .pagination { display: flex; justify-content: center; gap: 5px; margin-top: 12px; flex-wrap: wrap; }
@@ -68,21 +65,12 @@
 </head>
 <body>
 
-  <h2>🏦 中國信託 存款交易明細逐筆對帳系統</h2>
-  <div class="meta-info">帳號: 783540130964 | 幣別: TWD | 區間: 2026/03/01 - 2026/05/31</div>
+  <h2>🏦 中國信託 內部結算與對帳系統</h2>
+  <div class="meta-info">帳號: 783540130964 | 幣別: TWD | 資料獨立於前台，專作事後核帳</div>
 
   <div class="card">
-    <h3>📝 1. 團員匯款登記填單 (快速建檔)</h3>
+    <h3>📝 1. 建立買家結算單 (建立應付帳款)</h3>
     <form id="orderForm" class="compact-form">
-      <div class="form-group">
-        <label>匯款狀態</label>
-        <select id="f_status">
-          <option value="">請選擇狀態</option>
-          <option value="已匯款">已匯款</option>
-          <option value="未匯款">未匯款</option>
-          <option value="不確定">不確定</option>
-        </select>
-      </div>
       <div class="form-group">
         <label class="required">1. 團體</label>
         <select id="f_group">
@@ -91,35 +79,26 @@
           <option value="ATEEZ">ATEEZ</option>
         </select>
       </div>
-      <div class="form-group"><label class="required">2. 買家暱稱</label><input type="text" id="f_name" placeholder="填寫暱稱" style="width:100px;"></div>
-      
+      <div class="form-group"><label class="required">2. 買家暱稱</label><input type="text" id="f_name" placeholder="填寫暱稱" style="width:120px;"></div>
       <div class="form-group">
-        <label class="required">3. 場次</label>
+        <label class="required">3. 場次/活動</label>
         <select id="f_event" onchange="toggleCustomEvent(this)">
           <option value="">請選擇場次</option>
           <option value="260328 D1">260328 D1</option>
           <option value="260329 D2">260329 D2</option>
           <option value="260404 D3">260404 D3</option>
           <option value="260405 D4">260405 D4</option>
-          <option value="other">自訂場次...</option>
+          <option value="other">自訂活動...</option>
         </select>
       </div>
       <div class="form-group" id="custom_event_group" style="display:none;">
-        <label class="required">自訂場次</label>
-        <input type="text" id="f_custom_event" placeholder="輸入場次" style="width:100px;">
+        <label class="required">自訂活動</label>
+        <input type="text" id="f_custom_event" placeholder="輸入活動" style="width:100px;">
       </div>
-
-      <div class="form-group">
-        <label class="required">4. 成員</label>
-        <select id="f_member"><option value="">請先選擇團體</option></select>
-      </div>
-      
-      <div class="form-group"><label class="optional">5. 張數</label><input type="number" id="f_qty" placeholder="選填" style="width:60px;"></div>
-      <div class="form-group"><label class="optional">6. 應匯金額</label><input type="number" id="f_amt" placeholder="選填" style="width:80px;"></div>
-      <div class="form-group"><label class="optional">7. 匯款日期</label><input type="date" id="f_date"></div>
-      <div class="form-group"><label class="optional">8. 實際匯款</label><input type="number" id="f_payamt" placeholder="選填" style="width:80px;"></div>
-      <div class="form-group"><label class="optional">9. 後5碼</label><input type="text" id="f_last5" placeholder="" maxlength="5" style="width:70px;"></div>
-      <button type="button" class="btn-action" style="background:#2563eb; height:31px;" onclick="addQuickOrder()">＋ 新增登記填單</button>
+      <div class="form-group"><label class="optional">4. 成員 (選填)</label><select id="f_member"><option value="">無</option></select></div>
+      <div class="form-group"><label class="optional">5. 總應付金額</label><input type="number" id="f_expectedAmt" placeholder="建立欠款總額" style="width:100px;"></div>
+      <div class="form-group"><label class="optional">備註</label><input type="text" id="f_note" style="width:150px;"></div>
+      <button type="button" class="btn-action" style="background:#2563eb; height:31px;" onclick="addQuickOrder()">＋ 新增結算單</button>
     </form>
   </div>
 
@@ -127,24 +106,16 @@
     <div class="filter-row">
       <span class="filter-label">對帳狀態：</span>
       <div class="capsule-group">
-        <button class="capsule-filter-btn active" onclick="setMainFilter('all', this)">📋 全部</button>
+        <button class="capsule-filter-btn active" onclick="setMainFilter('all', this)">📋 全部明細</button>
         <button class="capsule-filter-btn" onclick="setMainFilter('pending', this)">📌 未對帳</button>
-        <button class="capsule-filter-btn" onclick="setMainFilter('in_progress', this)">⏳ 對帳中 (暫存)</button>
-        <button class="capsule-filter-btn" onclick="setMainFilter('completed', this)">✅ 已對帳完成</button>
-      </div>
-    </div>
-    <div class="filter-row" id="subFilterRow" style="display:none; border-top:1px dashed #dcdfe6; padding-top:10px;">
-      <span class="filter-label">完成細項：</span>
-      <div class="capsule-group">
-        <button class="capsule-filter-btn sub-active" onclick="setSubFilter('all', this)">全部顯示</button>
-        <button class="capsule-filter-btn" onclick="setSubFilter('已匯款', this)">🟢 已匯款 (金額相符)</button>
-        <button class="capsule-filter-btn" onclick="setSubFilter('待補款', this)">🟡 待補款 (金額不足)</button>
+        <button class="capsule-filter-btn" onclick="setMainFilter('in_progress', this)">⏳ 對帳中</button>
+        <button class="capsule-filter-btn" onclick="setMainFilter('completed', this)">✅ 已結算</button>
       </div>
     </div>
   </div>
 
   <div class="search-bar">
-    <input type="text" id="searchInput" placeholder="🔍 搜尋日期、金額、結餘、帳號、備註..." onkeyup="renderTable()">
+    <input type="text" id="searchInput" placeholder="🔍 輸入後五碼、金額、日期等篩選關聯明細..." onkeyup="renderTable()">
   </div>
 
   <div class="stats-info" id="statsInfo">載入中...</div>
@@ -169,17 +140,31 @@
 
   <div class="pagination" id="pagination"></div>
 
-  <script>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getFirestore, collection, onSnapshot, doc, setDoc, deleteDoc, addDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDF7QySG1Jj4gdZvXwMRaKjRmI-lFKpj7k",
+      authDomain: "forsure0922.firebaseapp.com",
+      databaseURL: "https://forsure0922-default-rtdb.firebaseio.com",
+      projectId: "forsure0922",
+      storageBucket: "forsure0922.firebasestorage.app",
+      messagingSenderId: "817449290174",
+      appId: "1:817449290174:web:6b4ec1d36c171ff97011ef"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
     let transactions = window.rawTransactions || [];
-    let orderRecords = [];
-    let auditState = {};
-    let expandedRows = {};
+    let ctbcBills = [];
+    let ctbcSettlements = [];
     
+    let expandedRows = {};
     let currentMainFilter = 'all';
-    let currentSubFilter = 'all';
     let currentPage = 1;
     const pageSize = 50;
-
     let memberMap = {};
 
     document.addEventListener('DOMContentLoaded', async () => {
@@ -188,92 +173,79 @@
         memberMap['Stray Kids'] = await skzRes.json();
         const atzRes = await fetch('../json/members_atz.json');
         memberMap['ATEEZ'] = await atzRes.json();
-      } catch(e) { console.log("JSON讀取失敗，請確認檔案路徑", e); }
+      } catch(e) {}
 
       document.getElementById('f_group').addEventListener('change', function() {
         const memSel = document.getElementById('f_member');
-        memSel.innerHTML = '<option value="">請選擇成員</option>';
+        memSel.innerHTML = '<option value="">無</option>';
         const arr = memberMap[this.value] || [];
         arr.forEach(m => memSel.innerHTML += `<option value="${m}">${m}</option>`);
       });
 
-      renderTable();
+      // 監聽專屬資料庫
+      onSnapshot(collection(db, "ctbc_bills"), snap => {
+        ctbcBills = snap.docs.map(d => ({id: d.id, ...d.data()}));
+        if(Object.keys(expandedRows).length > 0) renderTable(); // 若有展開列則重新渲染買家選單
+      });
+
+      onSnapshot(collection(db, "ctbc_settlements"), snap => {
+        ctbcSettlements = snap.docs.map(d => ({id: d.id, ...d.data()}));
+        renderTable();
+      });
     });
 
     window.toggleCustomEvent = (sel) => {
       document.getElementById('custom_event_group').style.display = sel.value === 'other' ? 'flex' : 'none';
     };
 
-    window.addQuickOrder = () => {
+    window.addQuickOrder = async () => {
       const name = document.getElementById('f_name').value;
       const group = document.getElementById('f_group').value;
       let event = document.getElementById('f_event').value;
       const member = document.getElementById('f_member').value;
+      const expectedAmt = document.getElementById('f_expectedAmt').value || 0;
+      const note = document.getElementById('f_note').value;
 
       if(event === 'other') event = document.getElementById('f_custom_event').value;
-      if(!group || !name || !event || !member) { alert("請填寫 團體、暱稱、場次、成員！"); return; }
+      if(!group || !name || !event) { alert("請填寫 團體、暱稱、場次！"); return; }
       
-      const newOrder = {
-        id: 'ORD' + Date.now(),
-        status: document.getElementById('f_status').value || '未匯款',
-        group: group,
-        name: name,
-        event: event,
-        member: member,
-        qty: document.getElementById('f_qty').value,
-        amt: document.getElementById('f_amt').value,
-        payAmt: document.getElementById('f_payamt').value,
-        last5: document.getElementById('f_last5').value
-      };
-      orderRecords.push(newOrder);
-      alert("新增建檔成功！請至下方明細展開配對。");
+      await addDoc(collection(db, "ctbc_bills"), {
+        name, group, event, member, expectedAmt: Number(expectedAmt), note, createdAt: Date.now()
+      });
+      
+      alert("結算單建立成功！你現在可以在下方明細中選擇該買家進行扣款對帳。");
       document.getElementById('orderForm').reset();
       document.getElementById('custom_event_group').style.display = 'none';
-      document.getElementById('f_member').innerHTML = '<option value="">請先選擇團體</option>';
-      renderTable();
     };
 
     window.setMainFilter = (filter, btn) => {
       currentMainFilter = filter;
-      document.querySelectorAll('#subFilterRow').forEach(el => el.style.display = filter === 'completed' ? 'flex' : 'none');
-      document.querySelectorAll('.filter-card .filter-row:first-child .capsule-filter-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.filter-card .capsule-filter-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       currentPage = 1;
       renderTable();
     };
 
-    window.setSubFilter = (filter, btn) => {
-      currentSubFilter = filter;
-      document.querySelectorAll('#subFilterRow .capsule-filter-btn').forEach(b => b.classList.remove('sub-active'));
-      btn.classList.add('sub-active');
-      currentPage = 1;
-      renderTable();
-    };
-
-    function getStatusTag(txId) {
-      const state = auditState[txId];
-      if(!state) return `<span class="status-tag status-pending">📌 未對帳</span>`;
-      if(state.status === 'in_progress') return `<span class="status-tag status-inprogress">⏳ 對帳中</span>`;
-      if(state.status === 'completed') {
-        if(state.subStatus === '待補款') return `<span class="status-tag status-short">🟡 待補款</span>`;
-        return `<span class="status-tag status-completed">✅ 已匯款</span>`;
-      }
-      return `<span class="status-tag status-pending">📌 未對帳</span>`;
+    function getStatusInfo(txId) {
+      const state = ctbcSettlements.find(s => s.txId === txId.toString());
+      if(!state) return { text: '📌 未對帳', class: 'status-pending', data: null };
+      if(state.status === 'in_progress') return { text: '⏳ 對帳中', class: 'status-inprogress', data: state };
+      return { text: '✅ 已結算', class: 'status-completed', data: state };
     }
 
-    function renderTable() {
+    window.renderTable = () => {
       const tbody = document.getElementById('bankTable');
       tbody.innerHTML = '';
       const searchVal = document.getElementById('searchInput').value.toLowerCase();
 
       let filtered = transactions.filter(t => {
-        const state = auditState[t.id] || { status: 'pending' };
-        if (currentMainFilter === 'pending' && state.status !== 'pending') return false;
-        if (currentMainFilter === 'in_progress' && state.status !== 'in_progress') return false;
-        if (currentMainFilter === 'completed') {
-          if (state.status !== 'completed') return false;
-          if (currentSubFilter !== 'all' && state.subStatus !== currentSubFilter) return false;
-        }
+        const stateInfo = getStatusInfo(t.id);
+        const st = stateInfo.data ? stateInfo.data.status : 'pending';
+        
+        if (currentMainFilter === 'pending' && st !== 'pending') return false;
+        if (currentMainFilter === 'in_progress' && st !== 'in_progress') return false;
+        if (currentMainFilter === 'completed' && st !== 'completed') return false;
+        
         if (searchVal) {
           const combinedStr = `${t.date} ${t.exp} ${t.inc} ${t.balance} ${t.note} ${t.acc}`.toLowerCase();
           if (!combinedStr.includes(searchVal)) return false;
@@ -287,7 +259,11 @@
 
       pageData.forEach(t => {
         const isExp = expandedRows[t.id];
-        const state = auditState[t.id] || {};
+        const stateInfo = getStatusInfo(t.id);
+        const data = stateInfo.data || {};
+        
+        // 取得該筆的實際操作金額 (通常為存入，有時為支出退款)
+        const txAmt = Number(t.inc || t.exp || 0);
 
         const tr = document.createElement('tr');
         tr.innerHTML = `
@@ -298,7 +274,7 @@
           <td style="font-weight:bold;">${t.balance}</td>
           <td>${t.note ? `<span class="badge">${t.note}</span>` : ''}</td>
           <td class="account-code">${t.acc}</td>
-          <td>${getStatusTag(t.id)}</td>
+          <td><span class="status-tag ${stateInfo.class}">${stateInfo.text}</span></td>
         `;
         tbody.appendChild(tr);
 
@@ -306,78 +282,110 @@
           const subTr = document.createElement('tr');
           subTr.className = 'sub-row';
           
-          let optionsHtml = '<option value="">-- 請選擇買家填單紀錄 --</option>';
-          orderRecords.forEach(o => {
-            const sel = (state.orderId === o.id) ? 'selected' : '';
-            optionsHtml += `<option value="${o.id}" ${sel}>[${o.event}] ${o.name} - 應匯:$${o.amt || '?'} (末5碼:${o.last5 || '無'})</option>`;
+          let uniqueBuyers = [...new Set(ctbcBills.map(b => b.name))].filter(Boolean).sort((a,b)=>a.localeCompare(b,'zh-TW'));
+          let optionsHtml = '<option value="">請選擇要扣款配對的買家...</option>';
+          uniqueBuyers.forEach(name => {
+            const sel = (data.buyerName === name) ? 'selected' : '';
+            optionsHtml += `<option value="${name}" ${sel}>${name}</option>`;
           });
 
           subTr.innerHTML = `
             <td colspan="8">
               <div class="sub-container">
-                <div style="font-size:13px; font-weight:bold; color:#1e293b;">🔍 針對此筆 ${t.inc ? '$'+t.inc+' 存入' : '$'+t.exp+' 支出'} 進行核對與編輯</div>
-                <select style="padding:6px; font-size:12px; border-radius:4px; border:1px solid #cbd5e1; max-width:400px;" 
-                        onchange="selectOrder(${t.id}, this.value)">
+                <div style="font-size:13px; font-weight:bold; color:#1e293b;">🔍 將此筆 $${txAmt} 明細匯入買家帳戶</div>
+                <select id="buyer_select_${t.id}" style="padding:6px; font-size:12px; border-radius:4px; border:1px solid #cbd5e1; max-width:250px;" 
+                        onchange="calcWallet(${t.id}, this.value, ${txAmt})">
                   ${optionsHtml}
                 </select>
                 
-                <div class="edit-box">
-                  <div class="form-group"><label>補填張數</label><input type="number" id="e_qty_${t.id}" value="${state.qty || ''}" style="width:60px;"></div>
-                  <div class="form-group"><label>應匯金額</label><input type="number" id="e_expAmt_${t.id}" value="${state.expAmt || ''}" style="width:80px;"></div>
-                  <div class="form-group"><label>實際匯款</label><input type="number" id="e_actAmt_${t.id}" value="${state.actAmt || t.inc || t.exp || ''}" style="width:80px;"></div>
-                  
+                <!-- 買家錢包即時試算區 -->
+                <div id="wallet_info_${t.id}" style="background:#e8f4ff; border:1px solid #c6e2ff; padding:10px; border-radius:6px; display:none;"></div>
+                
+                <div class="edit-box" style="margin-top:2px;">
                   <div class="form-group">
-                    <label>判定狀態</label>
-                    <select id="e_sub_${t.id}" style="width:140px;">
-                      <option value="已匯款" ${state.subStatus === '已匯款' ? 'selected' : ''}>🔘 已匯款 (金額相符)</option>
-                      <option value="待補款" ${state.subStatus === '待補款' ? 'selected' : ''}>⚪ 待補款 (金額不足)</option>
+                    <label>紀錄狀態</label>
+                    <select id="e_status_${t.id}" style="width:140px;">
+                      <option value="in_progress" ${data.status === 'in_progress' ? 'selected' : ''}>⏳ 對帳中 (暫存)</option>
+                      <option value="completed" ${data.status === 'completed' ? 'selected' : ''}>✅ 寫入並結算</option>
                     </select>
                   </div>
-                  
-                  <div class="form-group" style="flex:1;"><label>對帳備註</label><input type="text" id="e_memo_${t.id}" value="${state.memo || ''}" placeholder="例如: 少匯 20 元下次補..."></div>
+                  <div class="form-group" style="flex:1;"><label>結算備註</label><input type="text" id="e_memo_${t.id}" value="${data.memo || ''}" placeholder="例: 溢繳轉為購物金 / 第一筆分期..."></div>
                 </div>
 
                 <div style="display:flex; gap:10px;">
-                  <button class="btn-action btn-save" onclick="saveAudit(${t.id}, 'in_progress')">💾 暫存 (標為對帳中)</button>
-                  <button class="btn-action btn-done" onclick="saveAudit(${t.id}, 'completed')">✅ 確認對帳完成</button>
-                  <button class="btn-action btn-clear" onclick="clearAudit(${t.id})">❌ 取消關聯並清空</button>
+                  <button class="btn-action btn-save" onclick="saveSettlement(${t.id}, ${txAmt})">💾 寫入資料庫</button>
+                  ${data.txId ? `<button class="btn-action btn-clear" onclick="deleteSettlement(${t.id})">❌ 取消關聯 (還原此筆)</button>` : ''}
                 </div>
               </div>
             </td>
           `;
           tbody.appendChild(subTr);
+          
+          // 若之前已經配對過，展開時直接計算顯示
+          if(data.buyerName) {
+            setTimeout(() => window.calcWallet(t.id, data.buyerName, txAmt), 50);
+          }
         }
       });
 
       document.getElementById('statsInfo').innerText = `顯示中: ${filtered.length} 筆 (第 ${currentPage}/${totalPages} 頁)`;
       renderPagination(totalPages);
-    }
+    };
 
-    window.toggleRow = (id) => { expandedRows[id] = !expandedRows[id]; renderTable(); };
+    window.toggleRow = (id) => { expandedRows[id] = !expandedRows[id]; window.renderTable(); };
 
-    window.selectOrder = (txId, orderId) => {
-      if(!auditState[txId]) auditState[txId] = {};
-      auditState[txId].orderId = orderId;
-      const order = orderRecords.find(o => o.id === orderId);
-      if(order) {
-        if(order.qty) document.getElementById(`e_qty_${txId}`).value = order.qty;
-        if(order.amt) document.getElementById(`e_expAmt_${txId}`).value = order.amt;
+    window.calcWallet = (txId, buyerName, currentAmt) => {
+      const walletDiv = document.getElementById(`wallet_info_${txId}`);
+      if(!buyerName) { walletDiv.style.display = 'none'; return; }
+      
+      // 計算該買家的總應付金額 (從 ctbcBills 中加總)
+      let totalExpected = ctbcBills.filter(b => b.name === buyerName).reduce((sum, b) => sum + Number(b.expectedAmt||0), 0);
+      
+      // 計算該買家 "排除當前這筆" 的已付款總和
+      let totalPaid = ctbcSettlements
+                        .filter(s => s.buyerName === buyerName && s.txId !== txId.toString())
+                        .reduce((sum, s) => sum + Number(s.amount||0), 0);
+      
+      // 結算試算
+      let remaining = totalExpected - totalPaid - currentAmt;
+      
+      walletDiv.innerHTML = `
+        <div style="display:flex; justify-content:space-between; max-width: 450px; font-size:12px; color:#303133;">
+            <div>該買家總應付：<b>$${totalExpected}</b></div>
+            <div>過去已對帳：<b>$${totalPaid}</b></div>
+            <div>本次欲認列：<b style="color:#2563eb;">+$${currentAmt}</b></div>
+        </div>
+        <div style="margin-top:6px; font-weight:bold; font-size:13px; color:${remaining <= 0 ? '#16a34a' : '#dc2626'}">
+            試算後尚欠：$${remaining > 0 ? remaining : 0} ${remaining < 0 ? `(溢繳 $${Math.abs(remaining)} 可作購物金)` : ''}
+        </div>
+      `;
+      walletDiv.style.display = 'block';
+    };
+
+    window.saveSettlement = async (txId, txAmt) => {
+      const buyerName = document.getElementById(`buyer_select_${txId}`).value;
+      if(!buyerName) return alert('請先選擇配對的買家！');
+      
+      const status = document.getElementById(`e_status_${txId}`).value;
+      const memo = document.getElementById(`e_memo_${txId}`).value;
+      
+      await setDoc(doc(db, "ctbc_settlements", txId.toString()), {
+        txId: txId.toString(),
+        buyerName,
+        amount: txAmt,
+        status,
+        memo,
+        updatedAt: Date.now()
+      });
+      expandedRows[txId] = false; 
+    };
+
+    window.deleteSettlement = async (txId) => {
+      if(confirm('確定要取消關聯並將此筆明細還原為未對帳嗎？')) {
+        await deleteDoc(doc(db, "ctbc_settlements", txId.toString()));
+        expandedRows[txId] = false;
       }
     };
-
-    window.saveAudit = (txId, status) => {
-      if(!auditState[txId]) auditState[txId] = {};
-      auditState[txId].status = status;
-      auditState[txId].qty = document.getElementById(`e_qty_${txId}`).value;
-      auditState[txId].expAmt = document.getElementById(`e_expAmt_${txId}`).value;
-      auditState[txId].actAmt = document.getElementById(`e_actAmt_${txId}`).value;
-      auditState[txId].subStatus = document.getElementById(`e_sub_${txId}`).value;
-      auditState[txId].memo = document.getElementById(`e_memo_${txId}`).value;
-      expandedRows[txId] = false; 
-      renderTable();
-    };
-
-    window.clearAudit = (txId) => { delete auditState[txId]; renderTable(); };
 
     function renderPagination(totalPages) {
       const pContainer = document.getElementById('pagination');
@@ -387,21 +395,23 @@
       prevBtn.className = 'page-btn';
       prevBtn.innerText = '上一頁';
       prevBtn.disabled = currentPage === 1;
-      prevBtn.onclick = () => { currentPage--; renderTable(); };
+      prevBtn.onclick = () => { currentPage--; window.renderTable(); };
       pContainer.appendChild(prevBtn);
+      
       for(let i = 1; i <= totalPages; i++) {
         if (totalPages > 10 && Math.abs(i - currentPage) > 3 && i !== 1 && i !== totalPages) continue;
         const btn = document.createElement('button');
         btn.className = `page-btn ${i === currentPage ? 'active' : ''}`;
         btn.innerText = i;
-        btn.onclick = () => { currentPage = i; renderTable(); };
+        btn.onclick = () => { currentPage = i; window.renderTable(); };
         pContainer.appendChild(btn);
       }
+      
       const nextBtn = document.createElement('button');
       nextBtn.className = 'page-btn';
       nextBtn.innerText = '下一頁';
       nextBtn.disabled = currentPage === totalPages;
-      nextBtn.onclick = () => { currentPage++; renderTable(); };
+      nextBtn.onclick = () => { currentPage++; window.renderTable(); };
       pContainer.appendChild(nextBtn);
     }
   </script>
