@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>中國信託 內部結算與對帳系統</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 15px; margin: 0; background: #f8fafc; color: #334155; }
+    h2 { margin: 0 0 4px 0; font-size: 20px; color: #0f172a; }
+    .meta-info { font-size: 12px; color: #64748b; margin-bottom: 20px; }
+
+    /* 頁籤樣式 */
+    .tab-container { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; border-bottom: 2px solid #e2e8f0; padding-bottom: 12px; }
+    .tab-btn { padding: 8px 18px; border-radius: 20px; border: 1px solid #e8f4ff; background-color: #e8f4ff; color: #409eff; font-size: 14px; font-weight: bold; cursor: pointer; transition: all 0.2s ease; outline: none; }
+    .tab-btn:hover { background-color: #d0e7ff; }
+    .tab-btn.active { background-color: #409eff; color: #ffffff; border-color: #409eff; box-shadow: 0 2px 6px rgba(64,158,255,0.25); }
+
+    .iframe-wrapper { width: 100%; border: none; min-height: 800px; display: block; }
+  </style>
+</head>
+<body>
+
+  <h2>🏦 中國信託 內部結算與對帳系統</h2>
+  <div class="meta-info">帳號: 783540130964 | 資料獨立於前台，專作事後核帳</div>
+
+  <!-- 分頁頁籤 -->
+  <div class="tab-container">
+    <button class="tab-btn active" onclick="switchPage('bankFrame', this)">🏦 1. 明細對帳與建檔</button>
+    <button class="tab-btn" onclick="switchPage('billsFrame', this)">📋 2. 已登記結算單一覽</button>
+  </div>
+
+  <!-- 內容顯示區 (Iframes) -->
+  <iframe id="bankFrame" class="iframe-wrapper" src="ctbc_bank_table.html"></iframe>
+  <iframe id="billsFrame" class="iframe-wrapper" src="ctbc_bills_list.html" style="display:none;"></iframe>
+
+  <script>
+    window.switchPage = (frameId, btnElem) => {
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      btnElem.classList.add('active');
+      document.getElementById('bankFrame').style.display = (frameId === 'bankFrame') ? 'block' : 'none';
+      document.getElementById('billsFrame').style.display = (frameId === 'billsFrame') ? 'block' : 'none';
+    };
+
+    // 自動接收子頁面高度，避免雙重捲動條
+    window.addEventListener('message', (e) => {
+      if (e.data && e.data.type === 'BANK_HEIGHT') {
+        document.getElementById('bankFrame').style.height = (e.data.height + 50) + 'px';
+      }
+      if (e.data && e.data.type === 'BILLS_HEIGHT') {
+        document.getElementById('billsFrame').style.height = (e.data.height + 50) + 'px';
+      }
+    });
+  </script>
+</body>
+</html>
