@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>買家結算單紀錄一覽表</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 15px; margin: 0; background: #f8fafc; color: #334155; }
+    .header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px; }
+    h2 { margin: 0; font-size: 20px; color: #0f172a; }
+    .nav-btn { background: #e2e8f0; color: #475569; padding: 6px 14px; border-radius: 6px; text-decoration: none; font-size: 13px; font-weight: bold; transition: 0.2s; }
+    .nav-btn:hover { background: #cbd5e1; color: #1e293b; }
+
+    .card { background: #ffffff; padding: 16px; border-radius: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.04); border: 1px solid #e2e8f0; }
+    
+    .search-bar { display: flex; gap: 8px; margin-bottom: 12px; align-items: center; }
+    .search-bar input { flex: 1; max-width: 300px; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; outline: none; }
+    .search-bar input:focus { border-color: #3b82f6; }
+
+    .stats-info { font-size: 12px; font-weight: bold; color: #64748b; margin-bottom: 10px; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 13px; background: #fff; border-radius: 8px; overflow: hidden; border: 1px solid #e2e8f0; }
+    th { background: #f1f5f9; color: #334155; text-align: left; padding: 10px; border-bottom: 2px solid #e2e8f0; white-space: nowrap; }
+    td { padding: 10px; border-bottom: 1px solid #e2e8f0; }
+    tr:hover { background-color: #f8fafc; }
+
+    .amt-text { color: #dc2626; font-weight: bold; }
+    .pay-text { color: #16a34a; font-weight: bold; }
+    .badge { background: #f1f5f9; color: #475569; padding: 2px 6px; border-radius: 4px; font-size: 11px; }
+
+    .btn-delete { background: #fee2e2; color: #dc2626; border: 1px solid #fca5a5; border-radius: 4px; padding: 4px 8px; font-size: 12px; cursor: pointer; font-weight: bold; transition: 0.2s; }
+    .btn-delete:hover { background: #fecaca; }
+  </style>
+</head>
+<body>
+
+  <div class="header-row">
+    <h2>📋 買家結算單 (填單紀錄) 一覽表</h2>
+    <a href="ctbc_bank.html" class="nav-btn">🔙 返回中信對帳系統</a>
+  </div>
+
+  <div class="card">
+    <div class="search-bar">
+      <input type="text" id="searchInput" placeholder="🔍 搜尋暱稱、場次、狀態或備註..." onkeyup="renderTable()">
+    </div>
+    
+    <div class="stats-info" id="statsInfo">資料載入中...</div>
+
+    <div style="overflow-x:auto;">
+      <table>
+        <thead>
+          <tr>
+            <th>建立時間</th>
+            <th>買家暱稱</th>
+            <th>匯款狀態</th>
+            <th>團體 / 場次</th>
+            <th>成員 / 張數</th>
+            <th>應匯金額</th>
+            <th>實匯 / 後5碼</th>
+            <th>備註</th>
+            <th style="width: 60px;">操作</th>
+          </tr>
+        </thead>
+        <tbody id="billsTable"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getFirestore, collection, onSnapshot, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDF7QySG1Jj4gdZvXwMRaKjRmI-lFKpj7k",
+      authDomain: "forsure0922.firebaseapp.com",
+      databaseURL: "https://forsure0922-default-rtdb.firebaseio.com",
+      projectId: "forsure0922",
+      storageBucket: "forsure0922.firebasestorage.app",
+      messagingSenderId: "817449290174",
+      appId: "1:817449290174:web:6b4ec1d36c171ff97011ef"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    let billsData = [];
+
+    document.addEventListener('DOMContentLoaded', () => {
+      onSnapshot(collection(db, "ctbc_bills"), snap => {
+        billsData = snap.docs.map(d => ({id: d.id, ...d.data()}));
+        // 依建立時間由新到舊排序
+        billsData.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+        window.renderTable();
+      });
+    });
+
+    window.renderTable = () => {
+      const tbody = document.getElementById('billsTable');
+      tbody.innerHTML = '';
+      const searchVal = document.getElementById('searchInput').value.toLowerCase();
+
+      let filtered = billsData.filter(b => {
+        if (!searchVal) return true;
+        const combined = `${b.name} ${b.event} ${b.member} ${b.status} ${b.note} ${b.last5}`.toLowerCase();
+        return combined.includes(searchVal);
+      });
+
+      filtered.forEach(b => {
+        const dateStr = b.createdAt ? new Date(b.createdAt).toLocaleString('zh-TW', {month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit'}) : '-';
+        
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td style="font-size: 11px; color: #64748b;">${dateStr}</td>
+          <td style="font-weight: bold; color: #1d4ed8;">${b.name || '-'}</td>
+          <td><span class="badge">${b.status || '-'}</span></td>
+          <td>${b.group || '-'} <br> <span style="font-size:11px; color:#64748b;">${b.event || '-'}</span></td>
+          <td>${b.member || '-'} <br> <span style="font-size:11px; color:#64748b;">${b.qty ? b.qty+'張' : '-'}</span></td>
+          <td class="amt-text">${b.expectedAmt ? '$'+b.expectedAmt : '-'}</td>
+          <td>
+            <span class="pay-text">${b.payAmt ? '$'+b.payAmt : '-'}</span> <br> 
+            <span style="font-size:11px; color:#64748b;">${b.last5 ? '末5: '+b.last5 : ''}</span>
+          </td>
+          <td style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${b.note || ''}">${b.note || '-'}</td>
+          <td><button class="btn-delete" onclick="deleteBill('${b.id}', '${b.name}')">❌ 刪除</button></td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      document.getElementById('statsInfo').innerText = `共計 ${filtered.length} 筆結算單紀錄`;
+    };
+
+    window.deleteBill = async (id, name) => {
+      if(confirm(`確定要刪除買家【${name}】的這筆結算單紀錄嗎？\n(刪除後將無法在對帳系統中配對此筆)`)) {
+        await deleteDoc(doc(db, "ctbc_bills", id));
+      }
+    };
+  </script>
+</body>
+</html>
