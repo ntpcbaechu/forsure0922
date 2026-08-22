@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>中國信託 存款交易明細對帳系統</title>
+  <title>中國信託 存款交易明細逐筆對帳系統</title>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 12px; margin: 0; background: #f8fafc; color: #334155; }
     h2 { margin: 0 0 4px 0; font-size: 18px; color: #0f172a; }
@@ -45,15 +45,17 @@
     table { width: 100%; border-collapse: collapse; font-size: 12px; background: #fff; border-radius: 8px; overflow: hidden; }
     th { background: #f1f5f9; color: #334155; text-align: left; padding: 8px 10px; border-bottom: 2px solid #e2e8f0; white-space: nowrap; }
     td { padding: 8px 10px; border-bottom: 1px solid #e2e8f0; }
-    
+
     tr.completed { background-color: #f1f5f9 !important; color: #94a3b8 !important; }
     tr.completed td { text-decoration: line-through; }
-    tr.completed select, tr.completed input { opacity: 0.5; pointer-events: none; }
-    tr.completed .no-strike { text-decoration: none !important; display: inline-block; }
+    .no-strike { text-decoration: none !important; }
 
     .income { color: #16a34a; font-weight: bold; }
     .expense { color: #dc2626; font-weight: bold; }
     .account-code { font-family: monospace; font-weight: bold; background: #eff6ff; color: #1d4ed8; padding: 2px 6px; border-radius: 4px; }
+
+    .sub-row { background: #f8fafc; border-bottom: 2px solid #cbd5e1; padding: 12px; }
+    .sub-container { background: #ffffff; padding: 12px; border-radius: 8px; border: 1px solid #cbd5e1; }
 
     .pagination { display: flex; justify-content: center; align-items: center; gap: 5px; margin-top: 12px; flex-wrap: wrap; }
     .page-btn { padding: 4px 8px; border: 1px solid #cbd5e1; background: #fff; border-radius: 4px; font-size: 12px; cursor: pointer; color: #334155; }
@@ -65,7 +67,7 @@
 </head>
 <body>
 
-  <h2>🏦 中國信託 存款交易明細對帳系統</h2>
+  <h2>🏦 中國信託 存款交易明細逐筆對帳系統</h2>
   <div class="meta-info">帳號: 783540130964 | 幣別: TWD | 區間: 2026/01/01 - 2026/07/28</div>
 
   <div class="card">
@@ -133,36 +135,12 @@
     </form>
   </div>
 
-  <div class="card">
-    <h3>🔍 2. 對帳審核區</h3>
-    <div class="compact-form">
-      <div class="form-group" style="flex: 1; min-width: 280px;">
-        <label>4. 中信對應筆數</label>
-        <select id="ctbcSelect" class="w-full" onchange="autoFillAuditInfo(this)">
-          <option value="">-- 請選擇對應的中信交易筆數 --</option>
-        </select>
-      </div>
-      <div class="form-group w-date">
-        <label>1. 對帳日期</label>
-        <input type="text" id="auditDate" readonly style="background:#f1f5f9;">
-      </div>
-      <div class="form-group w-amount">
-        <label>2. 對帳金額</label>
-        <input type="text" id="auditAmount" readonly style="background:#f1f5f9;">
-      </div>
-      <div class="form-group w-last5">
-        <label>3. 後五碼</label>
-        <input type="text" id="auditLast5" readonly style="background:#f1f5f9;">
-      </div>
-    </div>
-  </div>
-
   <div class="search-bar">
-    <input type="text" id="searchInput" placeholder="🔍 搜尋日期、金額、後五碼、備註..." onkeyup="onSearchChange()">
+    <input type="text" id="searchInput" placeholder="🔍 搜尋日期, 金額, 後五碼, 備註..." onkeyup="onSearchChange()">
     <button class="btn-filter active" onclick="setFilter('all', this)">全部</button>
     <button class="btn-filter" onclick="setFilter('income', this)">僅看存入 (+)</button>
     <label style="font-size:12px; cursor:pointer; margin-left:auto;">
-      <input type="checkbox" id="hideCompleted" onchange="onSearchChange()"> 隱藏已對帳(打勾)項目
+      <input type="checkbox" id="hideCompleted" onchange="onSearchChange()"> 隱藏已對帳項目
     </label>
   </div>
 
@@ -172,11 +150,11 @@
     <table>
       <thead>
         <tr>
+          <th>操作</th>
           <th>ID</th>
           <th>交易日期時間</th>
           <th>支出 / 存入</th>
           <th>對方帳號 / 備註</th>
-          <th>匹配團員填單 (下拉選單)</th>
           <th>對帳狀態</th>
         </tr>
       </thead>
@@ -213,6 +191,8 @@
 
     let orderRecords = [];
     let auditState = {};
+    let matchedRecords = {}; 
+    let expandedRows = {};   
     let currentFilter = 'all';
     let currentPage = 1;
     const pageSize = 50;
@@ -240,7 +220,6 @@
         updateMemberDropdown();
       });
 
-      initCtbcDropdown();
       renderTable();
     });
 
@@ -253,15 +232,11 @@
         uSel.disabled = true;
         return;
       }
-
       uSel.disabled = false;
       const filtered = usersDatabase.filter(u => u.group === g && u.name).map(u => u.name);
       const uniqueUsers = Array.from(new Set(filtered)).sort((a,b)=>a.localeCompare(b,'zh-TW'));
-
       uSel.innerHTML = '<option value="">請選擇社群暱稱</option>';
-      uniqueUsers.forEach(u => {
-        uSel.innerHTML += `<option value="${u}">${u}</option>`;
-      });
+      uniqueUsers.forEach(u => { uSel.innerHTML += `<option value="${u}">${u}</option>`; });
     }
 
     function updateMemberDropdown() {
@@ -273,7 +248,6 @@
         mSel.disabled = true;
         return;
       }
-
       const arr = memberMap[g] || [];
       mSel.disabled = false;
       mSel.innerHTML = '<option value="">請選擇成員</option>';
@@ -313,30 +287,6 @@
       orderRecords.push(newRecord);
       alert("新增填單成功！");
       renderTable();
-    };
-
-    function initCtbcDropdown() {
-      const select = document.getElementById('ctbcSelect');
-      select.innerHTML = `<option value="">-- 請選擇對應的中信交易筆數 (共 ${transactions.length} 筆) --</option>` + 
-        transactions.map(t => {
-          const amt = t.inc ? `+${t.inc}` : `-${t.exp}`;
-          return `<option value="${t.id}" data-date="${t.date}" data-amount="${amt}" data-acc="${t.acc}">${t.date} | ${amt} | ${t.acc}</option>`;
-        }).join('');
-    }
-
-    window.autoFillAuditInfo = (sel) => {
-      const opt = sel.options[sel.selectedIndex];
-      if(!sel.value) {
-        document.getElementById('auditDate').value = '';
-        document.getElementById('auditAmount').value = '';
-        document.getElementById('auditLast5').value = '';
-        return;
-      }
-      document.getElementById('auditDate').value = opt.getAttribute('data-date');
-      document.getElementById('auditAmount').value = opt.getAttribute('data-amount');
-      const acc = opt.getAttribute('data-acc');
-      const last5Match = acc.match(/\d{5}/);
-      document.getElementById('auditLast5').value = last5Match ? last5Match[0] : acc;
     };
 
     function getFilteredTransactions() {
@@ -380,25 +330,22 @@
 
       pageData.forEach(t => {
         const isComp = auditState[t.id] || false;
+        const isExp = expandedRows[t.id] || false;
+        const currentMatchedId = matchedRecords[t.id] || '';
+
         const tr = document.createElement('tr');
         if(isComp) tr.classList.add('completed');
 
-        const orderOpts = orderRecords.map(o => {
-          const last5Display = o.last5 !== '-' ? `後5碼:${o.last5}` : '未填後5碼';
-          return `<option value="${o.id}">[${o.status}] ${o.event} (${o.group}-${o.member}) | ${o.name} | $${o.amount} (${last5Display})</option>`;
-        }).join('');
-
         tr.innerHTML = `
+          <td>
+            <button class="btn-filter ${isExp ? 'active' : ''}" onclick="toggleRow(${t.id})">
+              ${isExp ? '收起明細 ▲' : '逐筆核對 ▼'}
+            </button>
+          </td>
           <td>${t.id}</td>
           <td>${t.date}</td>
           <td>${t.inc ? `<span class="income">+${t.inc}</span>` : `<span class="expense">-${t.exp}</span>`}</td>
           <td><span class="account-code">${t.acc}</span></td>
-          <td>
-            <select style="width:100%; font-size:12px;">
-              <option value="">-- 選擇配對的填單 --</option>
-              ${orderOpts}
-            </select>
-          </td>
           <td>
             <label class="no-strike" style="cursor:pointer; font-weight:bold;">
               <input type="checkbox" ${isComp ? 'checked' : ''} onchange="toggleAudit(${t.id}, this.checked)">
@@ -407,6 +354,38 @@
           </td>
         `;
         tbody.appendChild(tr);
+
+        if(isExp) {
+          const subTr = document.createElement('tr');
+          subTr.className = 'sub-row';
+          
+          const orderOpts = orderRecords.map(o => {
+            const last5Display = o.last5 !== '-' ? `後5碼:${o.last5}` : '未填';
+            const selectedAttr = o.id == currentMatchedId ? 'selected' : '';
+            return `<option value="${o.id}" ${selectedAttr}>[${o.status}] ${o.event} (${o.group}-${o.member}) | ${o.name} | $${o.amount} (${last5Display})</option>`;
+          }).join('');
+
+          subTr.innerHTML = `
+            <td colspan="6">
+              <div class="sub-container">
+                <h4 style="margin:0 0 8px 0; font-size:13px; color:#1e293b;">🔍 交易 ID: ${t.id} 之逐筆核對設定</h4>
+                <div style="display:flex; flex-direction:column; gap:8px;">
+                  <div>
+                    <label style="font-size:11px; font-weight:bold; color:#475569;">選擇匹配的團員登記填單：</label>
+                    <select style="width:100%; padding:6px; font-size:12px; border:1px solid #cbd5e1; border-radius:6px;" onchange="matchOrder(${t.id}, this.value)">
+                      <option value="">-- 請選擇對應的登記填單 --</option>
+                      ${orderOpts}
+                    </select>
+                  </div>
+                  <div style="font-size:11px; color:#64748b;">
+                    提示：您可以直接在上方的「1. 團員匯款登記填單」新增資料，即可在此處的下拉選單中進行逐筆對帳與勾選。
+                  </div>
+                </div>
+              </div>
+            </td>
+          `;
+          tbody.appendChild(subTr);
+        }
       });
 
       document.getElementById('statsInfo').innerHTML = 
@@ -414,6 +393,15 @@
 
       renderPagination(totalPages);
     }
+
+    window.toggleRow = (id) => {
+      expandedRows[id] = !expandedRows[id];
+      renderTable();
+    };
+
+    window.matchOrder = (txId, orderId) => {
+      matchedRecords[txId] = orderId;
+    };
 
     function renderPagination(totalPages) {
       const pContainer = document.getElementById('pagination');
