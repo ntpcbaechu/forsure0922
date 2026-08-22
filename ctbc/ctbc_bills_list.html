@@ -7,9 +7,10 @@
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 15px; margin: 0; background: #f8fafc; color: #334155; }
     .header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px; }
-    h2 { margin: 0; font-size: 20px; color: #0f172a; }
-    .nav-btn { background: #e2e8f0; color: #475569; padding: 6px 14px; border-radius: 6px; text-decoration: none; font-size: 13px; font-weight: bold; transition: 0.2s; }
-    .nav-btn:hover { background: #cbd5e1; color: #1e293b; }
+    h2 { margin: 0; font-size: 18px; color: #0f172a; }
+    
+    .btn-danger { background: #fee2e2; color: #dc2626; border: 1px solid #fca5a5; padding: 6px 14px; border-radius: 6px; font-size: 13px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+    .btn-danger:hover { background: #fecaca; color: #b91c1c; }
 
     .card { background: #ffffff; padding: 16px; border-radius: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.04); border: 1px solid #e2e8f0; }
     
@@ -36,7 +37,7 @@
 
   <div class="header-row">
     <h2>📋 買家結算單 (填單紀錄) 一覽表</h2>
-    <a href="ctbc_bank.html" class="nav-btn">🔙 返回中信對帳系統</a>
+    <button class="btn-danger" onclick="wipeAllData()">🚨 一鍵清空所有紀錄</button>
   </div>
 
   <div class="card">
@@ -68,7 +69,7 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore, collection, onSnapshot, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getFirestore, collection, onSnapshot, doc, deleteDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyDF7QySG1Jj4gdZvXwMRaKjRmI-lFKpj7k",
@@ -88,7 +89,6 @@
     document.addEventListener('DOMContentLoaded', () => {
       onSnapshot(collection(db, "ctbc_bills"), snap => {
         billsData = snap.docs.map(d => ({id: d.id, ...d.data()}));
-        // 依建立時間由新到舊排序
         billsData.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
         window.renderTable();
       });
@@ -127,11 +127,39 @@
       });
 
       document.getElementById('statsInfo').innerText = `共計 ${filtered.length} 筆結算單紀錄`;
+      
+      // 動態調整 iframe 高度給父層
+      setTimeout(() => {
+        window.parent.postMessage({ type: 'BILLS_HEIGHT', height: document.body.scrollHeight }, '*');
+      }, 100);
     };
 
     window.deleteBill = async (id, name) => {
       if(confirm(`確定要刪除買家【${name}】的這筆結算單紀錄嗎？\n(刪除後將無法在對帳系統中配對此筆)`)) {
         await deleteDoc(doc(db, "ctbc_bills", id));
+      }
+    };
+
+    window.wipeAllData = async () => {
+      const pwd = prompt("⚠️ 警告：這將會刪除所有「結算單」與「對帳紀錄」！\n請輸入密碼「0922」確認執行：");
+      if (pwd !== "0922") {
+        if(pwd !== null) alert("密碼錯誤，取消操作。");
+        return;
+      }
+      
+      document.getElementById('statsInfo').innerText = "資料清空中，請稍候...";
+      try {
+        const delPromises = [];
+        const snapBills = await getDocs(collection(db, "ctbc_bills"));
+        snapBills.forEach(d => delPromises.push(deleteDoc(doc(db, "ctbc_bills", d.id))));
+        const snapSettles = await getDocs(collection(db, "ctbc_settlements"));
+        snapSettles.forEach(d => delPromises.push(deleteDoc(doc(db, "ctbc_settlements", d.id))));
+        
+        await Promise.all(delPromises);
+        alert("✅ 全部結算單與對帳紀錄皆已清空！");
+        window.renderTable();
+      } catch (e) {
+        alert("清空過程中發生錯誤：" + e.message);
       }
     };
   </script>

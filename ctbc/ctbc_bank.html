@@ -9,6 +9,12 @@
     h2 { margin: 0 0 4px 0; font-size: 18px; color: #0f172a; }
     .meta-info { font-size: 11px; color: #64748b; margin-bottom: 15px; }
 
+    /* 頁籤樣式 */
+    .tab-container { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+    .tab-btn { padding: 8px 16px; border-radius: 20px; border: 1px solid #e8f4ff; background-color: #e8f4ff; color: #409eff; font-size: 14px; font-weight: bold; cursor: pointer; transition: all 0.2s ease; outline: none; }
+    .tab-btn:hover { background-color: #d0e7ff; }
+    .tab-btn.active { background-color: #409eff; color: #ffffff; border-color: #409eff; box-shadow: 0 2px 6px rgba(64,158,255,0.25); }
+
     .card { background: #ffffff; padding: 12px 16px; border-radius: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.04); margin-bottom: 12px; border: 1px solid #e2e8f0; }
     .card h3 { margin-top: 0; margin-bottom: 10px; font-size: 14px; color: #1e293b; border-bottom: 1px solid #f1f5f9; padding-bottom: 4px; }
 
@@ -20,7 +26,6 @@
     .form-group input, .form-group select { padding: 6px 8px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 12px; outline: none; box-sizing: border-box; }
     .form-group input:focus, .form-group select:focus { border-color: #3b82f6; }
 
-    /* 批次建檔區樣式 */
     .batch-header { padding-bottom: 10px; border-bottom: 2px dashed #cbd5e1; margin-bottom: 10px; }
     .dynamic-row { background: #f1f5f9; padding: 16px 10px 10px 10px; border-radius: 8px; position: relative; margin-bottom: 8px; border: 1px solid #e2e8f0; }
     .btn-remove-row { position: absolute; right: 10px; top: 10px; background: #fee2e2; color: #ef4444; border: 1px solid #fca5a5; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; font-weight: bold; }
@@ -67,6 +72,8 @@
     .pagination { display: flex; justify-content: center; gap: 5px; margin-top: 12px; flex-wrap: wrap; }
     .page-btn { padding: 4px 8px; border: 1px solid #cbd5e1; background: #fff; border-radius: 4px; font-size: 12px; cursor: pointer; }
     .page-btn.active { background: #2563eb; color: #fff; border-color: #2563eb; }
+
+    .iframe-wrapper { width: 100%; border: none; min-height: 800px; border-radius: 10px; }
   </style>
   <script src="ctbc_data.js"></script>
 </head>
@@ -75,73 +82,82 @@
   <h2>🏦 中國信託 內部結算與對帳系統</h2>
   <div class="meta-info">帳號: 783540130964 | 幣別: TWD | 資料獨立於前台，專作事後核帳</div>
 
-  <!-- 批次建檔區 -->
-  <div class="card">
-    <h3>📝 1. 建立買家結算單 (支援同買家批次新增)</h3>
-    
-    <!-- 買家共用資訊 -->
-    <div class="compact-form batch-header">
-      <div class="form-group">
-        <label class="required">1. 團體</label>
-        <select id="f_group" onchange="updateAllMemberSelects()">
-          <option value="">請選擇團體</option>
-          <option value="Stray Kids">Stray Kids</option>
-          <option value="ATEEZ">ATEEZ</option>
-        </select>
+  <!-- 分頁頁籤 -->
+  <div class="tab-container">
+    <button class="tab-btn active" onclick="switchPage('tab-bank', this)">🏦 1. 明細對帳與建檔</button>
+    <button class="tab-btn" onclick="switchPage('tab-bills', this)">📋 2. 已登記結算單一覽</button>
+  </div>
+
+  <!-- 頁籤 1: 原本的對帳系統 -->
+  <div id="tab-bank">
+    <div class="card">
+      <h3>📝 1. 建立買家結算單 (支援同買家批次新增)</h3>
+      <div class="compact-form batch-header">
+        <div class="form-group">
+          <label class="required">1. 團體</label>
+          <select id="f_group" onchange="updateAllMemberSelects()">
+            <option value="">請選擇團體</option>
+            <option value="Stray Kids">Stray Kids</option>
+            <option value="ATEEZ">ATEEZ</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="required">2. 買家暱稱</label>
+          <input type="text" id="f_name" placeholder="填寫該買家暱稱" style="width:150px;">
+        </div>
       </div>
-      <div class="form-group">
-        <label class="required">2. 買家暱稱</label>
-        <input type="text" id="f_name" placeholder="填寫該買家暱稱" style="width:150px;">
+
+      <div id="dynamicRowsContainer"></div>
+
+      <div style="display:flex; gap:10px; margin-top:12px;">
+        <button type="button" class="btn-action btn-add" onclick="addDynamicRow()">➕ 新增一筆填單紀錄</button>
+        <button type="button" class="btn-action btn-save" onclick="batchSubmitOrders()">💾 批次送出結算單</button>
+      </div>
+    </div>
+
+    <div class="filter-card">
+      <div class="filter-row">
+        <span class="filter-label">對帳狀態：</span>
+        <div class="capsule-group">
+          <button class="capsule-filter-btn active" onclick="setMainFilter('all', this)">📋 全部明細</button>
+          <button class="capsule-filter-btn" onclick="setMainFilter('pending', this)">📌 未對帳</button>
+          <button class="capsule-filter-btn" onclick="setMainFilter('in_progress', this)">⏳ 對帳中</button>
+          <button class="capsule-filter-btn" onclick="setMainFilter('completed', this)">✅ 已結算</button>
+        </div>
       </div>
     </div>
 
-    <!-- 動態明細列表 -->
-    <div id="dynamicRowsContainer"></div>
-
-    <!-- 操作按鈕 -->
-    <div style="display:flex; gap:10px; margin-top:12px;">
-      <button type="button" class="btn-action btn-add" onclick="addDynamicRow()">➕ 新增一筆填單紀錄</button>
-      <button type="button" class="btn-action btn-save" onclick="batchSubmitOrders()">💾 批次送出結算單</button>
+    <div class="search-bar">
+      <input type="text" id="searchInput" placeholder="🔍 輸入後五碼、金額、日期等篩選關聯明細..." onkeyup="renderTable()">
     </div>
-  </div>
 
-  <div class="filter-card">
-    <div class="filter-row">
-      <span class="filter-label">對帳狀態：</span>
-      <div class="capsule-group">
-        <button class="capsule-filter-btn active" onclick="setMainFilter('all', this)">📋 全部明細</button>
-        <button class="capsule-filter-btn" onclick="setMainFilter('pending', this)">📌 未對帳</button>
-        <button class="capsule-filter-btn" onclick="setMainFilter('in_progress', this)">⏳ 對帳中</button>
-        <button class="capsule-filter-btn" onclick="setMainFilter('completed', this)">✅ 已結算</button>
-      </div>
+    <div class="stats-info" id="statsInfo">載入中...</div>
+
+    <div style="overflow-x:auto;">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:70px;">操作</th>
+            <th>交易日期時間</th>
+            <th>支出</th>
+            <th>存入</th>
+            <th>結餘</th>
+            <th>備註</th>
+            <th>對方帳號 / 說明</th>
+            <th>狀態</th>
+          </tr>
+        </thead>
+        <tbody id="bankTable"></tbody>
+      </table>
     </div>
+
+    <div class="pagination" id="pagination"></div>
   </div>
 
-  <div class="search-bar">
-    <input type="text" id="searchInput" placeholder="🔍 輸入後五碼、金額、日期等篩選關聯明細..." onkeyup="renderTable()">
+  <!-- 頁籤 2: 獨立一覽表的 Iframe -->
+  <div id="tab-bills" style="display:none;">
+    <iframe id="billsIframe" class="iframe-wrapper" src="ctbc_bills_list.html"></iframe>
   </div>
-
-  <div class="stats-info" id="statsInfo">載入中...</div>
-
-  <div style="overflow-x:auto;">
-    <table>
-      <thead>
-        <tr>
-          <th style="width:70px;">操作</th>
-          <th>交易日期時間</th>
-          <th>支出</th>
-          <th>存入</th>
-          <th>結餘</th>
-          <th>備註</th>
-          <th>對方帳號 / 說明</th>
-          <th>狀態</th>
-        </tr>
-      </thead>
-      <tbody id="bankTable"></tbody>
-    </table>
-  </div>
-
-  <div class="pagination" id="pagination"></div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -171,6 +187,22 @@
     let memberMap = {};
     let rowCounter = 0;
 
+    // 分頁切換邏輯
+    window.switchPage = (tabId, btnElem) => {
+      document.querySelectorAll('.tab-container .tab-btn').forEach(btn => btn.classList.remove('active'));
+      btnElem.classList.add('active');
+      document.getElementById('tab-bank').style.display = (tabId === 'tab-bank') ? 'block' : 'none';
+      document.getElementById('tab-bills').style.display = (tabId === 'tab-bills') ? 'block' : 'none';
+    };
+
+    // 接收 iframe 回傳的高度，自動撐開避免捲動條重疊
+    window.addEventListener('message', (e) => {
+      if (e.data && e.data.type === 'BILLS_HEIGHT') {
+        const frame = document.getElementById('billsIframe');
+        if(frame) frame.style.height = (e.data.height + 50) + 'px';
+      }
+    });
+
     document.addEventListener('DOMContentLoaded', async () => {
       try {
         const skzRes = await fetch('../json/members_skz.json');
@@ -179,20 +211,19 @@
         memberMap['ATEEZ'] = await atzRes.json();
       } catch(e) {}
 
-      addDynamicRow(); // 載入時自動新增第一行空白表單
+      addDynamicRow();
 
       onSnapshot(collection(db, "ctbc_bills"), snap => {
         ctbcBills = snap.docs.map(d => ({id: d.id, ...d.data()}));
-        if(Object.keys(expandedRows).length > 0) renderTable();
+        if(Object.keys(expandedRows).length > 0 && window.renderTable) renderTable();
       });
 
       onSnapshot(collection(db, "ctbc_settlements"), snap => {
         ctbcSettlements = snap.docs.map(d => ({id: d.id, ...d.data()}));
-        renderTable();
+        if(window.renderTable) renderTable();
       });
     });
 
-    // === 批次新增表單邏輯 (完整還原舊有欄位) ===
     window.addDynamicRow = () => {
       rowCounter++;
       const container = document.getElementById('dynamicRowsContainer');
@@ -208,38 +239,10 @@
       rowDiv.id = rowId;
       rowDiv.innerHTML = `
         <button type="button" class="btn-remove-row" onclick="removeRow('${rowId}')">✕ 移除此列</button>
-        
-        <div class="form-group">
-          <label>匯款狀態</label>
-          <select class="input-status">
-            <option value="">請選擇狀態</option>
-            <option value="已匯款">已匯款</option>
-            <option value="未匯款">未匯款</option>
-            <option value="不確定">不確定</option>
-          </select>
-        </div>
-        
-        <div class="form-group">
-          <label class="required">場次</label>
-          <select class="input-event" onchange="toggleRowCustomEvent(this, '${rowId}')">
-            <option value="">請選擇場次</option>
-            <option value="260328 D1">260328 D1</option>
-            <option value="260329 D2">260329 D2</option>
-            <option value="260404 D3">260404 D3</option>
-            <option value="260405 D4">260405 D4</option>
-            <option value="other">自訂場次...</option>
-          </select>
-        </div>
-        <div class="form-group input-custom-wrapper" style="display:none;">
-          <label class="required">自訂場次</label>
-          <input type="text" class="input-custom-event" placeholder="輸入場次" style="width:90px;">
-        </div>
-        
-        <div class="form-group">
-          <label class="required">成員</label>
-          <select class="input-member">${memOptions}</select>
-        </div>
-        
+        <div class="form-group"><label>匯款狀態</label><select class="input-status"><option value="">請選擇狀態</option><option value="已匯款">已匯款</option><option value="未匯款">未匯款</option><option value="不確定">不確定</option></select></div>
+        <div class="form-group"><label class="required">場次</label><select class="input-event" onchange="toggleRowCustomEvent(this, '${rowId}')"><option value="">請選擇</option><option value="260328 D1">260328 D1</option><option value="260329 D2">260329 D2</option><option value="260404 D3">260404 D3</option><option value="260405 D4">260405 D4</option><option value="other">自訂場次...</option></select></div>
+        <div class="form-group input-custom-wrapper" style="display:none;"><label class="required">自訂場次</label><input type="text" class="input-custom-event" placeholder="輸入場次" style="width:90px;"></div>
+        <div class="form-group"><label class="required">成員</label><select class="input-member">${memOptions}</select></div>
         <div class="form-group"><label class="optional">張數</label><input type="number" class="input-qty" placeholder="選填" style="width:60px;"></div>
         <div class="form-group"><label class="optional">應匯金額</label><input type="number" class="input-amt" placeholder="選填" style="width:80px;"></div>
         <div class="form-group"><label class="optional">匯款日期</label><input type="date" class="input-date"></div>
@@ -253,9 +256,7 @@
     window.removeRow = (rowId) => {
       const row = document.getElementById(rowId);
       if(row) row.remove();
-      if(document.getElementById('dynamicRowsContainer').children.length === 0) {
-        addDynamicRow(); // 保持至少有一行
-      }
+      if(document.getElementById('dynamicRowsContainer').children.length === 0) addDynamicRow(); 
     };
 
     window.toggleRowCustomEvent = (sel, rowId) => {
@@ -280,7 +281,6 @@
     window.batchSubmitOrders = async () => {
       const group = document.getElementById('f_group').value;
       const name = document.getElementById('f_name').value.trim();
-      
       if(!group || !name) { alert("請務必填寫「團體」與「買家暱稱」！"); return; }
 
       const rows = document.querySelectorAll('.dynamic-row');
@@ -288,9 +288,7 @@
 
       for(let row of rows) {
         let event = row.querySelector('.input-event').value;
-        if(event === 'other') {
-          event = row.querySelector('.input-custom-event').value.trim();
-        }
+        if(event === 'other') event = row.querySelector('.input-custom-event').value.trim();
         const member = row.querySelector('.input-member').value;
         const status = row.querySelector('.input-status').value;
         const qty = row.querySelector('.input-qty').value;
@@ -300,10 +298,7 @@
         const last5 = row.querySelector('.input-last5').value.trim();
         const note = row.querySelector('.input-note').value.trim();
 
-        if(!event || !member) {
-          alert("每一列的「場次」與「成員」為必填，請檢查後再送出！");
-          return;
-        }
+        if(!event || !member) { alert("每一列的「場次」與「成員」為必填，請檢查後再送出！"); return; }
 
         ordersToSubmit.push({
           name, group, event, member, status, qty, expectedAmt: Number(expectedAmt || 0), 
@@ -316,11 +311,9 @@
       }
 
       alert(`✅ 成功為【${name}】批次建立了 ${ordersToSubmit.length} 筆結算單！`);
-      
       document.getElementById('dynamicRowsContainer').innerHTML = '';
       addDynamicRow();
     };
-    // === 結束批次新增表單邏輯 ===
 
     window.setMainFilter = (filter, btn) => {
       currentMainFilter = filter;
@@ -345,11 +338,9 @@
       let filtered = transactions.filter(t => {
         const stateInfo = getStatusInfo(t.id);
         const st = stateInfo.data ? stateInfo.data.status : 'pending';
-        
         if (currentMainFilter === 'pending' && st !== 'pending') return false;
         if (currentMainFilter === 'in_progress' && st !== 'in_progress') return false;
         if (currentMainFilter === 'completed' && st !== 'completed') return false;
-        
         if (searchVal) {
           const combinedStr = `${t.date} ${t.exp} ${t.inc} ${t.balance} ${t.note} ${t.acc}`.toLowerCase();
           if (!combinedStr.includes(searchVal)) return false;
@@ -365,7 +356,6 @@
         const isExp = expandedRows[t.id];
         const stateInfo = getStatusInfo(t.id);
         const data = stateInfo.data || {};
-        
         const txAmt = Number(t.inc || t.exp || 0);
 
         const tr = document.createElement('tr');
@@ -404,13 +394,7 @@
                 <div id="wallet_info_${t.id}" style="background:#e8f4ff; border:1px solid #c6e2ff; padding:10px; border-radius:6px; display:none;"></div>
                 
                 <div class="edit-box" style="margin-top:2px;">
-                  <div class="form-group">
-                    <label>紀錄狀態</label>
-                    <select id="e_status_${t.id}" style="width:140px;">
-                      <option value="in_progress" ${data.status === 'in_progress' ? 'selected' : ''}>⏳ 對帳中 (暫存)</option>
-                      <option value="completed" ${data.status === 'completed' ? 'selected' : ''}>✅ 寫入並結算</option>
-                    </select>
-                  </div>
+                  <div class="form-group"><label>紀錄狀態</label><select id="e_status_${t.id}" style="width:140px;"><option value="in_progress" ${data.status === 'in_progress' ? 'selected' : ''}>⏳ 對帳中 (暫存)</option><option value="completed" ${data.status === 'completed' ? 'selected' : ''}>✅ 寫入並結算</option></select></div>
                   <div class="form-group" style="flex:1;"><label>結算備註</label><input type="text" id="e_memo_${t.id}" value="${data.memo || ''}" placeholder="例: 溢繳轉為購物金 / 第一筆分期..."></div>
                 </div>
 
@@ -422,10 +406,7 @@
             </td>
           `;
           tbody.appendChild(subTr);
-          
-          if(data.buyerName) {
-            setTimeout(() => window.calcWallet(t.id, data.buyerName, txAmt), 50);
-          }
+          if(data.buyerName) setTimeout(() => window.calcWallet(t.id, data.buyerName, txAmt), 50);
         }
       });
 
@@ -440,10 +421,7 @@
       if(!buyerName) { walletDiv.style.display = 'none'; return; }
       
       let totalExpected = ctbcBills.filter(b => b.name === buyerName).reduce((sum, b) => sum + Number(b.expectedAmt||0), 0);
-      let totalPaid = ctbcSettlements
-                        .filter(s => s.buyerName === buyerName && s.txId !== txId.toString())
-                        .reduce((sum, s) => sum + Number(s.amount||0), 0);
-      
+      let totalPaid = ctbcSettlements.filter(s => s.buyerName === buyerName && s.txId !== txId.toString()).reduce((sum, s) => sum + Number(s.amount||0), 0);
       let remaining = totalExpected - totalPaid - currentAmt;
       
       walletDiv.innerHTML = `
@@ -462,17 +440,11 @@
     window.saveSettlement = async (txId, txAmt) => {
       const buyerName = document.getElementById(`buyer_select_${txId}`).value;
       if(!buyerName) return alert('請先選擇配對的買家！');
-      
       const status = document.getElementById(`e_status_${txId}`).value;
       const memo = document.getElementById(`e_memo_${txId}`).value;
       
       await setDoc(doc(db, "ctbc_settlements", txId.toString()), {
-        txId: txId.toString(),
-        buyerName,
-        amount: txAmt,
-        status,
-        memo,
-        updatedAt: Date.now()
+        txId: txId.toString(), buyerName, amount: txAmt, status, memo, updatedAt: Date.now()
       });
       expandedRows[txId] = false; 
     };
@@ -494,7 +466,6 @@
       prevBtn.disabled = currentPage === 1;
       prevBtn.onclick = () => { currentPage--; window.renderTable(); };
       pContainer.appendChild(prevBtn);
-      
       for(let i = 1; i <= totalPages; i++) {
         if (totalPages > 10 && Math.abs(i - currentPage) > 3 && i !== 1 && i !== totalPages) continue;
         const btn = document.createElement('button');
@@ -503,7 +474,6 @@
         btn.onclick = () => { currentPage = i; window.renderTable(); };
         pContainer.appendChild(btn);
       }
-      
       const nextBtn = document.createElement('button');
       nextBtn.className = 'page-btn';
       nextBtn.innerText = '下一頁';
