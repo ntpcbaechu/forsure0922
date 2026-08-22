@@ -2385,7 +2385,7 @@ CTBC BANK
  | 
 2026/03/05 23:16:51
  |  |  | 680
- |  | 13,360
+ |  | 1,360
  | 812
  | 812/002888100**82960
  | 
@@ -2575,46 +2575,45 @@ CTBC BANK
 function parseBankPDF(text) {
   let cleaned = text.replace(/(\d{4}\/\d{2}\/\d{2})\n(\d{2}:\d{2}:\d{2})/g, "$1 $2");
   cleaned = cleaned.replace(/\n\s*\|/g, " |");
-  
   const lines = cleaned.split('\n');
   const validLines = [];
 
   for (let line of lines) {
     if (!line.match(/^\d{4}\/\d{2}\/\d{2}/)) continue;
-    
     const parts = line.split('|').map(p => p.trim());
-    
     if (parts.length >= 4) {
       const date = parts[0];
       const exp = parts[2] ? parts[2].replace(/,/g, '') : '';
       const inc = parts[3] ? parts[3].replace(/,/g, '') : '';
-      
-      // 過濾掉沒有實際金額變動的無效行
-      if (!exp && !inc) continue;
-      
-      let accInfo = parts.slice(5).map(p => p.trim()).filter(p => p);
-      let acc = accInfo.join(' ');
-      
-      let accWords = acc.split(' ');
-      let uniqueAcc = [...new Set(accWords)].join(' ');
+      if (!exp && !inc) continue; // 過濾掉沒有金額變動的行
 
-      validLines.push({
-        date: date,
-        exp: exp,
-        inc: inc,
-        acc: uniqueAcc || '-'
-      });
+      // 把 date、摘要、支出、存入 以外的剩餘文字抓出來 (以應付換行跑版問題)
+      const tokens = parts.slice(4).filter(p => p !== '');
+      let balance = '', note = '', acc = '';
+
+      // 第一個連續包含數字或逗號的通常是結餘 (例如 12,345)
+      if (tokens.length > 0 && /^[0-9,]+$/.test(tokens[0])) {
+        balance = tokens[0];
+        tokens.shift(); // 從陣列中移除結餘
+      }
+
+      // 剩下的分給備註與帳號
+      if (tokens.length > 0) {
+         if (tokens.length === 1) {
+             acc = tokens[0]; // 只有一項就當作帳號
+         } else {
+             note = tokens[0]; // 兩項以上，第一項通常是銀行代碼(備註)
+             acc = tokens.slice(1).join(' '); // 剩下全部合併為帳號
+         }
+      }
+
+      validLines.push({ date, exp, inc, balance, note, acc: acc || '-' });
     }
   }
   
-  // 關鍵修改：重新依照日期由舊到新排序 (Ascending)
+  // 由舊到新排序
   validLines.sort((a, b) => new Date(a.date) - new Date(b.date));
-  
-  // 排序完成後，統一依序賦予 1, 2, 3... 的新 ID
-  return validLines.map((item, index) => ({
-    id: index + 1,
-    ...item
-  }));
+  return validLines.map((item, index) => ({ id: index + 1, ...item }));
 }
 
 window.rawTransactions = parseBankPDF(rawPDFText);
