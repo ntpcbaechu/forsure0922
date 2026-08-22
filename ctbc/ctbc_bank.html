@@ -22,7 +22,7 @@
 
     /* 批次建檔區樣式 */
     .batch-header { padding-bottom: 10px; border-bottom: 2px dashed #cbd5e1; margin-bottom: 10px; }
-    .dynamic-row { background: #f1f5f9; padding: 10px; border-radius: 8px; position: relative; margin-bottom: 8px; border: 1px solid #e2e8f0; }
+    .dynamic-row { background: #f1f5f9; padding: 16px 10px 10px 10px; border-radius: 8px; position: relative; margin-bottom: 8px; border: 1px solid #e2e8f0; }
     .btn-remove-row { position: absolute; right: 10px; top: 10px; background: #fee2e2; color: #ef4444; border: 1px solid #fca5a5; border-radius: 4px; padding: 2px 6px; font-size: 11px; cursor: pointer; font-weight: bold; }
     .btn-remove-row:hover { background: #fecaca; }
 
@@ -82,7 +82,7 @@
     <!-- 買家共用資訊 -->
     <div class="compact-form batch-header">
       <div class="form-group">
-        <label class="required">1. 團體 (連動成員選項)</label>
+        <label class="required">1. 團體</label>
         <select id="f_group" onchange="updateAllMemberSelects()">
           <option value="">請選擇團體</option>
           <option value="Stray Kids">Stray Kids</option>
@@ -96,13 +96,11 @@
     </div>
 
     <!-- 動態明細列表 -->
-    <div id="dynamicRowsContainer">
-      <!-- 預設第一筆空行會由 JS 自動產生 -->
-    </div>
+    <div id="dynamicRowsContainer"></div>
 
     <!-- 操作按鈕 -->
     <div style="display:flex; gap:10px; margin-top:12px;">
-      <button type="button" class="btn-action btn-add" onclick="addDynamicRow()">➕ 新增一筆活動/金額</button>
+      <button type="button" class="btn-action btn-add" onclick="addDynamicRow()">➕ 新增一筆填單紀錄</button>
       <button type="button" class="btn-action btn-save" onclick="batchSubmitOrders()">💾 批次送出結算單</button>
     </div>
   </div>
@@ -181,8 +179,7 @@
         memberMap['ATEEZ'] = await atzRes.json();
       } catch(e) {}
 
-      // 載入時自動新增第一行空白表單
-      addDynamicRow();
+      addDynamicRow(); // 載入時自動新增第一行空白表單
 
       onSnapshot(collection(db, "ctbc_bills"), snap => {
         ctbcBills = snap.docs.map(d => ({id: d.id, ...d.data()}));
@@ -195,7 +192,7 @@
       });
     });
 
-    // === 批次新增表單邏輯 ===
+    // === 批次新增表單邏輯 (完整還原舊有欄位) ===
     window.addDynamicRow = () => {
       rowCounter++;
       const container = document.getElementById('dynamicRowsContainer');
@@ -203,41 +200,52 @@
       
       const currentGroup = document.getElementById('f_group').value;
       const memArr = memberMap[currentGroup] || [];
-      let memOptions = '<option value="">無</option>';
+      let memOptions = '<option value="">請選擇</option>';
       memArr.forEach(m => memOptions += `<option value="${m}">${m}</option>`);
 
       const rowDiv = document.createElement('div');
       rowDiv.className = 'compact-form dynamic-row';
       rowDiv.id = rowId;
       rowDiv.innerHTML = `
-        <button type="button" class="btn-remove-row" onclick="removeRow('${rowId}')">✕ 移除</button>
+        <button type="button" class="btn-remove-row" onclick="removeRow('${rowId}')">✕ 移除此列</button>
+        
         <div class="form-group">
-          <label class="required">場次/活動</label>
+          <label>匯款狀態</label>
+          <select class="input-status">
+            <option value="">請選擇狀態</option>
+            <option value="已匯款">已匯款</option>
+            <option value="未匯款">未匯款</option>
+            <option value="不確定">不確定</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label class="required">場次</label>
           <select class="input-event" onchange="toggleRowCustomEvent(this, '${rowId}')">
-            <option value="">請選擇</option>
+            <option value="">請選擇場次</option>
             <option value="260328 D1">260328 D1</option>
             <option value="260329 D2">260329 D2</option>
             <option value="260404 D3">260404 D3</option>
             <option value="260405 D4">260405 D4</option>
-            <option value="other">自訂活動...</option>
+            <option value="other">自訂場次...</option>
           </select>
         </div>
         <div class="form-group input-custom-wrapper" style="display:none;">
-          <label class="required">自訂活動</label>
-          <input type="text" class="input-custom-event" placeholder="輸入活動" style="width:100px;">
+          <label class="required">自訂場次</label>
+          <input type="text" class="input-custom-event" placeholder="輸入場次" style="width:90px;">
         </div>
+        
         <div class="form-group">
-          <label class="optional">成員 (選填)</label>
+          <label class="required">成員</label>
           <select class="input-member">${memOptions}</select>
         </div>
-        <div class="form-group">
-          <label class="required">應付金額</label>
-          <input type="number" class="input-amt" placeholder="填寫金額" style="width:80px;">
-        </div>
-        <div class="form-group" style="flex:1;">
-          <label class="optional">備註</label>
-          <input type="text" class="input-note" placeholder="例如：代購費/尾款..." style="width:100%;">
-        </div>
+        
+        <div class="form-group"><label class="optional">張數</label><input type="number" class="input-qty" placeholder="選填" style="width:60px;"></div>
+        <div class="form-group"><label class="optional">應匯金額</label><input type="number" class="input-amt" placeholder="選填" style="width:80px;"></div>
+        <div class="form-group"><label class="optional">匯款日期</label><input type="date" class="input-date"></div>
+        <div class="form-group"><label class="optional">實際匯款</label><input type="number" class="input-payamt" placeholder="選填" style="width:80px;"></div>
+        <div class="form-group"><label class="optional">後5碼</label><input type="text" class="input-last5" placeholder="" maxlength="5" style="width:70px;"></div>
+        <div class="form-group" style="flex:1;"><label class="optional">備註</label><input type="text" class="input-note" placeholder="" style="width:100%;"></div>
       `;
       container.appendChild(rowDiv);
     };
@@ -259,7 +267,7 @@
     window.updateAllMemberSelects = () => {
       const currentGroup = document.getElementById('f_group').value;
       const memArr = memberMap[currentGroup] || [];
-      let memOptions = '<option value="">無</option>';
+      let memOptions = '<option value="">請選擇</option>';
       memArr.forEach(m => memOptions += `<option value="${m}">${m}</option>`);
       
       document.querySelectorAll('.input-member').forEach(select => {
@@ -284,27 +292,31 @@
           event = row.querySelector('.input-custom-event').value.trim();
         }
         const member = row.querySelector('.input-member').value;
+        const status = row.querySelector('.input-status').value;
+        const qty = row.querySelector('.input-qty').value;
         const expectedAmt = row.querySelector('.input-amt').value;
+        const date = row.querySelector('.input-date').value;
+        const payAmt = row.querySelector('.input-payamt').value;
+        const last5 = row.querySelector('.input-last5').value.trim();
         const note = row.querySelector('.input-note').value.trim();
 
-        if(!event || !expectedAmt) {
-          alert("每一列的「場次/活動」與「應付金額」為必填，請檢查後再送出！");
+        if(!event || !member) {
+          alert("每一列的「場次」與「成員」為必填，請檢查後再送出！");
           return;
         }
 
         ordersToSubmit.push({
-          name, group, event, member, expectedAmt: Number(expectedAmt), note, createdAt: Date.now()
+          name, group, event, member, status, qty, expectedAmt: Number(expectedAmt || 0), 
+          date, payAmt, last5, note, createdAt: Date.now()
         });
       }
 
-      // 執行批次上傳
       for(let order of ordersToSubmit) {
         await addDoc(collection(db, "ctbc_bills"), order);
       }
 
       alert(`✅ 成功為【${name}】批次建立了 ${ordersToSubmit.length} 筆結算單！`);
       
-      // 清空表單，保留基本名稱與團體，但明細重置為一行空白
       document.getElementById('dynamicRowsContainer').innerHTML = '';
       addDynamicRow();
     };
@@ -403,7 +415,7 @@
                 </div>
 
                 <div style="display:flex; gap:10px;">
-                  <button class="btn-action btn-save" onclick="saveSettlement(${t.id}, ${txAmt})">💾 寫入結算紀錄</button>
+                  <button class="btn-action btn-save" onclick="saveSettlement(${t.id}, ${txAmt})">💾 寫入資料庫</button>
                   ${data.txId ? `<button class="btn-action btn-clear" onclick="deleteSettlement(${t.id})">❌ 取消關聯 (還原此筆)</button>` : ''}
                 </div>
               </div>
