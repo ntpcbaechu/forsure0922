@@ -94,13 +94,22 @@
   </div>
 
   <div class="filter-card">
-    <div class="filter-row">
+    <div class="filter-row" id="statusFilterGroup">
       <span class="filter-label">對帳狀態：</span>
       <div class="capsule-group">
-        <button class="capsule-filter-btn active" onclick="setMainFilter('all', this)">📋 全部明細</button>
+        <button class="capsule-filter-btn active" onclick="setMainFilter('all', this)">📋 全部</button>
         <button class="capsule-filter-btn" onclick="setMainFilter('pending', this)">📌 未對帳</button>
         <button class="capsule-filter-btn" onclick="setMainFilter('in_progress', this)">⏳ 對帳中</button>
         <button class="capsule-filter-btn" onclick="setMainFilter('completed', this)">✅ 已結算</button>
+      </div>
+    </div>
+    <!-- 新增：存入與支出切換過濾器 -->
+    <div class="filter-row" id="typeFilterGroup" style="margin-top: 10px; padding-top: 10px; border-top: 1px dashed #e2e8f0;">
+      <span class="filter-label">交易類型：</span>
+      <div class="capsule-group">
+        <button class="capsule-filter-btn active" onclick="setTypeFilter('income', this)">🟢 僅存入 (需核對)</button>
+        <button class="capsule-filter-btn" onclick="setTypeFilter('expense', this)">🔴 僅支出 (忽略)</button>
+        <button class="capsule-filter-btn" onclick="setTypeFilter('all', this)">📋 全部顯示</button>
       </div>
     </div>
   </div>
@@ -151,6 +160,7 @@
     
     let expandedRows = {};
     let currentMainFilter = 'all';
+    let currentTypeFilter = 'income'; // 預設只顯示存入
     let currentPage = 1;
     const pageSize = 50;
     let memberMap = {};
@@ -271,7 +281,15 @@
 
     window.setMainFilter = (filter, btn) => {
       currentMainFilter = filter;
-      document.querySelectorAll('.filter-card .capsule-filter-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('#statusFilterGroup .capsule-filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentPage = 1;
+      renderTable();
+    };
+
+    window.setTypeFilter = (filter, btn) => {
+      currentTypeFilter = filter;
+      document.querySelectorAll('#typeFilterGroup .capsule-filter-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       currentPage = 1;
       renderTable();
@@ -292,9 +310,15 @@
       let filtered = transactions.filter(t => {
         const stateInfo = getStatusInfo(t.id);
         const st = stateInfo.data ? stateInfo.data.status : 'pending';
+        
         if (currentMainFilter === 'pending' && st !== 'pending') return false;
         if (currentMainFilter === 'in_progress' && st !== 'in_progress') return false;
         if (currentMainFilter === 'completed' && st !== 'completed') return false;
+        
+        // 判斷存入或支出
+        if (currentTypeFilter === 'income' && !t.inc) return false;
+        if (currentTypeFilter === 'expense' && !t.exp) return false;
+
         if (searchVal) {
           const combinedStr = `${t.date} ${t.exp} ${t.inc} ${t.balance} ${t.note} ${t.acc}`.toLowerCase();
           if (!combinedStr.includes(searchVal)) return false;
@@ -312,20 +336,25 @@
         const data = stateInfo.data || {};
         const txAmt = Number(t.inc || t.exp || 0);
 
+        // 防呆：如果是支出，拔掉核對按鈕，顯示灰字
+        const actionHtml = t.inc 
+          ? `<button class="btn-toggle ${isExp ? 'active' : ''}" onclick="toggleRow(${t.id})">${isExp ? '收起▲' : '核對▼'}</button>`
+          : `<span style="color:#94a3b8; font-size:11px;">無需對帳</span>`;
+
         const tr = document.createElement('tr');
         tr.innerHTML = `
-          <td><button class="btn-toggle ${isExp ? 'active' : ''}" onclick="toggleRow(${t.id})">${isExp ? '收起▲' : '核對▼'}</button></td>
+          <td>${actionHtml}</td>
           <td>${t.date}</td>
           <td class="expense">${t.exp ? '-' + t.exp : ''}</td>
           <td class="income">${t.inc ? '+' + t.inc : ''}</td>
           <td style="font-weight:bold;">${t.balance}</td>
           <td>${t.note ? `<span class="badge">${t.note}</span>` : ''}</td>
           <td class="account-code">${t.acc}</td>
-          <td><span class="status-tag ${stateInfo.class}">${stateInfo.text}</span></td>
+          <td>${t.inc ? `<span class="status-tag ${stateInfo.class}">${stateInfo.text}</span>` : ''}</td>
         `;
         tbody.appendChild(tr);
 
-        if (isExp) {
+        if (isExp && t.inc) {
           const subTr = document.createElement('tr');
           subTr.className = 'sub-row';
           
@@ -339,16 +368,16 @@
           subTr.innerHTML = `
             <td colspan="8">
               <div class="sub-container">
-                <div style="font-size:14px; font-weight:bold; color:#1e293b;">🔍 將此筆 $${txAmt} 明細匯入買家帳戶</div>
-                <select id="buyer_select_${t.id}" style="padding:8px; font-size:13px; border-radius:4px; border:1px solid #cbd5e1; max-width:300px;" 
+                <div style="font-size:13px; font-weight:bold; color:#1e293b;">🔍 將此筆 $${txAmt} 明細匯入買家帳戶</div>
+                <select id="buyer_select_${t.id}" style="padding:6px; font-size:12px; border-radius:4px; border:1px solid #cbd5e1; max-width:250px;" 
                         onchange="calcWallet(${t.id}, this.value, ${txAmt})">
                   ${optionsHtml}
                 </select>
                 
-                <div id="wallet_info_${t.id}" style="background:#e8f4ff; border:1px solid #c6e2ff; padding:12px; border-radius:6px; display:none;"></div>
+                <div id="wallet_info_${t.id}" style="background:#e8f4ff; border:1px solid #c6e2ff; padding:10px; border-radius:6px; display:none;"></div>
                 
-                <div class="edit-box" style="margin-top:4px;">
-                  <div class="form-group"><label>紀錄狀態</label><select id="e_status_${t.id}" style="width:160px;"><option value="in_progress" ${data.status === 'in_progress' ? 'selected' : ''}>⏳ 對帳中 (暫存)</option><option value="completed" ${data.status === 'completed' ? 'selected' : ''}>✅ 寫入並結算</option></select></div>
+                <div class="edit-box" style="margin-top:2px;">
+                  <div class="form-group"><label>紀錄狀態</label><select id="e_status_${t.id}" style="width:140px;"><option value="in_progress" ${data.status === 'in_progress' ? 'selected' : ''}>⏳ 對帳中 (暫存)</option><option value="completed" ${data.status === 'completed' ? 'selected' : ''}>✅ 寫入並結算</option></select></div>
                   <div class="form-group" style="flex:1;"><label>結算備註</label><input type="text" id="e_memo_${t.id}" value="${data.memo || ''}" placeholder="例: 溢繳轉為購物金 / 第一筆分期..."></div>
                 </div>
 
@@ -375,13 +404,17 @@
       const walletDiv = document.getElementById(`wallet_info_${txId}`);
       if(!buyerName) { walletDiv.style.display = 'none'; return; }
       
-      let totalExpected = ctbcBills.filter(b => b.name === buyerName).reduce((sum, b) => sum + Number(b.expectedAmt||0), 0);
+      // 注意！這裡把 status === '已外部結算' 的帳單直接排除了，不會算入中信的應付總額中
+      let totalExpected = ctbcBills
+                            .filter(b => b.name === buyerName && b.status !== '已外部結算')
+                            .reduce((sum, b) => sum + Number(b.expectedAmt||0), 0);
+                            
       let totalPaid = ctbcSettlements.filter(s => s.buyerName === buyerName && s.txId !== txId.toString()).reduce((sum, s) => sum + Number(s.amount||0), 0);
       let remaining = totalExpected - totalPaid - currentAmt;
       
       walletDiv.innerHTML = `
         <div style="display:flex; justify-content:space-between; max-width: 500px; font-size:13px; color:#303133;">
-            <div>該買家總應付：<b>$${totalExpected}</b></div>
+            <div>中信帳戶總應收：<b>$${totalExpected}</b></div>
             <div>過去已對帳：<b>$${totalPaid}</b></div>
             <div>本次欲認列：<b style="color:#2563eb;">+$${currentAmt}</b></div>
         </div>

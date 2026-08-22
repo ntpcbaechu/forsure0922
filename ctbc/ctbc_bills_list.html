@@ -29,8 +29,11 @@
     .pay-text { color: #16a34a; font-weight: bold; }
     .badge { background: #f1f5f9; color: #475569; padding: 2px 6px; border-radius: 4px; font-size: 11px; }
 
-    .btn-delete { background: #fee2e2; color: #dc2626; border: 1px solid #fca5a5; border-radius: 4px; padding: 4px 8px; font-size: 12px; cursor: pointer; font-weight: bold; transition: 0.2s; }
+    .btn-delete { background: #fee2e2; color: #dc2626; border: 1px solid #fca5a5; border-radius: 4px; padding: 4px 8px; font-size: 12px; cursor: pointer; font-weight: bold; transition: 0.2s; width: 100%; text-align: center; }
     .btn-delete:hover { background: #fecaca; }
+    
+    .btn-settle { background: #dcfce3; color: #16a34a; border: 1px solid #bbf7d0; border-radius: 4px; padding: 4px 8px; font-size: 12px; cursor: pointer; font-weight: bold; transition: 0.2s; width: 100%; text-align: center; }
+    .btn-settle:hover { background: #bbf7d0; }
   </style>
 </head>
 <body>
@@ -59,7 +62,7 @@
             <th>應匯金額</th>
             <th>實匯 / 後5碼</th>
             <th>備註</th>
-            <th style="width: 60px;">操作</th>
+            <th style="width: 80px;">操作</th>
           </tr>
         </thead>
         <tbody id="billsTable"></tbody>
@@ -69,16 +72,13 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore, collection, onSnapshot, doc, deleteDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getFirestore, collection, onSnapshot, doc, deleteDoc, getDocs, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyDF7QySG1Jj4gdZvXwMRaKjRmI-lFKpj7k",
       authDomain: "forsure0922.firebaseapp.com",
       databaseURL: "https://forsure0922-default-rtdb.firebaseio.com",
-      projectId: "forsure0922",
-      storageBucket: "forsure0922.firebasestorage.app",
-      messagingSenderId: "817449290174",
-      appId: "1:817449290174:web:6b4ec1d36c171ff97011ef"
+      projectId: "forsure0922"
     };
 
     const app = initializeApp(firebaseConfig);
@@ -108,11 +108,28 @@
       filtered.forEach(b => {
         const dateStr = b.createdAt ? new Date(b.createdAt).toLocaleString('zh-TW', {month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit'}) : '-';
         
+        let actionHtml = '';
+        if(b.status === '已外部結算') {
+          actionHtml = `
+            <div style="display:flex; flex-direction:column; gap:6px;">
+              <span style="font-size:11px; color:#16a34a; font-weight:bold; text-align:center;">✔ 已外結</span>
+              <button class="btn-delete" onclick="deleteBill('${b.id}', '${b.name}')">❌ 刪除</button>
+            </div>
+          `;
+        } else {
+          actionHtml = `
+            <div style="display:flex; flex-direction:column; gap:6px;">
+              <button class="btn-settle" onclick="markExternalSettled('${b.id}', '${b.name}')">✅ 外部結帳</button>
+              <button class="btn-delete" onclick="deleteBill('${b.id}', '${b.name}')">❌ 刪除</button>
+            </div>
+          `;
+        }
+
         const tr = document.createElement('tr');
         tr.innerHTML = `
           <td style="font-size: 11px; color: #64748b;">${dateStr}</td>
           <td style="font-weight: bold; color: #1d4ed8;">${b.name || '-'}</td>
-          <td><span class="badge">${b.status || '-'}</span></td>
+          <td><span class="badge" style="${b.status==='已外部結算'?'background:#dcfce3;color:#16a34a;':''}">${b.status || '-'}</span></td>
           <td>${b.group || '-'} <br> <span style="font-size:11px; color:#64748b;">${b.event || '-'}</span></td>
           <td>${b.member || '-'} <br> <span style="font-size:11px; color:#64748b;">${b.qty ? b.qty+'張' : '-'}</span></td>
           <td class="amt-text">${b.expectedAmt ? '$'+b.expectedAmt : '-'}</td>
@@ -121,31 +138,32 @@
             <span style="font-size:11px; color:#64748b;">${b.last5 ? '末5: '+b.last5 : ''}</span>
           </td>
           <td style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${b.note || ''}">${b.note || '-'}</td>
-          <td><button class="btn-delete" onclick="deleteBill('${b.id}', '${b.name}')">❌ 刪除</button></td>
+          <td>${actionHtml}</td>
         `;
         tbody.appendChild(tr);
       });
 
       document.getElementById('statsInfo').innerText = `共計 ${filtered.length} 筆結算單紀錄`;
-      
-      // 動態調整 iframe 高度給父層
       setTimeout(() => {
         window.parent.postMessage({ type: 'BILLS_HEIGHT', height: document.body.scrollHeight }, '*');
       }, 100);
     };
 
+    window.markExternalSettled = async (id, name) => {
+      if(confirm(`確定要將買家【${name}】的這筆帳單標記為「已外部結算」嗎？\n(標記後，這筆金額將不會出現在中信系統的應收欠款中)`)) {
+        await updateDoc(doc(db, "ctbc_bills", id), { status: '已外部結算' });
+      }
+    };
+
     window.deleteBill = async (id, name) => {
-      if(confirm(`確定要刪除買家【${name}】的這筆結算單紀錄嗎？\n(刪除後將無法在對帳系統中配對此筆)`)) {
+      if(confirm(`確定要刪除買家【${name}】的這筆結算單紀錄嗎？`)) {
         await deleteDoc(doc(db, "ctbc_bills", id));
       }
     };
 
     window.wipeAllData = async () => {
       const pwd = prompt("⚠️ 警告：這將會刪除所有「結算單」與「對帳紀錄」！\n請輸入密碼「0922」確認執行：");
-      if (pwd !== "0922") {
-        if(pwd !== null) alert("密碼錯誤，取消操作。");
-        return;
-      }
+      if (pwd !== "0922") return alert(pwd !== null ? "密碼錯誤，取消操作。" : "");
       
       document.getElementById('statsInfo').innerText = "資料清空中，請稍候...";
       try {
