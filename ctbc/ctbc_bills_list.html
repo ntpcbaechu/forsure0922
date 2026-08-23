@@ -68,7 +68,7 @@
     .tag-ok { background: #dcfce3; color: #16a34a; border-color: #bbf7d0; }
     .tag-external { background: #f3e8ff; color: #7e22ce; border-color: #e9d5ff; }
 
-    /* 表格樣式 (改為條列式) */
+    /* 表格樣式 (條列式，依成員分組) */
     .section-title { font-size: 12px; font-weight: bold; color: #64748b; padding: 10px 16px 4px 16px; display: flex; align-items: center; gap: 6px; }
     .member-group-header { background: #eef5fe; border-left: 4px solid #409eff; padding: 6px 12px; font-weight: bold; font-size: 13px; color: #1e293b; border-top: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; }
     table { width: 100%; border-collapse: collapse; font-size: 12px; background: transparent; }
@@ -79,7 +79,7 @@
     .badge { background: #f1f5f9; color: #475569; padding: 2px 6px; border-radius: 4px; font-size: 11px; }
 
     /* 水平操作按鈕 */
-    .action-btn-group { display: flex; gap: 6px; flex-wrap: nowrap; }
+    .action-btn-group { display: flex; gap: 6px; flex-wrap: nowrap; justify-content: flex-end; }
     .btn-sm { border-radius: 4px; padding: 4px 8px; font-size: 11px; cursor: pointer; font-weight: bold; transition: 0.2s; border: 1px solid transparent; }
     .btn-edit { background: #f8fafc; color: #3b82f6; border-color: #cbd5e1; } .btn-edit:hover { background: #e0f2fe; }
     .btn-save-inline { background: #2563eb; color: #fff; } .btn-save-inline:hover { background: #1d4ed8; }
@@ -354,7 +354,18 @@
           memberGroupMap[m].push(b);
         });
 
-        Object.keys(memberGroupMap).sort().forEach(mem => {
+        // 嚴格依官方陣列順序排序成員
+        const getMemberIndex = (mem) => {
+          let idx = memberMap['Stray Kids']?.indexOf(mem);
+          if (idx !== undefined && idx !== -1) return idx;
+          idx = memberMap['ATEEZ']?.indexOf(mem);
+          if (idx !== undefined && idx !== -1) return 100 + idx; // ATEEZ 排在 SKZ 後面
+          return 999;
+        };
+
+        const sortedMembers = Object.keys(memberGroupMap).sort((a, b) => getMemberIndex(a) - getMemberIndex(b));
+
+        sortedMembers.forEach(mem => {
           listHtml += `<div class="member-group-header">👤 ${mem}</div>`;
           listHtml += `<table><tbody>`;
           
