@@ -26,6 +26,10 @@
     .capsule-filter-btn.sub-active { background: #67c23a; color: #fff; border-color: #67c23a; box-shadow: 0 2px 6px rgba(103,194,58,0.25); }
     .capsule-filter-btn.user-active { background: #e6a23c; color: #fff; border-color: #e6a23c; box-shadow: 0 2px 6px rgba(230,162,60,0.25); }
 
+    .search-bar { display: flex; gap: 8px; align-items: center; width: 100%; max-width: 400px; }
+    .search-bar input { flex: 1; padding: 6px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 12px; outline: none; }
+    .search-bar input:focus { border-color: #3b82f6; }
+
     .section-divider { display: flex; align-items: center; justify-content: center; margin: 24px 0 16px 0; font-size: 14px; font-weight: bold; }
     .section-divider::before, .section-divider::after { content: ''; flex: 1; border-bottom: 2px dashed #cbd5e1; margin: 0 12px; }
     .divider-active { color: #2563eb; }
@@ -33,8 +37,11 @@
 
     .stats-info { font-size: 12px; font-weight: bold; color: #64748b; margin-bottom: 10px; }
 
+    /* 外層網格佈局 (買家卡片左右並排) */
+    .cards-grid-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(500px, 1fr)); gap: 16px; align-items: start; }
+
     /* 買家群組卡片 */
-    .buyer-card { background: #ffffff; border-radius: 10px; box-shadow: 0 3px 8px rgba(0,0,0,0.05); margin-bottom: 16px; border: 1px solid #e2e8f0; overflow: hidden; transition: 0.3s; }
+    .buyer-card { background: #ffffff; border-radius: 10px; box-shadow: 0 3px 8px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; overflow: hidden; transition: 0.3s; }
     .buyer-card.completed-card { opacity: 0.7; filter: grayscale(0.8); background: #f8fafc; }
     .buyer-header { background: #f1f5f9; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; border-bottom: 2px solid #e2e8f0; }
     .completed-card .buyer-header { background: #e2e8f0; }
@@ -61,35 +68,33 @@
     .tag-ok { background: #dcfce3; color: #16a34a; border-color: #bbf7d0; }
     .tag-external { background: #f3e8ff; color: #7e22ce; border-color: #e9d5ff; }
 
-    /* Grid 卡片排版 (取代舊 Table) */
+    /* 表格樣式 (改為條列式) */
     .section-title { font-size: 12px; font-weight: bold; color: #64748b; padding: 10px 16px 4px 16px; display: flex; align-items: center; gap: 6px; }
-    .memo-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; padding: 10px 16px 16px 16px; }
-    .memo-card-item { border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 12px; background: #fff; display: flex; justify-content: space-between; gap: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.02); }
-    .memo-detail { display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 0; }
-    .memo-row { display: flex; align-items: center; justify-content: space-between; font-size: 12px; }
+    .member-group-header { background: #eef5fe; border-left: 4px solid #409eff; padding: 6px 12px; font-weight: bold; font-size: 13px; color: #1e293b; border-top: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; background: transparent; }
+    td { padding: 8px 12px; border-bottom: 1px dashed #e2e8f0; vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
     
-    /* 直向操作按鈕 */
-    .memo-actions { display: flex; flex-direction: column; gap: 6px; min-width: 65px; justify-content: flex-start; }
-    .btn-sm { border-radius: 4px; padding: 4px 6px; font-size: 11px; cursor: pointer; font-weight: bold; transition: 0.2s; border: 1px solid transparent; text-align: center; width: 100%; }
+    .amt-text { color: #dc2626; font-weight: bold; }
+    .badge { background: #f1f5f9; color: #475569; padding: 2px 6px; border-radius: 4px; font-size: 11px; }
+
+    /* 水平操作按鈕 */
+    .action-btn-group { display: flex; gap: 6px; flex-wrap: nowrap; }
+    .btn-sm { border-radius: 4px; padding: 4px 8px; font-size: 11px; cursor: pointer; font-weight: bold; transition: 0.2s; border: 1px solid transparent; }
     .btn-edit { background: #f8fafc; color: #3b82f6; border-color: #cbd5e1; } .btn-edit:hover { background: #e0f2fe; }
     .btn-save-inline { background: #2563eb; color: #fff; } .btn-save-inline:hover { background: #1d4ed8; }
     .btn-del { background: #fee2e2; color: #dc2626; border-color: #fca5a5; } .btn-del:hover { background: #fecaca; }
     .btn-ext { background: #dcfce3; color: #16a34a; border-color: #bbf7d0; } .btn-ext:hover { background: #bbf7d0; }
     .btn-refund { background: #fef3c7; color: #d97706; border-color: #fde68a; } .btn-refund:hover { background: #fde68a; }
     
-    .badge { background: #f1f5f9; color: #475569; padding: 2px 6px; border-radius: 4px; font-size: 11px; }
-
     /* 編輯模式輸入框 */
-    .edit-mode-container { background: #eef2ff; flex-direction: column; }
-    .edit-input-group { display: flex; gap: 6px; flex-wrap: wrap; }
-    .edit-input { padding: 4px 6px; border: 1px solid #3b82f6; border-radius: 4px; font-size: 11px; flex: 1; min-width: 60px; outline: none; }
-    .edit-select { padding: 4px; border: 1px solid #3b82f6; border-radius: 4px; font-size: 11px; flex: 1; }
+    .edit-input { padding: 4px; border: 1px solid #3b82f6; border-radius: 4px; font-size: 11px; outline: none; }
+    .edit-select { padding: 4px; border: 1px solid #3b82f6; border-radius: 4px; font-size: 11px; }
 
     /* 中信實際紀錄區 */
-    table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 4px; }
-    td { padding: 8px 16px; border-top: 1px dashed #e2e8f0; vertical-align: middle; }
+    .bank-record-table { margin-top: 0; }
     .bank-record-row { background: #fdfdfd; }
-    .bank-record-row td { color: #16a34a; font-weight: bold; }
+    .bank-record-row td { color: #16a34a; font-weight: bold; border-bottom: 1px dashed #e2e8f0; }
     .bank-record-row .memo-text { font-weight: normal; color: #64748b; font-size: 11px; }
   </style>
 </head>
@@ -103,7 +108,6 @@
     </div>
   </div>
 
-  <!-- 膠囊篩選器 (移植自前台) -->
   <div class="filter-card">
     <div class="filter-row">
       <span class="filter-label">1. 團體：</span>
@@ -121,7 +125,6 @@
       <span class="filter-label">3. 細項篩選：</span>
       <div id="detailCapsules" class="capsule-group"></div>
     </div>
-    <!-- 取代搜尋框的買家膠囊列 -->
     <div class="filter-row" style="border-top:1px dashed #dcdfe6; padding-top:8px;">
       <span class="filter-label">👤 買家清單：</span>
       <div id="userCapsules" class="capsule-group"></div>
@@ -130,14 +133,14 @@
   
   <div class="stats-info" id="statsInfo">資料載入中...</div>
 
-  <!-- 進行中區塊 -->
+  <!-- 進行中區塊 (外層左右兩欄) -->
   <div class="section-divider divider-active">🔥 待處理 / 交易中</div>
-  <div id="activeContainer"></div>
+  <div id="activeContainer" class="cards-grid-container"></div>
 
-  <!-- 已結清區塊 -->
+  <!-- 已結清區塊 (外層左右兩欄) -->
   <div id="completedDivider" style="display:none;">
     <div class="section-divider divider-completed">⚫ 已對帳結清 (封存)</div>
-    <div id="completedContainer"></div>
+    <div id="completedContainer" class="cards-grid-container"></div>
   </div>
 
   <script type="module">
@@ -195,7 +198,6 @@
       });
     });
 
-    // === 膠囊篩選器邏輯 ===
     function renderGroupCapsules() {
       const container = document.getElementById('groupCapsules');
       container.innerHTML = `<button class="capsule-filter-btn active" onclick="window.setGroupFilter('ALL', this)">全部</button>`;
@@ -264,7 +266,6 @@
       window.renderTable();
     };
 
-    // === 核心渲染邏輯 ===
     window.renderTable = () => {
       const activeContainer = document.getElementById('activeContainer');
       const completedContainer = document.getElementById('completedContainer');
@@ -293,12 +294,6 @@
 
       sortedBuyerNames.forEach(buyerName => {
         const buyerBills = grouped[buyerName];
-        buyerBills.sort((a, b) => {
-          if((a.createdAt||0) !== (b.createdAt||0)) return (a.createdAt||0) - (b.createdAt||0);
-          if(a.group !== b.group) return a.group === 'Stray Kids' ? -1 : 1;
-          return (a.member||'').localeCompare(b.member||'', 'zh-TW');
-        });
-        
         totalBillsCount += buyerBills.length;
 
         const totalExpected = buyerBills.filter(b => b.status !== '已外部結算').reduce((sum, b) => sum + Number(b.expectedAmt || 0), 0);
@@ -349,99 +344,98 @@
           </div>
         `;
 
-        // 📝 Grid 排版取代 Table
-        let gridHtml = `<div class="section-title">📝 你的手動 Memo 登記區</div><div class="memo-grid">`;
-
+        // 內部依成員分組，活動排序
+        let listHtml = `<div class="section-title" style="padding-bottom:6px;">📝 手動 Memo 登記區</div>`;
+        
+        const memberGroupMap = {};
         buyerBills.forEach(b => {
-          if (editingBillId === b.id) {
-            // ✏️ 編輯模式
-            gridHtml += `
-              <div class="memo-card-item edit-mode-container">
-                <div class="edit-input-group">
-                  <select id="edit_status" class="edit-select">
-                    <option value="已匯款" ${b.status==='已匯款'?'selected':''}>已匯款</option>
-                    <option value="未匯款" ${b.status==='未匯款'?'selected':''}>未匯款</option>
-                    <option value="不確定" ${b.status==='不確定'?'selected':''}>不確定</option>
-                  </select>
-                  <input type="date" id="edit_date" class="edit-input" value="${b.date||''}">
-                </div>
-                <div class="edit-input-group">
-                  <input type="text" id="edit_group" class="edit-input" value="${b.group||''}" placeholder="團體">
-                  <input type="text" id="edit_event" class="edit-input" value="${b.event||''}" placeholder="場次">
-                </div>
-                <div class="edit-input-group">
-                  <input type="text" id="edit_member" class="edit-input" value="${b.member||''}" placeholder="成員" style="flex:2;">
-                  <input type="number" id="edit_qty" class="edit-input" value="${b.qty||''}" placeholder="張數">
-                  <input type="number" id="edit_expectedAmt" class="edit-input" value="${b.expectedAmt||0}" placeholder="應匯">
-                </div>
-                <div class="edit-input-group">
-                  <input type="text" id="edit_last5" class="edit-input" value="${b.last5||''}" placeholder="末5" style="max-width:60px;">
-                  <input type="text" id="edit_note" class="edit-input" value="${b.note||''}" placeholder="備註">
-                </div>
-                <div class="edit-input-group" style="justify-content: flex-end; margin-top: 4px;">
-                  <button class="btn-sm btn-edit" style="width:auto; padding:4px 12px;" onclick="cancelEdit()">取消</button>
-                  <button class="btn-sm btn-save-inline" style="width:auto; padding:4px 12px;" onclick="saveInlineEdit('${b.id}')">💾 儲存</button>
-                </div>
-              </div>
-            `;
-          } else {
-            // 👀 一般檢視模式
-            let actionHtml = '';
-            if(b.status === '已外部結算') {
-              actionHtml = `<button class="btn-sm btn-del" onclick="deleteBill('${b.id}', '${buyerName}')">❌ 刪除</button>`;
+          const m = b.member || '其他';
+          if(!memberGroupMap[m]) memberGroupMap[m] = [];
+          memberGroupMap[m].push(b);
+        });
+
+        Object.keys(memberGroupMap).sort().forEach(mem => {
+          listHtml += `<div class="member-group-header">👤 ${mem}</div>`;
+          listHtml += `<table><tbody>`;
+          
+          memberGroupMap[mem].sort((a,b) => (a.event||'').localeCompare(b.event||'', 'zh-TW')).forEach(b => {
+            if (editingBillId === b.id) {
+              listHtml += `
+                <tr style="background: #eef2ff;">
+                  <td colspan="5" style="padding:10px;">
+                    <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                      <select id="edit_status" class="edit-select" style="width:80px;">
+                        <option value="已匯款" ${b.status==='已匯款'?'selected':''}>已匯款</option>
+                        <option value="未匯款" ${b.status==='未匯款'?'selected':''}>未匯款</option>
+                        <option value="不確定" ${b.status==='不確定'?'selected':''}>不確定</option>
+                      </select>
+                      <input type="date" id="edit_date" class="edit-input" value="${b.date||''}" style="width:110px;">
+                      <input type="text" id="edit_group" class="edit-input" value="${b.group||''}" placeholder="團體" style="width:100px;">
+                      <input type="text" id="edit_event" class="edit-input" value="${b.event||''}" placeholder="場次" style="width:100px;">
+                      <input type="text" id="edit_member" class="edit-input" value="${b.member||''}" placeholder="成員" style="width:80px;">
+                      <input type="number" id="edit_qty" class="edit-input" value="${b.qty||''}" placeholder="張數" style="width:60px;">
+                      <input type="number" id="edit_expectedAmt" class="edit-input" value="${b.expectedAmt||0}" placeholder="應匯" style="width:70px;">
+                      <input type="text" id="edit_last5" class="edit-input" value="${b.last5||''}" placeholder="末5" style="width:70px;">
+                      <input type="text" id="edit_note" class="edit-input" value="${b.note||''}" placeholder="備註" style="flex:1; min-width:120px;">
+                    </div>
+                    <div style="margin-top:8px; display:flex; gap:8px; justify-content:flex-end;">
+                      <button class="btn-sm btn-edit" style="padding:4px 12px;" onclick="cancelEdit()">取消</button>
+                      <button class="btn-sm btn-save-inline" style="padding:4px 12px;" onclick="saveInlineEdit('${b.id}')">💾 儲存</button>
+                    </div>
+                  </td>
+                </tr>
+              `;
             } else {
-              actionHtml = `
-                <button class="btn-sm btn-edit" onclick="startEdit('${b.id}')">✏️ 編輯</button>
-                <button class="btn-sm btn-ext" onclick="markExternalSettled('${b.id}', '${buyerName}')">✅ 外結</button>
-                <button class="btn-sm btn-del" onclick="deleteBill('${b.id}', '${buyerName}')">❌ 刪除</button>
+              let actionHtml = '';
+              if(b.status === '已外部結算') {
+                actionHtml = `<button class="btn-sm btn-del" onclick="deleteBill('${b.id}', '${buyerName}')">❌</button>`;
+              } else {
+                actionHtml = `
+                  <button class="btn-sm btn-edit" onclick="startEdit('${b.id}')">✏️</button>
+                  <button class="btn-sm btn-ext" onclick="markExternalSettled('${b.id}', '${buyerName}')">✅ 外結</button>
+                  <button class="btn-sm btn-del" onclick="deleteBill('${b.id}', '${buyerName}')">❌</button>
+                `;
+              }
+              
+              listHtml += `
+                <tr>
+                  <td style="width:65px;"><span class="badge" style="${b.status==='已外部結算'?'background:#dcfce3;color:#16a34a;':''}">${b.status || '-'}</span></td>
+                  <td>
+                    <div style="color:#1e293b; font-weight:bold;">${b.group || '-'} / ${b.event || '-'}</div>
+                    <div style="font-size:11px; color:#64748b; margin-top:4px;">📅 ${b.date || '未填日期'} | 末5: ${b.last5 || '-'}</div>
+                    <div style="font-size:11px; color:#64748b; margin-top:2px;">📝 備註: ${b.note || '-'}</div>
+                  </td>
+                  <td style="width:50px; text-align:center;">${b.qty ? b.qty+'張' : '-'}</td>
+                  <td style="width:60px; text-align:right;" class="amt-text">$${b.expectedAmt || 0}</td>
+                  <td style="width:110px; text-align:right;">
+                    <div class="action-btn-group">${actionHtml}</div>
+                  </td>
+                </tr>
               `;
             }
-
-            gridHtml += `
-              <div class="memo-card-item">
-                <div class="memo-detail">
-                  <div class="memo-row">
-                    <span class="badge" style="${b.status==='已外部結算'?'background:#dcfce3;color:#16a34a;':''}">${b.status || '-'}</span>
-                    <b style="color:#dc2626; font-size:14px;">$${b.expectedAmt || 0}</b>
-                  </div>
-                  <div class="memo-row" style="font-weight:bold; color:#1e293b; font-size:13px; margin-top:2px;">
-                    ${b.member || '-'} <span style="color:#64748b; font-weight:normal; font-size:11px;">(${b.qty||0}張)</span>
-                  </div>
-                  <div style="font-size:11px; color:#64748b;">${b.group || '-'} / ${b.event || '-'}</div>
-                  <div style="font-size:11px; color:#64748b; margin-top:2px;">
-                    <span style="display:inline-block; background:#f1f5f9; padding:2px 4px; border-radius:4px; margin-right:4px;">📅 ${b.date || '未填日期'}</span>
-                    <span style="display:inline-block; background:#f1f5f9; padding:2px 4px; border-radius:4px;">末5: ${b.last5 || '-'}</span>
-                  </div>
-                  <div style="font-size:11px; color:#64748b; border-top:1px dashed #cbd5e1; padding-top:6px; margin-top:4px;">📝 備註: ${b.note || '-'}</div>
-                </div>
-                <div class="memo-actions">
-                  ${actionHtml}
-                </div>
-              </div>
-            `;
-          }
+          });
+          listHtml += `</tbody></table>`;
         });
-        gridHtml += `</div>`;
 
         // 🏦 中信綁定區
         if(buyerSettlements.length > 0) {
-          gridHtml += `<div class="section-title">🏦 實際中信對帳綁定區 (系統自動帶入)</div><table><tbody>`;
+          listHtml += `<div class="section-title" style="margin-top:6px; border-top:2px dashed #cbd5e1; padding-top:12px;">🏦 中信實體對帳紀錄 (系統自動帶入)</div><table class="bank-record-table"><tbody>`;
           buyerSettlements.forEach(s => {
             const dateObj = new Date(s.updatedAt || Date.now());
             const dStr = `${dateObj.getMonth()+1}/${dateObj.getDate()} ${dateObj.getHours()}:${String(dateObj.getMinutes()).padStart(2,'0')}`;
-            gridHtml += `
+            listHtml += `
               <tr class="bank-record-row">
-                <td style="width: 130px; font-size:11px;">✔️ 結算於 ${dStr}</td>
+                <td style="width: 130px; font-size:11px;">✔️ ${dStr}</td>
                 <td style="width: 100px;">存入 <b style="font-size:13px;">$${s.amount}</b></td>
-                <td><span class="memo-text">對帳備註：${s.memo || '無'} (ID:${s.txId})</span></td>
-                <td style="width: 80px;"><button class="btn-sm btn-del" onclick="unbindSettlement('${s.id}', '${buyerName}')">🔓 撤銷</button></td>
+                <td><span class="memo-text">${s.memo || '無'} (ID:${s.txId})</span></td>
+                <td style="width: 70px; text-align:right;"><button class="btn-sm btn-del" onclick="unbindSettlement('${s.id}', '${buyerName}')">🔓 撤銷</button></td>
               </tr>
             `;
           });
-          gridHtml += `</tbody></table>`;
+          listHtml += `</tbody></table>`;
         }
 
-        card.innerHTML = headerHtml + gridHtml;
+        card.innerHTML = headerHtml + listHtml;
         if(isCompleted) completedContainer.appendChild(card);
         else activeContainer.appendChild(card);
       });
@@ -479,45 +473,45 @@
     };
 
     window.markExternalSettled = async (id, name) => {
-      if(confirm(`確定要將這筆標記為「已外部結算」嗎？(將不列入中信應收金額)`)) {
+      if(confirm(`確定標記為「已外部結算」嗎？(將不列入中信應收)`)) {
         await updateDoc(doc(db, "ctbc_bills", id), { status: '已外部結算' });
       }
     };
 
     window.deleteBill = async (id, name) => {
-      if(confirm(`確定要刪除這筆 Memo 紀錄嗎？`)) await deleteDoc(doc(db, "ctbc_bills", id));
+      if(confirm(`確定刪除這筆 Memo 紀錄嗎？`)) await deleteDoc(doc(db, "ctbc_bills", id));
     };
 
     window.unbindSettlement = async (settleId, name) => {
-      if(confirm(`確定要【解除綁定】這筆中信實體紀錄嗎？\n解除後，該筆金額將退回明細對帳區的「未對帳」。`)) {
+      if(confirm(`確定要【解除綁定】這筆中信實體紀錄嗎？`)) {
         await deleteDoc(doc(db, "ctbc_settlements", settleId));
       }
     };
 
     window.refundOverpaid = async (buyerName, overpaidAmt) => {
-      const amtStr = prompt(`請輸入退款給【${buyerName}】的金額 (建議輸入 ${overpaidAmt}):`, overpaidAmt);
+      const amtStr = prompt(`請輸入退款金額:`, overpaidAmt);
       if(!amtStr) return;
       const amount = Number(amtStr);
-      if(isNaN(amount) || amount <= 0) return alert("請輸入有效的金額！");
+      if(isNaN(amount) || amount <= 0) return alert("無效的金額！");
 
       await addDoc(collection(db, "ctbc_settlements"), {
         txId: 'REFUND_' + Date.now(), buyerName, amount: -amount, status: 'completed', memo: '系統退款登記', updatedAt: Date.now()
       });
-      alert(`✅ 成功登記退款 -$${amount}！`);
+      alert(`✅ 登記退款 -$${amount} 成功！`);
     };
 
     window.wipeAllData = async () => {
-      const pwd = prompt("⚠️ 這將刪除所有「結算單」與「對帳紀錄」！\n請輸入密碼「0922」確認執行：");
-      if (pwd !== "0922") return alert(pwd !== null ? "密碼錯誤，取消。" : "");
+      const pwd = prompt("⚠️ 刪除所有紀錄！密碼「0922」確認：");
+      if (pwd !== "0922") return alert(pwd !== null ? "密碼錯誤。" : "");
       
-      document.getElementById('statsInfo').innerText = "資料清空中...";
+      document.getElementById('statsInfo').innerText = "清空中...";
       try {
         const delPromises = [];
         const [snapBills, snapSettles] = await Promise.all([getDocs(collection(db, "ctbc_bills")), getDocs(collection(db, "ctbc_settlements"))]);
         snapBills.forEach(d => delPromises.push(deleteDoc(doc(db, "ctbc_bills", d.id))));
         snapSettles.forEach(d => delPromises.push(deleteDoc(doc(db, "ctbc_settlements", d.id))));
         await Promise.all(delPromises);
-        alert("✅ 紀錄已全數清空！");
+        alert("✅ 已全數清空！");
       } catch (e) { alert("錯誤：" + e.message); }
     };
 
@@ -532,7 +526,7 @@
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
       const link = document.createElement("a");
       link.setAttribute("href", URL.createObjectURL(blob));
-      link.setAttribute("download", `中信結帳報表_${new Date().toISOString().slice(0,10)}.csv`);
+      link.setAttribute("download", `結帳報表_${new Date().toISOString().slice(0,10)}.csv`);
       link.style.visibility = 'hidden';
       document.body.appendChild(link); link.click(); document.body.removeChild(link);
     };
