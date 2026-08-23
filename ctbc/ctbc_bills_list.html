@@ -38,7 +38,7 @@
     .stats-info { font-size: 12px; font-weight: bold; color: #64748b; margin-bottom: 10px; }
 
     /* 外層網格佈局 (買家卡片左右並排) */
-    .cards-grid-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(500px, 1fr)); gap: 16px; align-items: start; }
+    .cards-grid-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(600px, 1fr)); gap: 16px; align-items: start; }
 
     /* 買家群組卡片 */
     .buyer-card { background: #ffffff; border-radius: 10px; box-shadow: 0 3px 8px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; overflow: hidden; transition: 0.3s; }
@@ -51,9 +51,9 @@
     .global-memo-input { padding: 4px 8px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 11px; width: 180px; outline: none; background: #fff; }
     .global-memo-input:focus { border-color: #f59e0b; box-shadow: 0 0 0 2px #fef3c7; }
     
-    .buyer-summary { display: flex; gap: 16px; font-size: 13px; align-items: center; background: #fff; padding: 6px 12px; border-radius: 6px; border: 1px solid #cbd5e1; }
+    .buyer-summary { display: flex; gap: 14px; font-size: 13px; align-items: center; background: #fff; padding: 6px 12px; border-radius: 6px; border: 1px solid #cbd5e1; flex-wrap: wrap; justify-content: center; }
     .summary-item { display: flex; flex-direction: column; align-items: center; }
-    .summary-label { font-size: 11px; color: #64748b; }
+    .summary-label { font-size: 11px; color: #64748b; margin-bottom: 2px; }
     .summary-val { font-weight: bold; font-size: 14px; }
     .val-expected { color: #334155; }
     .val-paid { color: #16a34a; }
@@ -96,6 +96,9 @@
     .bank-record-row { background: #fdfdfd; }
     .bank-record-row td { color: #16a34a; font-weight: bold; border-bottom: 1px dashed #e2e8f0; }
     .bank-record-row .memo-text { font-weight: normal; color: #64748b; font-size: 11px; }
+    .diff-badge { padding: 2px 6px; border-radius: 4px; font-size: 10px; border: 1px solid transparent; }
+    .diff-over { background: #dcfce3; color: #16a34a; border-color: #bbf7d0; }
+    .diff-short { background: #fef0f0; color: #dc2626; border-color: #fecaca; }
   </style>
 </head>
 <body>
@@ -295,11 +298,33 @@
       sortedBuyerNames.forEach(buyerName => {
         const buyerBills = grouped[buyerName];
         totalBillsCount += buyerBills.length;
-
-        const totalExpected = buyerBills.filter(b => b.status !== '已外部結算').reduce((sum, b) => sum + Number(b.expectedAmt || 0), 0);
+        
+        // 抓出該買家的所有中信紀錄
         const buyerSettlements = settlementsData.filter(s => s.buyerName === buyerName);
+        
+        // 計算 5 格完美數據列
+        // 1. 總應匯 (扣除已外部結算)
+        const totalExpected = buyerBills.filter(b => b.status !== '已外部結算').reduce((sum, b) => sum + Number(b.expectedAmt || 0), 0);
+        // 2. 實收已對帳
         const totalPaid = buyerSettlements.reduce((sum, s) => sum + Number(s.amount || 0), 0);
-        const unpaid = totalExpected - totalPaid;
+        
+        // 找出所有「被核銷過」的帳單 ID
+        let settledBillIds = new Set();
+        buyerSettlements.forEach(s => {
+          if (s.billIds) s.billIds.forEach(id => settledBillIds.add(id));
+        });
+        
+        // 未核銷(未對帳)的帳單
+        const unsettledBills = buyerBills.filter(b => b.status !== '已外部結算' && !settledBillIds.has(b.id));
+        // 3. 未結單據總額
+        const unsettledBillsTotal = unsettledBills.reduce((sum, b) => sum + Number(b.expectedAmt || 0), 0);
+        // 已核銷帳單總額 (用來推算溢繳)
+        const settledBillsTotal = totalExpected - unsettledBillsTotal;
+        
+        // 4. 帳上溢繳 (總入帳 - 已核銷帳單應收總額)
+        const overpaidTotal = totalPaid - settledBillsTotal;
+        // 5. 實際應補 (總應匯 - 總實收)
+        const actualRemaining = totalExpected - totalPaid;
 
         let mainStatusTag = '';
         let isAllExternal = buyerBills.length > 0 && buyerBills.every(b => b.status === '已外部結算');
@@ -308,10 +333,10 @@
         if (isAllExternal) {
           mainStatusTag = `<span class="tag tag-external">✔ 全外部結帳</span>`;
           isCompleted = true;
-        } else if (unpaid <= 0) {
+        } else if (actualRemaining <= 0) {
           mainStatusTag = `<span class="tag tag-ok">✅ 已對帳結清</span>`;
           isCompleted = true;
-        } else if (totalPaid > 0 && unpaid > 0) {
+        } else if (totalPaid > 0 && actualRemaining > 0) {
           mainStatusTag = `<span class="tag tag-short">⚠️ 待補款</span>`;
         } else if (buyerBills.some(b => b.status === '已匯款' || b.last5)) {
           mainStatusTag = `<span class="tag tag-wait-check">🔍 待對帳</span>`;
@@ -325,6 +350,10 @@
         card.className = `buyer-card ${isCompleted ? 'completed-card' : ''}`;
         const memoVal = buyerMemos[buyerName] || '';
 
+        // 【完美 5 格數據列呈現】
+        let overpaidColor = overpaidTotal >= 0 ? '#16a34a' : '#dc2626';
+        let overpaidText = overpaidTotal >= 0 ? `+$${overpaidTotal}` : `-$${Math.abs(overpaidTotal)}`;
+        
         let headerHtml = `
           <div class="buyer-header">
             <div class="buyer-name-group">
@@ -334,13 +363,14 @@
             </div>
             <div class="buyer-summary">
               <div class="summary-item"><span class="summary-label">總應匯</span><span class="summary-val val-expected">$${totalExpected}</span></div>
+              <div style="width:1px; height:20px; background:#e2e8f0;"></div>
               <div class="summary-item"><span class="summary-label">實收已對帳</span><span class="summary-val val-paid">$${totalPaid}</span></div>
-              <div class="summary-item">
-                <span class="summary-label">${unpaid < 0 ? '溢繳金額' : '尚欠金額'}</span>
-                <span class="summary-val ${unpaid > 0 ? 'val-unpaid' : 'val-ok'}">${unpaid <= 0 ? (unpaid<0 ? '+$'+Math.abs(unpaid) : '$0') : '$'+unpaid}</span>
-              </div>
-              ${unpaid < 0 ? `<button class="btn-sm btn-refund" onclick="refundOverpaid('${buyerName}', ${Math.abs(unpaid)})">💸 登記退款</button>` : ''}
+              <div style="width:1px; height:20px; background:#e2e8f0;"></div>
+              <div class="summary-item"><span class="summary-label">未結單據</span><span class="summary-val" style="color:#f59e0b;">$${unsettledBillsTotal}</span></div>
+              <div class="summary-item"><span class="summary-label">帳上溢繳</span><span class="summary-val" style="color:${overpaidColor};">${overpaidText}</span></div>
+              <div class="summary-item"><span class="summary-label">實際應補</span><span class="summary-val ${actualRemaining > 0 ? 'val-unpaid' : 'val-ok'}">${actualRemaining <= 0 ? '$0' : '$'+actualRemaining}</span></div>
             </div>
+            ${overpaidTotal > 0 ? `<div style="width:100%; display:flex; justify-content:flex-end; margin-top:6px;"><button class="btn-sm btn-refund" onclick="refundOverpaid('${buyerName}', ${overpaidTotal})">💸 登記退款 (歸零溢繳)</button></div>` : ''}
           </div>
         `;
 
@@ -359,7 +389,7 @@
           let idx = memberMap['Stray Kids']?.indexOf(mem);
           if (idx !== undefined && idx !== -1) return idx;
           idx = memberMap['ATEEZ']?.indexOf(mem);
-          if (idx !== undefined && idx !== -1) return 100 + idx; // ATEEZ 排在 SKZ 後面
+          if (idx !== undefined && idx !== -1) return 100 + idx; 
           return 999;
         };
 
@@ -428,16 +458,28 @@
           listHtml += `</tbody></table>`;
         });
 
-        // 🏦 中信綁定區
+        // 🏦 中信綁定區 (含單筆結算差額顯示)
         if(buyerSettlements.length > 0) {
           listHtml += `<div class="section-title" style="margin-top:6px; border-top:2px dashed #cbd5e1; padding-top:12px;">🏦 中信實體對帳紀錄 (系統自動帶入)</div><table class="bank-record-table"><tbody>`;
           buyerSettlements.forEach(s => {
             const dateObj = new Date(s.updatedAt || Date.now());
             const dStr = `${dateObj.getMonth()+1}/${dateObj.getDate()} ${dateObj.getHours()}:${String(dateObj.getMinutes()).padStart(2,'0')}`;
+            
+            // 計算單筆差額
+            let diffHtml = '';
+            if (s.settledBillsAmt !== undefined) {
+               const diff = Number(s.amount) - Number(s.settledBillsAmt);
+               if (diff >= 0) {
+                  diffHtml = `<br><span style="font-size:10px; color:#64748b;">核銷單據 $${s.settledBillsAmt}</span> <span class="diff-badge diff-over">單筆溢繳 +$${diff}</span>`;
+               } else {
+                  diffHtml = `<br><span style="font-size:10px; color:#64748b;">核銷單據 $${s.settledBillsAmt}</span> <span class="diff-badge diff-short">單筆少匯 -$${Math.abs(diff)}</span>`;
+               }
+            }
+
             listHtml += `
               <tr class="bank-record-row">
                 <td style="width: 130px; font-size:11px;">✔️ ${dStr}</td>
-                <td style="width: 100px;">存入 <b style="font-size:13px;">$${s.amount}</b></td>
+                <td style="width: 140px; padding-top:4px; padding-bottom:4px;">存入 <b style="font-size:13px;">$${s.amount}</b>${diffHtml}</td>
                 <td><span class="memo-text">${s.memo || '無'} (ID:${s.txId})</span></td>
                 <td style="width: 70px; text-align:right;"><button class="btn-sm btn-del" onclick="unbindSettlement('${s.id}', '${buyerName}')">🔓 撤銷</button></td>
               </tr>
@@ -500,13 +542,13 @@
     };
 
     window.refundOverpaid = async (buyerName, overpaidAmt) => {
-      const amtStr = prompt(`請輸入退款金額:`, overpaidAmt);
+      const amtStr = prompt(`請輸入退款金額 (將扣除此買家的帳上溢繳):`, overpaidAmt);
       if(!amtStr) return;
       const amount = Number(amtStr);
       if(isNaN(amount) || amount <= 0) return alert("無效的金額！");
 
       await addDoc(collection(db, "ctbc_settlements"), {
-        txId: 'REFUND_' + Date.now(), buyerName, amount: -amount, status: 'completed', memo: '系統退款登記', updatedAt: Date.now()
+        txId: 'REFUND_' + Date.now(), buyerName, amount: -amount, status: 'completed', memo: '系統退款登記 (抵銷溢繳)', updatedAt: Date.now()
       });
       alert(`✅ 登記退款 -$${amount} 成功！`);
     };
