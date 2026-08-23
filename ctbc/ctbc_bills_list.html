@@ -6,24 +6,47 @@
   <title>買家結算單紀錄一覽表</title>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 15px; margin: 0; background: #f8fafc; color: #334155; }
-    .header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px; }
+    .header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px; }
     h2 { margin: 0; font-size: 18px; color: #0f172a; }
     
-    .btn-danger { background: #fee2e2; color: #dc2626; border: 1px solid #fca5a5; padding: 6px 14px; border-radius: 6px; font-size: 13px; font-weight: bold; cursor: pointer; transition: 0.2s; }
-    .btn-danger:hover { background: #fecaca; color: #b91c1c; }
+    .btn-action-top { padding: 6px 14px; border-radius: 6px; font-size: 13px; font-weight: bold; cursor: pointer; transition: 0.2s; border: none; }
+    .btn-danger { background: #fee2e2; color: #dc2626; border: 1px solid #fca5a5; }
+    .btn-danger:hover { background: #fecaca; }
+    .btn-export { background: #e0f2fe; color: #2563eb; border: 1px solid #bfdbfe; }
+    .btn-export:hover { background: #dbeafe; }
 
-    .search-bar { display: flex; gap: 8px; margin-bottom: 12px; align-items: center; background: #fff; padding: 12px; border-radius: 10px; border: 1px solid #e2e8f0; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
-    .search-bar input { flex: 1; max-width: 400px; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; outline: none; }
+    /* 膠囊過濾卡片 */
+    .filter-card { background: #fff; border: 1px solid #e4e7ed; border-radius: 12px; padding: 14px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); display: flex; flex-direction: column; gap: 8px; }
+    .filter-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .filter-label { font-size: 12px; font-weight: bold; color: #606266; min-width: 80px; }
+    .capsule-group { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+    .capsule-filter-btn { background: #f4f4f5; color: #606266; border: 1px solid #dcdfe6; padding: 4px 12px; border-radius: 16px; font-size: 12px; font-weight: bold; cursor: pointer; transition: all 0.2s; outline: none; }
+    .capsule-filter-btn:hover { background: #ecf5ff; color: #409eff; border-color: #c6e2ff; }
+    .capsule-filter-btn.active { background: #409eff; color: #fff; border-color: #409eff; box-shadow: 0 2px 6px rgba(64,158,255,0.25); }
+    .capsule-filter-btn.sub-active { background: #67c23a; color: #fff; border-color: #67c23a; box-shadow: 0 2px 6px rgba(103,194,58,0.25); }
+    .capsule-filter-btn.user-active { background: #e6a23c; color: #fff; border-color: #e6a23c; box-shadow: 0 2px 6px rgba(230,162,60,0.25); }
+
+    .search-bar { display: flex; gap: 8px; align-items: center; width: 100%; max-width: 400px; }
+    .search-bar input { flex: 1; padding: 6px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 12px; outline: none; }
     .search-bar input:focus { border-color: #3b82f6; }
+
+    .section-divider { display: flex; align-items: center; justify-content: center; margin: 24px 0 16px 0; font-size: 14px; font-weight: bold; }
+    .section-divider::before, .section-divider::after { content: ''; flex: 1; border-bottom: 2px dashed #cbd5e1; margin: 0 12px; }
+    .divider-active { color: #2563eb; }
+    .divider-completed { color: #94a3b8; }
 
     .stats-info { font-size: 12px; font-weight: bold; color: #64748b; margin-bottom: 10px; }
 
     /* 買家群組卡片 */
-    .buyer-card { background: #ffffff; border-radius: 10px; box-shadow: 0 3px 8px rgba(0,0,0,0.05); margin-bottom: 16px; border: 1px solid #e2e8f0; overflow: hidden; }
+    .buyer-card { background: #ffffff; border-radius: 10px; box-shadow: 0 3px 8px rgba(0,0,0,0.05); margin-bottom: 16px; border: 1px solid #e2e8f0; overflow: hidden; transition: 0.3s; }
+    .buyer-card.completed-card { opacity: 0.7; filter: grayscale(0.8); background: #f8fafc; }
     .buyer-header { background: #f1f5f9; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; border-bottom: 2px solid #e2e8f0; }
+    .completed-card .buyer-header { background: #e2e8f0; }
     
-    .buyer-name-group { display: flex; align-items: center; gap: 12px; }
+    .buyer-name-group { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
     .buyer-name { font-size: 16px; font-weight: bold; color: #1e293b; }
+    .global-memo-input { padding: 4px 8px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 11px; width: 180px; outline: none; background: #fff; }
+    .global-memo-input:focus { border-color: #f59e0b; box-shadow: 0 0 0 2px #fef3c7; }
     
     .buyer-summary { display: flex; gap: 16px; font-size: 13px; align-items: center; background: #fff; padding: 6px 12px; border-radius: 6px; border: 1px solid #cbd5e1; }
     .summary-item { display: flex; flex-direction: column; align-items: center; }
@@ -42,41 +65,85 @@
     .tag-ok { background: #dcfce3; color: #16a34a; border-color: #bbf7d0; }
     .tag-external { background: #f3e8ff; color: #7e22ce; border-color: #e9d5ff; }
 
-    table { width: 100%; border-collapse: collapse; font-size: 13px; background: #fff; }
-    th { color: #475569; text-align: left; padding: 10px 16px; border-bottom: 1px solid #e2e8f0; white-space: nowrap; font-size: 12px; }
-    td { padding: 10px 16px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
+    /* 表格樣式 */
+    .section-title { font-size: 12px; font-weight: bold; color: #64748b; padding: 10px 16px 4px 16px; display: flex; align-items: center; gap: 6px; }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; background: transparent; }
+    th { color: #475569; text-align: left; padding: 8px 16px; border-bottom: 1px solid #e2e8f0; white-space: nowrap; font-size: 11px; }
+    td { padding: 8px 16px; border-bottom: 1px dashed #e2e8f0; vertical-align: middle; }
     tr:last-child td { border-bottom: none; }
-    tr:hover { background-color: #f8fafc; }
-
+    
     .amt-text { color: #dc2626; font-weight: bold; }
     .badge { background: #f1f5f9; color: #475569; padding: 2px 6px; border-radius: 4px; font-size: 11px; }
 
-    .btn-delete { background: #fee2e2; color: #dc2626; border: 1px solid #fca5a5; border-radius: 4px; padding: 4px 8px; font-size: 11px; cursor: pointer; font-weight: bold; transition: 0.2s; width: 100%; text-align: center; margin-top: 4px; }
-    .btn-delete:hover { background: #fecaca; }
+    /* 按鈕樣式 */
+    .btn-sm { border-radius: 4px; padding: 3px 6px; font-size: 11px; cursor: pointer; font-weight: bold; transition: 0.2s; border: 1px solid transparent; display: inline-flex; align-items: center; gap: 3px; }
+    .btn-edit { background: #f8fafc; color: #3b82f6; border-color: #cbd5e1; } .btn-edit:hover { background: #e0f2fe; }
+    .btn-save-inline { background: #2563eb; color: #fff; } .btn-save-inline:hover { background: #1d4ed8; }
+    .btn-del { background: #fee2e2; color: #dc2626; border-color: #fca5a5; } .btn-del:hover { background: #fecaca; }
+    .btn-ext { background: #dcfce3; color: #16a34a; border-color: #bbf7d0; } .btn-ext:hover { background: #bbf7d0; }
+    .btn-refund { background: #fef3c7; color: #d97706; border-color: #fde68a; } .btn-refund:hover { background: #fde68a; }
     
-    .btn-settle { background: #dcfce3; color: #16a34a; border: 1px solid #bbf7d0; border-radius: 4px; padding: 4px 8px; font-size: 11px; cursor: pointer; font-weight: bold; transition: 0.2s; width: 100%; text-align: center; }
-    .btn-settle:hover { background: #bbf7d0; }
+    /* 編輯模式輸入框 */
+    .edit-input { padding: 4px; border: 1px solid #2563eb; border-radius: 4px; font-size: 11px; width: 100%; box-sizing: border-box; }
+    .edit-select { padding: 4px; border: 1px solid #2563eb; border-radius: 4px; font-size: 11px; }
+
+    /* 中信實際紀錄區 */
+    .bank-record-row { background: #fdfdfd; }
+    .bank-record-row td { color: #16a34a; font-weight: bold; }
+    .bank-record-row .memo-text { font-weight: normal; color: #64748b; font-size: 11px; }
   </style>
 </head>
 <body>
 
   <div class="header-row">
-    <h2>📋 買家群組化一覽表 (自動財務結算)</h2>
-    <button class="btn-danger" onclick="wipeAllData()">🚨 一鍵清空所有紀錄</button>
+    <h2>📋 買家群組化一覽表 (自動結算與管理)</h2>
+    <div style="display:flex; gap:10px;">
+      <button class="btn-action-top btn-export" onclick="exportToExcel()">📥 匯出 Excel (全明細)</button>
+      <button class="btn-action-top btn-danger" onclick="wipeAllData()">🚨 一鍵清空所有紀錄</button>
+    </div>
   </div>
 
-  <div class="search-bar">
-    <input type="text" id="searchInput" placeholder="🔍 搜尋暱稱、場次、狀態或備註..." onkeyup="renderTable()">
+  <!-- 膠囊篩選器 (移植自前台) -->
+  <div class="filter-card">
+    <div class="filter-row">
+      <span class="filter-label">1. 團體：</span>
+      <div id="groupCapsules" class="capsule-group"></div>
+    </div>
+    <div class="filter-row">
+      <span class="filter-label">2. 檢視模式：</span>
+      <div id="modeCapsules" class="capsule-group">
+        <button class="capsule-filter-btn active" onclick="setModeFilter('member', this)">👥 依成員</button>
+        <button class="capsule-filter-btn" onclick="setModeFilter('event', this)">🗓️ 依活動</button>
+        <button class="capsule-filter-btn" onclick="setModeFilter('all', this)">📋 全部清單</button>
+      </div>
+    </div>
+    <div class="filter-row">
+      <span class="filter-label">3. 細項篩選：</span>
+      <div id="detailCapsules" class="capsule-group"></div>
+    </div>
+    <div class="filter-row" style="border-top:1px dashed #dcdfe6; padding-top:8px;">
+      <div class="search-bar">
+        <span class="filter-label" style="min-width:auto;">👤 買家搜尋：</span>
+        <input type="text" id="searchInput" placeholder="搜尋暱稱、備註、後五碼..." onkeyup="renderTable()">
+      </div>
+    </div>
   </div>
   
   <div class="stats-info" id="statsInfo">資料載入中...</div>
 
-  <!-- 買家卡片容器 -->
-  <div id="buyersContainer"></div>
+  <!-- 進行中區塊 -->
+  <div class="section-divider divider-active">🔥 待處理 / 交易中</div>
+  <div id="activeContainer"></div>
+
+  <!-- 已結清區塊 -->
+  <div id="completedDivider" style="display:none;">
+    <div class="section-divider divider-completed">⚫ 已對帳結清 (封存)</div>
+    <div id="completedContainer"></div>
+  </div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore, collection, onSnapshot, doc, deleteDoc, getDocs, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getFirestore, collection, onSnapshot, doc, deleteDoc, getDocs, updateDoc, setDoc, addDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyDF7QySG1Jj4gdZvXwMRaKjRmI-lFKpj7k",
@@ -90,29 +157,120 @@
 
     let billsData = [];
     let settlementsData = [];
+    let buyerMemos = {}; // { buyerName: memo }
+    let groupList = [];
+    let memberMap = {};
 
-    document.addEventListener('DOMContentLoaded', () => {
+    let activeGroup = 'ALL';
+    let activeMode = 'member';
+    let activeDetail = 'ALL';
+    let editingBillId = null; // 紀錄目前正在編輯的 Bill ID
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      // 讀取 JSON
+      try {
+        const gRes = await fetch('../json/group.json');
+        groupList = await gRes.json();
+        for (const g of groupList) {
+          const file = (g === 'Stray Kids') ? 'members_skz.json' : (g === 'ATEEZ' ? 'members_atz.json' : '');
+          if (file) memberMap[g] = await (await fetch(`../json/${file}`)).json();
+        }
+      } catch(e) {}
+
+      renderGroupCapsules();
+      updateDetailCapsules();
+
+      // 監聽三大資料庫
       onSnapshot(collection(db, "ctbc_bills"), snap => {
         billsData = snap.docs.map(d => ({id: d.id, ...d.data()}));
         window.renderTable();
       });
-
       onSnapshot(collection(db, "ctbc_settlements"), snap => {
         settlementsData = snap.docs.map(d => ({id: d.id, ...d.data()}));
         window.renderTable();
       });
+      onSnapshot(collection(db, "ctbc_buyer_memos"), snap => {
+        buyerMemos = {};
+        snap.forEach(d => { buyerMemos[d.id] = d.data().memo; });
+        window.renderTable();
+      });
     });
 
+    // === 膠囊篩選器邏輯 ===
+    function renderGroupCapsules() {
+      const container = document.getElementById('groupCapsules');
+      container.innerHTML = `<button class="capsule-filter-btn active" onclick="window.setGroupFilter('ALL', this)">全部</button>`;
+      groupList.forEach(g => {
+        container.innerHTML += `<button class="capsule-filter-btn" onclick="window.setGroupFilter('${g}', this)">${g}</button>`;
+      });
+    }
+
+    window.setGroupFilter = (grp, btn) => {
+      activeGroup = grp;
+      document.querySelectorAll('#groupCapsules .capsule-filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      activeDetail = 'ALL';
+      updateDetailCapsules();
+      window.renderTable();
+    };
+
+    window.setModeFilter = (mode, btn) => {
+      activeMode = mode;
+      document.querySelectorAll('#modeCapsules .capsule-filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      activeDetail = 'ALL';
+      updateDetailCapsules();
+      window.renderTable();
+    };
+
+    function updateDetailCapsules() {
+      const container = document.getElementById('detailCapsules');
+      container.innerHTML = `<button class="capsule-filter-btn sub-active" onclick="window.setDetailFilter('ALL', this)">全部顯示</button>`;
+      
+      let itemsToCheck = billsData;
+      if (activeGroup !== 'ALL') itemsToCheck = itemsToCheck.filter(b => b.group === activeGroup);
+
+      if (activeMode === 'member') {
+        const memSet = new Set(itemsToCheck.map(b => b.member).filter(Boolean));
+        Array.from(memSet).sort().forEach(m => {
+          container.innerHTML += `<button class="capsule-filter-btn" onclick="window.setDetailFilter('${m}', this)">${m}</button>`;
+        });
+      } else if (activeMode === 'event') {
+        const evSet = new Set(itemsToCheck.map(b => b.event).filter(Boolean));
+        Array.from(evSet).sort().forEach(ev => {
+          container.innerHTML += `<button class="capsule-filter-btn" onclick="window.setDetailFilter('${ev}', this)">${ev}</button>`;
+        });
+      }
+    }
+
+    window.setDetailFilter = (detail, btn) => {
+      activeDetail = detail;
+      document.querySelectorAll('#detailCapsules .capsule-filter-btn').forEach(b => b.classList.remove('sub-active'));
+      btn.classList.add('sub-active');
+      window.renderTable();
+    };
+
+    // === 核心渲染邏輯 ===
     window.renderTable = () => {
-      const container = document.getElementById('buyersContainer');
-      container.innerHTML = '';
+      const activeContainer = document.getElementById('activeContainer');
+      const completedContainer = document.getElementById('completedContainer');
+      activeContainer.innerHTML = '';
+      completedContainer.innerHTML = '';
+      
       const searchVal = document.getElementById('searchInput').value.toLowerCase();
 
-      // 1. 過濾資料
+      // 1. 膠囊與關鍵字過濾
       let filteredBills = billsData.filter(b => {
-        if (!searchVal) return true;
-        const combined = `${b.name} ${b.event} ${b.member} ${b.status} ${b.note}`.toLowerCase();
-        return combined.includes(searchVal);
+        if (activeGroup !== 'ALL' && b.group !== activeGroup) return false;
+        if (activeDetail !== 'ALL') {
+          if (activeMode === 'member' && b.member !== activeDetail) return false;
+          if (activeMode === 'event' && b.event !== activeDetail) return false;
+        }
+        if (searchVal) {
+          const combined = `${b.name} ${b.event} ${b.member} ${b.status} ${b.note} ${b.last5}`.toLowerCase();
+          if (!combined.includes(searchVal)) return false;
+        }
+        return true;
       });
 
       // 2. 依照買家名稱群組化
@@ -122,146 +280,286 @@
         grouped[b.name].push(b);
       });
 
-      // 3. 準備渲染每個買家卡片
       let totalBillsCount = 0;
+      let completedCount = 0;
       const sortedBuyerNames = Object.keys(grouped).sort((a,b) => a.localeCompare(b, 'zh-TW'));
 
       sortedBuyerNames.forEach(buyerName => {
         const buyerBills = grouped[buyerName];
-        buyerBills.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)); // 該買家的單依時間排序
+        
+        // 排序規則：時間 > 團體 > 成員
+        buyerBills.sort((a, b) => {
+          if((a.createdAt||0) !== (b.createdAt||0)) return (a.createdAt||0) - (b.createdAt||0);
+          if(a.group !== b.group) return a.group === 'Stray Kids' ? -1 : 1;
+          return (a.member||'').localeCompare(b.member||'', 'zh-TW');
+        });
+        
         totalBillsCount += buyerBills.length;
 
-        // 計算財務數字
-        // 應付總額 (排除已外部結算)
-        const totalExpected = buyerBills
-          .filter(b => b.status !== '已外部結算')
-          .reduce((sum, b) => sum + Number(b.expectedAmt || 0), 0);
-          
-        // 該買家於中信的實際對帳金額
-        const totalPaid = settlementsData
-          .filter(s => s.buyerName === buyerName && s.status === 'completed')
-          .reduce((sum, s) => sum + Number(s.amount || 0), 0);
-          
+        // 財務計算
+        const totalExpected = buyerBills.filter(b => b.status !== '已外部結算').reduce((sum, b) => sum + Number(b.expectedAmt || 0), 0);
+        // 抓取該買家的中信實體紀錄
+        const buyerSettlements = settlementsData.filter(s => s.buyerName === buyerName);
+        const totalPaid = buyerSettlements.reduce((sum, s) => sum + Number(s.amount || 0), 0);
         const unpaid = totalExpected - totalPaid;
 
-        // 判斷綜合狀態
+        // 狀態標籤判定
         let mainStatusTag = '';
         let isAllExternal = buyerBills.length > 0 && buyerBills.every(b => b.status === '已外部結算');
-        
+        let isCompleted = false;
+
         if (isAllExternal) {
           mainStatusTag = `<span class="tag tag-external">✔ 全外部結帳</span>`;
+          isCompleted = true;
         } else if (unpaid <= 0) {
-          mainStatusTag = `<span class="tag tag-ok">✅ 已對帳 (${unpaid < 0 ? '溢繳'+Math.abs(unpaid) : '結清'})</span>`;
+          mainStatusTag = `<span class="tag tag-ok">✅ 已對帳結清</span>`;
+          isCompleted = true;
         } else if (totalPaid > 0 && unpaid > 0) {
           mainStatusTag = `<span class="tag tag-short">⚠️ 待補款</span>`;
-        } else if (buyerBills.some(b => b.status === '已匯款')) {
+        } else if (buyerBills.some(b => b.status === '已匯款' || b.last5)) {
           mainStatusTag = `<span class="tag tag-wait-check">🔍 待對帳</span>`;
         } else {
           mainStatusTag = `<span class="tag tag-pending">📌 待匯款</span>`;
         }
 
-        // 建立卡片外框
-        const card = document.createElement('div');
-        card.className = 'buyer-card';
+        if(isCompleted) completedCount++;
 
-        // 卡片標題區 (財務總結)
+        // 卡片外觀
+        const card = document.createElement('div');
+        card.className = `buyer-card ${isCompleted ? 'completed-card' : ''}`;
+        
+        const memoVal = buyerMemos[buyerName] || '';
+
+        // 卡片頭部
         let headerHtml = `
           <div class="buyer-header">
             <div class="buyer-name-group">
               <div class="buyer-name">👤 ${buyerName}</div>
               ${mainStatusTag}
+              <input type="text" class="global-memo-input" placeholder="📝 買家專屬備註 (防雷/習慣)..." value="${memoVal}" onblur="saveBuyerMemo('${buyerName}', this.value)">
             </div>
             <div class="buyer-summary">
               <div class="summary-item"><span class="summary-label">總應匯</span><span class="summary-val val-expected">$${totalExpected}</span></div>
-              <div class="summary-item"><span class="summary-label">已對帳</span><span class="summary-val val-paid">$${totalPaid}</span></div>
-              <div class="summary-item"><span class="summary-label">尚欠金額</span><span class="summary-val ${unpaid > 0 ? 'val-unpaid' : 'val-ok'}">${unpaid <= 0 ? '$0' : '$'+unpaid}</span></div>
+              <div class="summary-item"><span class="summary-label">實收已對帳</span><span class="summary-val val-paid">$${totalPaid}</span></div>
+              <div class="summary-item">
+                <span class="summary-label">${unpaid < 0 ? '溢繳金額' : '尚欠金額'}</span>
+                <span class="summary-val ${unpaid > 0 ? 'val-unpaid' : 'val-ok'}">${unpaid <= 0 ? (unpaid<0 ? '+$'+Math.abs(unpaid) : '$0') : '$'+unpaid}</span>
+              </div>
+              ${unpaid < 0 ? `<button class="btn-sm btn-refund" onclick="refundOverpaid('${buyerName}', ${Math.abs(unpaid)})">💸 登記退款</button>` : ''}
             </div>
           </div>
         `;
 
-        // 該買家的明細表格
-        let tableHtml = `<table>
-          <thead>
-            <tr>
-              <th style="width: 120px;">登記時間</th>
-              <th>匯款狀態</th>
-              <th>團體 / 場次</th>
-              <th>成員 / 張數</th>
-              <th>單筆應匯</th>
-              <th>備註</th>
-              <th style="width: 80px;">操作</th>
-            </tr>
-          </thead>
-          <tbody>
+        // 📝 你的 Memo 表格
+        let tableHtml = `
+          <div class="section-title">📝 你的手動 Memo 登記區</div>
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 80px;">登記狀態</th>
+                <th>團體 / 場次</th>
+                <th>成員 / 張數</th>
+                <th>單筆應匯</th>
+                <th>備註 / 後5碼</th>
+                <th style="width: 120px;">操作</th>
+              </tr>
+            </thead>
+            <tbody>
         `;
 
         buyerBills.forEach(b => {
-          const dateStr = b.createdAt ? new Date(b.createdAt).toLocaleString('zh-TW', {month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit'}) : '-';
-          
-          let actionHtml = '';
-          if(b.status === '已外部結算') {
-            actionHtml = `<button class="btn-delete" onclick="deleteBill('${b.id}', '${buyerName}')">❌ 刪除</button>`;
+          if (editingBillId === b.id) {
+            // 編輯模式 HTML
+            tableHtml += `
+              <tr style="background: #eef2ff;">
+                <td>
+                  <select id="edit_status" class="edit-select">
+                    <option value="已匯款" ${b.status==='已匯款'?'selected':''}>已匯款</option>
+                    <option value="未匯款" ${b.status==='未匯款'?'selected':''}>未匯款</option>
+                    <option value="不確定" ${b.status==='不確定'?'selected':''}>不確定</option>
+                  </select>
+                </td>
+                <td>
+                  <input type="text" id="edit_group" class="edit-input" value="${b.group||''}" placeholder="團體" style="margin-bottom:2px;"><br>
+                  <input type="text" id="edit_event" class="edit-input" value="${b.event||''}" placeholder="場次">
+                </td>
+                <td>
+                  <input type="text" id="edit_member" class="edit-input" value="${b.member||''}" placeholder="成員" style="margin-bottom:2px;"><br>
+                  <input type="number" id="edit_qty" class="edit-input" value="${b.qty||''}" placeholder="張數" style="width:50px;">
+                </td>
+                <td><input type="number" id="edit_expectedAmt" class="edit-input" value="${b.expectedAmt||0}" style="width:60px;"></td>
+                <td>
+                  <input type="text" id="edit_note" class="edit-input" value="${b.note||''}" placeholder="備註" style="margin-bottom:2px;"><br>
+                  <input type="text" id="edit_last5" class="edit-input" value="${b.last5||''}" placeholder="後5碼" style="width:60px;">
+                </td>
+                <td>
+                  <button class="btn-sm btn-save-inline" onclick="saveInlineEdit('${b.id}')">💾 儲存</button>
+                  <button class="btn-sm btn-edit" onclick="cancelEdit()">取消</button>
+                </td>
+              </tr>
+            `;
           } else {
-            actionHtml = `
-              <button class="btn-settle" onclick="markExternalSettled('${b.id}', '${buyerName}')">✅ 外結</button>
-              <button class="btn-delete" onclick="deleteBill('${b.id}', '${buyerName}')">❌ 刪除</button>
+            // 一般檢視模式
+            let actionHtml = '';
+            if(b.status === '已外部結算') {
+              actionHtml = `<button class="btn-sm btn-del" onclick="deleteBill('${b.id}', '${buyerName}')">❌ 刪除</button>`;
+            } else {
+              actionHtml = `
+                <button class="btn-sm btn-edit" onclick="startEdit('${b.id}')">✏️ 編輯</button>
+                <button class="btn-sm btn-ext" onclick="markExternalSettled('${b.id}', '${buyerName}')">✅ 外結</button>
+                <button class="btn-sm btn-del" onclick="deleteBill('${b.id}', '${buyerName}')">❌</button>
+              `;
+            }
+
+            tableHtml += `
+              <tr>
+                <td><span class="badge" style="${b.status==='已外部結算'?'background:#dcfce3;color:#16a34a;':''}">${b.status || '-'}</span></td>
+                <td>${b.group || '-'} <br> <span style="font-size:11px; color:#64748b;">${b.event || '-'}</span></td>
+                <td>${b.member || '-'} <br> <span style="font-size:11px; color:#64748b;">${b.qty ? b.qty+'張' : '-'}</span></td>
+                <td class="amt-text">${b.expectedAmt ? '$'+b.expectedAmt : '-'}</td>
+                <td>
+                  <div style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${b.note || ''}">${b.note || '-'}</div>
+                  <span style="font-size:11px; color:#64748b;">${b.last5 ? '末5: '+b.last5 : ''}</span>
+                </td>
+                <td>${actionHtml}</td>
+              </tr>
             `;
           }
-
-          tableHtml += `
-            <tr>
-              <td style="font-size: 11px; color: #64748b;">${dateStr}</td>
-              <td><span class="badge" style="${b.status==='已外部結算'?'background:#dcfce3;color:#16a34a;':''}">${b.status || '-'}</span></td>
-              <td>${b.group || '-'} <br> <span style="font-size:11px; color:#64748b;">${b.event || '-'}</span></td>
-              <td>${b.member || '-'} <br> <span style="font-size:11px; color:#64748b;">${b.qty ? b.qty+'張' : '-'}</span></td>
-              <td class="amt-text">${b.expectedAmt ? '$'+b.expectedAmt : '-'}</td>
-              <td style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${b.note || ''}">${b.note || '-'}</td>
-              <td>${actionHtml}</td>
-            </tr>
-          `;
         });
-
         tableHtml += `</tbody></table>`;
+
+        // 🏦 實際中信對帳綁定區
+        if(buyerSettlements.length > 0) {
+          tableHtml += `<div class="section-title" style="margin-top:8px;">🏦 實際中信對帳綁定區 (系統自動帶入)</div><table><tbody>`;
+          buyerSettlements.forEach(s => {
+            const dateObj = new Date(s.updatedAt || Date.now());
+            const dStr = `${dateObj.getMonth()+1}/${dateObj.getDate()} ${dateObj.getHours()}:${String(dateObj.getMinutes()).padStart(2,'0')}`;
+            tableHtml += `
+              <tr class="bank-record-row">
+                <td style="width: 120px;">✔️ 結算於 ${dStr}</td>
+                <td style="width: 100px;">存入 <b>$${s.amount}</b></td>
+                <td><span class="memo-text">對帳備註：${s.memo || '無'} (ID:${s.txId})</span></td>
+                <td style="width: 100px;"><button class="btn-sm btn-del" onclick="unbindSettlement('${s.id}', '${buyerName}')">🔓 撤銷綁定</button></td>
+              </tr>
+            `;
+          });
+          tableHtml += `</tbody></table>`;
+        }
+
         card.innerHTML = headerHtml + tableHtml;
-        container.appendChild(card);
+        
+        if(isCompleted) completedContainer.appendChild(card);
+        else activeContainer.appendChild(card);
       });
 
+      document.getElementById('completedDivider').style.display = completedCount > 0 ? 'block' : 'none';
       document.getElementById('statsInfo').innerText = `共顯示 ${sortedBuyerNames.length} 位買家，合計 ${totalBillsCount} 筆結算單明細`;
+
+      // 通知 iframe 父層重新計算高度
       setTimeout(() => {
         window.parent.postMessage({ type: 'BILLS_HEIGHT', height: document.body.scrollHeight }, '*');
       }, 100);
     };
 
+    // === 操作邏輯 ===
+
+    window.saveBuyerMemo = async (buyerName, memoVal) => {
+      await setDoc(doc(db, "ctbc_buyer_memos", buyerName), { memo: memoVal });
+    };
+
+    window.startEdit = (id) => { editingBillId = id; window.renderTable(); };
+    window.cancelEdit = () => { editingBillId = null; window.renderTable(); };
+
+    window.saveInlineEdit = async (id) => {
+      const status = document.getElementById('edit_status').value;
+      const group = document.getElementById('edit_group').value;
+      const event = document.getElementById('edit_event').value;
+      const member = document.getElementById('edit_member').value;
+      const qty = document.getElementById('edit_qty').value;
+      const expectedAmt = document.getElementById('edit_expectedAmt').value;
+      const note = document.getElementById('edit_note').value;
+      const last5 = document.getElementById('edit_last5').value;
+
+      await updateDoc(doc(db, "ctbc_bills", id), {
+        status, group, event, member, qty, expectedAmt: Number(expectedAmt||0), note, last5
+      });
+      editingBillId = null;
+      window.renderTable();
+    };
+
     window.markExternalSettled = async (id, name) => {
-      if(confirm(`確定要將買家【${name}】的這筆帳單標記為「已外部結算」嗎？\n(標記後，這筆金額將自動從中信的尚欠金額中扣除)`)) {
+      if(confirm(`確定要將這筆標記為「已外部結算」嗎？(將不列入中信應收金額)`)) {
         await updateDoc(doc(db, "ctbc_bills", id), { status: '已外部結算' });
       }
     };
 
     window.deleteBill = async (id, name) => {
-      if(confirm(`確定要刪除買家【${name}】的這筆結算單紀錄嗎？`)) {
-        await deleteDoc(doc(db, "ctbc_bills", id));
+      if(confirm(`確定要刪除這筆 Memo 紀錄嗎？`)) await deleteDoc(doc(db, "ctbc_bills", id));
+    };
+
+    window.unbindSettlement = async (settleId, name) => {
+      if(confirm(`確定要【解除綁定】這筆中信實體紀錄嗎？\n解除後，該筆金額將退回明細對帳區的「未對帳」。`)) {
+        await deleteDoc(doc(db, "ctbc_settlements", settleId));
       }
     };
 
+    window.refundOverpaid = async (buyerName, overpaidAmt) => {
+      const amtStr = prompt(`請輸入退款給【${buyerName}】的金額 (建議輸入 ${overpaidAmt}):`, overpaidAmt);
+      if(!amtStr) return;
+      const amount = Number(amtStr);
+      if(isNaN(amount) || amount <= 0) return alert("請輸入有效的金額！");
+
+      await addDoc(collection(db, "ctbc_settlements"), {
+        txId: 'REFUND_' + Date.now(),
+        buyerName,
+        amount: -amount, // 寫入負數抵銷
+        status: 'completed',
+        memo: '系統退款登記',
+        updatedAt: Date.now()
+      });
+      alert(`✅ 成功登記退款 -$${amount}，該買家錢包餘額已更新！`);
+    };
+
     window.wipeAllData = async () => {
-      const pwd = prompt("⚠️ 警告：這將會刪除所有「結算單」與「對帳紀錄」！\n請輸入密碼「0922」確認執行：");
-      if (pwd !== "0922") return alert(pwd !== null ? "密碼錯誤，取消操作。" : "");
+      const pwd = prompt("⚠️ 這將刪除所有「結算單」與「對帳紀錄」！\n請輸入密碼「0922」確認執行：");
+      if (pwd !== "0922") return alert(pwd !== null ? "密碼錯誤，取消。" : "");
       
-      document.getElementById('statsInfo').innerText = "資料清空中，請稍候...";
+      document.getElementById('statsInfo').innerText = "資料清空中...";
       try {
         const delPromises = [];
-        const snapBills = await getDocs(collection(db, "ctbc_bills"));
+        const [snapBills, snapSettles] = await Promise.all([getDocs(collection(db, "ctbc_bills")), getDocs(collection(db, "ctbc_settlements"))]);
         snapBills.forEach(d => delPromises.push(deleteDoc(doc(db, "ctbc_bills", d.id))));
-        const snapSettles = await getDocs(collection(db, "ctbc_settlements"));
         snapSettles.forEach(d => delPromises.push(deleteDoc(doc(db, "ctbc_settlements", d.id))));
-        
         await Promise.all(delPromises);
-        alert("✅ 全部結算單與對帳紀錄皆已清空！");
-        window.renderTable();
-      } catch (e) {
-        alert("清空過程中發生錯誤：" + e.message);
-      }
+        alert("✅ 紀錄已全數清空！");
+      } catch (e) { alert("錯誤：" + e.message); }
+    };
+
+    // 一鍵匯出 CSV 報表
+    window.exportToExcel = () => {
+      let csvContent = "\uFEFF"; // BOM for UTF-8
+      csvContent += "買家暱稱,備註(防雷),狀態,團體,場次,成員,張數,單筆應匯,後5碼,手動Memo\n";
+
+      // 整理要匯出的資料 (依照當前顯示的順序)
+      billsData.forEach(b => {
+        const memo = (buyerMemos[b.name] || '').replace(/,/g, '，');
+        const note = (b.note || '').replace(/,/g, '，');
+        const row = [
+          b.name, memo, b.status, b.group, b.event, b.member, b.qty||'', 
+          b.expectedAmt||0, b.last5||'', note
+        ];
+        csvContent += row.join(",") + "\n";
+      });
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement("a");
+      const url = URL.createObjectURL(blob);
+      link.setAttribute("href", url);
+      link.setAttribute("download", `中信結帳報表_${new Date().toISOString().slice(0,10)}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
     };
   </script>
 </body>
