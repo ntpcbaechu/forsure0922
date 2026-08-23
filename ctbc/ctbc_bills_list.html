@@ -26,10 +26,6 @@
     .capsule-filter-btn.sub-active { background: #67c23a; color: #fff; border-color: #67c23a; box-shadow: 0 2px 6px rgba(103,194,58,0.25); }
     .capsule-filter-btn.user-active { background: #e6a23c; color: #fff; border-color: #e6a23c; box-shadow: 0 2px 6px rgba(230,162,60,0.25); }
 
-    .search-bar { display: flex; gap: 8px; align-items: center; width: 100%; max-width: 400px; }
-    .search-bar input { flex: 1; padding: 6px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 12px; outline: none; }
-    .search-bar input:focus { border-color: #3b82f6; }
-
     .section-divider { display: flex; align-items: center; justify-content: center; margin: 24px 0 16px 0; font-size: 14px; font-weight: bold; }
     .section-divider::before, .section-divider::after { content: ''; flex: 1; border-bottom: 2px dashed #cbd5e1; margin: 0 12px; }
     .divider-active { color: #2563eb; }
@@ -65,29 +61,33 @@
     .tag-ok { background: #dcfce3; color: #16a34a; border-color: #bbf7d0; }
     .tag-external { background: #f3e8ff; color: #7e22ce; border-color: #e9d5ff; }
 
-    /* 表格樣式 */
+    /* Grid 卡片排版 (取代舊 Table) */
     .section-title { font-size: 12px; font-weight: bold; color: #64748b; padding: 10px 16px 4px 16px; display: flex; align-items: center; gap: 6px; }
-    table { width: 100%; border-collapse: collapse; font-size: 12px; background: transparent; }
-    th { color: #475569; text-align: left; padding: 8px 16px; border-bottom: 1px solid #e2e8f0; white-space: nowrap; font-size: 11px; }
-    td { padding: 8px 16px; border-bottom: 1px dashed #e2e8f0; vertical-align: middle; }
-    tr:last-child td { border-bottom: none; }
+    .memo-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; padding: 10px 16px 16px 16px; }
+    .memo-card-item { border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 12px; background: #fff; display: flex; justify-content: space-between; gap: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.02); }
+    .memo-detail { display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 0; }
+    .memo-row { display: flex; align-items: center; justify-content: space-between; font-size: 12px; }
     
-    .amt-text { color: #dc2626; font-weight: bold; }
-    .badge { background: #f1f5f9; color: #475569; padding: 2px 6px; border-radius: 4px; font-size: 11px; }
-
-    /* 按鈕樣式 */
-    .btn-sm { border-radius: 4px; padding: 3px 6px; font-size: 11px; cursor: pointer; font-weight: bold; transition: 0.2s; border: 1px solid transparent; display: inline-flex; align-items: center; gap: 3px; }
+    /* 直向操作按鈕 */
+    .memo-actions { display: flex; flex-direction: column; gap: 6px; min-width: 65px; justify-content: flex-start; }
+    .btn-sm { border-radius: 4px; padding: 4px 6px; font-size: 11px; cursor: pointer; font-weight: bold; transition: 0.2s; border: 1px solid transparent; text-align: center; width: 100%; }
     .btn-edit { background: #f8fafc; color: #3b82f6; border-color: #cbd5e1; } .btn-edit:hover { background: #e0f2fe; }
     .btn-save-inline { background: #2563eb; color: #fff; } .btn-save-inline:hover { background: #1d4ed8; }
     .btn-del { background: #fee2e2; color: #dc2626; border-color: #fca5a5; } .btn-del:hover { background: #fecaca; }
     .btn-ext { background: #dcfce3; color: #16a34a; border-color: #bbf7d0; } .btn-ext:hover { background: #bbf7d0; }
     .btn-refund { background: #fef3c7; color: #d97706; border-color: #fde68a; } .btn-refund:hover { background: #fde68a; }
     
+    .badge { background: #f1f5f9; color: #475569; padding: 2px 6px; border-radius: 4px; font-size: 11px; }
+
     /* 編輯模式輸入框 */
-    .edit-input { padding: 4px; border: 1px solid #2563eb; border-radius: 4px; font-size: 11px; width: 100%; box-sizing: border-box; }
-    .edit-select { padding: 4px; border: 1px solid #2563eb; border-radius: 4px; font-size: 11px; }
+    .edit-mode-container { background: #eef2ff; flex-direction: column; }
+    .edit-input-group { display: flex; gap: 6px; flex-wrap: wrap; }
+    .edit-input { padding: 4px 6px; border: 1px solid #3b82f6; border-radius: 4px; font-size: 11px; flex: 1; min-width: 60px; outline: none; }
+    .edit-select { padding: 4px; border: 1px solid #3b82f6; border-radius: 4px; font-size: 11px; flex: 1; }
 
     /* 中信實際紀錄區 */
+    table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 4px; }
+    td { padding: 8px 16px; border-top: 1px dashed #e2e8f0; vertical-align: middle; }
     .bank-record-row { background: #fdfdfd; }
     .bank-record-row td { color: #16a34a; font-weight: bold; }
     .bank-record-row .memo-text { font-weight: normal; color: #64748b; font-size: 11px; }
@@ -121,11 +121,10 @@
       <span class="filter-label">3. 細項篩選：</span>
       <div id="detailCapsules" class="capsule-group"></div>
     </div>
+    <!-- 取代搜尋框的買家膠囊列 -->
     <div class="filter-row" style="border-top:1px dashed #dcdfe6; padding-top:8px;">
-      <div class="search-bar">
-        <span class="filter-label" style="min-width:auto;">👤 買家搜尋：</span>
-        <input type="text" id="searchInput" placeholder="搜尋暱稱、備註、後五碼..." onkeyup="renderTable()">
-      </div>
+      <span class="filter-label">👤 買家清單：</span>
+      <div id="userCapsules" class="capsule-group"></div>
     </div>
   </div>
   
@@ -157,17 +156,17 @@
 
     let billsData = [];
     let settlementsData = [];
-    let buyerMemos = {}; // { buyerName: memo }
+    let buyerMemos = {};
     let groupList = [];
     let memberMap = {};
 
     let activeGroup = 'ALL';
     let activeMode = 'member';
     let activeDetail = 'ALL';
-    let editingBillId = null; // 紀錄目前正在編輯的 Bill ID
+    let activeUser = 'ALL';
+    let editingBillId = null;
 
     document.addEventListener('DOMContentLoaded', async () => {
-      // 讀取 JSON
       try {
         const gRes = await fetch('../json/group.json');
         groupList = await gRes.json();
@@ -180,9 +179,9 @@
       renderGroupCapsules();
       updateDetailCapsules();
 
-      // 監聽三大資料庫
       onSnapshot(collection(db, "ctbc_bills"), snap => {
         billsData = snap.docs.map(d => ({id: d.id, ...d.data()}));
+        updateUserCapsules();
         window.renderTable();
       });
       onSnapshot(collection(db, "ctbc_settlements"), snap => {
@@ -226,7 +225,6 @@
     function updateDetailCapsules() {
       const container = document.getElementById('detailCapsules');
       container.innerHTML = `<button class="capsule-filter-btn sub-active" onclick="window.setDetailFilter('ALL', this)">全部顯示</button>`;
-      
       let itemsToCheck = billsData;
       if (activeGroup !== 'ALL') itemsToCheck = itemsToCheck.filter(b => b.group === activeGroup);
 
@@ -250,30 +248,39 @@
       window.renderTable();
     };
 
+    function updateUserCapsules() {
+      const container = document.getElementById('userCapsules');
+      container.innerHTML = `<button class="capsule-filter-btn user-active" onclick="window.setUserFilter('ALL', this)">全部買家</button>`;
+      const users = new Set(billsData.map(b => b.name).filter(Boolean));
+      Array.from(users).sort((a,b)=>a.localeCompare(b,'zh-TW')).forEach(u => {
+        container.innerHTML += `<button class="capsule-filter-btn" onclick="window.setUserFilter('${u}', this)">${u}</button>`;
+      });
+    }
+
+    window.setUserFilter = (user, btn) => {
+      activeUser = user;
+      document.querySelectorAll('#userCapsules .capsule-filter-btn').forEach(b => b.classList.remove('user-active'));
+      btn.classList.add('user-active');
+      window.renderTable();
+    };
+
     // === 核心渲染邏輯 ===
     window.renderTable = () => {
       const activeContainer = document.getElementById('activeContainer');
       const completedContainer = document.getElementById('completedContainer');
       activeContainer.innerHTML = '';
       completedContainer.innerHTML = '';
-      
-      const searchVal = document.getElementById('searchInput').value.toLowerCase();
 
-      // 1. 膠囊與關鍵字過濾
       let filteredBills = billsData.filter(b => {
         if (activeGroup !== 'ALL' && b.group !== activeGroup) return false;
         if (activeDetail !== 'ALL') {
           if (activeMode === 'member' && b.member !== activeDetail) return false;
           if (activeMode === 'event' && b.event !== activeDetail) return false;
         }
-        if (searchVal) {
-          const combined = `${b.name} ${b.event} ${b.member} ${b.status} ${b.note} ${b.last5}`.toLowerCase();
-          if (!combined.includes(searchVal)) return false;
-        }
+        if (activeUser !== 'ALL' && b.name !== activeUser) return false;
         return true;
       });
 
-      // 2. 依照買家名稱群組化
       const grouped = {};
       filteredBills.forEach(b => {
         if(!grouped[b.name]) grouped[b.name] = [];
@@ -286,8 +293,6 @@
 
       sortedBuyerNames.forEach(buyerName => {
         const buyerBills = grouped[buyerName];
-        
-        // 排序規則：時間 > 團體 > 成員
         buyerBills.sort((a, b) => {
           if((a.createdAt||0) !== (b.createdAt||0)) return (a.createdAt||0) - (b.createdAt||0);
           if(a.group !== b.group) return a.group === 'Stray Kids' ? -1 : 1;
@@ -296,14 +301,11 @@
         
         totalBillsCount += buyerBills.length;
 
-        // 財務計算
         const totalExpected = buyerBills.filter(b => b.status !== '已外部結算').reduce((sum, b) => sum + Number(b.expectedAmt || 0), 0);
-        // 抓取該買家的中信實體紀錄
         const buyerSettlements = settlementsData.filter(s => s.buyerName === buyerName);
         const totalPaid = buyerSettlements.reduce((sum, s) => sum + Number(s.amount || 0), 0);
         const unpaid = totalExpected - totalPaid;
 
-        // 狀態標籤判定
         let mainStatusTag = '';
         let isAllExternal = buyerBills.length > 0 && buyerBills.every(b => b.status === '已外部結算');
         let isCompleted = false;
@@ -324,13 +326,10 @@
 
         if(isCompleted) completedCount++;
 
-        // 卡片外觀
         const card = document.createElement('div');
         card.className = `buyer-card ${isCompleted ? 'completed-card' : ''}`;
-        
         const memoVal = buyerMemos[buyerName] || '';
 
-        // 卡片頭部
         let headerHtml = `
           <div class="buyer-header">
             <div class="buyer-name-group">
@@ -350,56 +349,43 @@
           </div>
         `;
 
-        // 📝 你的 Memo 表格
-        let tableHtml = `
-          <div class="section-title">📝 你的手動 Memo 登記區</div>
-          <table>
-            <thead>
-              <tr>
-                <th style="width: 80px;">登記狀態</th>
-                <th>團體 / 場次</th>
-                <th>成員 / 張數</th>
-                <th>單筆應匯</th>
-                <th>備註 / 後5碼</th>
-                <th style="width: 120px;">操作</th>
-              </tr>
-            </thead>
-            <tbody>
-        `;
+        // 📝 Grid 排版取代 Table
+        let gridHtml = `<div class="section-title">📝 你的手動 Memo 登記區</div><div class="memo-grid">`;
 
         buyerBills.forEach(b => {
           if (editingBillId === b.id) {
-            // 編輯模式 HTML
-            tableHtml += `
-              <tr style="background: #eef2ff;">
-                <td>
+            // ✏️ 編輯模式
+            gridHtml += `
+              <div class="memo-card-item edit-mode-container">
+                <div class="edit-input-group">
                   <select id="edit_status" class="edit-select">
                     <option value="已匯款" ${b.status==='已匯款'?'selected':''}>已匯款</option>
                     <option value="未匯款" ${b.status==='未匯款'?'selected':''}>未匯款</option>
                     <option value="不確定" ${b.status==='不確定'?'selected':''}>不確定</option>
                   </select>
-                </td>
-                <td>
-                  <input type="text" id="edit_group" class="edit-input" value="${b.group||''}" placeholder="團體" style="margin-bottom:2px;"><br>
+                  <input type="date" id="edit_date" class="edit-input" value="${b.date||''}">
+                </div>
+                <div class="edit-input-group">
+                  <input type="text" id="edit_group" class="edit-input" value="${b.group||''}" placeholder="團體">
                   <input type="text" id="edit_event" class="edit-input" value="${b.event||''}" placeholder="場次">
-                </td>
-                <td>
-                  <input type="text" id="edit_member" class="edit-input" value="${b.member||''}" placeholder="成員" style="margin-bottom:2px;"><br>
-                  <input type="number" id="edit_qty" class="edit-input" value="${b.qty||''}" placeholder="張數" style="width:50px;">
-                </td>
-                <td><input type="number" id="edit_expectedAmt" class="edit-input" value="${b.expectedAmt||0}" style="width:60px;"></td>
-                <td>
-                  <input type="text" id="edit_note" class="edit-input" value="${b.note||''}" placeholder="備註" style="margin-bottom:2px;"><br>
-                  <input type="text" id="edit_last5" class="edit-input" value="${b.last5||''}" placeholder="後5碼" style="width:60px;">
-                </td>
-                <td>
-                  <button class="btn-sm btn-save-inline" onclick="saveInlineEdit('${b.id}')">💾 儲存</button>
-                  <button class="btn-sm btn-edit" onclick="cancelEdit()">取消</button>
-                </td>
-              </tr>
+                </div>
+                <div class="edit-input-group">
+                  <input type="text" id="edit_member" class="edit-input" value="${b.member||''}" placeholder="成員" style="flex:2;">
+                  <input type="number" id="edit_qty" class="edit-input" value="${b.qty||''}" placeholder="張數">
+                  <input type="number" id="edit_expectedAmt" class="edit-input" value="${b.expectedAmt||0}" placeholder="應匯">
+                </div>
+                <div class="edit-input-group">
+                  <input type="text" id="edit_last5" class="edit-input" value="${b.last5||''}" placeholder="末5" style="max-width:60px;">
+                  <input type="text" id="edit_note" class="edit-input" value="${b.note||''}" placeholder="備註">
+                </div>
+                <div class="edit-input-group" style="justify-content: flex-end; margin-top: 4px;">
+                  <button class="btn-sm btn-edit" style="width:auto; padding:4px 12px;" onclick="cancelEdit()">取消</button>
+                  <button class="btn-sm btn-save-inline" style="width:auto; padding:4px 12px;" onclick="saveInlineEdit('${b.id}')">💾 儲存</button>
+                </div>
+              </div>
             `;
           } else {
-            // 一般檢視模式
+            // 👀 一般檢視模式
             let actionHtml = '';
             if(b.status === '已外部結算') {
               actionHtml = `<button class="btn-sm btn-del" onclick="deleteBill('${b.id}', '${buyerName}')">❌ 刪除</button>`;
@@ -407,47 +393,55 @@
               actionHtml = `
                 <button class="btn-sm btn-edit" onclick="startEdit('${b.id}')">✏️ 編輯</button>
                 <button class="btn-sm btn-ext" onclick="markExternalSettled('${b.id}', '${buyerName}')">✅ 外結</button>
-                <button class="btn-sm btn-del" onclick="deleteBill('${b.id}', '${buyerName}')">❌</button>
+                <button class="btn-sm btn-del" onclick="deleteBill('${b.id}', '${buyerName}')">❌ 刪除</button>
               `;
             }
 
-            tableHtml += `
-              <tr>
-                <td><span class="badge" style="${b.status==='已外部結算'?'background:#dcfce3;color:#16a34a;':''}">${b.status || '-'}</span></td>
-                <td>${b.group || '-'} <br> <span style="font-size:11px; color:#64748b;">${b.event || '-'}</span></td>
-                <td>${b.member || '-'} <br> <span style="font-size:11px; color:#64748b;">${b.qty ? b.qty+'張' : '-'}</span></td>
-                <td class="amt-text">${b.expectedAmt ? '$'+b.expectedAmt : '-'}</td>
-                <td>
-                  <div style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${b.note || ''}">${b.note || '-'}</div>
-                  <span style="font-size:11px; color:#64748b;">${b.last5 ? '末5: '+b.last5 : ''}</span>
-                </td>
-                <td>${actionHtml}</td>
-              </tr>
+            gridHtml += `
+              <div class="memo-card-item">
+                <div class="memo-detail">
+                  <div class="memo-row">
+                    <span class="badge" style="${b.status==='已外部結算'?'background:#dcfce3;color:#16a34a;':''}">${b.status || '-'}</span>
+                    <b style="color:#dc2626; font-size:14px;">$${b.expectedAmt || 0}</b>
+                  </div>
+                  <div class="memo-row" style="font-weight:bold; color:#1e293b; font-size:13px; margin-top:2px;">
+                    ${b.member || '-'} <span style="color:#64748b; font-weight:normal; font-size:11px;">(${b.qty||0}張)</span>
+                  </div>
+                  <div style="font-size:11px; color:#64748b;">${b.group || '-'} / ${b.event || '-'}</div>
+                  <div style="font-size:11px; color:#64748b; margin-top:2px;">
+                    <span style="display:inline-block; background:#f1f5f9; padding:2px 4px; border-radius:4px; margin-right:4px;">📅 ${b.date || '未填日期'}</span>
+                    <span style="display:inline-block; background:#f1f5f9; padding:2px 4px; border-radius:4px;">末5: ${b.last5 || '-'}</span>
+                  </div>
+                  <div style="font-size:11px; color:#64748b; border-top:1px dashed #cbd5e1; padding-top:6px; margin-top:4px;">📝 備註: ${b.note || '-'}</div>
+                </div>
+                <div class="memo-actions">
+                  ${actionHtml}
+                </div>
+              </div>
             `;
           }
         });
-        tableHtml += `</tbody></table>`;
+        gridHtml += `</div>`;
 
-        // 🏦 實際中信對帳綁定區
+        // 🏦 中信綁定區
         if(buyerSettlements.length > 0) {
-          tableHtml += `<div class="section-title" style="margin-top:8px;">🏦 實際中信對帳綁定區 (系統自動帶入)</div><table><tbody>`;
+          gridHtml += `<div class="section-title">🏦 實際中信對帳綁定區 (系統自動帶入)</div><table><tbody>`;
           buyerSettlements.forEach(s => {
             const dateObj = new Date(s.updatedAt || Date.now());
             const dStr = `${dateObj.getMonth()+1}/${dateObj.getDate()} ${dateObj.getHours()}:${String(dateObj.getMinutes()).padStart(2,'0')}`;
-            tableHtml += `
+            gridHtml += `
               <tr class="bank-record-row">
-                <td style="width: 120px;">✔️ 結算於 ${dStr}</td>
-                <td style="width: 100px;">存入 <b>$${s.amount}</b></td>
+                <td style="width: 130px; font-size:11px;">✔️ 結算於 ${dStr}</td>
+                <td style="width: 100px;">存入 <b style="font-size:13px;">$${s.amount}</b></td>
                 <td><span class="memo-text">對帳備註：${s.memo || '無'} (ID:${s.txId})</span></td>
-                <td style="width: 100px;"><button class="btn-sm btn-del" onclick="unbindSettlement('${s.id}', '${buyerName}')">🔓 撤銷綁定</button></td>
+                <td style="width: 80px;"><button class="btn-sm btn-del" onclick="unbindSettlement('${s.id}', '${buyerName}')">🔓 撤銷</button></td>
               </tr>
             `;
           });
-          tableHtml += `</tbody></table>`;
+          gridHtml += `</tbody></table>`;
         }
 
-        card.innerHTML = headerHtml + tableHtml;
-        
+        card.innerHTML = headerHtml + gridHtml;
         if(isCompleted) completedContainer.appendChild(card);
         else activeContainer.appendChild(card);
       });
@@ -455,14 +449,10 @@
       document.getElementById('completedDivider').style.display = completedCount > 0 ? 'block' : 'none';
       document.getElementById('statsInfo').innerText = `共顯示 ${sortedBuyerNames.length} 位買家，合計 ${totalBillsCount} 筆結算單明細`;
 
-      // 通知 iframe 父層重新計算高度
-      setTimeout(() => {
-        window.parent.postMessage({ type: 'BILLS_HEIGHT', height: document.body.scrollHeight }, '*');
-      }, 100);
+      setTimeout(() => { window.parent.postMessage({ type: 'BILLS_HEIGHT', height: document.body.scrollHeight }, '*'); }, 100);
     };
 
     // === 操作邏輯 ===
-
     window.saveBuyerMemo = async (buyerName, memoVal) => {
       await setDoc(doc(db, "ctbc_buyer_memos", buyerName), { memo: memoVal });
     };
@@ -472,6 +462,7 @@
 
     window.saveInlineEdit = async (id) => {
       const status = document.getElementById('edit_status').value;
+      const date = document.getElementById('edit_date').value;
       const group = document.getElementById('edit_group').value;
       const event = document.getElementById('edit_event').value;
       const member = document.getElementById('edit_member').value;
@@ -481,7 +472,7 @@
       const last5 = document.getElementById('edit_last5').value;
 
       await updateDoc(doc(db, "ctbc_bills", id), {
-        status, group, event, member, qty, expectedAmt: Number(expectedAmt||0), note, last5
+        status, date, group, event, member, qty, expectedAmt: Number(expectedAmt||0), note, last5
       });
       editingBillId = null;
       window.renderTable();
@@ -510,14 +501,9 @@
       if(isNaN(amount) || amount <= 0) return alert("請輸入有效的金額！");
 
       await addDoc(collection(db, "ctbc_settlements"), {
-        txId: 'REFUND_' + Date.now(),
-        buyerName,
-        amount: -amount, // 寫入負數抵銷
-        status: 'completed',
-        memo: '系統退款登記',
-        updatedAt: Date.now()
+        txId: 'REFUND_' + Date.now(), buyerName, amount: -amount, status: 'completed', memo: '系統退款登記', updatedAt: Date.now()
       });
-      alert(`✅ 成功登記退款 -$${amount}，該買家錢包餘額已更新！`);
+      alert(`✅ 成功登記退款 -$${amount}！`);
     };
 
     window.wipeAllData = async () => {
@@ -535,31 +521,20 @@
       } catch (e) { alert("錯誤：" + e.message); }
     };
 
-    // 一鍵匯出 CSV 報表
     window.exportToExcel = () => {
-      let csvContent = "\uFEFF"; // BOM for UTF-8
-      csvContent += "買家暱稱,備註(防雷),狀態,團體,場次,成員,張數,單筆應匯,後5碼,手動Memo\n";
-
-      // 整理要匯出的資料 (依照當前顯示的順序)
+      let csvContent = "\uFEFF買家暱稱,備註(防雷),狀態,匯款日期,團體,場次,成員,張數,單筆應匯,後5碼,手動Memo\n";
       billsData.forEach(b => {
         const memo = (buyerMemos[b.name] || '').replace(/,/g, '，');
         const note = (b.note || '').replace(/,/g, '，');
-        const row = [
-          b.name, memo, b.status, b.group, b.event, b.member, b.qty||'', 
-          b.expectedAmt||0, b.last5||'', note
-        ];
+        const row = [b.name, memo, b.status, b.date||'', b.group, b.event, b.member, b.qty||'', b.expectedAmt||0, b.last5||'', note];
         csvContent += row.join(",") + "\n";
       });
-
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
       const link = document.createElement("a");
-      const url = URL.createObjectURL(blob);
-      link.setAttribute("href", url);
+      link.setAttribute("href", URL.createObjectURL(blob));
       link.setAttribute("download", `中信結帳報表_${new Date().toISOString().slice(0,10)}.csv`);
       link.style.visibility = 'hidden';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      document.body.appendChild(link); link.click(); document.body.removeChild(link);
     };
   </script>
 </body>

@@ -64,6 +64,9 @@
     .page-btn { padding: 6px 10px; border: 1px solid #cbd5e1; background: #fff; border-radius: 4px; font-size: 13px; cursor: pointer; transition: 0.2s; }
     .page-btn.active { background: #2563eb; color: #fff; border-color: #2563eb; }
     .page-btn:hover:not(.active) { background: #f1f5f9; }
+
+    .bill-checkbox-label { font-size:12px; display:flex; align-items:center; gap:8px; background:#fff; padding:8px 10px; border:1px solid #cbd5e1; border-radius:6px; cursor:pointer; }
+    .bill-checkbox-label:hover { background:#f1f5f9; }
   </style>
   <script src="ctbc_data.js"></script>
 </head>
@@ -103,7 +106,6 @@
         <button class="capsule-filter-btn" onclick="setMainFilter('completed', this)">✅ 已結算</button>
       </div>
     </div>
-    <!-- 新增：存入與支出切換過濾器 -->
     <div class="filter-row" id="typeFilterGroup" style="margin-top: 10px; padding-top: 10px; border-top: 1px dashed #e2e8f0;">
       <span class="filter-label">交易類型：</span>
       <div class="capsule-group">
@@ -160,16 +162,14 @@
     
     let expandedRows = {};
     let currentMainFilter = 'all';
-    let currentTypeFilter = 'income'; // 預設只顯示存入
+    let currentTypeFilter = 'income'; 
     let currentPage = 1;
     const pageSize = 50;
     let memberMap = {};
     let rowCounter = 0;
 
     const notifyHeight = () => {
-      setTimeout(() => {
-        window.parent.postMessage({ type: 'BANK_HEIGHT', height: document.body.scrollHeight }, '*');
-      }, 100);
+      setTimeout(() => { window.parent.postMessage({ type: 'BANK_HEIGHT', height: document.body.scrollHeight }, '*'); }, 100);
     };
 
     document.addEventListener('DOMContentLoaded', async () => {
@@ -274,7 +274,11 @@
 
       for(let order of ordersToSubmit) await addDoc(collection(db, "ctbc_bills"), order);
 
-      alert(`✅ 成功為【${name}】批次建立了 ${ordersToSubmit.length} 筆結算單！`);
+      alert(`✅ 成功為【${name}】批次建立了 ${ordersToSubmit.length} 筆結算單！\n(欄位已為您清空復原)`);
+      
+      // 送出後 100% 清空畫面
+      document.getElementById('f_group').value = '';
+      document.getElementById('f_name').value = '';
       document.getElementById('dynamicRowsContainer').innerHTML = '';
       addDynamicRow();
     };
@@ -315,7 +319,6 @@
         if (currentMainFilter === 'in_progress' && st !== 'in_progress') return false;
         if (currentMainFilter === 'completed' && st !== 'completed') return false;
         
-        // 判斷存入或支出
         if (currentTypeFilter === 'income' && !t.inc) return false;
         if (currentTypeFilter === 'expense' && !t.exp) return false;
 
@@ -336,7 +339,6 @@
         const data = stateInfo.data || {};
         const txAmt = Number(t.inc || t.exp || 0);
 
-        // 防呆：如果是支出，拔掉核對按鈕，顯示灰字
         const actionHtml = t.inc 
           ? `<button class="btn-toggle ${isExp ? 'active' : ''}" onclick="toggleRow(${t.id})">${isExp ? '收起▲' : '核對▼'}</button>`
           : `<span style="color:#94a3b8; font-size:11px;">無需對帳</span>`;
@@ -365,18 +367,21 @@
             optionsHtml += `<option value="${name}" ${sel}>${name}</option>`;
           });
 
+          // 綁定過往紀錄的 Checkbox IDs
+          const savedBillIds = data.billIds || [];
+
           subTr.innerHTML = `
             <td colspan="8">
               <div class="sub-container">
-                <div style="font-size:13px; font-weight:bold; color:#1e293b;">🔍 將此筆 $${txAmt} 明細匯入買家帳戶</div>
+                <div style="font-size:13px; font-weight:bold; color:#1e293b;">🔍 將此筆 $${txAmt} 明細核銷買家帳單</div>
                 <select id="buyer_select_${t.id}" style="padding:6px; font-size:12px; border-radius:4px; border:1px solid #cbd5e1; max-width:250px;" 
-                        onchange="calcWallet(${t.id}, this.value, ${txAmt})">
+                        onchange="renderCheckboxes(${t.id}, this.value, ${txAmt})">
                   ${optionsHtml}
                 </select>
                 
-                <div id="wallet_info_${t.id}" style="background:#e8f4ff; border:1px solid #c6e2ff; padding:10px; border-radius:6px; display:none;"></div>
+                <div id="bill_checkboxes_${t.id}" style="margin-top:10px; display:flex; flex-direction:column; gap:6px;"></div>
                 
-                <div class="edit-box" style="margin-top:2px;">
+                <div class="edit-box" style="margin-top:4px;">
                   <div class="form-group"><label>紀錄狀態</label><select id="e_status_${t.id}" style="width:140px;"><option value="in_progress" ${data.status === 'in_progress' ? 'selected' : ''}>⏳ 對帳中 (暫存)</option><option value="completed" ${data.status === 'completed' ? 'selected' : ''}>✅ 寫入並結算</option></select></div>
                   <div class="form-group" style="flex:1;"><label>結算備註</label><input type="text" id="e_memo_${t.id}" value="${data.memo || ''}" placeholder="例: 溢繳轉為購物金 / 第一筆分期..."></div>
                 </div>
@@ -389,7 +394,18 @@
             </td>
           `;
           tbody.appendChild(subTr);
-          if(data.buyerName) setTimeout(() => window.calcWallet(t.id, data.buyerName, txAmt), 50);
+          
+          if(data.buyerName) {
+            setTimeout(() => {
+               window.renderCheckboxes(t.id, data.buyerName, txAmt);
+               // 如果有存過的勾選紀錄，幫他勾回去
+               savedBillIds.forEach(bid => {
+                 const chk = document.querySelector(`.bill-chk-${t.id}[value="${bid}"]`);
+                 if(chk) chk.checked = true;
+               });
+               window.calcWallet(t.id, txAmt);
+            }, 50);
+          }
         }
       });
 
@@ -400,40 +416,69 @@
 
     window.toggleRow = (id) => { expandedRows[id] = !expandedRows[id]; window.renderTable(); };
 
-    window.calcWallet = (txId, buyerName, currentAmt) => {
-      const walletDiv = document.getElementById(`wallet_info_${txId}`);
-      if(!buyerName) { walletDiv.style.display = 'none'; return; }
-      
-      // 注意！這裡把 status === '已外部結算' 的帳單直接排除了，不會算入中信的應付總額中
-      let totalExpected = ctbcBills
-                            .filter(b => b.name === buyerName && b.status !== '已外部結算')
-                            .reduce((sum, b) => sum + Number(b.expectedAmt||0), 0);
-                            
-      let totalPaid = ctbcSettlements.filter(s => s.buyerName === buyerName && s.txId !== txId.toString()).reduce((sum, s) => sum + Number(s.amount||0), 0);
-      let remaining = totalExpected - totalPaid - currentAmt;
-      
-      walletDiv.innerHTML = `
-        <div style="display:flex; justify-content:space-between; max-width: 500px; font-size:13px; color:#303133;">
-            <div>中信帳戶總應收：<b>$${totalExpected}</b></div>
-            <div>過去已對帳：<b>$${totalPaid}</b></div>
-            <div>本次欲認列：<b style="color:#2563eb;">+$${currentAmt}</b></div>
-        </div>
-        <div style="margin-top:8px; font-weight:bold; font-size:14px; color:${remaining <= 0 ? '#16a34a' : '#dc2626'}">
-            試算後尚欠：$${remaining > 0 ? remaining : 0} ${remaining < 0 ? `(溢繳 $${Math.abs(remaining)} 可作購物金)` : ''}
-        </div>
-      `;
-      walletDiv.style.display = 'block';
-      notifyHeight();
+    // 渲染專屬買家的帳單勾選清單
+    window.renderCheckboxes = (txId, buyerName, currentAmt) => {
+        const container = document.getElementById(`bill_checkboxes_${txId}`);
+        if(!buyerName) { container.innerHTML = ''; return; }
+        
+        const buyerBills = ctbcBills.filter(b => b.name === buyerName && b.status !== '已外部結算');
+        let html = '<div style="font-size:12px; font-weight:bold; margin-bottom:4px; color:#475569;">👉 請勾選本次入帳要核銷的帳單：</div>';
+        
+        if(buyerBills.length === 0) {
+            html += '<div style="font-size:12px; color:#ef4444;">此買家目前沒有待對帳的結算單。</div>';
+        } else {
+            buyerBills.forEach(b => {
+               html += `
+                 <label class="bill-checkbox-label">
+                    <input type="checkbox" class="bill-chk-${txId}" value="${b.id}" data-amt="${b.expectedAmt||0}" onchange="calcWallet(${txId}, ${currentAmt})">
+                    <span class="badge">${b.status}</span> 
+                    <span>${b.group} - <b>${b.member}</b> (${b.qty||0}張)</span>
+                    <span style="margin-left:auto;">應匯: <b style="color:#dc2626">$${b.expectedAmt||0}</b></span>
+                 </label>
+               `;
+            });
+        }
+        
+        html += `<div id="wallet_info_${txId}" style="background:#e8f4ff; border:1px solid #c6e2ff; padding:10px; border-radius:6px; margin-top:8px; display:none;"></div>`;
+        container.innerHTML = html;
+        window.calcWallet(txId, currentAmt);
+    };
+
+    window.calcWallet = (txId, currentAmt) => {
+        const checkboxes = document.querySelectorAll(`.bill-chk-${txId}:checked`);
+        let totalSelected = 0;
+        checkboxes.forEach(chk => totalSelected += Number(chk.dataset.amt));
+        
+        const remaining = currentAmt - totalSelected;
+        const walletDiv = document.getElementById(`wallet_info_${txId}`);
+        
+        if(walletDiv) {
+            walletDiv.innerHTML = `
+              <div style="display:flex; justify-content:space-between; max-width: 450px; font-size:12px; color:#303133;">
+                  <div>勾選帳單總額：<b>$${totalSelected}</b></div>
+                  <div>本次中信存入：<b style="color:#2563eb;">+$${currentAmt}</b></div>
+              </div>
+              <div style="margin-top:6px; font-weight:bold; font-size:13px; color:${remaining >= 0 ? '#16a34a' : '#dc2626'}">
+                  試算結果：${remaining >= 0 ? `溢繳 $${remaining} (轉為購物金 / 溢繳紀錄)` : `尚欠 $${Math.abs(remaining)} (金額不足)`}
+              </div>
+            `;
+            walletDiv.style.display = 'block';
+        }
+        notifyHeight();
     };
 
     window.saveSettlement = async (txId, txAmt) => {
       const buyerName = document.getElementById(`buyer_select_${txId}`).value;
       if(!buyerName) return alert('請先選擇配對的買家！');
+      
+      const checkboxes = document.querySelectorAll(`.bill-chk-${txId}:checked`);
+      const billIds = Array.from(checkboxes).map(c => c.value);
+      
       const status = document.getElementById(`e_status_${txId}`).value;
       const memo = document.getElementById(`e_memo_${txId}`).value;
       
       await setDoc(doc(db, "ctbc_settlements", txId.toString()), {
-        txId: txId.toString(), buyerName, amount: txAmt, status, memo, updatedAt: Date.now()
+        txId: txId.toString(), buyerName, amount: txAmt, billIds, status, memo, updatedAt: Date.now()
       });
       expandedRows[txId] = false; 
     };
