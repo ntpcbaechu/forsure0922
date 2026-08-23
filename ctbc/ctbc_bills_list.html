@@ -12,63 +12,67 @@
     .btn-danger { background: #fee2e2; color: #dc2626; border: 1px solid #fca5a5; padding: 6px 14px; border-radius: 6px; font-size: 13px; font-weight: bold; cursor: pointer; transition: 0.2s; }
     .btn-danger:hover { background: #fecaca; color: #b91c1c; }
 
-    .card { background: #ffffff; padding: 16px; border-radius: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.04); border: 1px solid #e2e8f0; }
-    
-    .search-bar { display: flex; gap: 8px; margin-bottom: 12px; align-items: center; }
-    .search-bar input { flex: 1; max-width: 300px; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; outline: none; }
+    .search-bar { display: flex; gap: 8px; margin-bottom: 12px; align-items: center; background: #fff; padding: 12px; border-radius: 10px; border: 1px solid #e2e8f0; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+    .search-bar input { flex: 1; max-width: 400px; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; outline: none; }
     .search-bar input:focus { border-color: #3b82f6; }
 
     .stats-info { font-size: 12px; font-weight: bold; color: #64748b; margin-bottom: 10px; }
 
-    table { width: 100%; border-collapse: collapse; font-size: 13px; background: #fff; border-radius: 8px; overflow: hidden; border: 1px solid #e2e8f0; }
-    th { background: #f1f5f9; color: #334155; text-align: left; padding: 10px; border-bottom: 2px solid #e2e8f0; white-space: nowrap; }
-    td { padding: 10px; border-bottom: 1px solid #e2e8f0; }
+    /* 買家群組卡片 */
+    .buyer-card { background: #ffffff; border-radius: 10px; box-shadow: 0 3px 8px rgba(0,0,0,0.05); margin-bottom: 16px; border: 1px solid #e2e8f0; overflow: hidden; }
+    .buyer-header { background: #f1f5f9; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; border-bottom: 2px solid #e2e8f0; }
+    
+    .buyer-name-group { display: flex; align-items: center; gap: 12px; }
+    .buyer-name { font-size: 16px; font-weight: bold; color: #1e293b; }
+    
+    .buyer-summary { display: flex; gap: 16px; font-size: 13px; align-items: center; background: #fff; padding: 6px 12px; border-radius: 6px; border: 1px solid #cbd5e1; }
+    .summary-item { display: flex; flex-direction: column; align-items: center; }
+    .summary-label { font-size: 11px; color: #64748b; }
+    .summary-val { font-weight: bold; font-size: 14px; }
+    .val-expected { color: #334155; }
+    .val-paid { color: #16a34a; }
+    .val-unpaid { color: #dc2626; }
+    .val-ok { color: #16a34a; }
+
+    /* 狀態標籤 */
+    .tag { padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: bold; border: 1px solid transparent; }
+    .tag-pending { background: #f1f5f9; color: #64748b; border-color: #cbd5e1; }
+    .tag-wait-check { background: #e0f2fe; color: #2563eb; border-color: #bfdbfe; }
+    .tag-short { background: #fef0f0; color: #dc2626; border-color: #fecaca; }
+    .tag-ok { background: #dcfce3; color: #16a34a; border-color: #bbf7d0; }
+    .tag-external { background: #f3e8ff; color: #7e22ce; border-color: #e9d5ff; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 13px; background: #fff; }
+    th { color: #475569; text-align: left; padding: 10px 16px; border-bottom: 1px solid #e2e8f0; white-space: nowrap; font-size: 12px; }
+    td { padding: 10px 16px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
     tr:hover { background-color: #f8fafc; }
 
     .amt-text { color: #dc2626; font-weight: bold; }
-    .pay-text { color: #16a34a; font-weight: bold; }
     .badge { background: #f1f5f9; color: #475569; padding: 2px 6px; border-radius: 4px; font-size: 11px; }
 
-    .btn-delete { background: #fee2e2; color: #dc2626; border: 1px solid #fca5a5; border-radius: 4px; padding: 4px 8px; font-size: 12px; cursor: pointer; font-weight: bold; transition: 0.2s; width: 100%; text-align: center; }
+    .btn-delete { background: #fee2e2; color: #dc2626; border: 1px solid #fca5a5; border-radius: 4px; padding: 4px 8px; font-size: 11px; cursor: pointer; font-weight: bold; transition: 0.2s; width: 100%; text-align: center; margin-top: 4px; }
     .btn-delete:hover { background: #fecaca; }
     
-    .btn-settle { background: #dcfce3; color: #16a34a; border: 1px solid #bbf7d0; border-radius: 4px; padding: 4px 8px; font-size: 12px; cursor: pointer; font-weight: bold; transition: 0.2s; width: 100%; text-align: center; }
+    .btn-settle { background: #dcfce3; color: #16a34a; border: 1px solid #bbf7d0; border-radius: 4px; padding: 4px 8px; font-size: 11px; cursor: pointer; font-weight: bold; transition: 0.2s; width: 100%; text-align: center; }
     .btn-settle:hover { background: #bbf7d0; }
   </style>
 </head>
 <body>
 
   <div class="header-row">
-    <h2>📋 買家結算單 (填單紀錄) 一覽表</h2>
+    <h2>📋 買家群組化一覽表 (自動財務結算)</h2>
     <button class="btn-danger" onclick="wipeAllData()">🚨 一鍵清空所有紀錄</button>
   </div>
 
-  <div class="card">
-    <div class="search-bar">
-      <input type="text" id="searchInput" placeholder="🔍 搜尋暱稱、場次、狀態或備註..." onkeyup="renderTable()">
-    </div>
-    
-    <div class="stats-info" id="statsInfo">資料載入中...</div>
-
-    <div style="overflow-x:auto;">
-      <table>
-        <thead>
-          <tr>
-            <th>建立時間</th>
-            <th>買家暱稱</th>
-            <th>匯款狀態</th>
-            <th>團體 / 場次</th>
-            <th>成員 / 張數</th>
-            <th>應匯金額</th>
-            <th>實匯 / 後5碼</th>
-            <th>備註</th>
-            <th style="width: 80px;">操作</th>
-          </tr>
-        </thead>
-        <tbody id="billsTable"></tbody>
-      </table>
-    </div>
+  <div class="search-bar">
+    <input type="text" id="searchInput" placeholder="🔍 搜尋暱稱、場次、狀態或備註..." onkeyup="renderTable()">
   </div>
+  
+  <div class="stats-info" id="statsInfo">資料載入中...</div>
+
+  <!-- 買家卡片容器 -->
+  <div id="buyersContainer"></div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -85,72 +89,151 @@
     const db = getFirestore(app);
 
     let billsData = [];
+    let settlementsData = [];
 
     document.addEventListener('DOMContentLoaded', () => {
       onSnapshot(collection(db, "ctbc_bills"), snap => {
         billsData = snap.docs.map(d => ({id: d.id, ...d.data()}));
-        billsData.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+        window.renderTable();
+      });
+
+      onSnapshot(collection(db, "ctbc_settlements"), snap => {
+        settlementsData = snap.docs.map(d => ({id: d.id, ...d.data()}));
         window.renderTable();
       });
     });
 
     window.renderTable = () => {
-      const tbody = document.getElementById('billsTable');
-      tbody.innerHTML = '';
+      const container = document.getElementById('buyersContainer');
+      container.innerHTML = '';
       const searchVal = document.getElementById('searchInput').value.toLowerCase();
 
-      let filtered = billsData.filter(b => {
+      // 1. 過濾資料
+      let filteredBills = billsData.filter(b => {
         if (!searchVal) return true;
-        const combined = `${b.name} ${b.event} ${b.member} ${b.status} ${b.note} ${b.last5}`.toLowerCase();
+        const combined = `${b.name} ${b.event} ${b.member} ${b.status} ${b.note}`.toLowerCase();
         return combined.includes(searchVal);
       });
 
-      filtered.forEach(b => {
-        const dateStr = b.createdAt ? new Date(b.createdAt).toLocaleString('zh-TW', {month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit'}) : '-';
-        
-        let actionHtml = '';
-        if(b.status === '已外部結算') {
-          actionHtml = `
-            <div style="display:flex; flex-direction:column; gap:6px;">
-              <span style="font-size:11px; color:#16a34a; font-weight:bold; text-align:center;">✔ 已外結</span>
-              <button class="btn-delete" onclick="deleteBill('${b.id}', '${b.name}')">❌ 刪除</button>
-            </div>
-          `;
-        } else {
-          actionHtml = `
-            <div style="display:flex; flex-direction:column; gap:6px;">
-              <button class="btn-settle" onclick="markExternalSettled('${b.id}', '${b.name}')">✅ 外部結帳</button>
-              <button class="btn-delete" onclick="deleteBill('${b.id}', '${b.name}')">❌ 刪除</button>
-            </div>
-          `;
-        }
-
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td style="font-size: 11px; color: #64748b;">${dateStr}</td>
-          <td style="font-weight: bold; color: #1d4ed8;">${b.name || '-'}</td>
-          <td><span class="badge" style="${b.status==='已外部結算'?'background:#dcfce3;color:#16a34a;':''}">${b.status || '-'}</span></td>
-          <td>${b.group || '-'} <br> <span style="font-size:11px; color:#64748b;">${b.event || '-'}</span></td>
-          <td>${b.member || '-'} <br> <span style="font-size:11px; color:#64748b;">${b.qty ? b.qty+'張' : '-'}</span></td>
-          <td class="amt-text">${b.expectedAmt ? '$'+b.expectedAmt : '-'}</td>
-          <td>
-            <span class="pay-text">${b.payAmt ? '$'+b.payAmt : '-'}</span> <br> 
-            <span style="font-size:11px; color:#64748b;">${b.last5 ? '末5: '+b.last5 : ''}</span>
-          </td>
-          <td style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${b.note || ''}">${b.note || '-'}</td>
-          <td>${actionHtml}</td>
-        `;
-        tbody.appendChild(tr);
+      // 2. 依照買家名稱群組化
+      const grouped = {};
+      filteredBills.forEach(b => {
+        if(!grouped[b.name]) grouped[b.name] = [];
+        grouped[b.name].push(b);
       });
 
-      document.getElementById('statsInfo').innerText = `共計 ${filtered.length} 筆結算單紀錄`;
+      // 3. 準備渲染每個買家卡片
+      let totalBillsCount = 0;
+      const sortedBuyerNames = Object.keys(grouped).sort((a,b) => a.localeCompare(b, 'zh-TW'));
+
+      sortedBuyerNames.forEach(buyerName => {
+        const buyerBills = grouped[buyerName];
+        buyerBills.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)); // 該買家的單依時間排序
+        totalBillsCount += buyerBills.length;
+
+        // 計算財務數字
+        // 應付總額 (排除已外部結算)
+        const totalExpected = buyerBills
+          .filter(b => b.status !== '已外部結算')
+          .reduce((sum, b) => sum + Number(b.expectedAmt || 0), 0);
+          
+        // 該買家於中信的實際對帳金額
+        const totalPaid = settlementsData
+          .filter(s => s.buyerName === buyerName && s.status === 'completed')
+          .reduce((sum, s) => sum + Number(s.amount || 0), 0);
+          
+        const unpaid = totalExpected - totalPaid;
+
+        // 判斷綜合狀態
+        let mainStatusTag = '';
+        let isAllExternal = buyerBills.length > 0 && buyerBills.every(b => b.status === '已外部結算');
+        
+        if (isAllExternal) {
+          mainStatusTag = `<span class="tag tag-external">✔ 全外部結帳</span>`;
+        } else if (unpaid <= 0) {
+          mainStatusTag = `<span class="tag tag-ok">✅ 已對帳 (${unpaid < 0 ? '溢繳'+Math.abs(unpaid) : '結清'})</span>`;
+        } else if (totalPaid > 0 && unpaid > 0) {
+          mainStatusTag = `<span class="tag tag-short">⚠️ 待補款</span>`;
+        } else if (buyerBills.some(b => b.status === '已匯款')) {
+          mainStatusTag = `<span class="tag tag-wait-check">🔍 待對帳</span>`;
+        } else {
+          mainStatusTag = `<span class="tag tag-pending">📌 待匯款</span>`;
+        }
+
+        // 建立卡片外框
+        const card = document.createElement('div');
+        card.className = 'buyer-card';
+
+        // 卡片標題區 (財務總結)
+        let headerHtml = `
+          <div class="buyer-header">
+            <div class="buyer-name-group">
+              <div class="buyer-name">👤 ${buyerName}</div>
+              ${mainStatusTag}
+            </div>
+            <div class="buyer-summary">
+              <div class="summary-item"><span class="summary-label">總應匯</span><span class="summary-val val-expected">$${totalExpected}</span></div>
+              <div class="summary-item"><span class="summary-label">已對帳</span><span class="summary-val val-paid">$${totalPaid}</span></div>
+              <div class="summary-item"><span class="summary-label">尚欠金額</span><span class="summary-val ${unpaid > 0 ? 'val-unpaid' : 'val-ok'}">${unpaid <= 0 ? '$0' : '$'+unpaid}</span></div>
+            </div>
+          </div>
+        `;
+
+        // 該買家的明細表格
+        let tableHtml = `<table>
+          <thead>
+            <tr>
+              <th style="width: 120px;">登記時間</th>
+              <th>匯款狀態</th>
+              <th>團體 / 場次</th>
+              <th>成員 / 張數</th>
+              <th>單筆應匯</th>
+              <th>備註</th>
+              <th style="width: 80px;">操作</th>
+            </tr>
+          </thead>
+          <tbody>
+        `;
+
+        buyerBills.forEach(b => {
+          const dateStr = b.createdAt ? new Date(b.createdAt).toLocaleString('zh-TW', {month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit'}) : '-';
+          
+          let actionHtml = '';
+          if(b.status === '已外部結算') {
+            actionHtml = `<button class="btn-delete" onclick="deleteBill('${b.id}', '${buyerName}')">❌ 刪除</button>`;
+          } else {
+            actionHtml = `
+              <button class="btn-settle" onclick="markExternalSettled('${b.id}', '${buyerName}')">✅ 外結</button>
+              <button class="btn-delete" onclick="deleteBill('${b.id}', '${buyerName}')">❌ 刪除</button>
+            `;
+          }
+
+          tableHtml += `
+            <tr>
+              <td style="font-size: 11px; color: #64748b;">${dateStr}</td>
+              <td><span class="badge" style="${b.status==='已外部結算'?'background:#dcfce3;color:#16a34a;':''}">${b.status || '-'}</span></td>
+              <td>${b.group || '-'} <br> <span style="font-size:11px; color:#64748b;">${b.event || '-'}</span></td>
+              <td>${b.member || '-'} <br> <span style="font-size:11px; color:#64748b;">${b.qty ? b.qty+'張' : '-'}</span></td>
+              <td class="amt-text">${b.expectedAmt ? '$'+b.expectedAmt : '-'}</td>
+              <td style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${b.note || ''}">${b.note || '-'}</td>
+              <td>${actionHtml}</td>
+            </tr>
+          `;
+        });
+
+        tableHtml += `</tbody></table>`;
+        card.innerHTML = headerHtml + tableHtml;
+        container.appendChild(card);
+      });
+
+      document.getElementById('statsInfo').innerText = `共顯示 ${sortedBuyerNames.length} 位買家，合計 ${totalBillsCount} 筆結算單明細`;
       setTimeout(() => {
         window.parent.postMessage({ type: 'BILLS_HEIGHT', height: document.body.scrollHeight }, '*');
       }, 100);
     };
 
     window.markExternalSettled = async (id, name) => {
-      if(confirm(`確定要將買家【${name}】的這筆帳單標記為「已外部結算」嗎？\n(標記後，這筆金額將不會出現在中信系統的應收欠款中)`)) {
+      if(confirm(`確定要將買家【${name}】的這筆帳單標記為「已外部結算」嗎？\n(標記後，這筆金額將自動從中信的尚欠金額中扣除)`)) {
         await updateDoc(doc(db, "ctbc_bills", id), { status: '已外部結算' });
       }
     };
