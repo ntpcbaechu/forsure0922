@@ -37,7 +37,7 @@
 
     .stats-info { font-size: 12px; font-weight: bold; color: #64748b; margin-bottom: 10px; }
 
-    /* 外層網格佈局 (買家卡片左右並排) */
+    /* 外層網格佈局 */
     .cards-grid-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(600px, 1fr)); gap: 16px; align-items: start; }
 
     /* 買家群組卡片 */
@@ -68,7 +68,7 @@
     .tag-ok { background: #dcfce3; color: #16a34a; border-color: #bbf7d0; }
     .tag-external { background: #f3e8ff; color: #7e22ce; border-color: #e9d5ff; }
 
-    /* 表格樣式 (條列式，依成員分組) */
+    /* 表格樣式 */
     .section-title { font-size: 12px; font-weight: bold; color: #64748b; padding: 10px 16px 4px 16px; display: flex; align-items: center; gap: 6px; }
     .member-group-header { background: #eef5fe; border-left: 4px solid #409eff; padding: 6px 12px; font-weight: bold; font-size: 13px; color: #1e293b; border-top: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; }
     table { width: 100%; border-collapse: collapse; font-size: 12px; background: transparent; }
@@ -76,7 +76,7 @@
     tr:last-child td { border-bottom: none; }
     
     .amt-text { color: #dc2626; font-weight: bold; }
-    .badge { background: #f1f5f9; color: #475569; padding: 2px 6px; border-radius: 4px; font-size: 11px; }
+    .badge { background: #f1f5f9; color: #475569; padding: 2px 6px; border-radius: 4px; font-size: 11px; display: inline-block; text-align: center; }
 
     /* 水平操作按鈕 */
     .action-btn-group { display: flex; gap: 6px; flex-wrap: nowrap; justify-content: flex-end; }
@@ -299,31 +299,19 @@
         const buyerBills = grouped[buyerName];
         totalBillsCount += buyerBills.length;
         
-        // 抓出該買家的所有中信紀錄
         const buyerSettlements = settlementsData.filter(s => s.buyerName === buyerName);
-        
-        // 計算 5 格完美數據列
-        // 1. 總應匯 (扣除已外部結算)
         const totalExpected = buyerBills.filter(b => b.status !== '已外部結算').reduce((sum, b) => sum + Number(b.expectedAmt || 0), 0);
-        // 2. 實收已對帳
         const totalPaid = buyerSettlements.reduce((sum, s) => sum + Number(s.amount || 0), 0);
         
-        // 找出所有「被核銷過」的帳單 ID
         let settledBillIds = new Set();
         buyerSettlements.forEach(s => {
           if (s.billIds) s.billIds.forEach(id => settledBillIds.add(id));
         });
         
-        // 未核銷(未對帳)的帳單
         const unsettledBills = buyerBills.filter(b => b.status !== '已外部結算' && !settledBillIds.has(b.id));
-        // 3. 未結單據總額
         const unsettledBillsTotal = unsettledBills.reduce((sum, b) => sum + Number(b.expectedAmt || 0), 0);
-        // 已核銷帳單總額 (用來推算溢繳)
         const settledBillsTotal = totalExpected - unsettledBillsTotal;
-        
-        // 4. 帳上溢繳 (總入帳 - 已核銷帳單應收總額)
         const overpaidTotal = totalPaid - settledBillsTotal;
-        // 5. 實際應補 (總應匯 - 總實收)
         const actualRemaining = totalExpected - totalPaid;
 
         let mainStatusTag = '';
@@ -350,7 +338,6 @@
         card.className = `buyer-card ${isCompleted ? 'completed-card' : ''}`;
         const memoVal = buyerMemos[buyerName] || '';
 
-        // 【完美 5 格數據列呈現】
         let overpaidColor = overpaidTotal >= 0 ? '#16a34a' : '#dc2626';
         let overpaidText = overpaidTotal >= 0 ? `+$${overpaidTotal}` : `-$${Math.abs(overpaidTotal)}`;
         
@@ -374,7 +361,6 @@
           </div>
         `;
 
-        // 內部依成員分組，活動排序
         let listHtml = `<div class="section-title" style="padding-bottom:6px;">📝 手動 Memo 登記區</div>`;
         
         const memberGroupMap = {};
@@ -384,7 +370,6 @@
           memberGroupMap[m].push(b);
         });
 
-        // 嚴格依官方陣列順序排序成員
         const getMemberIndex = (mem) => {
           let idx = memberMap['Stray Kids']?.indexOf(mem);
           if (idx !== undefined && idx !== -1) return idx;
@@ -427,9 +412,20 @@
                 </tr>
               `;
             } else {
+              let isSettled = settledBillIds.has(b.id);
+              let badgeHtml = `<span class="badge" style="${b.status==='已外部結算'?'background:#dcfce3;color:#16a34a;':''} margin-bottom:4px;">${b.status || '-'}</span>`;
+              if (isSettled) {
+                  badgeHtml += `<br><span class="badge" style="background:#dcfce3; color:#16a34a; border:1px solid #bbf7d0;">🏦 已核銷</span>`;
+              }
+
               let actionHtml = '';
               if(b.status === '已外部結算') {
                 actionHtml = `<button class="btn-sm btn-del" onclick="deleteBill('${b.id}', '${buyerName}')">❌</button>`;
+              } else if (isSettled) {
+                actionHtml = `
+                  <button class="btn-sm btn-edit" onclick="startEdit('${b.id}')">✏️</button>
+                  <button class="btn-sm btn-del" onclick="deleteBill('${b.id}', '${buyerName}')">❌</button>
+                `;
               } else {
                 actionHtml = `
                   <button class="btn-sm btn-edit" onclick="startEdit('${b.id}')">✏️</button>
@@ -440,7 +436,7 @@
               
               listHtml += `
                 <tr>
-                  <td style="width:65px;"><span class="badge" style="${b.status==='已外部結算'?'background:#dcfce3;color:#16a34a;':''}">${b.status || '-'}</span></td>
+                  <td style="width:120px; white-space:nowrap; vertical-align:top; padding-top:12px;">${badgeHtml}</td>
                   <td>
                     <div style="color:#1e293b; font-weight:bold;">${b.group || '-'} / ${b.event || '-'}</div>
                     <div style="font-size:11px; color:#64748b; margin-top:4px;">📅 ${b.date || '未填日期'} | 末5: ${b.last5 || '-'}</div>
@@ -458,14 +454,12 @@
           listHtml += `</tbody></table>`;
         });
 
-        // 🏦 中信綁定區 (含單筆結算差額顯示)
         if(buyerSettlements.length > 0) {
           listHtml += `<div class="section-title" style="margin-top:6px; border-top:2px dashed #cbd5e1; padding-top:12px;">🏦 中信實體對帳紀錄 (系統自動帶入)</div><table class="bank-record-table"><tbody>`;
           buyerSettlements.forEach(s => {
             const dateObj = new Date(s.updatedAt || Date.now());
             const dStr = `${dateObj.getMonth()+1}/${dateObj.getDate()} ${dateObj.getHours()}:${String(dateObj.getMinutes()).padStart(2,'0')}`;
             
-            // 計算單筆差額
             let diffHtml = '';
             if (s.settledBillsAmt !== undefined) {
                const diff = Number(s.amount) - Number(s.settledBillsAmt);
@@ -499,7 +493,6 @@
       setTimeout(() => { window.parent.postMessage({ type: 'BILLS_HEIGHT', height: document.body.scrollHeight }, '*'); }, 100);
     };
 
-    // === 操作邏輯 ===
     window.saveBuyerMemo = async (buyerName, memoVal) => {
       await setDoc(doc(db, "ctbc_buyer_memos", buyerName), { memo: memoVal });
     };
