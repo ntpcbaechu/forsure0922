@@ -49,8 +49,12 @@
     .status-inprogress { background: #fdf6ec; color: #e6a23c; border: 1px solid #faebd7; }
     .status-completed { background: #e8f5e9; color: #2e7d32; border: 1px solid #c8e6c9; }
 
-    .btn-toggle { padding: 5px 10px; background: #fff; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 12px; cursor: pointer; color: #334155; font-weight: bold; }
+    .btn-toggle { padding: 5px 10px; background: #fff; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 12px; cursor: pointer; color: #334155; font-weight: bold; transition:0.2s; }
     .btn-toggle.active { background: #f8fafc; border-color: #94a3b8; }
+    .btn-quick { color: #d97706; border-color: #fcd34d; }
+    .btn-quick:hover { background: #fef3c7; }
+    .btn-quick.active { background: #f59e0b; color: #fff; border-color: #f59e0b; }
+
     .sub-row { background: #f8fafc; border-bottom: 2px solid #cbd5e1; }
     .sub-container { padding: 14px 18px; display: flex; flex-direction: column; gap: 12px; }
     .edit-box { background: #fff; border: 1px dashed #94a3b8; padding: 14px; border-radius: 8px; display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
@@ -117,7 +121,7 @@
     <table>
       <thead>
         <tr>
-          <th style="width:70px;">操作</th>
+          <th style="width:140px;">操作</th>
           <th>交易日期時間</th>
           <th>支出</th>
           <th>存入</th>
@@ -152,6 +156,7 @@
     let ctbcSettlements = [];
     
     let expandedRows = {};
+    let expandedQuickRows = {};
     let currentSmartFilter = 'pending_in'; 
     let currentPage = 1;
     const pageSize = 50;
@@ -174,7 +179,9 @@
 
       onSnapshot(collection(db, "ctbc_bills"), snap => {
         ctbcBills = snap.docs.map(d => ({id: d.id, ...d.data()}));
-        if(Object.keys(expandedRows).length > 0 && window.renderTable) renderTable();
+        if(Object.keys(expandedRows).length > 0 || Object.keys(expandedQuickRows).length > 0) {
+            if(window.renderTable) renderTable();
+        }
       });
 
       onSnapshot(collection(db, "ctbc_settlements"), snap => {
@@ -316,13 +323,19 @@
 
       pageData.forEach(t => {
         const isExp = expandedRows[t.id];
+        const isQuickExp = expandedQuickRows[t.id];
         const stateInfo = getStatusInfo(t.id);
         const data = stateInfo.data || {};
         const txAmt = Number(t.inc || t.exp || 0);
 
-        const actionHtml = t.inc 
-          ? `<button class="btn-toggle ${isExp ? 'active' : ''}" onclick="toggleRow(${t.id})">${isExp ? '收起▲' : '核對▼'}</button>`
-          : `<span style="color:#94a3b8; font-size:11px;">無需對帳</span>`;
+        let actionBtns = [];
+        if (t.inc) {
+            actionBtns.push(`<button class="btn-toggle ${isExp ? 'active' : ''}" onclick="toggleRow(${t.id})">${isExp ? '收起▲' : '核對▼'}</button>`);
+            if (!stateInfo.isCompleted && !stateInfo.data) {
+                actionBtns.push(`<button class="btn-toggle btn-quick ${isQuickExp ? 'active' : ''}" onclick="toggleQuickRow(${t.id})">⚡自訂補登</button>`);
+            }
+        }
+        const actionHtml = t.inc ? `<div style="display:flex; gap:6px; flex-wrap:nowrap;">${actionBtns.join('')}</div>` : `<span style="color:#94a3b8; font-size:11px;">無需對帳</span>`;
 
         const tr = document.createElement('tr');
         tr.innerHTML = `
@@ -337,8 +350,33 @@
         `;
         tbody.appendChild(tr);
 
+        // ====== ⚡ 歷史一鍵補登 (展開區塊) ======
+        if (isQuickExp && t.inc && !data.txId) {
+            const quickTr = document.createElement('tr');
+            quickTr.className = 'sub-row';
+            quickTr.innerHTML = `
+                <td colspan="8">
+                  <div class="sub-container" style="background:#fffbeb; border:1px dashed #f59e0b; border-radius:8px;">
+                    <div style="font-size:13px; font-weight:bold; color:#d97706;">⚡ 歷史舊帳快速補登 (系統將自動建立帳單並完成核銷)</div>
+                    <div style="display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap; margin-top:4px;">
+                      <div class="form-group">
+                        <label class="required">買家暱稱</label>
+                        <input type="text" id="q_name_${t.id}" placeholder="例: 哈娜" style="width:160px; border-color:#fcd34d;">
+                      </div>
+                      <div class="form-group" style="flex:1; min-width:200px;">
+                        <label class="required">購買內容 / 備註</label>
+                        <input type="text" id="q_note_${t.id}" placeholder="例: 0328飯咪玟-100p" style="border-color:#fcd34d;">
+                      </div>
+                      <button class="btn-action" style="background:#f59e0b; color:#fff; padding:8px 16px;" onclick="submitQuickEntry(${t.id}, ${txAmt}, '${t.date}')">💾 一鍵生成並核銷</button>
+                    </div>
+                  </div>
+                </td>
+            `;
+            tbody.appendChild(quickTr);
+        }
+
+        // ====== 🔍 原版核對 (展開區塊) ======
         if (isExp && t.inc) {
-          // ====== ✨ 智能推薦配對邏輯 ======
           let smartMatchHtml = '';
           if (!data.buyerName) {
             const accClean = (t.acc || '').replace(/\*/g, '');
@@ -421,9 +459,63 @@
       notifyHeight();
     };
 
-    window.toggleRow = (id) => { expandedRows[id] = !expandedRows[id]; window.renderTable(); };
+    window.toggleRow = (id) => { 
+        expandedRows[id] = !expandedRows[id]; 
+        expandedQuickRows[id] = false; 
+        window.renderTable(); 
+    };
+    
+    window.toggleQuickRow = (id) => {
+        expandedQuickRows[id] = !expandedQuickRows[id];
+        expandedRows[id] = false;
+        window.renderTable();
+    };
 
-    // 一鍵帶入智能配對
+    window.submitQuickEntry = async (txId, txAmt, txDate) => {
+        const name = document.getElementById(`q_name_${txId}`).value.trim();
+        const note = document.getElementById(`q_note_${txId}`).value.trim();
+        
+        if (!name || !note) {
+            alert('買家暱稱與購買內容為必填！');
+            return;
+        }
+        
+        try {
+            const fmtDate = txDate.split(' ')[0].replace(/\//g, '-'); 
+            
+            const billRef = await addDoc(collection(db, "ctbc_bills"), {
+                name: name,
+                group: '歷史紀錄',
+                event: note,
+                member: '全體',
+                status: '已匯款',
+                qty: 1,
+                expectedAmt: Number(txAmt),
+                date: fmtDate,
+                payAmt: Number(txAmt),
+                last5: '',
+                note: '歷史補登快捷生成',
+                createdAt: Date.now()
+            });
+
+            await setDoc(doc(db, "ctbc_settlements", txId.toString()), {
+                txId: txId.toString(),
+                buyerName: name,
+                amount: Number(txAmt),
+                billIds: [billRef.id],
+                settledBillsAmt: Number(txAmt),
+                status: 'completed',
+                memo: '系統自訂補登核銷',
+                updatedAt: Date.now()
+            });
+            
+            expandedQuickRows[txId] = false;
+            alert('✅ 歷史資料補登成功！一覽表已自動建立該買家紀錄。');
+        } catch (err) {
+            alert('補登發生錯誤：' + err.message);
+        }
+    };
+
     window.applySmartMatch = (txId, buyerName, txAmt) => {
         const sel = document.getElementById(`buyer_select_${txId}`);
         if(sel) {
@@ -447,7 +539,6 @@
         }
     };
 
-    // 渲染帶有日期與末5碼的勾選清單 (加入已核銷過濾機制)
     window.renderCheckboxes = (txId, buyerName, currentAmt) => {
         const container = document.getElementById(`bill_checkboxes_${txId}`);
         if(!buyerName) { container.innerHTML = ''; return; }
