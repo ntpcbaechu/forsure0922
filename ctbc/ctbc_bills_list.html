@@ -319,7 +319,7 @@
       });
       const sortedBuyerNames = Object.keys(grouped).sort((a,b) => a.localeCompare(b, 'zh-TW'));
 
-      // ====== 🔍 實裝 待核對快速清單 (全螢幕彙總表) ======
+      // ====== 🔍 待核對快速清單 (全螢幕彙總表) ======
       if (isPendingOnly) {
           activeDivider.style.display = 'none';
           completedDivider.style.display = 'none';
@@ -490,6 +490,7 @@
                       <tr style="background: #eef2ff;">
                         <td colspan="4" style="padding:10px;">
                           <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                            <input type="text" id="edit_name" class="edit-input" value="${b.name}" placeholder="買家" style="width:90px; font-weight:bold; color:#2563eb;">
                             <select id="edit_status" class="edit-select" style="width:80px;">
                               <option value="已匯款" ${b.status==='已匯款'?'selected':''}>已匯款</option>
                               <option value="未匯款" ${b.status==='未匯款'?'selected':''}>未匯款</option>
@@ -506,7 +507,7 @@
                           </div>
                           <div style="margin-top:8px; display:flex; gap:8px; justify-content:flex-end;">
                             <button class="btn-sm btn-edit" style="padding:4px 12px;" onclick="cancelEdit()">取消</button>
-                            <button class="btn-sm btn-save-inline" style="padding:4px 12px;" onclick="saveInlineEdit('${b.id}')">💾 儲存</button>
+                            <button class="btn-sm btn-save-inline" style="padding:4px 12px;" onclick="saveInlineEdit('${b.id}')">💾 儲存 (支援改名搬家)</button>
                           </div>
                         </td>
                       </tr>
@@ -545,25 +546,55 @@
         if (settledBillsToRender.length > 0) {
             listHtml += `
               <div style="opacity: 0.65; filter: grayscale(0.85); background: #fafafa; border-radius: 8px; padding-bottom: 8px; margin-top: 12px; border: 1px solid #e2e8f0;">
-                <div class="section-title" style="padding-top:10px;">🏦 已對帳核銷紀錄 (不可編輯)</div>
+                <div class="section-title" style="padding-top:10px;">🏦 已對帳核銷紀錄</div>
                 <table><tbody>
             `;
             settledBillsToRender.forEach(b => {
                 const memBadge = `<span style="font-weight:bold; color:#2563eb; background:#e0f2fe; padding:2px 6px; border-radius:4px; margin-right:6px;">👤 ${b.member || '全體'}</span>`;
-                listHtml += `
-                  <tr>
-                    <td style="width:80px; text-align:center;"><span class="badge">${b.status || '-'}</span></td>
-                    <td>
-                      <div style="color:#1e293b; font-weight:bold; margin-bottom:4px;">${memBadge} ${b.group || '-'} / ${b.event || '-'}</div>
-                      <div style="font-size:11px; color:#64748b;">📅 ${b.date || '未填日期'} | 末5: ${b.last5 || '-'} ${b.note ? `| 📝 ${b.note}` : ''}</div>
-                    </td>
-                    <td style="width:60px; text-align:center;">${b.qty ? b.qty+'張' : '-'}</td>
-                    <td style="width:60px; text-align:right;" class="amt-text">$${b.expectedAmt || 0}</td>
-                    <td style="width:110px; text-align:right;">
-                      <span style="font-weight:bold; color:#16a34a; background:#dcfce3; padding:4px 8px; border-radius:4px; font-size:11px;">🏦 已核銷 (ID:${billTxMap[b.id]})</span>
-                    </td>
-                  </tr>
-                `;
+                if (editingBillId === b.id) {
+                    listHtml += `
+                      <tr style="background: #eef2ff;">
+                        <td colspan="4" style="padding:10px;">
+                          <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                            <input type="text" id="edit_name" class="edit-input" value="${b.name}" placeholder="買家" style="width:90px; font-weight:bold; color:#2563eb;">
+                            <select id="edit_status" class="edit-select" style="width:80px;">
+                              <option value="已匯款" ${b.status==='已匯款'?'selected':''}>已匯款</option>
+                              <option value="未匯款" ${b.status==='未匯款'?'selected':''}>未匯款</option>
+                              <option value="不確定" ${b.status==='不確定'?'selected':''}>不確定</option>
+                            </select>
+                            <input type="date" id="edit_date" class="edit-input" value="${b.date||''}" style="width:110px;">
+                            <input type="text" id="edit_group" class="edit-input" value="${b.group||''}" placeholder="團體" style="width:100px;">
+                            <input type="text" id="edit_event" class="edit-input" value="${b.event||''}" placeholder="場次" style="width:100px;">
+                            <input type="text" id="edit_member" class="edit-input" value="${b.member||''}" placeholder="成員" style="width:80px;">
+                            <input type="number" id="edit_qty" class="edit-input" value="${b.qty||''}" placeholder="張數" style="width:60px;">
+                            <input type="number" id="edit_expectedAmt" class="edit-input" value="${b.expectedAmt||0}" placeholder="應匯" style="width:70px;">
+                            <input type="text" id="edit_last5" class="edit-input" value="${b.last5||''}" placeholder="末5" style="width:70px;">
+                            <input type="text" id="edit_note" class="edit-input" value="${b.note||''}" placeholder="備註" style="flex:1; min-width:120px;">
+                          </div>
+                          <div style="margin-top:8px; display:flex; gap:8px; justify-content:flex-end;">
+                            <button class="btn-sm btn-edit" style="padding:4px 12px;" onclick="cancelEdit()">取消</button>
+                            <button class="btn-sm btn-save-inline" style="padding:4px 12px;" onclick="saveInlineEdit('${b.id}')">💾 儲存 (支援改名搬家)</button>
+                          </div>
+                        </td>
+                      </tr>
+                    `;
+                } else {
+                    listHtml += `
+                      <tr>
+                        <td style="width:80px; text-align:center;"><span class="badge">${b.status || '-'}</span></td>
+                        <td>
+                          <div style="color:#1e293b; font-weight:bold; margin-bottom:4px;">${memBadge} ${b.group || '-'} / ${b.event || '-'}</div>
+                          <div style="font-size:11px; color:#64748b;">📅 ${b.date || '未填日期'} | 末5: ${b.last5 || '-'} ${b.note ? `| 📝 ${b.note}` : ''}</div>
+                        </td>
+                        <td style="width:60px; text-align:center;">${b.qty ? b.qty+'張' : '-'}</td>
+                        <td style="width:60px; text-align:right;" class="amt-text">$${b.expectedAmt || 0}</td>
+                        <td style="width:110px; text-align:right;">
+                          <div style="margin-bottom:6px;"><span style="font-weight:bold; color:#16a34a; background:#dcfce3; padding:4px 8px; border-radius:4px; font-size:11px;">🏦 ID:${billTxMap[b.id]}</span></div>
+                          <div class="action-btn-group"><button class="btn-sm btn-edit" onclick="startEdit('${b.id}')">✏️ 修改/搬家</button></div>
+                        </td>
+                      </tr>
+                    `;
+                }
             });
             listHtml += `</tbody></table></div>`;
         }
@@ -616,6 +647,7 @@
     window.cancelEdit = () => { editingBillId = null; window.renderTable(); };
 
     window.saveInlineEdit = async (id) => {
+      const newName = document.getElementById('edit_name').value.trim();
       const status = document.getElementById('edit_status').value;
       const date = document.getElementById('edit_date').value;
       const group = document.getElementById('edit_group').value;
@@ -626,9 +658,22 @@
       const note = document.getElementById('edit_note').value;
       const last5 = document.getElementById('edit_last5').value;
 
+      if (!newName) return alert("買家暱稱不可為空！");
+
+      // 1. 更新帳單明細 (支援改名)
       await updateDoc(doc(db, "ctbc_bills", id), {
+        name: newName,
         status, date, group, event, member, qty, expectedAmt: Number(expectedAmt||0), note, last5
       });
+
+      // 2. 自動尋找關聯的銀行核銷紀錄，並同步搬家
+      const relatedSettlement = settlementsData.find(s => s.billIds && s.billIds.includes(id));
+      if (relatedSettlement && relatedSettlement.buyerName !== newName) {
+        await updateDoc(doc(db, "ctbc_settlements", relatedSettlement.id), {
+          buyerName: newName
+        });
+      }
+
       editingBillId = null;
       window.renderTable();
     };
