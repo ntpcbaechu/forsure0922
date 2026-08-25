@@ -410,12 +410,30 @@
 
     window.toggleRow = (id) => { expandedRows[id] = !expandedRows[id]; window.renderTable(); };
 
-    // 渲染帶有日期與末5碼的勾選清單
+    // 渲染帶有日期與末5碼的勾選清單 (加入已核銷過濾機制)
     window.renderCheckboxes = (txId, buyerName, currentAmt) => {
         const container = document.getElementById(`bill_checkboxes_${txId}`);
         if(!buyerName) { container.innerHTML = ''; return; }
         
-        const buyerBills = ctbcBills.filter(b => b.name === buyerName && b.status !== '已外部結算');
+        // 抓出所有「不是這筆中信明細」的結算紀錄
+        const otherSettlements = ctbcSettlements.filter(s => s.txId !== txId.toString());
+        const settledBillIds = new Set();
+        otherSettlements.forEach(s => {
+            if (s.billIds) s.billIds.forEach(id => settledBillIds.add(id));
+        });
+
+        let allBuyerBills = ctbcBills.filter(b => b.name === buyerName && b.status !== '已外部結算');
+        let buyerBills = [];
+        let hiddenCount = 0;
+        
+        allBuyerBills.forEach(b => {
+            if (settledBillIds.has(b.id)) {
+                hiddenCount++;
+            } else {
+                buyerBills.push(b);
+            }
+        });
+
         let html = '<div style="font-size:12px; font-weight:bold; margin-bottom:4px; color:#475569;">👉 請勾選本次入帳要核銷的帳單：</div>';
         
         if(buyerBills.length === 0) {
@@ -437,6 +455,10 @@
                  </label>
                `;
             });
+        }
+        
+        if (hiddenCount > 0) {
+            html += `<div style="font-size:11px; color:#94a3b8; margin-top:6px;">(💡 系統已自動隱藏 ${hiddenCount} 筆已被其他匯款核銷的帳單)</div>`;
         }
         
         html += `<div id="wallet_info_${txId}" style="background:#e8f4ff; border:1px solid #c6e2ff; padding:10px; border-radius:6px; margin-top:8px; display:none;"></div>`;
@@ -474,7 +496,7 @@
       const checkboxes = document.querySelectorAll(`.bill-chk-${txId}:checked`);
       const billIds = Array.from(checkboxes).map(c => c.value);
       let settledBillsAmt = 0;
-      checkboxes.forEach(chk => settledBillsAmt += Number(chk.dataset.amt)); // 計算這筆核銷了多少錢的帳單
+      checkboxes.forEach(chk => settledBillsAmt += Number(chk.dataset.amt));
       
       const status = document.getElementById(`e_status_${txId}`).value;
       const memo = document.getElementById(`e_memo_${txId}`).value;
