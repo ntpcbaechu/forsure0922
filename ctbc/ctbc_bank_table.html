@@ -97,20 +97,12 @@
 
   <div class="filter-card">
     <div class="filter-row" id="statusFilterGroup">
-      <span class="filter-label">對帳狀態：</span>
+      <span class="filter-label">明細檢視：</span>
       <div class="capsule-group">
-        <button class="capsule-filter-btn active" onclick="setMainFilter('all', this)">📋 全部</button>
-        <button class="capsule-filter-btn" onclick="setMainFilter('pending', this)">📌 未對帳</button>
-        <button class="capsule-filter-btn" onclick="setMainFilter('in_progress', this)">⏳ 對帳中</button>
-        <button class="capsule-filter-btn" onclick="setMainFilter('completed', this)">✅ 已結算</button>
-      </div>
-    </div>
-    <div class="filter-row" id="typeFilterGroup" style="margin-top: 10px; padding-top: 10px; border-top: 1px dashed #e2e8f0;">
-      <span class="filter-label">交易類型：</span>
-      <div class="capsule-group">
-        <button class="capsule-filter-btn active" onclick="setTypeFilter('income', this)">🟢 僅存入 (需核對)</button>
-        <button class="capsule-filter-btn" onclick="setTypeFilter('expense', this)">🔴 僅支出 (忽略)</button>
-        <button class="capsule-filter-btn" onclick="setTypeFilter('all', this)">📋 全部顯示</button>
+        <button class="capsule-filter-btn active" onclick="setSmartFilter('pending_in', this)">🟢 待核對入帳</button>
+        <button class="capsule-filter-btn" onclick="setSmartFilter('completed_in', this)">✅ 已核對入帳</button>
+        <button class="capsule-filter-btn" onclick="setSmartFilter('expense', this)">🔴 銀行支出單</button>
+        <button class="capsule-filter-btn" onclick="setSmartFilter('all', this)">📋 全部明細</button>
       </div>
     </div>
   </div>
@@ -160,8 +152,7 @@
     let ctbcSettlements = [];
     
     let expandedRows = {};
-    let currentMainFilter = 'all';
-    let currentTypeFilter = 'income'; 
+    let currentSmartFilter = 'pending_in'; 
     let currentPage = 1;
     const pageSize = 50;
     let memberMap = {};
@@ -280,17 +271,9 @@
       addDynamicRow();
     };
 
-    window.setMainFilter = (filter, btn) => {
-      currentMainFilter = filter;
+    window.setSmartFilter = (filter, btn) => {
+      currentSmartFilter = filter;
       document.querySelectorAll('#statusFilterGroup .capsule-filter-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      currentPage = 1;
-      renderTable();
-    };
-
-    window.setTypeFilter = (filter, btn) => {
-      currentTypeFilter = filter;
-      document.querySelectorAll('#typeFilterGroup .capsule-filter-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       currentPage = 1;
       renderTable();
@@ -298,9 +281,9 @@
 
     function getStatusInfo(txId) {
       const state = ctbcSettlements.find(s => s.txId === txId.toString());
-      if(!state) return { text: '📌 未對帳', class: 'status-pending', data: null };
-      if(state.status === 'in_progress') return { text: '⏳ 對帳中', class: 'status-inprogress', data: state };
-      return { text: '✅ 已結算', class: 'status-completed', data: state };
+      if(!state) return { text: '📌 未對帳', class: 'status-pending', data: null, isCompleted: false };
+      if(state.status === 'in_progress') return { text: '⏳ 對帳中', class: 'status-inprogress', data: state, isCompleted: false };
+      return { text: '✅ 已結算', class: 'status-completed', data: state, isCompleted: true };
     }
 
     window.renderTable = () => {
@@ -310,13 +293,15 @@
 
       let filtered = transactions.filter(t => {
         const stateInfo = getStatusInfo(t.id);
-        const st = stateInfo.data ? stateInfo.data.status : 'pending';
+        const hasData = !!stateInfo.data;
         
-        if (currentMainFilter === 'pending' && st !== 'pending') return false;
-        if (currentMainFilter === 'in_progress' && st !== 'in_progress') return false;
-        if (currentMainFilter === 'completed' && st !== 'completed') return false;
-        if (currentTypeFilter === 'income' && !t.inc) return false;
-        if (currentTypeFilter === 'expense' && !t.exp) return false;
+        if (currentSmartFilter === 'pending_in') {
+            if (!t.inc || hasData) return false;
+        } else if (currentSmartFilter === 'completed_in') {
+            if (!t.inc || !hasData) return false;
+        } else if (currentSmartFilter === 'expense') {
+            if (!t.exp) return false;
+        }
 
         if (searchVal) {
           const combinedStr = `${t.date} ${t.exp} ${t.inc} ${t.balance} ${t.note} ${t.acc}`.toLowerCase();
@@ -353,6 +338,33 @@
         tbody.appendChild(tr);
 
         if (isExp && t.inc) {
+          // ====== ✨ 智能推薦配對邏輯 ======
+          let smartMatchHtml = '';
+          if (!data.buyerName) {
+            const accClean = (t.acc || '').replace(/\*/g, '');
+            const noteClean = (t.note || '').replace(/\*/g, '');
+            
+            const otherSettlements = ctbcSettlements.filter(s => s.txId !== t.id.toString());
+            const settledIds = new Set();
+            otherSettlements.forEach(s => { if(s.billIds) s.billIds.forEach(id => settledIds.add(id)); });
+            
+            const allUnsettled = ctbcBills.filter(b => b.status !== '已外部結算' && !settledIds.has(b.id));
+            const matchedBills = allUnsettled.filter(b => {
+                if (!b.last5 || b.last5.length < 4) return false;
+                return accClean.includes(b.last5) || noteClean.includes(b.last5);
+            });
+
+            if (matchedBills.length > 0) {
+                const mBuyer = matchedBills[0].name;
+                smartMatchHtml = `
+                  <div style="background:#f0f9eb; border:1px solid #c2e7b0; padding:10px; border-radius:8px; margin-bottom:12px; display:flex; justify-content:space-between; align-items:center;">
+                    <span style="color:#67c23a; font-size:13px; font-weight:bold;">✨ 系統智能偵測：此筆極可能是【${mBuyer}】的匯款 (末5碼吻合)</span>
+                    <button class="btn-action btn-add" style="padding:6px 12px; font-size:12px;" onclick="applySmartMatch(${t.id}, '${mBuyer}', ${txAmt})">💡 一鍵帶入核銷</button>
+                  </div>
+                `;
+            }
+          }
+
           const subTr = document.createElement('tr');
           subTr.className = 'sub-row';
           
@@ -368,6 +380,7 @@
           subTr.innerHTML = `
             <td colspan="8">
               <div class="sub-container">
+                ${smartMatchHtml}
                 <div style="font-size:13px; font-weight:bold; color:#1e293b;">🔍 將此筆 $${txAmt} 明細核銷買家帳單</div>
                 <select id="buyer_select_${t.id}" style="padding:6px; font-size:12px; border-radius:4px; border:1px solid #cbd5e1; max-width:250px;" 
                         onchange="renderCheckboxes(${t.id}, this.value, ${txAmt})">
@@ -410,12 +423,35 @@
 
     window.toggleRow = (id) => { expandedRows[id] = !expandedRows[id]; window.renderTable(); };
 
+    // 一鍵帶入智能配對
+    window.applySmartMatch = (txId, buyerName, txAmt) => {
+        const sel = document.getElementById(`buyer_select_${txId}`);
+        if(sel) {
+            sel.value = buyerName;
+            window.renderCheckboxes(txId, buyerName, txAmt);
+            
+            const tx = transactions.find(x => x.id === txId);
+            const accClean = (tx.acc || '').replace(/\*/g, '');
+            const noteClean = (tx.note || '').replace(/\*/g, '');
+            
+            setTimeout(() => {
+                const checkboxes = document.querySelectorAll(`.bill-chk-${txId}`);
+                checkboxes.forEach(chk => {
+                    const b = ctbcBills.find(x => x.id === chk.value);
+                    if (b && b.last5 && b.last5.length >= 4 && (accClean.includes(b.last5) || noteClean.includes(b.last5))) {
+                        chk.checked = true;
+                    }
+                });
+                window.calcWallet(txId, txAmt);
+            }, 80);
+        }
+    };
+
     // 渲染帶有日期與末5碼的勾選清單 (加入已核銷過濾機制)
     window.renderCheckboxes = (txId, buyerName, currentAmt) => {
         const container = document.getElementById(`bill_checkboxes_${txId}`);
         if(!buyerName) { container.innerHTML = ''; return; }
         
-        // 抓出所有「不是這筆中信明細」的結算紀錄
         const otherSettlements = ctbcSettlements.filter(s => s.txId !== txId.toString());
         const settledBillIds = new Set();
         otherSettlements.forEach(s => {
@@ -427,11 +463,8 @@
         let hiddenCount = 0;
         
         allBuyerBills.forEach(b => {
-            if (settledBillIds.has(b.id)) {
-                hiddenCount++;
-            } else {
-                buyerBills.push(b);
-            }
+            if (settledBillIds.has(b.id)) hiddenCount++;
+            else buyerBills.push(b);
         });
 
         let html = '<div style="font-size:12px; font-weight:bold; margin-bottom:4px; color:#475569;">👉 請勾選本次入帳要核銷的帳單：</div>';
