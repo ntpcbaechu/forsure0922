@@ -29,7 +29,6 @@
     .sellers-check-box { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; background: #f8f9fa; padding: 6px 10px; border: 1px solid #ebeef5; border-radius: 8px; min-height: 38px; }
     .seller-label { font-size: 13px; color: #606266; display: inline-flex; align-items: center; gap: 4px; cursor: pointer; margin: 0; font-weight: bold; }
 
-    /* Event Group Layout (與前台 index_progress 完全一致) */
     .progress-list-container { display: flex; flex-direction: column; gap: 16px; margin-top: 10px; }
 
     .event-group-card { background: #fff; border: 1px solid #e4e7ed; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.02); display: flex; flex-direction: column; }
@@ -73,7 +72,6 @@
     .buyer-tag-ok { background: #f0f9eb; color: #67c23a; border-color: #e1f3d8; }
     .buyer-tag-hidden { background: #f4f4f5; color: #909399; border-color: #dcdfe6; }
 
-    /* Archive Toggle Area */
     .archive-toggle-bar { display: flex; justify-content: center; margin: 30px 0 20px 0; }
     .btn-toggle-archive { background: #fff; border: 1px solid #dcdfe6; color: #606266; padding: 8px 24px; border-radius: 20px; font-size: 13px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.02); transition: all 0.2s; }
     .btn-toggle-archive:hover { background: #f8f9fa; color: #409eff; border-color: #c6e2ff; }
@@ -139,8 +137,8 @@
     <div class="filter-row">
       <span class="filter-label">2. 檢視模式：</span>
       <div id="modeCapsules" class="capsule-group">
-        <button class="capsule-filter-btn active" onclick="setModeFilter('member', this)">👥 依成員</button>
-        <button class="capsule-filter-btn" onclick="setModeFilter('event', this)">🗓️ 依活動</button>
+        <button class="capsule-filter-btn active" onclick="setModeFilter('event', this)">🗓️ 依活動</button>
+        <button class="capsule-filter-btn" onclick="setModeFilter('member', this)">👥 依成員</button>
       </div>
     </div>
 
@@ -198,7 +196,7 @@
     let cachedCombinedList = [];
 
     let activeGroup = 'ALL';
-    let activeMode = 'member';
+    let activeMode = 'event'; 
     let activeDetail = 'ALL';
     let activeStatus = 'ALL';
 
@@ -213,6 +211,11 @@
     const memSel = document.getElementById('memberSelect');
     const sellersCheckContainer = document.getElementById('sellersCheckContainer');
     const statusSelect = document.getElementById('statusSelect');
+
+    const MEMBER_EMOJI_MAP = {
+      '方燦': '🐺', 'Lee Know': '🐰', '彰彬': '🐷', '鉉辰': '🥟', 'HAN': '🐹', 'Felix': '🐥', '昇玟': '🐶', 'I.N': '🦊',
+      '弘中': '🐿️', '星化': '🐰', '潤浩': '🐶', '呂尚': '🐥', '傘': '⛰️', '旼琦': '🐥', '友榮': '🐈‍⬛', '鍾浩': '🐻'
+    };
 
     document.addEventListener('DOMContentLoaded', async () => {
       try {
@@ -267,13 +270,14 @@
       virtualProgressMap = {};
       cachedCombinedList = [...lastProgressList];
 
-      const existingKeys = new Set(lastProgressList.map(p => `${p.eventName || p.event}_${p.member}_${p.batch}`));
+      const existingKeys = new Set(lastProgressList.map(p => `${p.group}_${p.eventName || p.event}_${p.member}_${p.batch}`));
 
       rawEventSettings.forEach(s => {
         const eName = s.name || s.rawName;
         const eMem = s.member || '全體/無';
         const batch = '批次 1';
-        const key = `${eName}_${eMem}_${batch}`;
+        const grp = s.group || 'Stray Kids';
+        const key = `${grp}_${eName}_${eMem}_${batch}`;
         
         if (!existingKeys.has(key)) {
           const docId = key.replace(/[\/\s#?]/g, '_');
@@ -282,7 +286,7 @@
             isVirtual: true,
             eventName: eName,
             batch: batch,
-            group: s.group || 'Stray Kids',
+            group: grp,
             member: eMem,
             seller: s.seller || '未指定',
             status: '未開放'
@@ -297,7 +301,8 @@
         const eName = `【餘圖認領】${s.eventName}`;
         const eMem = s.member || '全體/無';
         const batch = '批次 1';
-        const key = `${eName}_${eMem}_${batch}`;
+        const grp = s.group || 'Stray Kids';
+        const key = `${grp}_${eName}_${eMem}_${batch}`;
         
         if (!existingKeys.has(key)) {
           const docId = key.replace(/[\/\s#?]/g, '_');
@@ -306,7 +311,7 @@
             isVirtual: true,
             eventName: eName,
             batch: batch,
-            group: s.group || 'Stray Kids',
+            group: grp,
             member: eMem,
             seller: '未指定',
             status: '未開放'
@@ -581,7 +586,7 @@
 
     function getBuyerIssueSummary(eventName, member, isHide) {
       if (isHide) {
-        return '<span class="buyer-issue-tag buyer-tag-hidden">👁️ 買家名單已隱藏</span>';
+        return '<span class="buyer-issue-tag buyer-tag-hidden">👁️ (買家名單已隱藏)</span>';
       }
 
       const isSurplus = eventName.startsWith('【餘圖認領】');
@@ -695,23 +700,28 @@
 
       const groups = {};
 
-      if (activeMode === 'member') {
+      if (activeMode === 'event') {
         itemList.forEach(item => {
+          const grp = item.group || 'Stray Kids';
           const eName = item.eventName || item.event || '未命名活動';
-          if (!groups[eName]) groups[eName] = [];
-          groups[eName].push(item);
+          const groupKey = `${grp}___${eName}`;
+          if (!groups[groupKey]) groups[groupKey] = [];
+          groups[groupKey].push(item);
         });
 
-        const sortedEventKeys = Object.keys(groups).sort((a, b) => {
-          const dateA = extractDateScore(a);
-          const dateB = extractDateScore(b);
+        const sortedGroupKeys = Object.keys(groups).sort((a, b) => {
+          const [grpA, evA] = a.split('___');
+          const [grpB, evB] = b.split('___');
+          const dateA = extractDateScore(evA);
+          const dateB = extractDateScore(evB);
           if (dateA !== dateB) return dateA - dateB;
+          if (grpA !== grpB) return grpA.localeCompare(grpB, 'zh-TW');
           return a.localeCompare(b, 'zh-TW');
         });
 
-        sortedEventKeys.forEach(eventName => {
-          const items = groups[eventName];
-          const grpName = items[0].group || 'Stray Kids';
+        sortedGroupKeys.forEach(groupKey => {
+          const items = groups[groupKey];
+          const [grpName, eventName] = groupKey.split('___');
           const isAteez = (grpName === 'ATEEZ');
           const headerClass = isAteez ? 'event-group-header header-ateez' : 'event-group-header';
           
@@ -744,13 +754,15 @@
             else if (['已完工', '已發圖', '已結束', '已預約'].includes(statusText)) badgeClass = 'status-done';
             else if (['已通知匯款'].includes(statusText)) badgeClass = 'status-waiting';
 
+            const memEmoji = MEMBER_EMOJI_MAP[mName] || '👤';
+
             html += `
               <div class="member-block">
                 <div class="member-box-card">
                   <div class="member-header-row">
                     <div class="member-info-left">
                       <div class="member-title-row">
-                        <span>👤 ${mName} <span style="font-size:11px; font-weight:normal; color:#909399;">(${batchName} / 📷 ${sellerName})</span></span>
+                        <span>${memEmoji} ${mName} <span style="font-size:11px; font-weight:normal; color:#909399;">(${batchName} / 📷 ${sellerName})</span></span>
                         <span class="status-badge ${badgeClass}">${badgeText}</span>
                       </div>
                     </div>
@@ -772,30 +784,35 @@
         });
       } else {
         itemList.forEach(item => {
+          const grp = item.group || 'Stray Kids';
           const mName = item.member || '全體';
-          if (!groups[mName]) groups[mName] = [];
-          groups[mName].push(item);
+          const groupKey = `${grp}___${mName}`;
+          if (!groups[groupKey]) groups[groupKey] = [];
+          groups[groupKey].push(item);
         });
 
-        const memberKeys = Object.keys(groups).sort((a, b) => {
-          const mListSkz = memberMap['Stray Kids'] || [];
-          const mListAtz = memberMap['ATEEZ'] || [];
-          const allM = [...mListSkz, ...mListAtz];
-          const idxA = allM.indexOf(a);
-          const idxB = allM.indexOf(b);
+        const sortedGroupKeys = Object.keys(groups).sort((a, b) => {
+          const [grpA, memA] = a.split('___');
+          const [grpB, memB] = b.split('___');
+          if (grpA !== grpB) return grpA.localeCompare(grpB, 'zh-TW');
+          
+          const mList = memberMap[grpA] || [];
+          const idxA = mList.indexOf(memA);
+          const idxB = mList.indexOf(memB);
           return (idxA === -1 ? 99 : idxA) - (idxB === -1 ? 99 : idxB);
         });
 
-        memberKeys.forEach(memberName => {
-          const items = groups[memberName];
-          const grpName = items[0].group || 'Stray Kids';
+        sortedGroupKeys.forEach(groupKey => {
+          const items = groups[groupKey];
+          const [grpName, memberName] = groupKey.split('___');
           const isAteez = (grpName === 'ATEEZ');
           const headerClass = isAteez ? 'event-group-header header-ateez' : 'event-group-header';
+          const memEmoji = MEMBER_EMOJI_MAP[memberName] || '👤';
           
           const card = document.createElement('div');
           card.className = `event-group-card ${isArchived ? 'archived-card' : ''}`;
           
-          let html = `<div class="${headerClass}">👤 [${grpName}] ${memberName}</div>`;
+          let html = `<div class="${headerClass}">${memEmoji} [${grpName}] ${memberName}</div>`;
           html += `<div class="progress-list-box">`;
 
           items.sort((a, b) => {
