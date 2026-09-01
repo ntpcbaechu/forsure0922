@@ -211,6 +211,9 @@
     let lastProgressList = [];
     let ordersCache = {};
 
+    let virtualProgressMap = {};
+    let cachedCombinedList = [];
+
     let activeGroup = 'ALL';
     let activeMode = 'member';
     let activeDetail = 'ALL';
@@ -263,6 +266,64 @@
         members.forEach(m => memSel.innerHTML += `<option value="${m}">${m}</option>`);
       });
     });
+
+    function refreshCombinedList() {
+      virtualProgressMap = {};
+      cachedCombinedList = [...lastProgressList];
+
+      const existingKeys = new Set(lastProgressList.map(p => `${p.eventName || p.event}_${p.member}_${p.batch}`));
+
+      rawEventSettings.forEach(s => {
+        const eName = s.name || s.rawName;
+        const eMem = s.member || '全體/無';
+        const batch = '批次 1';
+        const key = `${eName}_${eMem}_${batch}`;
+        
+        if (!existingKeys.has(key)) {
+          const docId = key.replace(/[\/\s#?]/g, '_');
+          const vItem = {
+            id: docId,
+            isVirtual: true,
+            eventName: eName,
+            batch: batch,
+            group: s.group || 'Stray Kids',
+            member: eMem,
+            seller: s.seller || '未指定',
+            status: '未開放'
+          };
+          virtualProgressMap[docId] = vItem;
+          cachedCombinedList.push(vItem);
+          existingKeys.add(key);
+        }
+      });
+
+      rawStockPhotos.forEach(s => {
+        const eName = `【餘圖認領】${s.eventName}`;
+        const eMem = s.member || '全體/無';
+        const batch = '批次 1';
+        const key = `${eName}_${eMem}_${batch}`;
+        
+        if (!existingKeys.has(key)) {
+          const docId = key.replace(/[\/\s#?]/g, '_');
+          const vItem = {
+            id: docId,
+            isVirtual: true,
+            eventName: eName,
+            batch: batch,
+            group: s.group || 'Stray Kids',
+            member: eMem,
+            seller: '未指定',
+            status: '未開放'
+          };
+          virtualProgressMap[docId] = vItem;
+          cachedCombinedList.push(vItem);
+          existingKeys.add(key);
+        }
+      });
+
+      updateDetailCapsules();
+      renderProgressCards();
+    }
 
     function renderGroupCapsules() {
       const container = document.getElementById('groupCapsules');
@@ -340,7 +401,7 @@
       };
       container.appendChild(allBtn);
 
-      let list = lastProgressList;
+      let list = cachedCombinedList;
       if (activeGroup === 'UNCLASSIFIED') {
         list = list.filter(i => !i.group || i.group === '未分類');
       } else if (activeGroup !== 'ALL') {
@@ -449,12 +510,14 @@
       rawEventSettings = [];
       snap.forEach(d => rawEventSettings.push(d.data()));
       refreshEventSelectDropdown();
+      refreshCombinedList();
     });
 
     onSnapshot(collection(db, "stock_photos"), snap => {
       rawStockPhotos = [];
       snap.forEach(d => rawStockPhotos.push(d.data()));
       refreshEventSelectDropdown();
+      refreshCombinedList();
     });
 
     evSel.addEventListener('change', () => {
@@ -510,8 +573,7 @@
         progressMap[d.id] = item;
         lastProgressList.push(item);
       });
-      updateDetailCapsules();
-      renderProgressCards();
+      refreshCombinedList();
     });
 
     function extractDateScore(evName) {
@@ -589,7 +651,7 @@
       activeContainer.innerHTML = '';
       archivedContainer.innerHTML = '';
 
-      let list = lastProgressList;
+      let list = cachedCombinedList;
 
       if (activeGroup === 'UNCLASSIFIED') {
         list = list.filter(i => !i.group || i.group === '未分類');
@@ -687,6 +749,7 @@
             const batchName = item.batch || '批次 1';
             const sellerName = item.seller || '代拍1';
             const statusText = item.status || '-';
+            const badgeText = item.isVirtual ? '未開放 (自動)' : statusText;
             const ev = item.eventName || item.event;
             const isHidden = (item.isHideBuyers === true);
             const buyerSummary = getBuyerIssueSummary(ev, mName, isHidden);
@@ -694,7 +757,7 @@
             tableHtml += `<tr>` +
               `<td style="font-weight:bold;">${mName}<br><span style="font-size:11px; color:#909399;">(${batchName})</span></td>` +
               `<td>${sellerName}</td>` +
-              `<td><span class="badge-status" data-val="${statusText}">${statusText}</span></td>` +
+              `<td><span class="badge-status" data-val="${statusText}">${badgeText}</span></td>` +
               `<td>${buyerSummary}</td>` +
               `<td>` +
                 `<div class="action-cell">` +
@@ -757,13 +820,14 @@
             const batchName = item.batch || '批次 1';
             const sellerName = item.seller || '代拍1';
             const statusText = item.status || '-';
+            const badgeText = item.isVirtual ? '未開放 (自動)' : statusText;
             const isHidden = (item.isHideBuyers === true);
             const buyerSummary = getBuyerIssueSummary(ev, memberName, isHidden);
 
             tableHtml += `<tr>` +
               `<td style="font-weight:bold;">${ev}<br><span style="font-size:11px; color:#909399;">(${batchName})</span></td>` +
               `<td>${sellerName}</td>` +
-              `<td><span class="badge-status" data-val="${statusText}">${statusText}</span></td>` +
+              `<td><span class="badge-status" data-val="${statusText}">${badgeText}</span></td>` +
               `<td>${buyerSummary}</td>` +
               `<td>` +
                 `<div class="action-cell">` +
@@ -787,10 +851,24 @@
 
     window.toggleHideBuyers = async (docId, currentHidden) => {
       try {
-        await updateDoc(doc(db, "photo_progress", docId), {
-          isHideBuyers: !currentHidden,
-          updatedAt: new Date()
-        });
+        const vItem = virtualProgressMap[docId];
+        if (vItem) {
+          await setDoc(doc(db, "photo_progress", docId), {
+            eventName: vItem.eventName,
+            batch: vItem.batch,
+            group: vItem.group,
+            member: vItem.member,
+            seller: vItem.seller,
+            status: vItem.status,
+            isHideBuyers: !currentHidden,
+            updatedAt: new Date()
+          });
+        } else {
+          await updateDoc(doc(db, "photo_progress", docId), {
+            isHideBuyers: !currentHidden,
+            updatedAt: new Date()
+          });
+        }
       } catch (err) {
         alert('更新失敗: ' + err.message);
       }
@@ -802,11 +880,25 @@
           const now = new Date();
           const formattedMD = (now.getMonth() + 1) + '/' + now.getDate();
 
-          await updateDoc(doc(db, "photo_progress", docId), {
-            status: '已通知匯款',
-            notifyPaymentAt: formattedMD,
-            updatedAt: new Date()
-          });
+          const vItem = virtualProgressMap[docId];
+          if (vItem) {
+            await setDoc(doc(db, "photo_progress", docId), {
+              eventName: vItem.eventName,
+              batch: vItem.batch,
+              group: vItem.group,
+              member: vItem.member,
+              seller: vItem.seller,
+              status: '已通知匯款',
+              notifyPaymentAt: formattedMD,
+              updatedAt: new Date()
+            });
+          } else {
+            await updateDoc(doc(db, "photo_progress", docId), {
+              status: '已通知匯款',
+              notifyPaymentAt: formattedMD,
+              updatedAt: new Date()
+            });
+          }
 
           await triggerOrdersToPendingPayment(eventName, member);
           alert('✅ 已成功發起匯款通知！相關訂單已改為「待匯款」。');
@@ -893,7 +985,7 @@
     }
 
     window.editProgress = (docId) => {
-      const item = progressMap[docId];
+      const item = progressMap[docId] || virtualProgressMap[docId];
       if (!item) return;
 
       document.getElementById('editProgressId').value = docId;
@@ -908,7 +1000,7 @@
 
       setTimeout(() => {
         memSel.value = item.member || '';
-        statusSelect.value = item.status || '';
+        statusSelect.value = item.isVirtual ? '未開放' : (item.status || '');
 
         const currentSellers = (item.seller || '').split(',').map(s => s.trim());
         sellersCheckContainer.querySelectorAll('input[type="checkbox"]').forEach(cb => {
@@ -921,6 +1013,10 @@
     };
 
     window.deleteProgress = async (docId) => {
+      if (virtualProgressMap[docId]) {
+        alert('⚠️ 這筆是系統自動從活動帶入的，尚未正式建檔，無法單獨刪除。\n(若要移除，請至「活動」或「餘圖」管理刪除原始資料)');
+        return;
+      }
       if (confirm('確定要刪除這筆進度紀錄嗎？')) {
         await deleteDoc(doc(db, "photo_progress", docId));
       }
