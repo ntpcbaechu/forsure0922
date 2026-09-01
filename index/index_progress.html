@@ -51,7 +51,7 @@
 </head>
 <body>
 
-  <h3 style="margin-top:0; margin-bottom:12px; font-size:18px;">目前開團與飯拍發放進度</h3>
+  <h3 style="margin:0; margin-bottom:12px; font-size:18px;">目前開團與飯拍發放進度</h3>
 
   <div class="filter-card">
     <div class="filter-row">
@@ -363,8 +363,15 @@
       const eventGroups = {};
       list.forEach(item => {
         const grp = item.group || 'Stray Kids';
-        const eTitle = item.eventName || item.event || '未命名活動';
-        const groupKey = `${grp}___${eTitle}`;
+        let eTitle = item.eventName || item.event || '未命名活動';
+        
+        let groupKey = '';
+        if (eTitle.startsWith('【餘圖認領】')) {
+          groupKey = `${grp}___SURPLUS_STOCK`;
+        } else {
+          groupKey = `${grp}___${eTitle}`;
+        }
+
         if (!eventGroups[groupKey]) eventGroups[groupKey] = [];
         eventGroups[groupKey].push(item);
       });
@@ -380,6 +387,10 @@
       const sortedGroupKeys = Object.keys(eventGroups).sort((a, b) => {
         const [grpA, evA] = a.split('___');
         const [grpB, evB] = b.split('___');
+        
+        if (evA === 'SURPLUS_STOCK' && evB !== 'SURPLUS_STOCK') return -1;
+        if (evA !== 'SURPLUS_STOCK' && evB === 'SURPLUS_STOCK') return 1;
+
         const dateA = extractEventDateScore(evA);
         const dateB = extractEventDateScore(evB);
 
@@ -394,20 +405,27 @@
         items.sort((a, b) => {
           let idxA = currentMemberList.indexOf(a.member || '');
           let idxB = currentMemberList.indexOf(b.member || '');
-          return (idxA === -1 ? 99 : idxA) - (idxB === -1 ? 99 : idxB);
+          if (idxA !== idxB) return (idxA === -1 ? 99 : idxA) - (idxB === -1 ? 99 : idxB);
+          
+          const evA = a.eventName || a.event || '';
+          const evB = b.eventName || b.event || '';
+          return evA.localeCompare(evB, 'zh-TW');
         });
 
         const memberMapObj = {};
         items.forEach(item => {
           const m = item.member || '全體';
-          if (!memberMapObj[m]) memberMapObj[m] = [];
-          memberMapObj[m].push(item);
+          const key = eventName === 'SURPLUS_STOCK' ? `${m}___${item.eventName || item.event}` : m;
+          if (!memberMapObj[key]) memberMapObj[key] = [];
+          memberMapObj[key].push(item);
         });
 
         let membersHtml = '';
 
-        Object.keys(memberMapObj).forEach(mName => {
-          const mItems = memberMapObj[mName];
+        Object.keys(memberMapObj).forEach(mKey => {
+          const mItems = memberMapObj[mKey];
+          const mName = mItems[0].member || '全體';
+          const realEventName = mItems[0].eventName || mItems[0].event || '';
           const st = mItems[0].status || '未開放';
           const isHiddenByAdmin = mItems.some(i => i.isHideBuyers === true);
           const isFinishedOrStock = (st === '可詢問餘圖' || st === '已發圖');
@@ -415,7 +433,7 @@
           const matchedBuyerOrders = [];
           Object.values(ordersCache).forEach(ord => {
             const ordGrp = ord.group || 'Stray Kids';
-            if (ordGrp === grpName && (ord.event || ord.eventName) === eventName && ord.member === mName) {
+            if (ordGrp === grpName && (ord.event || ord.eventName) === realEventName && ord.member === mName) {
               const bName = ord.buyerName || ord.user || ord.nickname;
               if (bName) {
                 if (activeUser === 'ALL' || bName === activeUser) {
@@ -453,7 +471,7 @@
 
               Object.values(ordersCache).forEach(ord => {
                 const b = ord.buyerName || ord.user || ord.nickname;
-                if (b === bName && (ord.event || ord.eventName) === eventName && ord.member === mName) {
+                if (b === bName && (ord.event || ord.eventName) === realEventName && ord.member === mName) {
                   const paySt = ord.paymentStatus || ord.status || (ord.hasPaid ? '已對帳' : '待匯款');
                   if (paySt === '已對帳' || ord.hasPaid) { payStatusText = '⚪ 已對帳'; payBadgeClass = 'status-paid-done'; isPaidDone = true; }
                   else if (paySt === '待對帳' || paySt === '對帳中') { payStatusText = '⏳ 待對帳'; payBadgeClass = 'status-checking'; }
@@ -489,12 +507,17 @@
           else if (['已完工', '已發圖', '已結束', '已預約'].includes(st)) badgeClass = 'status-done';
 
           const memEmoji = MEMBER_EMOJI_MAP[mName] || '👤';
+          let titleHtml = `<span>${memEmoji} ${mName}</span>`;
+          if (eventName === 'SURPLUS_STOCK') {
+            const cleanEv = realEventName.replace('【餘圖認領】', '').trim();
+            titleHtml = `<span>${memEmoji} ${mName} <span style="font-size:12px; font-weight:normal; color:#909399;">(${cleanEv})</span></span>`;
+          }
 
           membersHtml += `
             <div class="member-block">
               <div class="member-box-card">
                 <div class="member-header-row">
-                  <span>${memEmoji} ${mName}</span>
+                  ${titleHtml}
                   <span class="status-badge ${badgeClass}">${st}</span>
                 </div>
               </div>
@@ -506,10 +529,12 @@
         if (membersHtml) {
           const isAteez = (grpName === 'ATEEZ');
           const headerClass = isAteez ? 'event-group-header header-ateez' : 'event-group-header';
+          const displayEventName = eventName === 'SURPLUS_STOCK' ? '🛒 餘圖認領進度總覽' : eventName;
+          const displayIcon = eventName === 'SURPLUS_STOCK' ? '📦' : '📅';
 
           htmlContent += `
             <div class="event-group-card">
-              <div class="${headerClass}">📅 [${grpName}] ${eventName}</div>
+              <div class="${headerClass}">${displayIcon} [${grpName}] ${displayEventName}</div>
               <div class="progress-list-box">${membersHtml}</div>
             </div>
           `;
