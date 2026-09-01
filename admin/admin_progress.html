@@ -4,84 +4,69 @@
   <meta charset="UTF-8">
   <title>發圖進度更新</title>
   <style>
-    html, body { min-height: 500px !important; background: #fff; }
+    html, body { min-height: 500px !important; background: #f0f2f5; }
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 15px; margin: 0; color: #333; }
     
-    .filter-card { background: #f8f9fa; border: 1px solid #ebeef5; border-radius: 10px; padding: 12px 15px; margin-bottom: 12px; display: flex; flex-direction: column; gap: 8px; }
+    .filter-card { background: #fff; border: 1px solid #e4e7ed; border-radius: 12px; padding: 14px 16px; margin-bottom: 16px; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); }
     .filter-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-    .filter-label { font-size: 12px; font-weight: bold; color: #606266; min-width: 80px; }
+    .filter-label { font-size: 13px; font-weight: bold; color: #606266; min-width: 80px; }
 
     .capsule-group { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
-    .capsule-filter-btn { background: #fff; color: #606266; border: 1px solid #dcdfe6; padding: 4px 12px; border-radius: 16px; font-size: 12px; font-weight: bold; cursor: pointer; transition: all 0.2s; outline: none; }
+    .capsule-filter-btn { background: #f4f4f5; color: #606266; border: 1px solid #dcdfe6; padding: 5px 14px; border-radius: 20px; font-size: 12px; font-weight: bold; cursor: pointer; transition: all 0.2s; outline: none; }
     .capsule-filter-btn:hover { background: #ecf5ff; color: #409eff; border-color: #c6e2ff; }
     .capsule-filter-btn.active { background: #409eff; color: #fff; border-color: #409eff; box-shadow: 0 2px 6px rgba(64,158,255,0.25); }
     .capsule-filter-btn.sub-active { background: #67c23a; color: #fff; border-color: #67c23a; box-shadow: 0 2px 6px rgba(103,194,58,0.25); }
 
-    .section-divider { display: flex; align-items: center; justify-content: center; margin: 24px 0 16px 0; color: #909399; font-size: 13px; font-weight: bold; }
-    .section-divider::before, .section-divider::after { content: ''; flex: 1; border-bottom: 1px dashed #dcdfe6; margin: 0 12px; }
-
-    .progress-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 10px; align-items: start; }
-    @media (max-width: 768px) {
-      .progress-grid { grid-template-columns: 1fr; }
-    }
-
-    .progress-card {
-      background: #f8f9fa;
-      border: 1px solid #e4e7ed;
-      border-radius: 10px;
-      padding: 12px 15px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.02);
-      display: flex;
-      flex-direction: column;
-      justify-content: flex-start;
-    }
-    .progress-card.archived-card {
-      opacity: 0.6;
-      background: #f4f4f5;
-      border-color: #e4e7ed;
-      filter: grayscale(0.85);
-    }
-    .progress-card-title {
-      font-size: 15px;
-      font-weight: bold;
-      color: #409eff;
-      margin-bottom: 8px;
-      padding-bottom: 6px;
-      border-bottom: 1px dashed #dcdfe6;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-    .archived-card .progress-card-title {
-      color: #606266;
-    }
-
-    table.card-table { width: 100%; border-collapse: collapse; background: transparent; }
-    table.card-table th, table.card-table td { padding: 6px 4px; border-bottom: 1px solid #ebeef5; text-align: left; font-size: 12px; vertical-align: top; }
-    table.card-table tr:last-child td { border-bottom: none; }
-    table.card-table th { background: #edf2fc; color: #606266; font-weight: bold; }
-    .archived-card table.card-table th { background: #e4e7ed; color: #909399; }
-
-    .action-cell { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
-    .action-sub-row { display: flex; gap: 4px; flex-wrap: wrap; }
-
-    select, button, input { padding: 8px 10px; border: 1px solid #dcdfe6; border-radius: 6px; font-size: 13px; box-sizing: border-box; outline: none; }
-    select:focus, input:focus { border-color: #409eff; }
-    
-    button { background-color: #409eff; color: white; border: none; font-weight: bold; cursor: pointer; }
-    .btn-danger { background-color: #f56c6c; color: white; padding: 3px 6px; font-size: 11px; border-radius: 4px; border: none; cursor: pointer; }
-    .btn-edit { background-color: #e6a23c; color: white; padding: 3px 6px; font-size: 11px; border-radius: 4px; border: none; cursor: pointer; }
-    .btn-notify { background-color: #409eff; color: white; padding: 3px 6px; font-size: 11px; border-radius: 4px; border: none; cursor: pointer; font-weight: bold; }
-    .btn-toggle-eye { background-color: #909399; color: white; padding: 3px 6px; font-size: 11px; border-radius: 4px; border: none; cursor: pointer; }
-    .btn-toggle-eye.is-hidden { background-color: #67c23a; }
-    
-    .form-row { display: flex; flex-direction: column; gap: 12px; margin-bottom: 15px; background: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px solid #ebeef5; }
+    .form-row { display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px; background: #fff; padding: 16px; border-radius: 12px; border: 1px solid #e4e7ed; box-shadow: 0 2px 8px rgba(0,0,0,0.02); }
     .form-selects { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
 
-    .sellers-check-box { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; background: #fff; padding: 4px 8px; border: 1px solid #dcdfe6; border-radius: 6px; min-height: 36px; }
-    .seller-label { font-size: 12px; color: #606266; display: inline-flex; align-items: center; gap: 3px; cursor: pointer; margin: 0; }
+    select, button, input { padding: 9px 12px; border: 1px solid #dcdfe6; border-radius: 8px; font-size: 13px; box-sizing: border-box; outline: none; background: #fff; transition: border-color 0.2s; }
+    select:focus, input:focus { border-color: #409eff; }
+    
+    button { background-color: #409eff; color: white; border: none; font-weight: bold; cursor: pointer; transition: background 0.2s; }
+    button:hover { background-color: #66b1ff; }
 
-    .badge-status { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: bold; }
+    .sellers-check-box { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; background: #f8f9fa; padding: 6px 10px; border: 1px solid #ebeef5; border-radius: 8px; min-height: 38px; }
+    .seller-label { font-size: 13px; color: #606266; display: inline-flex; align-items: center; gap: 4px; cursor: pointer; margin: 0; font-weight: bold; }
+
+    /* Kanban Card Layout */
+    .progress-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 16px; margin-top: 10px; align-items: start; }
+    
+    .kanban-card { background: #fff; border-radius: 12px; border: 1px solid #e4e7ed; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.03); transition: transform 0.2s, box-shadow 0.2s; position: relative; }
+    .kanban-card:hover { box-shadow: 0 6px 16px rgba(0,0,0,0.06); transform: translateY(-2px); }
+    
+    .kanban-card.archived-card { opacity: 0.75; background: #f8f9fa; border-color: #ebeef5; filter: grayscale(0.6); box-shadow: none; }
+    .kanban-card.archived-card:hover { transform: none; box-shadow: none; }
+
+    .card-accent-line { position: absolute; top: 0; left: 0; bottom: 0; width: 4px; background: #dcdfe6; }
+
+    .card-header { padding: 14px 16px 10px 20px; display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid #f0f2f5; }
+    .card-title-main { font-size: 15px; font-weight: 800; color: #303133; line-height: 1.4; margin-bottom: 4px; }
+    .card-subtitle { font-size: 12px; color: #909399; font-weight: bold; display: flex; gap: 8px; align-items: center; }
+    
+    .card-body { padding: 12px 16px 12px 20px; flex: 1; display: flex; flex-direction: column; gap: 10px; }
+    .buyers-area { background: #f8f9fa; border-radius: 8px; padding: 10px 12px; border: 1px solid #ebeef5; }
+    .buyers-title { font-size: 11px; font-weight: bold; color: #909399; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+    
+    .pill-group { display: flex; flex-wrap: wrap; gap: 5px; }
+    .pill { display: inline-flex; align-items: center; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: bold; background: #fff; border: 1px solid #dcdfe6; color: #606266; }
+    .pill-pending { background: #fef0f0; border-color: #fde2e2; color: #f56c6c; }
+    .pill-issue { background: #fdf6ec; border-color: #faebd7; color: #e6a23c; }
+    .pill-photo { background: #ecf5ff; border-color: #d9ecff; color: #409eff; }
+    .pill-ok { background: #f0f9eb; border-color: #e1f3d8; color: #67c23a; }
+    .pill-hidden { background: #f4f4f5; border-color: #e4e7ed; color: #909399; font-style: italic; }
+    
+    .card-footer { padding: 10px 16px 12px 20px; border-top: 1px solid #f0f2f5; background: #fafafa; display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+    
+    .btn-action-main { flex: 1; background: #fdf6ec; color: #e6a23c; border: 1px solid #faebd7; padding: 7px; border-radius: 8px; font-size: 12px; font-weight: bold; cursor: pointer; text-align: center; transition: all 0.2s; }
+    .btn-action-main:hover { background: #faebd7; }
+    
+    .btn-icon-group { display: flex; gap: 6px; }
+    .btn-icon { width: 28px; height: 28px; display: flex; justify-content: center; align-items: center; border-radius: 6px; border: 1px solid #dcdfe6; background: #fff; cursor: pointer; color: #606266; font-size: 12px; transition: all 0.2s; }
+    .btn-icon:hover { background: #f4f4f5; }
+    .btn-icon.is-active { background: #f0f9eb; border-color: #e1f3d8; color: #67c23a; }
+
+    .badge-status { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 800; white-space: nowrap; text-align: center; }
     .badge-status[data-val="未開放"] { background: #f4f4f5; color: #909399; }
     .badge-status[data-val="已預約"] { background: #f4f4f5; color: #909399; }
     .badge-status[data-val="等圖中"] { background: #fdf6ec; color: #e6a23c; border: 1px solid #faebd7; }
@@ -93,17 +78,16 @@
     .badge-status[data-val="已結束"] { background: #f4f4f5; color: #909399; }
     .badge-status[data-val="到期/已刪除"] { background: #f4f4f5; color: #909399; }
 
-    .buyer-issue-tag { font-size: 11px; display: block; margin-top: 2px; line-height: 1.3; }
-    .buyer-tag-pending { color: #f56c6c; }
-    .buyer-tag-issue { color: #e6a23c; }
-    .buyer-tag-waitphoto { color: #409eff; }
-    .buyer-tag-ok { color: #67c23a; font-weight: bold; }
-    .buyer-tag-hidden { color: #909399; font-style: italic; }
+    /* Archive Toggle Area */
+    .archive-toggle-bar { display: flex; justify-content: center; margin: 30px 0 20px 0; }
+    .btn-toggle-archive { background: #fff; border: 1px solid #dcdfe6; color: #606266; padding: 8px 24px; border-radius: 20px; font-size: 13px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.02); transition: all 0.2s; }
+    .btn-toggle-archive:hover { background: #f8f9fa; color: #409eff; border-color: #c6e2ff; }
+
   </style>
 </head>
 <body>
 
-  <h3>發佈與更新發圖進度</h3>
+  <h3 style="margin-top:0;">發佈與更新發圖進度</h3>
 
   <form id="progressForm" class="form-row">
     <input type="hidden" id="editProgressId">
@@ -147,8 +131,8 @@
         <option value="到期/已刪除">🗑️ 到期/已刪除</option>
       </select>
 
-      <button type="submit" id="saveProgressBtn">發佈進度</button>
-      <button type="button" id="cancelBtn" style="background:#909399; display:none;" onclick="resetForm()">取消</button>
+      <button type="submit" id="saveProgressBtn" style="padding:9px 16px; border-radius:8px;">發佈進度</button>
+      <button type="button" id="cancelBtn" style="background:#909399; padding:9px 16px; border-radius:8px; display:none;" onclick="resetForm()">取消</button>
     </div>
   </form>
 
@@ -179,12 +163,17 @@
 
   <div id="progressDisplayArea">
     <div class="progress-grid" id="activeProgressContainer">
-      <p style="text-align:center; color:#909399; grid-column: span 2;">資料載入中...</p>
+      <p style="text-align:center; color:#909399; grid-column: 1 / -1; padding: 20px;">資料載入中...</p>
     </div>
 
     <div id="archivedDividerBlock" style="display:none;">
-      <div class="section-divider">🏁 已結束 / 到期封存</div>
-      <div class="progress-grid" id="archivedProgressContainer"></div>
+      <div class="archive-toggle-bar">
+        <button class="btn-toggle-archive" id="toggleArchiveBtn" onclick="toggleArchiveSection()">
+          <span>🏁 展開已結束 / 到期封存紀錄</span>
+          <span id="archiveCountBadge" style="background:#f4f4f5; padding:2px 8px; border-radius:10px; font-size:11px;">0</span>
+        </button>
+      </div>
+      <div class="progress-grid" id="archivedProgressContainer" style="display:none;"></div>
     </div>
   </div>
 
@@ -266,6 +255,19 @@
         members.forEach(m => memSel.innerHTML += `<option value="${m}">${m}</option>`);
       });
     });
+
+    window.toggleArchiveSection = () => {
+      const container = document.getElementById('archivedProgressContainer');
+      const btnSpan = document.querySelector('#toggleArchiveBtn span:first-child');
+      if (container.style.display === 'none') {
+        container.style.display = 'grid';
+        btnSpan.textContent = '收合已結束 / 到期封存紀錄';
+      } else {
+        container.style.display = 'none';
+        btnSpan.textContent = '🏁 展開已結束 / 到期封存紀錄';
+      }
+      notifyHeight();
+    };
 
     function refreshCombinedList() {
       virtualProgressMap = {};
@@ -583,9 +585,9 @@
       return 99999999;
     }
 
-    function getBuyerIssueSummary(eventName, member, isHide) {
+    function getPillTagsForBuyers(eventName, member, isHide) {
       if (isHide) {
-        return '<span class="buyer-issue-tag buyer-tag-hidden">👁️ (買家名單已隱藏)</span>';
+        return '<div class="pill pill-hidden">👁️ 買家名單已隱藏</div>';
       }
 
       const isSurplus = eventName.startsWith('【餘圖認領】');
@@ -602,7 +604,7 @@
       });
 
       if (matchedOrders.length === 0) {
-        return '<span class="buyer-issue-tag" style="color:#909399;">(無買家登記)</span>';
+        return '<div class="pill" style="color:#909399;">(尚未有買家登記)</div>';
       }
 
       let pendingUsers = [];
@@ -627,26 +629,29 @@
       });
 
       let html = '';
-      if (pendingUsers.length > 0) {
-        html += `<span class="buyer-issue-tag buyer-tag-pending">🚨 待匯款: ${pendingUsers.join(', ')}</span>`;
-      }
-      if (issueUsers.length > 0) {
-        html += `<span class="buyer-issue-tag buyer-tag-issue">⚠️ 帳有問題: ${issueUsers.join(', ')}</span>`;
-      }
-      if (waitPhotoUsers.length > 0) {
-        html += `<span class="buyer-issue-tag buyer-tag-waitphoto">📷 待發圖: ${waitPhotoUsers.join(', ')}</span>`;
-      }
+      if (pendingUsers.length > 0) html += `<div class="pill pill-pending">🚨 待匯款: ${pendingUsers.join(', ')}</div>`;
+      if (issueUsers.length > 0) html += `<div class="pill pill-issue">⚠️ 帳有問題: ${issueUsers.join(', ')}</div>`;
+      if (waitPhotoUsers.length > 0) html += `<div class="pill pill-photo">📷 待發圖: ${waitPhotoUsers.join(', ')}</div>`;
 
-      if (!html) {
-        html = '<span class="buyer-issue-tag buyer-tag-ok">🟢 全員完成 (可結案)</span>';
-      }
+      if (!html) html = '<div class="pill pill-ok">🟢 全員完成 (可結案)</div>';
+      
       return html;
+    }
+
+    function getAccentColor(statusText) {
+      if (['未開放', '已預約'].includes(statusText)) return '#dcdfe6';
+      if (['已通知匯款'].includes(statusText)) return '#f56c6c';
+      if (['等圖中'].includes(statusText)) return '#e6a23c';
+      if (['分圖中', '上傳中'].includes(statusText)) return '#4f46e5';
+      if (['可詢問餘圖', '已結束', '到期/已刪除'].includes(statusText)) return '#67c23a';
+      return '#dcdfe6';
     }
 
     function renderProgressCards() {
       const activeContainer = document.getElementById('activeProgressContainer');
       const archivedContainer = document.getElementById('archivedProgressContainer');
       const archivedBlock = document.getElementById('archivedDividerBlock');
+      const badgeCount = document.getElementById('archiveCountBadge');
       
       activeContainer.innerHTML = '';
       archivedContainer.innerHTML = '';
@@ -669,7 +674,7 @@
       }
 
       if (list.length === 0) {
-        activeContainer.innerHTML = '<p style="text-align:center; color:#909399; grid-column: span 2;">目前無符合條件的發圖進度紀錄。</p>';
+        activeContainer.innerHTML = '<p style="text-align:center; color:#909399; grid-column: 1 / -1; padding: 20px;">目前無符合條件的發圖進度紀錄。</p>';
         archivedBlock.style.display = 'none';
         notifyHeight();
         return;
@@ -686,167 +691,96 @@
         }
       });
 
-      renderGroupedCardsInto(activeList, activeContainer, false);
+      renderKanbanCards(activeList, activeContainer, false);
 
       if (archivedList.length > 0) {
         archivedBlock.style.display = 'block';
-        renderGroupedCardsInto(archivedList, archivedContainer, true);
+        badgeCount.textContent = archivedList.length;
+        renderKanbanCards(archivedList, archivedContainer, true);
       } else {
         archivedBlock.style.display = 'none';
+        badgeCount.textContent = '0';
       }
 
       notifyHeight();
     }
 
-    function renderGroupedCardsInto(itemList, targetContainer, isArchived) {
-      if (itemList.length === 0) {
-        if (!isArchived) {
-          targetContainer.innerHTML = '<p style="text-align:center; color:#909399; grid-column: span 2;">目前無進行中的進度紀錄。</p>';
-        }
-        return;
-      }
+    function renderKanbanCards(itemList, targetContainer, isArchived) {
+      if (itemList.length === 0) return;
 
-      const groups = {};
+      itemList.sort((a, b) => {
+        const evA = a.eventName || a.event || '';
+        const evB = b.eventName || b.event || '';
+        const dateA = extractDateScore(evA);
+        const dateB = extractDateScore(evB);
+        if (dateA !== dateB) return dateA - dateB;
 
-      if (activeMode === 'member') {
-        itemList.forEach(item => {
-          const eName = item.eventName || item.event || '未命名活動';
-          if (!groups[eName]) groups[eName] = [];
-          groups[eName].push(item);
-        });
+        const grp = a.group || 'Stray Kids';
+        const mList = memberMap[grp] || [];
+        const idxA = mList.indexOf(a.member || '');
+        const idxB = mList.indexOf(b.member || '');
+        return (idxA === -1 ? 99 : idxA) - (idxB === -1 ? 99 : idxB);
+      });
 
-        const sortedEventKeys = Object.keys(groups).sort((a, b) => {
-          const dateA = extractDateScore(a);
-          const dateB = extractDateScore(b);
-          if (dateA !== dateB) return dateA - dateB;
-          return a.localeCompare(b, 'zh-TW');
-        });
+      itemList.forEach((item) => {
+        const mName = item.member || '全體';
+        const batchName = item.batch || '批次 1';
+        const sellerName = item.seller || '代拍1';
+        const statusText = item.status || '-';
+        const badgeText = item.isVirtual ? '未開放 (自動)' : statusText;
+        const ev = item.eventName || item.event;
+        const isHidden = (item.isHideBuyers === true);
+        const accentColor = item.isVirtual ? '#dcdfe6' : getAccentColor(statusText);
 
-        sortedEventKeys.forEach(eventName => {
-          const items = groups[eventName];
-          const card = document.createElement('div');
-          card.className = `progress-card ${isArchived ? 'archived-card' : ''}`;
+        const pillTagsHtml = getPillTagsForBuyers(ev, mName, isHidden);
+        
+        let titleMain = activeMode === 'member' ? ev : mName;
+        let titleSub = activeMode === 'member' ? mName : ev;
 
-          let tableHtml = `<div class="progress-card-title">🗓️ ${eventName} ${isArchived ? '(已結束)' : ''}</div>` +
-            `<table class="card-table"><thead><tr>` +
-              `<th style="width: 14%;">成員/批次</th>` +
-              `<th style="width: 16%;">代拍</th>` +
-              `<th style="width: 14%;">狀態</th>` +
-              `<th style="width: 32%;">買家名單與阻礙</th>` +
-              `<th style="width: 24%;">操作</th>` +
-            `</tr></thead><tbody>`;
+        const card = document.createElement('div');
+        card.className = `kanban-card ${isArchived ? 'archived-card' : ''}`;
+        
+        card.innerHTML = `
+          <div class="card-accent-line" style="background: ${accentColor};"></div>
+          <div class="card-header">
+            <div>
+              <div class="card-title-main">${titleMain}</div>
+              <div class="card-subtitle">
+                <span>${titleSub}</span>
+                <span style="color:#dcdfe6;">|</span>
+                <span>${batchName}</span>
+                <span style="color:#dcdfe6;">|</span>
+                <span>📷 ${sellerName}</span>
+              </div>
+            </div>
+            <div class="badge-status" data-val="${statusText}">${badgeText}</div>
+          </div>
+          
+          <div class="card-body">
+            <div class="buyers-area">
+              <div class="buyers-title">買家進度狀態</div>
+              <div class="pill-group">
+                ${pillTagsHtml}
+              </div>
+            </div>
+          </div>
 
-          items.sort((a, b) => {
-            const grp = a.group || 'Stray Kids';
-            const mList = memberMap[grp] || [];
-            const idxA = mList.indexOf(a.member || '');
-            const idxB = mList.indexOf(b.member || '');
-            return (idxA === -1 ? 99 : idxA) - (idxB === -1 ? 99 : idxB);
-          });
-
-          items.forEach((item) => {
-            const mName = item.member || '全體';
-            const batchName = item.batch || '批次 1';
-            const sellerName = item.seller || '代拍1';
-            const statusText = item.status || '-';
-            const badgeText = item.isVirtual ? '未開放 (自動)' : statusText;
-            const ev = item.eventName || item.event;
-            const isHidden = (item.isHideBuyers === true);
-            const buyerSummary = getBuyerIssueSummary(ev, mName, isHidden);
-
-            tableHtml += `<tr>` +
-              `<td style="font-weight:bold;">${mName}<br><span style="font-size:11px; color:#909399;">(${batchName})</span></td>` +
-              `<td>${sellerName}</td>` +
-              `<td><span class="badge-status" data-val="${statusText}">${badgeText}</span></td>` +
-              `<td>${buyerSummary}</td>` +
-              `<td>` +
-                `<div class="action-cell">` +
-                  `<button class="btn-notify" onclick="triggerManualPayment('${ev}', '${mName}', '${item.id}')">📢 發起匯款</button>` +
-                  `<div class="action-sub-row">` +
-                    `<button class="btn-toggle-eye ${isHidden ? 'is-hidden' : ''}" onclick="toggleHideBuyers('${item.id}', ${isHidden})">${isHidden ? '👁️ 顯示' : '👁️ 隱藏'}</button>` +
-                    `<button class="btn-edit" onclick="editProgress('${item.id}')">編輯</button>` +
-                    `<button class="btn-danger" onclick="deleteProgress('${item.id}')">刪除</button>` +
-                  `</div>` +
-                `</div>` +
-              `</td>` +
-            `</tr>`;
-          });
-
-          tableHtml += `</tbody></table>`;
-          card.innerHTML = tableHtml;
-          targetContainer.appendChild(card);
-        });
-      } else {
-        itemList.forEach(item => {
-          const mName = item.member || '全體';
-          if (!groups[mName]) groups[mName] = [];
-          groups[mName].push(item);
-        });
-
-        const memberKeys = Object.keys(groups).sort((a, b) => {
-          const mListSkz = memberMap['Stray Kids'] || [];
-          const mListAtz = memberMap['ATEEZ'] || [];
-          const allM = [...mListSkz, ...mListAtz];
-          const idxA = allM.indexOf(a);
-          const idxB = allM.indexOf(b);
-          return (idxA === -1 ? 99 : idxA) - (idxB === -1 ? 99 : idxB);
-        });
-
-        memberKeys.forEach(memberName => {
-          const items = groups[memberName];
-          const card = document.createElement('div');
-          card.className = `progress-card ${isArchived ? 'archived-card' : ''}`;
-
-          let tableHtml = `<div class="progress-card-title">👤 ${memberName} ${isArchived ? '(已結束)' : ''}</div>` +
-            `<table class="card-table"><thead><tr>` +
-              `<th style="width: 26%;">活動名稱/批次</th>` +
-              `<th style="width: 16%;">代拍</th>` +
-              `<th style="width: 14%;">狀態</th>` +
-              `<th style="width: 22%;">買家名單與阻礙</th>` +
-              `<th style="width: 22%;">操作</th>` +
-            `</tr></thead><tbody>`;
-
-          items.sort((a, b) => {
-            const evA = a.eventName || a.event || '';
-            const evB = b.eventName || b.event || '';
-            const dateA = extractDateScore(evA);
-            const dateB = extractDateScore(evB);
-            if (dateA !== dateB) return dateA - dateB;
-            return evA.localeCompare(evB, 'zh-TW');
-          });
-
-          items.forEach((item) => {
-            const ev = item.eventName || item.event || '活動';
-            const batchName = item.batch || '批次 1';
-            const sellerName = item.seller || '代拍1';
-            const statusText = item.status || '-';
-            const badgeText = item.isVirtual ? '未開放 (自動)' : statusText;
-            const isHidden = (item.isHideBuyers === true);
-            const buyerSummary = getBuyerIssueSummary(ev, memberName, isHidden);
-
-            tableHtml += `<tr>` +
-              `<td style="font-weight:bold;">${ev}<br><span style="font-size:11px; color:#909399;">(${batchName})</span></td>` +
-              `<td>${sellerName}</td>` +
-              `<td><span class="badge-status" data-val="${statusText}">${badgeText}</span></td>` +
-              `<td>${buyerSummary}</td>` +
-              `<td>` +
-                `<div class="action-cell">` +
-                  `<button class="btn-notify" onclick="triggerManualPayment('${ev}', '${memberName}', '${item.id}')">📢 發起匯款</button>` +
-                  `<div class="action-sub-row">` +
-                    `<button class="btn-toggle-eye ${isHidden ? 'is-hidden' : ''}" onclick="toggleHideBuyers('${item.id}', ${isHidden})">${isHidden ? '👁️ 顯示' : '👁️ 隱藏'}</button>` +
-                    `<button class="btn-edit" onclick="editProgress('${item.id}')">編輯</button>` +
-                    `<button class="btn-danger" onclick="deleteProgress('${item.id}')">刪除</button>` +
-                  `</div>` +
-                `</div>` +
-              `</td>` +
-            `</tr>`;
-          });
-
-          tableHtml += `</tbody></table>`;
-          card.innerHTML = tableHtml;
-          targetContainer.appendChild(card);
-        });
-      }
+          <div class="card-footer">
+            <button class="btn-action-main" onclick="triggerManualPayment('${ev}', '${mName}', '${item.id}')">
+              📢 發起匯款
+            </button>
+            <div class="btn-icon-group">
+              <button class="btn-icon ${isHidden ? 'is-active' : ''}" title="${isHidden ? '買家名單已隱藏，點擊顯示' : '點擊隱藏買家名單'}" onclick="toggleHideBuyers('${item.id}', ${isHidden})">
+                ${isHidden ? '👁️‍🗨️' : '👁️'}
+              </button>
+              <button class="btn-icon" title="編輯進度" onclick="editProgress('${item.id}')">✏️</button>
+              <button class="btn-icon" title="刪除紀錄" style="color:#f56c6c;" onclick="deleteProgress('${item.id}')">🗑️</button>
+            </div>
+          </div>
+        `;
+        
+        targetContainer.appendChild(card);
+      });
     }
 
     window.toggleHideBuyers = async (docId, currentHidden) => {
@@ -947,6 +881,7 @@
         await setDoc(doc(db, "photo_progress", docId), updateData, { merge: true });
         alert('✅ 進度發佈成功！');
         resetForm();
+        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
       } catch (err) {
         alert('儲存失敗：' + err.message);
       } finally {
@@ -1010,6 +945,7 @@
 
       document.getElementById('saveProgressBtn').textContent = '更新進度';
       document.getElementById('cancelBtn').style.display = 'inline-block';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
     window.deleteProgress = async (docId) => {
