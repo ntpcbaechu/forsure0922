@@ -104,7 +104,7 @@
             <option value="個">個</option>
           </select>
         </div>
-        <div><label style="font-size:12px;">每包數量(張)</label><input type="number" id="evPackQty" placeholder="張數" style="width:100%;"></div>
+        <div><label style="font-size:12px;">每單位數量(張)</label><input type="number" id="evPackQty" placeholder="張數" style="width:100%;"></div>
         <div><label style="font-size:12px;">預估金額 ($)</label><input type="number" step="0.1" min="0" id="evEstimatedPrice" placeholder="預估價" style="width:100%;"></div>
         <div><label style="font-size:12px;">實際金額 ($)</label><input type="number" step="0.1" min="0" id="evActualPrice" placeholder="實際價(選填)" style="width:100%;"></div>
         <div><label style="font-size:12px;">總拆包數</label><input type="number" id="evPacksCount" placeholder="包數" style="width:100%;"></div>
@@ -208,6 +208,7 @@
     const evNameInput = document.getElementById('evName');
     const groupSel = document.getElementById('evGroup');
     const memberSel = document.getElementById('evMember');
+    const evUnitSel = document.getElementById('evUnit');
     
     sellerSelect.addEventListener('change', () => {
       if (sellerSelect.value === 'CUSTOM') {
@@ -263,7 +264,6 @@
     const discountContainer = document.getElementById('discountContainer');
     document.getElementById('addDiscountBtn').addEventListener('click', () => { addDiscountRow(); });
 
-    // 只抓取「這場活動 + 這位成員」實際有填單的買家
     function getBuyersForCurrentEventAndMember() {
       const g = groupSel.value;
       const mem = memberSel.value;
@@ -301,12 +301,15 @@
         const buyers = getBuyersForCurrentEventAndMember();
 
         let buyerOpts = '<option value="">不限買家 (通用折扣)</option>';
-        if (currentVal && !buyers.includes(currentVal)) {
+        if (currentVal && currentVal !== 'CUSTOM' && currentVal !== 'THREADS' && !buyers.includes(currentVal)) {
           buyerOpts += `<option value="${currentVal}" selected>${currentVal}</option>`;
         }
         buyers.sort((a,b)=>a.localeCompare(b,'zh-TW')).forEach(u => {
           buyerOpts += `<option value="${u}" ${u === currentVal ? 'selected' : ''}>${u}</option>`;
         });
+        buyerOpts += `<option value="CUSTOM">➕ 其他 (手動輸入)...</option>`;
+        buyerOpts += `<option value="THREADS">➕ 其他 (Threads帳號)...</option>`;
+        
         sel.innerHTML = buyerOpts;
       });
     }
@@ -316,25 +319,53 @@
       el.addEventListener('change', refreshAllDiscountDropdowns);
     });
 
-    function addDiscountRow(count = '', price = '', targetUser = '') {
+    window.toggleDiscCustomInput = (sel) => {
+      const customInput = sel.parentElement.querySelector('.disc-user-custom');
+      if (sel.value === 'CUSTOM' || sel.value === 'THREADS') {
+        customInput.style.display = 'inline-block';
+        customInput.required = true;
+        customInput.placeholder = sel.value === 'THREADS' ? 'Threads帳號' : '社群暱稱';
+      } else {
+        customInput.style.display = 'none';
+        customInput.required = false;
+        customInput.value = '';
+      }
+    };
+
+    function addDiscountRow(count = '', price = '', targetUser = '', unit = '') {
       const buyers = getBuyersForCurrentEventAndMember();
       let buyerOpts = '<option value="">不限買家 (通用折扣)</option>';
+      let showCustom = false;
+      let customValue = '';
+
       if (targetUser && !buyers.includes(targetUser)) {
         buyerOpts += `<option value="${targetUser}" selected>${targetUser}</option>`;
       }
       buyers.sort((a,b)=>a.localeCompare(b,'zh-TW')).forEach(u => {
         buyerOpts += `<option value="${u}" ${u === targetUser ? 'selected' : ''}>${u}</option>`;
       });
+      buyerOpts += `<option value="CUSTOM">➕ 其他 (手動輸入)...</option>`;
+      buyerOpts += `<option value="THREADS">➕ 其他 (Threads帳號)...</option>`;
+
+      const currentUnit = unit || evUnitSel.value || '包';
 
       const div = document.createElement('div');
       div.className = 'row-discount';
       div.innerHTML = `
         <span style="font-size:12px; color:#e6a23c; font-weight:bold;">折扣:</span>
-        <input type="number" class="disc-count" placeholder="包數" value="${count}" style="width:80px;"> 包 ×
-        <input type="number" step="0.1" class="disc-price" placeholder="單價" value="${price}" style="width:80px;"> 元
+        <input type="number" class="disc-count" placeholder="數量" value="${count}" style="width:70px;">
+        <select class="disc-unit" style="width:65px;">
+          <option value="包" ${currentUnit === '包' ? 'selected' : ''}>包</option>
+          <option value="張" ${currentUnit === '張' ? 'selected' : ''}>張</option>
+          <option value="個" ${currentUnit === '個' ? 'selected' : ''}>個</option>
+        </select> ×
+        <input type="number" step="0.1" class="disc-price" placeholder="單價" value="${price}" style="width:70px;"> 元
         <span style="font-size:12px; color:#606266; font-weight:bold; margin-left:6px;">指定買家:</span>
-        <select class="disc-user" style="max-width:180px;">${buyerOpts}</select>
-        <button type="button" class="btn-danger" style="padding:2px 6px;" onclick="this.parentElement.remove()">移除</button>
+        <div style="display:inline-flex; gap:4px; align-items:center;">
+          <select class="disc-user" style="max-width:160px;" onchange="toggleDiscCustomInput(this)">${buyerOpts}</select>
+          <input type="text" class="disc-user-custom" placeholder="輸入暱稱/帳號" style="display:none; width:120px;">
+        </div>
+        <button type="button" class="btn-danger" style="padding:4px 8px; border-radius:4px;" onclick="this.parentElement.remove()">移除</button>
       `;
       discountContainer.appendChild(div);
     }
@@ -367,7 +398,6 @@
         });
       });
 
-      // 即時監聽 Firestore sellers 集合
       onSnapshot(collection(db, "sellers"), snap => {
         sellersList = [];
         snap.forEach(d => {
@@ -553,7 +583,7 @@
           const subHeaderTr = document.createElement('tr');
           subHeaderTr.style.background = '#f8f9fa';
           subHeaderTr.innerHTML = `
-            <th style="width: 22%;">每包規格</th>
+            <th style="width: 22%;">每單位規格</th>
             <th style="width: 15%;">已登記</th>
             <th style="width: 20%;">代拍名稱</th>
             <th style="width: 18%;">購入成本</th>
@@ -589,7 +619,7 @@
               realTotalRevenue += dCount * (Number(d.price) || 0);
               remainingPacks -= dCount;
               const targetStr = d.targetUser ? ` (${d.targetUser})` : '';
-              discountTextList.push(`折扣:${d.count}包($${d.price})${targetStr}`);
+              discountTextList.push(`折扣:${d.count}${d.unit||unitTag}($${d.price})${targetStr}`);
             }
           });
           if (remainingPacks > 0) {
@@ -752,17 +782,37 @@
         const packsCount = parseInt(document.getElementById('evPacksCount').value) || 0;
 
         const discCounts = document.querySelectorAll('.disc-count');
+        const discUnits = document.querySelectorAll('.disc-unit');
         const discPrices = document.querySelectorAll('.disc-price');
         const discUsers = document.querySelectorAll('.disc-user');
+        const discCustoms = document.querySelectorAll('.disc-user-custom');
+        
         let discounts = [];
-        discCounts.forEach((el, i) => {
-          const count = parseInt(el.value) || 0;
+        
+        for (let i = 0; i < discCounts.length; i++) {
+          const count = parseInt(discCounts[i].value) || 0;
           const p = parseFloat(discPrices[i].value) || 0;
-          const targetUser = discUsers[i] ? discUsers[i].value : '';
-          if (count > 0) {
-            discounts.push({ count, price: p, targetUser });
+          const dUnit = discUnits[i].value || unit;
+          
+          let targetUser = discUsers[i] ? discUsers[i].value : '';
+          
+          if (targetUser === 'CUSTOM' || targetUser === 'THREADS') {
+             targetUser = discCustoms[i].value.trim();
+             if (targetUser) {
+                const uType = discUsers[i].value === 'THREADS' ? 'threads' : 'custom';
+                await setDoc(doc(db, "users", `${group}_${targetUser}`), {
+                   group: group,
+                   name: targetUser,
+                   type: uType,
+                   updatedAt: new Date().toISOString()
+                }, { merge: true });
+             }
           }
-        });
+          
+          if (count > 0) {
+            discounts.push({ count, price: p, targetUser, unit: dUnit });
+          }
+        }
 
         const deposit = parseFloat(document.getElementById('evDeposit').value) || 0;
         const balance = parseFloat(document.getElementById('evBalance').value) || 0;
@@ -842,7 +892,7 @@
 
       discountContainer.innerHTML = '';
       if (ev.discounts && Array.isArray(ev.discounts)) {
-        ev.discounts.forEach(d => addDiscountRow(d.count, d.price, d.targetUser || ''));
+        ev.discounts.forEach(d => addDiscountRow(d.count, d.price, d.targetUser || '', d.unit || ''));
       }
 
       document.getElementById('evDeposit').value = ev.deposit !== undefined ? ev.deposit : '';
