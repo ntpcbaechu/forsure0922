@@ -72,7 +72,6 @@
       <button class="sub-tab-btn" onclick="switchSubTab('refund', this)">📤 申請退款</button>
     </div>
 
-    <!-- 儲值表單 -->
     <form id="depositForm" class="form-section active">
       <div class="form-grid-2rows">
         <div class="form-group">
@@ -122,7 +121,6 @@
       <div id="bankAccountDisplay" class="bank-account-tip"></div>
     </form>
 
-    <!-- 退款表單 -->
     <form id="refundForm" class="form-section">
       <div class="form-grid-2rows">
         <div class="form-group">
@@ -557,6 +555,9 @@
         renderCount++;
 
         let timelineEntries = [];
+        
+        let userAvailablePayments = allPayments.filter(p => (p.user === uName || p.buyerName === uName) && Number(p.depositUsed) > 0 && (p.status === 'ok' || p.status === 'photo_sent' || p.hasDeducted));
+        userAvailablePayments.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 
         creditItems.forEach(c => {
           const crAmt = Number(c.credit) || Number(c.amount) || 0;
@@ -598,7 +599,14 @@
               html: `<div class="item-group-row"><div class="item-group-header"><span>➕ ${dateStr ? dateStr + ' ' : ''}${d.note || '預存儲值入帳'}</span><b style="color:#67c23a;">+$${Number(d.amount).toLocaleString()}</b></div></div>`
             });
           } else {
-            const matchedPay = allPayments.find(p => (p.user === uName || p.buyerName === uName) && p.depositUsed > 0);
+            let matchedIdx = userAvailablePayments.findIndex(p => Number(p.depositUsed) === Number(d.amount));
+            if (matchedIdx === -1 && userAvailablePayments.length > 0) matchedIdx = 0;
+            let matchedPay = null;
+            if (matchedIdx !== -1) {
+              matchedPay = userAvailablePayments[matchedIdx];
+              userAvailablePayments.splice(matchedIdx, 1);
+            }
+
             let orderDetailsHtml = '';
             let orderCount = 0;
 
