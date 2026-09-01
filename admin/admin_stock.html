@@ -160,9 +160,12 @@
 
         <div class="form-group">
           <label>2. 選擇開團活動 *</label>
-          <select id="addEvent" required disabled>
-            <option value="">請先選擇團體</option>
-          </select>
+          <div style="display:flex; flex-direction:column; gap:4px;">
+            <select id="addEvent" required disabled>
+              <option value="">請先選擇團體</option>
+            </select>
+            <input type="text" id="addEventCustom" placeholder="請手動輸入自訂名稱" style="display:none; width:100%; box-sizing:border-box;">
+          </div>
         </div>
 
         <div class="form-group">
@@ -327,6 +330,7 @@
     const addMemSel = document.getElementById('addMember');
     const addPriceInput = document.getElementById('addPrice');
     const addSpecInput = document.getElementById('addSpec');
+    const addEventCustomInput = document.getElementById('addEventCustom');
 
     document.addEventListener('DOMContentLoaded', async () => {
       try {
@@ -369,12 +373,30 @@
       });
 
       addGrpSel.addEventListener('change', updateAddEventDropdown);
-      addEventSel.addEventListener('change', updateAddMemberDropdown);
+      
+      addEventSel.addEventListener('change', () => {
+        if (addEventSel.value === 'CUSTOM') {
+          addEventCustomInput.style.display = 'block';
+          addEventCustomInput.required = true;
+        } else {
+          addEventCustomInput.style.display = 'none';
+          addEventCustomInput.required = false;
+          addEventCustomInput.value = '';
+        }
+        updateAddMemberDropdown();
+      });
 
       addMemSel.addEventListener('change', () => {
         const grp = addGrpSel.value;
         const ev = addEventSel.value;
         const mem = addMemSel.value;
+        
+        if (ev === 'CUSTOM') {
+          addPriceInput.value = '';
+          addSpecInput.value = '1張';
+          return;
+        }
+
         const matched = eventSettings.find(s => s.group === grp && (s.name || s.rawName) === ev && s.member === mem);
         if (matched) {
           addPriceInput.value = Number(matched.actualPrice || matched.price || matched.unitPrice || 0);
@@ -450,10 +472,8 @@
       if (!confirmCancel) return;
 
       try {
-        // 1. 刪除 orders 訂單
         await deleteDoc(doc(db, "orders", orderId));
 
-        // 2. 找到對應 stock_photos 並加回庫存
         const cleanEv = rawEventName.replace('【餘圖認領】', '').trim();
         const stockDocId = `${grp}_${cleanEv}_${member}`.replace(/[\/\s#?]/g, '_');
         
@@ -478,6 +498,9 @@
       addEventSel.innerHTML = '<option value="">請選擇活動</option>';
       addMemSel.innerHTML = '<option value="">請先選擇活動</option>';
       addMemSel.disabled = true;
+      addEventCustomInput.style.display = 'none';
+      addEventCustomInput.required = false;
+      addEventCustomInput.value = '';
 
       if (!grp) {
         addEventSel.disabled = true;
@@ -493,6 +516,8 @@
       Array.from(eventsSet).sort().forEach(ev => {
         addEventSel.innerHTML += `<option value="${ev}">${ev}</option>`;
       });
+      
+      addEventSel.innerHTML += `<option value="CUSTOM">➕ 自訂舊活動 (手動輸入)...</option>`;
     }
 
     function updateAddMemberDropdown() {
@@ -506,13 +531,23 @@
       }
 
       addMemSel.disabled = false;
-      const members = eventSettings.filter(s => s.group === grp && (s.name || s.rawName) === ev).map(s => s.member).filter(Boolean);
-      const uniqueMems = Array.from(new Set(members));
+      let uniqueMems = [];
+
+      if (ev === 'CUSTOM') {
+        uniqueMems = memberMap[grp] || [];
+      } else {
+        const members = eventSettings.filter(s => s.group === grp && (s.name || s.rawName) === ev).map(s => s.member).filter(Boolean);
+        uniqueMems = Array.from(new Set(members));
+      }
 
       uniqueMems.forEach(m => {
         const emoji = MEMBER_EMOJI_MAP[m] ? `${MEMBER_EMOJI_MAP[m]} ` : '';
         addMemSel.innerHTML += `<option value="${m}">${emoji}${m}</option>`;
       });
+
+      if (ev === 'CUSTOM') {
+        addMemSel.innerHTML += `<option value="全體/無">👤 全體/無</option>`;
+      }
     }
 
     document.getElementById('addStockForm').addEventListener('submit', async (e) => {
@@ -522,7 +557,10 @@
       btn.textContent = '上架中...';
 
       const grp = addGrpSel.value;
-      const ev = addEventSel.value;
+      let ev = addEventSel.value;
+      if (ev === 'CUSTOM') {
+        ev = addEventCustomInput.value.trim();
+      }
       const mem = addMemSel.value;
       const spec = document.getElementById('addSpec').value.trim();
       const stockQty = Number(document.getElementById('addStockQty').value) || 0;
@@ -549,6 +587,8 @@
         document.getElementById('addStockForm').reset();
         addEventSel.disabled = true;
         addMemSel.disabled = true;
+        addEventCustomInput.style.display = 'none';
+        addEventCustomInput.required = false;
       } catch(err) {
         alert('上架失敗: ' + err.message);
       } finally {
@@ -811,7 +851,6 @@
       }
     };
 
-    // 批量認領彈窗邏輯
     const claimBatchModal = document.getElementById('claimBatchModal');
     const modalGrpSel = document.getElementById('modalGrpSelect');
     const modalBuyerSel = document.getElementById('modalBuyerSelect');
