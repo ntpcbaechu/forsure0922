@@ -122,7 +122,11 @@
           eventPricesMap[key] = {
             price: Number(data.actualPrice || data.price || data.estimatedPrice || data.unitPrice) || 0,
             packQty: Number(data.packQty) || 1,
-            discounts: data.discounts || []
+            discounts: data.discounts || [],
+            unit: data.unit || '包',
+            hasHalfPack: data.hasHalfPack === true,
+            halfPackQty: Number(data.halfPackQty) || 0,
+            halfPackPrice: Number(data.halfPackPrice) || 0
           };
         });
         renderOrdersTable();
@@ -149,21 +153,32 @@
       
       const pricePerPack = setting.price || Number(item.price) || 0;
       const packQty = setting.packQty || 1;
-      const qty = Number(item.quantity) || Number(item.qty) || 0;
-      const packs = (packQty > 0) ? Math.round(qty / packQty) : 1;
+      const rawQty = Number(item.quantity) || Number(item.qty) || 0;
 
-      let totalPrice = packs * pricePerPack;
+      let packs = 0;
+      let totalPrice = 0;
 
-      if (setting.discounts && Array.isArray(setting.discounts)) {
-        const userDisc = setting.discounts.find(d => !d.targetUser || d.targetUser === userName);
-        if (userDisc) {
-          const discCount = Math.min(packs, Number(userDisc.count) || 0);
-          const discPrice = Number(userDisc.price) || 0;
-          totalPrice = (discCount * discPrice) + ((packs - discCount) * pricePerPack);
-        }
+      const isHalfPackQty = setting.hasHalfPack && (rawQty === setting.halfPackQty);
+      const isAutoHalfPack = (!setting.hasHalfPack) && (packQty > 1) && (rawQty === Math.round(packQty / 2));
+
+      if (isHalfPackQty || isAutoHalfPack) {
+         packs = 0.5;
+         totalPrice = setting.hasHalfPack ? setting.halfPackPrice : (pricePerPack / 2);
+      } else {
+         packs = (packQty > 0) ? Math.floor(rawQty / packQty) : rawQty;
+         totalPrice = packs * pricePerPack;
+
+         if (setting.discounts && Array.isArray(setting.discounts)) {
+            const userDisc = setting.discounts.find(d => !d.targetUser || d.targetUser === userName);
+            if (userDisc) {
+              const discCount = Math.min(packs, Number(userDisc.count) || 0);
+              const discPrice = Number(userDisc.price) || 0;
+              totalPrice = (discCount * discPrice) + ((packs - discCount) * pricePerPack);
+            }
+         }
       }
 
-      return { pricePerPack, totalPrice, qty, packs };
+      return { pricePerPack, totalPrice, qty: rawQty, packs };
     }
 
     function renderGroupCapsules() {
@@ -351,9 +366,9 @@
         let uName = rawName.replace(/^[-\s]+/, '').trim();
         const ev = o.event || o.eventName || '-';
         const mem = o.member || '-';
-        const qty = o.qty !== undefined ? o.qty : (o.quantity || 1);
         
         const priceInfo = getItemPriceInfo(o);
+        const qty = priceInfo.qty;
         const amt = priceInfo.totalPrice;
 
         const payStatus = o.paymentStatus || o.status || '待匯款';
