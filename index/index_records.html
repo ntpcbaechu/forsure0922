@@ -203,7 +203,10 @@
             price: Number(data.actualPrice || data.price || data.estimatedPrice || data.unitPrice) || 0,
             packQty: Number(data.packQty) || 1,
             discounts: data.discounts || [],
-            unit: data.unit || '包'
+            unit: data.unit || '包',
+            hasHalfPack: data.hasHalfPack === true,
+            halfPackQty: Number(data.halfPackQty) || 0,
+            halfPackPrice: Number(data.halfPackPrice) || 0
           };
         });
         renderCapsulesAndRecords();
@@ -442,37 +445,38 @@
       const packQty = setting.packQty || 1;
       const rawQty = Number(item.quantity !== undefined ? item.quantity : (item.qty !== undefined ? item.qty : item.count)) || 0;
 
-      let packs = 1;
-      let totalCards = rawQty;
+      let packs = 0;
+      let totalPrice = 0;
 
-      if (packQty > 1) {
-        if (rawQty >= packQty && rawQty % packQty === 0) {
-          packs = Math.round(rawQty / packQty);
-          totalCards = rawQty;
-        } else {
-          packs = rawQty;
-          totalCards = packs * packQty;
-        }
+      const isHalfPackQty = setting.hasHalfPack && (rawQty === setting.halfPackQty);
+      const isAutoHalfPack = (!setting.hasHalfPack) && (packQty > 1) && (rawQty === Math.round(packQty / 2));
+
+      if (isHalfPackQty || isAutoHalfPack) {
+         packs = 0.5;
+         totalPrice = setting.hasHalfPack ? setting.halfPackPrice : (pricePerPack / 2);
       } else {
-        packs = rawQty;
-        totalCards = rawQty;
-      }
+         packs = (packQty > 0) ? Math.floor(rawQty / packQty) : rawQty;
+         totalPrice = packs * pricePerPack;
 
-      let totalPrice = packs * pricePerPack;
-
-      if (setting.discounts && Array.isArray(setting.discounts)) {
-        const userDisc = setting.discounts.find(d => !d.targetUser || d.targetUser === userName);
-        if (userDisc) {
-          const discCount = Math.min(packs, Number(userDisc.count) || 0);
-          const discPrice = Number(userDisc.price) || 0;
-          totalPrice = (discCount * discPrice) + ((packs - discCount) * pricePerPack);
-        }
+         if (setting.discounts && Array.isArray(setting.discounts)) {
+            const userDisc = setting.discounts.find(d => !d.targetUser || d.targetUser === userName);
+            if (userDisc) {
+              const discCount = Math.min(packs, Number(userDisc.count) || 0);
+              const discPrice = Number(userDisc.price) || 0;
+              totalPrice = (discCount * discPrice) + ((packs - discCount) * pricePerPack);
+            }
+          }
       }
 
       const unitTag = setting.unit || '包';
-      const qtyText = (packQty > 1) ? `${packs}${unitTag} (${totalCards}張)` : `${totalCards}張`;
+      let qtyText = '';
+      if (packs === 0.5) {
+         qtyText = `0.5 ${unitTag} (${rawQty}張)`;
+      } else {
+         qtyText = (packQty > 1) ? `${packs} ${unitTag} (${rawQty}張)` : `${rawQty}張`;
+      }
 
-      return { totalPrice, qtyText };
+      return { totalPrice, qtyText, packs };
     }
 
     function getPaymentPhotoBadge(ord) {
@@ -715,7 +719,7 @@
 
       let gridHtml = '<div id="recordsListGrid">';
       for (const [title, list] of Object.entries(groups)) {
-        const totalPacks = list.reduce((sum, item) => sum + (Number(item.quantity) || Number(item.qty) || 1), 0);
+        const totalPacks = list.reduce((sum, item) => sum + getItemPriceAndUnit(item).packs, 0);
         const sampleKey = `${list[0].group || 'Stray Kids'}_${(list[0].event || list[0].eventName || '').trim()}_${(list[0].member || '').trim()}`;
         const sampleSetting = eventSettingsMap[sampleKey] || {};
         const groupUnitLabel = sampleSetting.unit || '包';
