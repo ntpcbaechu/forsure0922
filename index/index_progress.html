@@ -415,7 +415,7 @@
         const memberMapObj = {};
         items.forEach(item => {
           const m = item.member || '全體';
-          const key = eventName === 'SURPLUS_STOCK' ? `${m}___${item.eventName || item.event}` : m;
+          const key = m;
           if (!memberMapObj[key]) memberMapObj[key] = [];
           memberMapObj[key].push(item);
         });
@@ -424,106 +424,144 @@
 
         Object.keys(memberMapObj).forEach(mKey => {
           const mItems = memberMapObj[mKey];
-          const mName = mItems[0].member || '全體';
-          const realEventName = mItems[0].eventName || mItems[0].event || '';
-          const st = mItems[0].status || '未開放';
-          const isHiddenByAdmin = mItems.some(i => i.isHideBuyers === true);
-          const isFinishedOrStock = (st === '可詢問餘圖' || st === '已發圖');
+          const mName = mKey;
+          const memEmoji = MEMBER_EMOJI_MAP[mName] || '👤';
 
-          const matchedBuyerOrders = [];
-          Object.values(ordersCache).forEach(ord => {
-            const ordGrp = ord.group || 'Stray Kids';
-            if (ordGrp === grpName && (ord.event || ord.eventName) === realEventName && ord.member === mName) {
-              const bName = ord.buyerName || ord.user || ord.nickname;
-              if (bName) {
-                if (activeUser === 'ALL' || bName === activeUser) {
-                  matchedBuyerOrders.push(ord);
-                }
-              }
-            }
-          });
+          let memberInnerHtml = '';
+          let hasVisibleEvents = false;
 
-          if (activeUser !== 'ALL' && matchedBuyerOrders.length === 0) return;
+          mItems.forEach((item, idx) => {
+            const realEventName = item.eventName || item.event || '';
+            const st = item.status || '未開放';
+            const isHiddenByAdmin = item.isHideBuyers === true;
+            const isFinishedOrStock = (st === '可詢問餘圖' || st === '已發圖');
 
-          matchedBuyerOrders.sort((a, b) => {
-            const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-            const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-            return timeA - timeB;
-          });
-
-          const uniqueBuyersInOrder = [];
-          const buyerSeenSet = new Set();
-          matchedBuyerOrders.forEach(ord => {
-            const bName = ord.buyerName || ord.user || ord.nickname;
-            if (bName && !buyerSeenSet.has(bName)) {
-              buyerSeenSet.add(bName);
-              uniqueBuyersInOrder.push(bName);
-            }
-          });
-
-          let buyersHtml = '';
-          if (!isHiddenByAdmin || activeUser !== 'ALL') {
-            uniqueBuyersInOrder.forEach(bName => {
-              let payStatusText = '🚨 待匯款', payBadgeClass = 'status-waiting';
-              let photoStatusText = '📷 待發圖', photoBadgeClass = 'status-photo-wait';
-              let isPaidDone = false;
-              let isPhotoSentDone = false;
-
-              Object.values(ordersCache).forEach(ord => {
-                const b = ord.buyerName || ord.user || ord.nickname;
-                if (b === bName && (ord.event || ord.eventName) === realEventName && ord.member === mName) {
-                  const paySt = ord.paymentStatus || ord.status || (ord.hasPaid ? '已對帳' : '待匯款');
-                  if (paySt === '已對帳' || ord.hasPaid) { payStatusText = '⚪ 已對帳'; payBadgeClass = 'status-paid-done'; isPaidDone = true; }
-                  else if (paySt === '待對帳' || paySt === '對帳中') { payStatusText = '⏳ 待對帳'; payBadgeClass = 'status-checking'; }
-                  else if (paySt === '對帳有問題' || paySt === '有問題') { payStatusText = '⚠️ 帳有問題'; payBadgeClass = 'status-issue'; }
-
-                  if (ord.isPhotoSent === true || ord.status === '已發圖') { 
-                    photoStatusText = '⚪ 已發圖'; 
-                    photoBadgeClass = 'status-photo-sent'; 
-                    isPhotoSentDone = true; 
+            const matchedBuyerOrders = [];
+            Object.values(ordersCache).forEach(ord => {
+              const ordGrp = ord.group || 'Stray Kids';
+              if (ordGrp === grpName && (ord.event || ord.eventName) === realEventName && ord.member === mName) {
+                const bName = ord.buyerName || ord.user || ord.nickname;
+                if (bName) {
+                  if (activeUser === 'ALL' || bName === activeUser) {
+                    matchedBuyerOrders.push(ord);
                   }
                 }
-              });
-
-              if (activeUser === 'ALL' && isFinishedOrStock && isPaidDone && isPhotoSentDone) {
-                return;
               }
+            });
 
-              buyersHtml += `
-                <div class="buyer-row">
-                  <span>- ${formatDisplayName(bName)}</span>
-                  <div class="buyer-status-group">
-                    <span class="status-badge ${payBadgeClass}">${payStatusText}</span>
-                    <span class="status-badge ${photoBadgeClass}">${photoStatusText}</span>
+            if (activeUser !== 'ALL' && matchedBuyerOrders.length === 0) return;
+
+            matchedBuyerOrders.sort((a, b) => {
+              const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+              const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+              return timeA - timeB;
+            });
+
+            const uniqueBuyersInOrder = [];
+            const buyerSeenSet = new Set();
+            matchedBuyerOrders.forEach(ord => {
+              const bName = ord.buyerName || ord.user || ord.nickname;
+              if (bName && !buyerSeenSet.has(bName)) {
+                buyerSeenSet.add(bName);
+                uniqueBuyersInOrder.push(bName);
+              }
+            });
+
+            let buyersHtml = '';
+            if (!isHiddenByAdmin || activeUser !== 'ALL') {
+              uniqueBuyersInOrder.forEach(bName => {
+                let payStatusText = '🚨 待匯款', payBadgeClass = 'status-waiting';
+                let photoStatusText = '📷 待發圖', photoBadgeClass = 'status-photo-wait';
+                let isPaidDone = false;
+                let isPhotoSentDone = false;
+
+                Object.values(ordersCache).forEach(ord => {
+                  const b = ord.buyerName || ord.user || ord.nickname;
+                  if (b === bName && (ord.event || ord.eventName) === realEventName && ord.member === mName) {
+                    const paySt = ord.paymentStatus || ord.status || (ord.hasPaid ? '已對帳' : '待匯款');
+                    if (paySt === '已對帳' || ord.hasPaid) { payStatusText = '⚪ 已對帳'; payBadgeClass = 'status-paid-done'; isPaidDone = true; }
+                    else if (paySt === '待對帳' || paySt === '對帳中') { payStatusText = '⏳ 待對帳'; payBadgeClass = 'status-checking'; }
+                    else if (paySt === '對帳有問題' || paySt === '有問題') { payStatusText = '⚠️ 帳有問題'; payBadgeClass = 'status-issue'; }
+
+                    if (ord.isPhotoSent === true || ord.status === '已發圖') { 
+                      photoStatusText = '⚪ 已發圖'; 
+                      photoBadgeClass = 'status-photo-sent'; 
+                      isPhotoSentDone = true; 
+                    }
+                  }
+                });
+
+                if (activeUser === 'ALL' && isFinishedOrStock && isPaidDone && isPhotoSentDone) {
+                  return;
+                }
+
+                buyersHtml += `
+                  <div class="buyer-row" style="${eventName === 'SURPLUS_STOCK' ? 'padding-left: 8px;' : ''}">
+                    <span>- ${formatDisplayName(bName)}</span>
+                    <div class="buyer-status-group">
+                      <span class="status-badge ${payBadgeClass}">${payStatusText}</span>
+                      <span class="status-badge ${photoBadgeClass}">${photoStatusText}</span>
+                    </div>
                   </div>
+                `;
+              });
+            }
+
+            let badgeClass = 'status-st-unopened';
+            if (st === '可詢問餘圖') badgeClass = 'status-stock-open';
+            else if (['已通知匯款', '整理中', '修圖中', '上傳中'].includes(st)) badgeClass = 'status-sorting';
+            else if (['已完工', '已發圖', '已結束', '已預約'].includes(st)) badgeClass = 'status-done';
+
+            hasVisibleEvents = true;
+
+            if (eventName === 'SURPLUS_STOCK') {
+              const cleanEv = realEventName.replace('【餘圖認領】', '').trim();
+              memberInnerHtml += `
+                <div style="${idx > 0 ? 'margin-top: 8px; padding-top: 8px; border-top: 1px dashed #ebeef5;' : ''}">
+                  <div class="member-header-row" style="margin-bottom: 4px;">
+                    <span style="font-size:13px; font-weight:normal; color:#606266;">🔸 ${cleanEv}</span>
+                    <span class="status-badge ${badgeClass}">${st}</span>
+                  </div>
+                  ${buyersHtml}
                 </div>
               `;
-            });
-          }
+            } else {
+              memberInnerHtml += buyersHtml;
+            }
+          });
 
-          let badgeClass = 'status-st-unopened';
-          if (st === '可詢問餘圖') badgeClass = 'status-stock-open';
-          else if (['已通知匯款', '整理中', '修圖中', '上傳中'].includes(st)) badgeClass = 'status-sorting';
-          else if (['已完工', '已發圖', '已結束', '已預約'].includes(st)) badgeClass = 'status-done';
+          if (!hasVisibleEvents) return;
 
-          const memEmoji = MEMBER_EMOJI_MAP[mName] || '👤';
-          let titleHtml = `<span>${memEmoji} ${mName}</span>`;
           if (eventName === 'SURPLUS_STOCK') {
-            const cleanEv = realEventName.replace('【餘圖認領】', '').trim();
-            titleHtml = `<span>${memEmoji} ${mName} <span style="font-size:12px; font-weight:normal; color:#909399;">(${cleanEv})</span></span>`;
-          }
-
-          membersHtml += `
-            <div class="member-block">
-              <div class="member-box-card">
-                <div class="member-header-row">
-                  ${titleHtml}
-                  <span class="status-badge ${badgeClass}">${st}</span>
+            membersHtml += `
+              <div class="member-block">
+                <div class="member-box-card">
+                  <div class="member-header-row" style="border-bottom: 2px solid #dcdfe6; padding-bottom: 6px; margin-bottom: 4px;">
+                    <span>${memEmoji} ${mName}</span>
+                  </div>
+                  ${memberInnerHtml}
                 </div>
               </div>
-              ${buyersHtml}
-            </div>
-          `;
+            `;
+          } else {
+            const st = mItems[0].status || '未開放';
+            let badgeClass = 'status-st-unopened';
+            if (st === '可詢問餘圖') badgeClass = 'status-stock-open';
+            else if (['已通知匯款', '整理中', '修圖中', '上傳中'].includes(st)) badgeClass = 'status-sorting';
+            else if (['已完工', '已發圖', '已結束', '已預約'].includes(st)) badgeClass = 'status-done';
+
+            membersHtml += `
+              <div class="member-block">
+                <div class="member-box-card">
+                  <div class="member-header-row">
+                    <span>${memEmoji} ${mName}</span>
+                    <span class="status-badge ${badgeClass}">${st}</span>
+                  </div>
+                  ${memberInnerHtml}
+                </div>
+              </div>
+            `;
+          }
         });
 
         if (membersHtml) {
