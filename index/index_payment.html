@@ -363,11 +363,12 @@
           const actPrice = Number(data.actualPrice) || 0;
           const packQty = Number(data.packQty) || 1;
           const discounts = data.discounts || [];
+          const unit = data.unit || '包';
 
           if (evName) {
-            eventSettingsMap[`${evName}_${mem}`] = { estPrice, actPrice, packQty, discounts };
+            eventSettingsMap[`${evName}_${mem}`] = { estPrice, actPrice, packQty, discounts, unit };
             if (data.rawName) {
-              eventSettingsMap[`${data.rawName.trim()}_${mem}`] = { estPrice, actPrice, packQty, discounts };
+              eventSettingsMap[`${data.rawName.trim()}_${mem}`] = { estPrice, actPrice, packQty, discounts, unit };
             }
           }
         });
@@ -724,6 +725,7 @@
         }
 
         const calculatedEstPrice = Math.round(packsCount * estPrice);
+        const unitTag = setting.unit || '包';
 
         let priceHtml = `<span class="price-final">$${calculatedFinalPrice}</span>`;
         if (!isSurplus && actPrice > 0 && estPrice > 0 && calculatedFinalPrice !== calculatedEstPrice) {
@@ -737,7 +739,7 @@
           <div class="order-item">
             <div class="order-left">
               <input type="checkbox" class="order-chk" value="${ord.id}" data-price="${calculatedFinalPrice}">
-              <span>📌 ${ordEvent || '未命名活動'} (${memEmoji}${ordMember || '全體'}) - ${qty} 包</span>
+              <span>📌 ${ordEvent || '未命名活動'} (${memEmoji}${ordMember || '全體'}) - ${packsCount} ${unitTag} (${qty}張)</span>
             </div>
             <div class="price-box">${priceHtml}</div>
           </div>
@@ -850,6 +852,7 @@
           }
 
           const calculatedEstPrice = Math.round(packsCount * estPrice);
+          const unitTag = setting.unit || '包';
 
           let priceHtml = `<span class="price-final">$${calculatedFinalPrice}</span>`;
           if (!isSurplus && actPrice > 0 && estPrice > 0 && calculatedFinalPrice !== calculatedEstPrice) {
@@ -863,7 +866,7 @@
             <div class="order-item">
               <div class="order-left">
                 <input type="checkbox" class="order-chk" value="${ord.id}" data-price="${calculatedFinalPrice}">
-                <span>📌 ${ordEvent || '未命名活動'} (${memEmoji}${ordMember || '全體'}) - ${qty} 張</span>
+                <span>📌 ${ordEvent || '未命名活動'} (${memEmoji}${ordMember || '全體'}) - ${packsCount} ${unitTag} (${qty}張)</span>
               </div>
               <div class="price-box">${priceHtml}</div>
             </div>
