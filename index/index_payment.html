@@ -364,11 +364,14 @@
           const packQty = Number(data.packQty) || 1;
           const discounts = data.discounts || [];
           const unit = data.unit || '包';
+          const hasHalfPack = data.hasHalfPack === true;
+          const halfPackQty = Number(data.halfPackQty) || 0;
+          const halfPackPrice = Number(data.halfPackPrice) || 0;
 
           if (evName) {
-            eventSettingsMap[`${evName}_${mem}`] = { estPrice, actPrice, packQty, discounts, unit };
+            eventSettingsMap[`${evName}_${mem}`] = { estPrice, actPrice, packQty, discounts, unit, hasHalfPack, halfPackQty, halfPackPrice };
             if (data.rawName) {
-              eventSettingsMap[`${data.rawName.trim()}_${mem}`] = { estPrice, actPrice, packQty, discounts, unit };
+              eventSettingsMap[`${data.rawName.trim()}_${mem}`] = { estPrice, actPrice, packQty, discounts, unit, hasHalfPack, halfPackQty, halfPackPrice };
             }
           }
         });
@@ -693,7 +696,7 @@
       ordersBox.innerHTML = '';
 
       sortedOrders.forEach(ord => {
-        const qty = Number(ord.quantity !== undefined ? ord.quantity : (ord.qty !== undefined ? ord.qty : ord.count)) || 1;
+        const rawQty = Number(ord.quantity !== undefined ? ord.quantity : (ord.qty !== undefined ? ord.qty : ord.count)) || 1;
         const ordEvent = (ord.event || ord.fullEvent || ord.eventName || '').trim();
         const ordMember = (ord.member || '').trim();
         const memEmoji = MEMBER_EMOJI_MAP[ordMember] ? `${MEMBER_EMOJI_MAP[ordMember]} ` : '';
@@ -701,31 +704,42 @@
 
         const setting = eventSettingsMap[`${ordEvent}_${ordMember}`] || {};
         const packQty = isSurplus ? 1 : (setting.packQty || 1);
-        const packsCount = Math.round(qty / packQty);
-
+        
         const estPrice = setting.estPrice || 0;
         const actPrice = setting.actPrice || 0;
-
         let baseUnitPrice = (actPrice > 0) ? actPrice : estPrice;
         if (baseUnitPrice === 0 || isSurplus) {
           baseUnitPrice = Number(ord.price) || Number(ord.unitPrice) || 0;
         }
 
-        let calculatedFinalPrice = packsCount * baseUnitPrice;
-        if (!isSurplus) {
-          const discounts = setting.discounts || [];
-          if (Array.isArray(discounts)) {
-            const userDisc = discounts.find(d => d.targetUser === buyer);
-            if (userDisc) {
-              const discCount = Math.min(packsCount, Number(userDisc.count) || 0);
-              const discPrice = Number(userDisc.price) || 0;
-              calculatedFinalPrice = (discCount * discPrice) + ((packsCount - discCount) * baseUnitPrice);
+        let calculatedFinalPrice = 0;
+        let packsCountDisplay = '';
+        const unitTag = setting.unit || '包';
+
+        const isHalfPackQty = setting.hasHalfPack && (rawQty === setting.halfPackQty);
+        const isAutoHalfPack = (!setting.hasHalfPack) && (packQty > 1) && (rawQty === Math.round(packQty / 2));
+
+        if (isHalfPackQty || isAutoHalfPack) {
+          calculatedFinalPrice = setting.hasHalfPack ? setting.halfPackPrice : (baseUnitPrice / 2);
+          packsCountDisplay = `0.5 ${unitTag} (${rawQty}張)`;
+        } else {
+          const packs = (packQty > 0) ? Math.floor(rawQty / packQty) : rawQty;
+          calculatedFinalPrice = packs * baseUnitPrice;
+          if (!isSurplus) {
+            const discounts = setting.discounts || [];
+            if (Array.isArray(discounts)) {
+              const userDisc = discounts.find(d => d.targetUser === buyer);
+              if (userDisc) {
+                const discCount = Math.min(packs, Number(userDisc.count) || 0);
+                const discPrice = Number(userDisc.price) || 0;
+                calculatedFinalPrice = (discCount * discPrice) + ((packs - discCount) * baseUnitPrice);
+              }
             }
           }
+          packsCountDisplay = (packQty > 1) ? `${packs} ${unitTag} (${rawQty}張)` : `${rawQty}張`;
         }
 
-        const calculatedEstPrice = Math.round(packsCount * estPrice);
-        const unitTag = setting.unit || '包';
+        const calculatedEstPrice = Math.round(calculatedFinalPrice);
 
         let priceHtml = `<span class="price-final">$${calculatedFinalPrice}</span>`;
         if (!isSurplus && actPrice > 0 && estPrice > 0 && calculatedFinalPrice !== calculatedEstPrice) {
@@ -739,7 +753,7 @@
           <div class="order-item">
             <div class="order-left">
               <input type="checkbox" class="order-chk" value="${ord.id}" data-price="${calculatedFinalPrice}">
-              <span>📌 ${ordEvent || '未命名活動'} (${memEmoji}${ordMember || '全體'}) - ${packsCount} ${unitTag} (${qty}張)</span>
+              <span>📌 ${ordEvent || '未命名活動'} (${memEmoji}${ordMember || '全體'}) - ${packsCountDisplay}</span>
             </div>
             <div class="price-box">${priceHtml}</div>
           </div>
@@ -820,7 +834,7 @@
         ordersBox.innerHTML = '';
 
         sortedOrders.forEach(ord => {
-          const qty = Number(ord.quantity !== undefined ? ord.quantity : (ord.qty !== undefined ? ord.qty : ord.count)) || 1;
+          const rawQty = Number(ord.quantity !== undefined ? ord.quantity : (ord.qty !== undefined ? ord.qty : ord.count)) || 1;
           const ordEvent = (ord.event || ord.fullEvent || ord.eventName || '').trim();
           const ordMember = (ord.member || '').trim();
           const memEmoji = MEMBER_EMOJI_MAP[ordMember] ? `${MEMBER_EMOJI_MAP[ordMember]} ` : '';
@@ -828,31 +842,42 @@
 
           const setting = eventSettingsMap[`${ordEvent}_${ordMember}`] || {};
           const packQty = isSurplus ? 1 : (setting.packQty || 1);
-          const packsCount = Math.round(qty / packQty);
 
           const estPrice = setting.estPrice || 0;
           const actPrice = setting.actPrice || 0;
-
           let baseUnitPrice = (actPrice > 0) ? actPrice : estPrice;
           if (baseUnitPrice === 0 || isSurplus) {
             baseUnitPrice = Number(ord.price) || Number(ord.unitPrice) || 0;
           }
 
-          let calculatedFinalPrice = packsCount * baseUnitPrice;
-          if (!isSurplus) {
-            const discounts = setting.discounts || [];
-            if (Array.isArray(discounts)) {
-              const userDisc = discounts.find(d => d.targetUser === block.buyer);
-              if (userDisc) {
-                const discCount = Math.min(packsCount, Number(userDisc.count) || 0);
-                const discPrice = Number(userDisc.price) || 0;
-                calculatedFinalPrice = (discCount * discPrice) + ((packsCount - discCount) * baseUnitPrice);
+          let calculatedFinalPrice = 0;
+          let packsCountDisplay = '';
+          const unitTag = setting.unit || '包';
+
+          const isHalfPackQty = setting.hasHalfPack && (rawQty === setting.halfPackQty);
+          const isAutoHalfPack = (!setting.hasHalfPack) && (packQty > 1) && (rawQty === Math.round(packQty / 2));
+
+          if (isHalfPackQty || isAutoHalfPack) {
+            calculatedFinalPrice = setting.hasHalfPack ? setting.halfPackPrice : (baseUnitPrice / 2);
+            packsCountDisplay = `0.5 ${unitTag} (${rawQty}張)`;
+          } else {
+            const packs = (packQty > 0) ? Math.floor(rawQty / packQty) : rawQty;
+            calculatedFinalPrice = packs * baseUnitPrice;
+            if (!isSurplus) {
+              const discounts = setting.discounts || [];
+              if (Array.isArray(discounts)) {
+                const userDisc = discounts.find(d => d.targetUser === block.buyer);
+                if (userDisc) {
+                  const discCount = Math.min(packs, Number(userDisc.count) || 0);
+                  const discPrice = Number(userDisc.price) || 0;
+                  calculatedFinalPrice = (discCount * discPrice) + ((packs - discCount) * baseUnitPrice);
+                }
               }
             }
+            packsCountDisplay = (packQty > 1) ? `${packs} ${unitTag} (${rawQty}張)` : `${rawQty}張`;
           }
 
-          const calculatedEstPrice = Math.round(packsCount * estPrice);
-          const unitTag = setting.unit || '包';
+          const calculatedEstPrice = Math.round(calculatedFinalPrice);
 
           let priceHtml = `<span class="price-final">$${calculatedFinalPrice}</span>`;
           if (!isSurplus && actPrice > 0 && estPrice > 0 && calculatedFinalPrice !== calculatedEstPrice) {
@@ -866,7 +891,7 @@
             <div class="order-item">
               <div class="order-left">
                 <input type="checkbox" class="order-chk" value="${ord.id}" data-price="${calculatedFinalPrice}">
-                <span>📌 ${ordEvent || '未命名活動'} (${memEmoji}${ordMember || '全體'}) - ${packsCount} ${unitTag} (${qty}張)</span>
+                <span>📌 ${ordEvent || '未命名活動'} (${memEmoji}${ordMember || '全體'}) - ${packsCountDisplay}</span>
               </div>
               <div class="price-box">${priceHtml}</div>
             </div>
