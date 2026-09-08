@@ -20,6 +20,7 @@
     .form-row { display: grid; gap: 10px; align-items: end; }
     .row-5 { grid-template-columns: 1fr 1.2fr 1fr 1fr 1.2fr; }
     .row-pack-spec { grid-template-columns: 1fr 1fr 1fr 1fr 1fr auto; }
+    .row-half-pack { display: flex; align-items: center; gap: 12px; background: #fff; padding: 8px 12px; border: 1px solid #dcdfe6; border-radius: 6px; margin-top: 4px; }
     .row-cost-act { grid-template-columns: 1fr 1fr 1.2fr 1fr 1fr auto; }
     .row-discount { display: flex; align-items: center; gap: 8px; margin-top: 4px; flex-wrap: wrap; }
     .form-divider { border-top: 1px dashed #dcdfe6; margin: 2px 0; }
@@ -112,6 +113,25 @@
           <button type="button" id="addDiscountBtn" style="background:#67c23a; font-size:12px; padding:7px 10px;">+ 新增折扣</button>
         </div>
       </div>
+
+      <!-- 半包設定區塊 -->
+      <div class="row-half-pack">
+        <label style="font-size:13px; font-weight:bold; color:#e6a23c; display:flex; align-items:center; gap:6px; cursor:pointer; margin:0;">
+          <input type="checkbox" id="evHasHalfPack" style="width:16px; height:16px; margin:0;" onchange="document.getElementById('halfPackInputs').style.display = this.checked ? 'flex' : 'none';">
+          啟用半包設定
+        </label>
+        <div id="halfPackInputs" style="display:none; gap:10px; align-items:center;">
+          <div style="display:flex; align-items:center; gap:6px;">
+            <span style="font-size:12px;">數量(張)</span>
+            <input type="number" id="evHalfPackQty" placeholder="例: 25" style="width:80px;">
+          </div>
+          <div style="display:flex; align-items:center; gap:6px;">
+            <span style="font-size:12px;">單價($)</span>
+            <input type="number" id="evHalfPackPrice" placeholder="例: 350" style="width:80px;">
+          </div>
+        </div>
+      </div>
+
       <div id="discountContainer"></div>
     </div>
 
@@ -662,6 +682,9 @@
               if (actP > 0 && estP > 0 && actP < estP) {
                 priceDisplayHtml = `<span style="text-decoration:line-through; color:#909399; font-size:11px; margin-right:4px;">$${estP}</span><span style="color:#f56c6c; font-weight:bold;">$${actP}</span>/${unitTag}`;
               }
+              if (sampleEv.hasHalfPack) {
+                priceDisplayHtml += ` <span style="font-size:11px; color:#e6a23c; border:1px solid #f3d19e; background:#fdf6ec; padding:1px 4px; border-radius:4px; margin-left:4px; display:inline-block; margin-top:2px;">半包: ${sampleEv.halfPackQty}張/$${sampleEv.halfPackPrice}</span>`;
+              }
 
               mergedCellsHtml = `
                 <td rowspan="${groupRowCount}" style="vertical-align:middle;">
@@ -781,6 +804,10 @@
 
         const packsCount = parseInt(document.getElementById('evPacksCount').value) || 0;
 
+        const hasHalfPack = document.getElementById('evHasHalfPack').checked;
+        const halfPackQty = parseInt(document.getElementById('evHalfPackQty').value) || 0;
+        const halfPackPrice = parseFloat(document.getElementById('evHalfPackPrice').value) || 0;
+
         const discCounts = document.querySelectorAll('.disc-count');
         const discUnits = document.querySelectorAll('.disc-unit');
         const discPrices = document.querySelectorAll('.disc-price');
@@ -831,7 +858,8 @@
 
         await setDoc(doc(db, "event_settings", docId), {
           name: fullName, rawDate: evDate, rawName: evNameRaw, group, member, seller, bigNote,
-          unit, packQty, estimatedPrice, actualPrice, price, packsCount, discounts, deposit, balance, cost, actPhoto, actVideo, actQty, isClosed
+          unit, packQty, estimatedPrice, actualPrice, price, packsCount, discounts, deposit, balance, cost, actPhoto, actVideo, actQty, isClosed,
+          hasHalfPack, halfPackQty, halfPackPrice
         });
 
         alert('✅ 活動設定與金額已成功更新！');
@@ -852,6 +880,8 @@
       document.getElementById('evMember').innerHTML = '<option value="">請先選擇團體</option>';
       document.getElementById('evMember').disabled = true;
       document.getElementById('evIsClosed').checked = false;
+      document.getElementById('evHasHalfPack').checked = false;
+      document.getElementById('halfPackInputs').style.display = 'none';
       populateSellerOptions();
       document.getElementById('cancelEditBtn').style.display = 'none';
       document.getElementById('saveEventBtn').textContent = '儲存活動設定';
@@ -889,6 +919,12 @@
       document.getElementById('evEstimatedPrice').value = ev.estimatedPrice !== undefined ? ev.estimatedPrice : (ev.price || '');
       document.getElementById('evActualPrice').value = ev.actualPrice !== undefined ? ev.actualPrice : '';
       document.getElementById('evPacksCount').value = ev.packsCount !== undefined ? ev.packsCount : '';
+
+      const hasHalf = (ev.hasHalfPack === true);
+      document.getElementById('evHasHalfPack').checked = hasHalf;
+      document.getElementById('halfPackInputs').style.display = hasHalf ? 'flex' : 'none';
+      document.getElementById('evHalfPackQty').value = ev.halfPackQty !== undefined ? ev.halfPackQty : '';
+      document.getElementById('evHalfPackPrice').value = ev.halfPackPrice !== undefined ? ev.halfPackPrice : '';
 
       discountContainer.innerHTML = '';
       if (ev.discounts && Array.isArray(ev.discounts)) {
