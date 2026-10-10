@@ -568,7 +568,7 @@
       const status = document.getElementById('addStatus').value;
       const note = document.getElementById('addNote').value.trim();
 
-      const docId = `${grp}_${ev}_${mem}`.replace(/[\/\s#?]/g, '_');
+      const docId = `${grp}_${ev}_${mem}_${Date.now()}`.replace(/[\/\s#?]/g, '_');
 
       try {
         await setDoc(doc(db, "stock_photos", docId), {
@@ -1058,7 +1058,8 @@
           member: opt.getAttribute('data-member'),
           price: Number(opt.getAttribute('data-price')) || 0,
           maxStock: max,
-          claimQty: qty
+          claimQty: qty,
+          spec: opt.getAttribute('data-spec') || ''
         });
       }
 
@@ -1092,6 +1093,7 @@
             quantity: item.claimQty,
             price: item.price,
             orderType: '餘圖認領',
+            spec: item.spec,
             note: customNote,
             createdAt: new Date().toISOString(),
             paymentStatus: '待匯款',
