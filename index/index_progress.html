@@ -47,6 +47,13 @@
     
     .status-paid-done { background: #f4f4f5; color: #606266; border: 1px solid #dcdfe6; }
     .status-photo-sent{ background: #f4f4f5; color: #606266; border: 1px solid #dcdfe6; }
+
+    /* 餘圖專屬雙欄排版 (佔兩格，內部直排 4+4) */
+    @media (min-width: 768px) {
+      .surplus-card { grid-column: span 2; }
+      .surplus-card .progress-list-box { display: block; column-count: 2; column-gap: 16px; }
+      .surplus-card .member-block { break-inside: avoid; display: inline-block; width: 100%; border-bottom: none; padding-bottom: 0; margin-bottom: 12px; }
+    }
   </style>
 </head>
 <body>
@@ -569,9 +576,10 @@
           const headerClass = isAteez ? 'event-group-header header-ateez' : 'event-group-header';
           const displayEventName = eventName === 'SURPLUS_STOCK' ? '🛒 餘圖認領進度總覽' : eventName;
           const displayIcon = eventName === 'SURPLUS_STOCK' ? '📦' : '📅';
+          const cardClass = eventName === 'SURPLUS_STOCK' ? 'event-group-card surplus-card' : 'event-group-card';
 
           htmlContent += `
-            <div class="event-group-card">
+            <div class="${cardClass}">
               <div class="${headerClass}">${displayIcon} [${grpName}] ${displayEventName}</div>
               <div class="progress-list-box">${membersHtml}</div>
             </div>
