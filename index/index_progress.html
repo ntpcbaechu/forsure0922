@@ -48,16 +48,11 @@
     .status-paid-done { background: #f4f4f5; color: #606266; border: 1px solid #dcdfe6; }
     .status-photo-sent{ background: #f4f4f5; color: #606266; border: 1px solid #dcdfe6; }
 
-    /* 餘圖專屬網格排版 (佔兩格，內部依數量動態分欄) */
+    /* 餘圖專屬雙欄排版 (佔兩格，內部直排 4+4) */
     @media (min-width: 768px) {
       .surplus-card { grid-column: span 2; }
-      .surplus-card .progress-list-box { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-      .surplus-card .member-block { border-bottom: none; padding-bottom: 0; margin-bottom: 0; align-self: start; }
-      .surplus-card .wide-member-block { grid-column: span 2; }
-      .wide-inner-container { display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; align-items: start; }
-    }
-    @media (max-width: 767px) {
-      .wide-inner-container { display: flex; flex-direction: column; }
+      .surplus-card .progress-list-box { display: block; column-count: 2; column-gap: 16px; }
+      .surplus-card .member-block { break-inside: avoid; display: inline-block; width: 100%; border-bottom: none; padding-bottom: 0; margin-bottom: 12px; }
     }
   </style>
 </head>
@@ -545,17 +540,13 @@
           if (!hasVisibleEvents) return;
 
           if (eventName === 'SURPLUS_STOCK') {
-            const isWide = mItems.length > 7;
-            const blockClass = isWide ? 'member-block wide-member-block' : 'member-block';
-            const innerHtmlContent = isWide ? `<div class="wide-inner-container">${memberInnerHtml}</div>` : memberInnerHtml;
-
             membersHtml += `
-              <div class="${blockClass}">
+              <div class="member-block">
                 <div class="member-box-card">
                   <div class="member-header-row" style="border-bottom: 2px solid #dcdfe6; padding-bottom: 6px; margin-bottom: 4px;">
                     <span>${memEmoji} ${mName}</span>
                   </div>
-                  ${innerHtmlContent}
+                  ${memberInnerHtml}
                 </div>
               </div>
             `;
