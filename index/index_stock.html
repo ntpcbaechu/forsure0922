@@ -43,6 +43,12 @@
     .stock-tag-open { background: #e8f5e9; color: #2e7d32; }
     .stock-tag-pending { background: #fdf6ec; color: #e6a23c; border: 1px solid #faebd7; }
     .stock-tag-sold { background: #f4f4f5; color: #606266; border: 1px solid #dcdfe6; }
+    
+    /* 大於 7 個活動的寬卡片排版 */
+    @media (min-width: 768px) {
+      .member-group-card.wide-card { grid-column: span 2; }
+      .member-group-card.wide-card .events-list-box { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 16px; align-items: start; }
+    }
   </style>
 </head>
 <body>
@@ -448,9 +454,15 @@
         });
 
         const headerClass = isAteez ? 'member-group-header header-ateez' : 'member-group-header';
+        
         let cardClass = 'member-group-card';
         if (sectionType === 'PENDING') cardClass += ' pending-card';
         else if (sectionType === 'SOLDOUT') cardClass += ' sold-out-card';
+
+        // 若該成員有超過 7 個商品，加上 wide-card 類別，使其橫跨兩欄
+        if (items.length > 7) {
+            cardClass += ' wide-card';
+        }
 
         const emoji = MEMBER_EMOJI_MAP[memName] || '👤';
 
