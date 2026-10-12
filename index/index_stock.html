@@ -43,11 +43,11 @@
     .stock-tag-open { background: #e8f5e9; color: #2e7d32; }
     .stock-tag-pending { background: #fdf6ec; color: #e6a23c; border: 1px solid #faebd7; }
     .stock-tag-sold { background: #f4f4f5; color: #606266; border: 1px solid #dcdfe6; }
-    
-    /* 大於 7 個活動的寬卡片排版 */
-    @media (min-width: 768px) {
-      .member-group-card.wide-card { grid-column: span 2; }
-      .member-group-card.wide-card .events-list-box { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 16px; align-items: start; }
+
+    /* 手機版接續卡片無縫疊合樣式 */
+    @media (max-width: 767px) {
+      .hide-header-mobile { display: none !important; }
+      .continued-card { margin-top: -16px; border-top: none; border-top-left-radius: 0; border-top-right-radius: 0; }
     }
   </style>
 </head>
@@ -415,64 +415,70 @@
           return (a.eventName || '').localeCompare(b.eventName || '', 'zh-TW');
         });
 
-        let eventsHtml = '';
-        items.forEach(item => {
-          let tagClass = 'stock-tag stock-tag-open';
-          let tagText = `🟢 剩餘 ${item.stockQty} 包`;
+        // 核心改動：每 7 筆切成一包，獨立生成卡片
+        const chunkSize = 7;
+        for (let i = 0; i < items.length; i += chunkSize) {
+          const chunk = items.slice(i, i + chunkSize);
+          let eventsHtml = '';
 
-          if (sectionType === 'PENDING') {
-            tagClass = 'stock-tag stock-tag-pending';
-            tagText = '🟡 交易中';
-          } else if (sectionType === 'SOLDOUT') {
-            tagClass = 'stock-tag stock-tag-sold';
-            tagText = '⚫ 已售完';
+          chunk.forEach(item => {
+            let tagClass = 'stock-tag stock-tag-open';
+            let tagText = `🟢 剩餘 ${item.stockQty} 包`;
+
+            if (sectionType === 'PENDING') {
+              tagClass = 'stock-tag stock-tag-pending';
+              tagText = '🟡 交易中';
+            } else if (sectionType === 'SOLDOUT') {
+              tagClass = 'stock-tag stock-tag-sold';
+              tagText = '⚫ 已售完';
+            }
+
+            if (sectionType === 'SOLDOUT') {
+              eventsHtml += `
+                <div class="event-item-block">
+                  <div class="event-header-row">
+                    <span>🗓️ ${item.eventName}</span>
+                    <span class="${tagClass}">${tagText}</span>
+                  </div>
+                </div>
+              `;
+            } else {
+              eventsHtml += `
+                <div class="event-item-block">
+                  <div class="event-header-row">
+                    <span>🗓️ ${item.eventName}</span>
+                    <span class="${tagClass}">${tagText}</span>
+                  </div>
+                  <div class="event-detail-row">
+                    <span>• 內容：<b>${formatSpec(item.spec)}</b>${item.note ? ` (${item.note})` : ''}</span>
+                    <span style="font-weight:bold; color:${sectionType === 'PENDING' ? '#e6a23c' : '#f56c6c'};">$${Number(item.price || 0).toLocaleString()} 元/包</span>
+                  </div>
+                </div>
+              `;
+            }
+          });
+
+          let baseHeaderClass = isAteez ? 'member-group-header header-ateez' : 'member-group-header';
+          let cardClass = 'member-group-card';
+          if (sectionType === 'PENDING') cardClass += ' pending-card';
+          else if (sectionType === 'SOLDOUT') cardClass += ' sold-out-card';
+
+          const isContinued = i > 0;
+          if (isContinued) {
+            baseHeaderClass += ' hide-header-mobile';
+            cardClass += ' continued-card';
           }
 
-          if (sectionType === 'SOLDOUT') {
-            eventsHtml += `
-              <div class="event-item-block">
-                <div class="event-header-row">
-                  <span>🗓️ ${item.eventName}</span>
-                  <span class="${tagClass}">${tagText}</span>
-                </div>
-              </div>
-            `;
-          } else {
-            eventsHtml += `
-              <div class="event-item-block">
-                <div class="event-header-row">
-                  <span>🗓️ ${item.eventName}</span>
-                  <span class="${tagClass}">${tagText}</span>
-                </div>
-                <div class="event-detail-row">
-                  <span>• 內容：<b>${formatSpec(item.spec)}</b>${item.note ? ` (${item.note})` : ''}</span>
-                  <span style="font-weight:bold; color:${sectionType === 'PENDING' ? '#e6a23c' : '#f56c6c'};">$${Number(item.price || 0).toLocaleString()} 元/包</span>
-                </div>
-              </div>
-            `;
-          }
-        });
+          const emoji = MEMBER_EMOJI_MAP[memName] || '👤';
 
-        const headerClass = isAteez ? 'member-group-header header-ateez' : 'member-group-header';
-        
-        let cardClass = 'member-group-card';
-        if (sectionType === 'PENDING') cardClass += ' pending-card';
-        else if (sectionType === 'SOLDOUT') cardClass += ' sold-out-card';
-
-        // 若該成員有超過 7 個商品，加上 wide-card 類別，使其橫跨兩欄
-        if (items.length > 7) {
-            cardClass += ' wide-card';
+          const card = document.createElement('div');
+          card.className = cardClass;
+          card.innerHTML = `
+            <div class="${baseHeaderClass}">${emoji} [${grpName}] ${memName}</div>
+            <div class="events-list-box">${eventsHtml}</div>
+          `;
+          targetContainer.appendChild(card);
         }
-
-        const emoji = MEMBER_EMOJI_MAP[memName] || '👤';
-
-        const card = document.createElement('div');
-        card.className = cardClass;
-        card.innerHTML = `
-          <div class="${headerClass}">${emoji} [${grpName}] ${memName}</div>
-          <div class="events-list-box">${eventsHtml}</div>
-        `;
-        targetContainer.appendChild(card);
       });
     }
 
